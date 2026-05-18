@@ -6,6 +6,7 @@ import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import ScrollToTop from '@/components/shared/ScrollToTop';
 import ChatBot from '@/components/shared/ChatBot';
+import AdminGuard from '@/components/shared/AdminGuard';
 import Home from '@/pages/Home';
 import Pricing from '@/pages/Pricing';
 import HowToApply from '@/pages/HowToApply';
@@ -36,7 +37,7 @@ function AppContent() {
           <Route path="/privacy" element={<Legal page="privacy" />} />
           <Route path="/refund" element={<Legal page="refund" />} />
           <Route path="/cookies" element={<Legal page="cookies" />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<AdminGuard><Dashboard /></AdminGuard>} />
           <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

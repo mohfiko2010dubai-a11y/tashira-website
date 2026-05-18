@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { UploadCloud, X, CheckCircle, User, Users, Globe, Building2, Crown, UsersRound, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { allCountries, allCountriesAr } from '@/data/countries';
+import { trpc } from '@/providers/trpc';
 import TrackApplication from './TrackApplication';
 
 type BaseType = 'single' | 'family';
@@ -179,14 +180,51 @@ export default function VisaApplicationForm() {
     }
   };
 
+  const submitApplication = trpc.application.create.useMutation({
+    onSuccess: (data) => {
+      setReferenceNumber(data.referenceNumber);
+      setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    onError: () => {
+      setLoading(false);
+      alert(isAr ? 'حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.' : 'An error occurred. Please try again.');
+    },
+  });
+
+  const [loading, setLoading] = useState(false);
+
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!termsAccepted || !step1Done || !step2Done) return;
+    setLoading(true);
     const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
-    setReferenceNumber(ref);
-    setSubmitted(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [termsAccepted, step1Done, step2Done]);
+    
+    submitApplication.mutate({
+      referenceNumber: ref,
+      baseType: baseType!,
+      residenceType: residenceType!,
+      visaType,
+      processingType,
+      contactEmail: email,
+      contactPhone: phone,
+      arrivalDate,
+      totalAmount: calculateTotal(),
+      applicants: applicants.map((a) => ({
+        fullName: a.fullName,
+        nationality: a.nationality,
+        passportNumber: a.passportNumber,
+        passportType: a.passportType,
+        travelingFrom: a.travelingFrom,
+        passportExpiry: a.passportExpiry,
+        profession: a.profession,
+        gccResidenceNumber: a.gccResidenceNumber,
+        gccResidenceCountry: a.gccResidenceCountry,
+        sponsorName: a.sponsorName,
+        sponsorRelation: a.sponsorRelation,
+      })),
+    });
+  }, [termsAccepted, step1Done, step2Done, baseType, residenceType, visaType, processingType, email, phone, arrivalDate, applicants, isAr, submitApplication]);
 
   const selectVisaFromCard = (visaValue: string) => {
     setVisaType(visaValue);
@@ -526,8 +564,8 @@ export default function VisaApplicationForm() {
           {/* Submit */}
           {step2Done && (
             <div className="mt-6 flex justify-center">
-              <button type="submit" className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all">
-                {isAr ? 'إرسال الطلب' : 'Submit Application'}
+              <button type="submit" disabled={loading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                {loading ? (isAr ? 'جاري الإرسال...' : 'Submitting...') : (isAr ? 'إرسال الطلب' : 'Submit Application')}
               </button>
             </div>
           )}
