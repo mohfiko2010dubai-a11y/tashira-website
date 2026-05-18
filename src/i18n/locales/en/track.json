@@ -1,0 +1,14 @@
+{
+  "title": "Track Your Application",
+  "subtitle": "Enter your reference number to check your application status",
+  "placeholder": "e.g., TSH-123456",
+  "button": "Track Application",
+  "result": {
+    "reference": "Reference Number",
+    "status": "Status",
+    "applicant": "Applicant",
+    "visaType": "Visa Type",
+    "submittedDate": "Submitted Date",
+    "expectedDelivery": "Expected Delivery"
+  }
+}

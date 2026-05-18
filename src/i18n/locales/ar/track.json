@@ -1,0 +1,14 @@
+{
+  "title": "تتبع طلبك",
+  "subtitle": "أدخل رقم المرجع للتحقق من حالة طلبك",
+  "placeholder": "مثال: TSH-123456",
+  "button": "تتبع الطلب",
+  "result": {
+    "reference": "رقم المرجع",
+    "status": "الحالة",
+    "applicant": "المتقدم",
+    "visaType": "نوع التأشيرة",
+    "submittedDate": "تاريخ الإرسال",
+    "expectedDelivery": "موعد التسليم المتوقع"
+  }
+}

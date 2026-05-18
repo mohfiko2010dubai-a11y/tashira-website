@@ -1,20 +1,44 @@
-import { useState } from 'react'
-import '../App.css'
+import { useEffect, useRef } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import HeroSection from '@/sections/HeroSection';
+import VisaApplicationForm from '@/sections/VisaApplicationForm';
+import CountriesSection from '@/sections/CountriesSection';
+import FAQSection from '@/sections/FAQSection';
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
-  const [count, setCount] = useState(0)
+  const countriesRef = useRef<HTMLDivElement>(null);
+  const faqRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      [countriesRef, faqRef].forEach((ref) => {
+        if (ref.current) {
+          gsap.from(ref.current, {
+            opacity: 0,
+            y: 40,
+            duration: 0.7,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: ref.current, start: 'top 85%' },
+          });
+        }
+      });
+    });
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #FAFAF7 0%, #F5F3EE 15%, #FFFFFF 30%)' }}>
+      <HeroSection />
+      <VisaApplicationForm />
+      <div ref={countriesRef}>
+        <CountriesSection />
       </div>
-    </>
-  )
+      <div ref={faqRef}>
+        <FAQSection />
+      </div>
+    </div>
+  );
 }

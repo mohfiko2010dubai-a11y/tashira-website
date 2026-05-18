@@ -1,0 +1,21 @@
+{
+  "title": "How to Apply",
+  "subtitle": "Complete your UAE visa application in 3 simple steps",
+  "steps": [
+    {
+      "number": "1",
+      "title": "Choose Visa Options",
+      "description": "Select your residency status, application type, and the suitable visa type. If you are a GCC resident, choose the GCC resident option."
+    },
+    {
+      "number": "2",
+      "title": "Fill Application Form",
+      "description": "Enter your personal details and upload the required documents such as passport copy and photo."
+    },
+    {
+      "number": "3",
+      "title": "Pay & Submit",
+      "description": "Review your application, complete secure payment, and receive your application reference."
+    }
+  ]
+}

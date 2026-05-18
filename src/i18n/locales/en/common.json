@@ -1,0 +1,61 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "e-Visa Application",
+    "pricing": "UAE Visa Prices",
+    "howToApply": "How to Apply",
+    "track": "Track Application",
+    "terms": "Terms"
+  },
+  "language": {
+    "en": "EN",
+    "ar": "عربي",
+    "switchTo": "Switch to Arabic"
+  },
+  "buttons": {
+    "continue": "Continue",
+    "back": "Back",
+    "submit": "Submit",
+    "applyNow": "Apply Now",
+    "applyExpress": "Apply Express",
+    "track": "Track",
+    "pay": "Pay",
+    "downloadPDF": "Download Application PDF",
+    "scrollToTop": "Scroll to top"
+  },
+  "footer": {
+    "description": "Leading portal for UAE electronic visa services. We provide fast-track processing and dedicated support for tourists and business travelers worldwide.",
+    "quickLinks": "Quick Links",
+    "legalCenter": "Legal Center",
+    "supportCenter": "Support Center",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy",
+    "refund": "Refund Policy",
+    "cookies": "Cookie Policy",
+    "copyright": "© 2026 TASHIRA. All Rights Reserved by Only Tourism.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email",
+    "phone": "Please enter a valid phone number",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be at most {{max}} characters",
+    "min": "Must be at least {{min}}",
+    "max": "Must be at most {{max}}",
+    "termsRequired": "You must agree to the terms and conditions"
+  },
+  "status": {
+    "submitted": "Submitted",
+    "underReview": "Under Review",
+    "approved": "Approved",
+    "issued": "Issued"
+  },
+  "processing": {
+    "regular": "Regular",
+    "express": "Express"
+  }
+}

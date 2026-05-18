@@ -1,0 +1,25 @@
+{
+  "title": "تأشيرات الإمارات والأسعار",
+  "subtitle": "اختر خدمة المعالجة العادية أو السريعة",
+  "processing": {
+    "regular": "عادي",
+    "express": "سريع"
+  },
+  "features": {
+    "processingTime": "يتم التسليم في {{time}}",
+    "validity": "صلاحية {{days}}",
+    "prioritySupport": "دعم ذو أولوية"
+  },
+  "visaTypes": {
+    "14daysSingle": "14 يوم دخول مفرد",
+    "30daysSingle": "30 يوم دخول مفرد",
+    "60daysSingle": "60 يوم دخول مفرد",
+    "90daysSingle": "90 يوم دخول مفرد",
+    "14daysMultiple": "14 يوم دخول متعدد",
+    "30daysMultiple": "30 يوم دخول متعدد",
+    "60daysMultiple": "60 يوم دخول متعدد",
+    "96hoursTransit": "تأشيرة عبور 96 ساعة"
+  },
+  "applyNow": "قدم الآن",
+  "applyExpress": "قدم السريع"
+}

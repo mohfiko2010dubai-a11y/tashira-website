@@ -1,0 +1,576 @@
+import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { UploadCloud, X, CheckCircle, User, Users, Globe, Building2, Crown, UsersRound, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { allCountries, allCountriesAr } from '@/data/countries';
+import TrackApplication from './TrackApplication';
+
+type BaseType = 'single' | 'family';
+type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';
+
+interface ApplicantData {
+  id: number;
+  fullName: string;
+  nationality: string;
+  passportNumber: string;
+  passportType: string;
+  travelingFrom: string;
+  facePhoto: UploadedFile | null;
+  passportCopy: UploadedFile | null;
+  passportCover: UploadedFile | null;
+  passportExpiry: string;
+  profession: string;
+  gccResidenceNumber: string;
+  gccResidenceCountry: string;
+  // GCC Resident files
+  gccResidenceIdFront: UploadedFile | null;
+  gccResidenceIdBack: UploadedFile | null;
+  gccResidencyPermit: UploadedFile | null;
+  // GCC Accompany / Non-GCC Accompany files
+  sponsorIdOrPassport: UploadedFile | null;
+  sponsorName: string;
+  sponsorRelation: string;
+}
+
+interface UploadedFile {
+  file: File;
+  preview: string;
+}
+
+const visaOptions = [
+  { value: '14days-single', label: '14 Days Visa', labelAr: 'تأشيرة 14 يوم', price: 165 },
+  { value: '30days-single', label: '30 Days Visa', labelAr: 'تأشيرة 30 يوم', price: 185 },
+  { value: '60days-single', label: '60 Days Visa', labelAr: 'تأشيرة 60 يوم', price: 295 },
+  { value: '96hours-transit', label: '96 Hours Transit', labelAr: 'تأشيرة عبور 96 ساعة', price: 145 },
+  { value: '30days-gcc', label: '30 Days For GCC', labelAr: '30 يوم للخليجيين', price: 185 },
+  { value: '30days-multiple', label: '30 Days Multiple', labelAr: 'تأشيرة 30 يوم متعدد', price: 285 },
+  { value: '60days-multiple', label: '60 Days Multiple', labelAr: 'تأشيرة 60 يوم متعدد', price: 385 },
+  { value: '90days-single', label: '90 Days Visa', labelAr: 'تأشيرة 90 يوم', price: 550 },
+];
+
+const passportTypes = [
+  { value: 'ordinary', label: 'Ordinary Passport', labelAr: 'جواز سفر عادي' },
+  { value: 'diplomatic', label: 'Diplomatic Passport', labelAr: 'جواز سفر دبلوماسي' },
+];
+
+const gccCountries = ['Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman', 'United Arab Emirates'];
+
+const emptyApplicant = (id: number): ApplicantData => ({
+  id,
+  fullName: '',
+  nationality: '',
+  passportNumber: '',
+  passportType: 'ordinary',
+  travelingFrom: '',
+  facePhoto: null,
+  passportCopy: null,
+  passportCover: null,
+  passportExpiry: '',
+  profession: '',
+  gccResidenceNumber: '',
+  gccResidenceCountry: '',
+  gccResidenceIdFront: null,
+  gccResidenceIdBack: null,
+  gccResidencyPermit: null,
+  sponsorIdOrPassport: null,
+  sponsorName: '',
+  sponsorRelation: '',
+});
+
+export default function VisaApplicationForm() {
+  const { i18n } = useTranslation('home');
+  const isAr = i18n.language === 'ar';
+  const [dragOver, setDragOver] = useState<string | null>(null);
+
+  const [baseType, setBaseType] = useState<BaseType | null>(null);
+  const [residenceType, setResidenceType] = useState<ResidenceType | null>(null);
+  const [numApplicants, setNumApplicants] = useState(2);
+  const [currentApplicantIdx, setCurrentApplicantIdx] = useState(0);
+
+  const [visaType, setVisaType] = useState('14days-single');
+  const [processingType, setProcessingType] = useState<'regular' | 'express'>('regular');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [arrivalDate, setArrivalDate] = useState('');
+  const [applicants, setApplicants] = useState<ApplicantData[]>([emptyApplicant(0)]);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState('');
+
+  const isGCC = residenceType === 'gcc-resident' || residenceType === 'gcc-accompany';
+  const isFamily = baseType === 'family';
+  const isAccompany = residenceType === 'gcc-accompany' || residenceType === 'non-gcc-accompany';
+
+  const step1Done = baseType !== null;
+  const step2Done = residenceType !== null;
+
+  const updateApplicant = (idx: number, field: keyof ApplicantData, value: any) => {
+    setApplicants((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleFileDrop = (e: React.DragEvent, idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id') => {
+    e.preventDefault();
+    setDragOver(null);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file, idx, type);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id') => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file, idx, type);
+  };
+
+  const getFileField = (type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id'): keyof ApplicantData => {
+    switch (type) {
+      case 'face': return 'facePhoto';
+      case 'passport': return 'passportCopy';
+      case 'cover': return 'passportCover';
+      case 'gcc-front': return 'gccResidenceIdFront';
+      case 'gcc-back': return 'gccResidenceIdBack';
+      case 'gcc-permit': return 'gccResidencyPermit';
+      case 'sponsor-id': return 'sponsorIdOrPassport';
+    }
+  };
+
+  const processFile = (file: File, idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id') => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      updateApplicant(idx, getFileField(type), { file, preview: result });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeFile = (idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id') => {
+    updateApplicant(idx, getFileField(type), null);
+  };
+
+  const handleBaseTypeChange = (type: BaseType) => {
+    setBaseType(type);
+    setResidenceType(null);
+    if (type === 'family') {
+      setNumApplicants(2);
+      setApplicants([emptyApplicant(0), emptyApplicant(1)]);
+    } else {
+      setNumApplicants(1);
+      setApplicants([emptyApplicant(0)]);
+    }
+    setCurrentApplicantIdx(0);
+  };
+
+  const addApplicant = () => {
+    if (applicants.length < 10) {
+      setApplicants((p) => [...p, emptyApplicant(p.length)]);
+      setNumApplicants((n) => n + 1);
+      setCurrentApplicantIdx(applicants.length);
+    }
+  };
+
+  const removeApplicant = (idx: number) => {
+    if (applicants.length > 2) {
+      const updated = applicants.filter((_, i) => i !== idx).map((a, i) => ({ ...a, id: i }));
+      setApplicants(updated);
+      setNumApplicants(updated.length);
+      if (currentApplicantIdx >= updated.length) setCurrentApplicantIdx(updated.length - 1);
+    }
+  };
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!termsAccepted || !step1Done || !step2Done) return;
+    const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+    setReferenceNumber(ref);
+    setSubmitted(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [termsAccepted, step1Done, step2Done]);
+
+  const selectVisaFromCard = (visaValue: string) => {
+    setVisaType(visaValue);
+    const el = document.getElementById('visa-type-field');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const selectedVisaOption = visaOptions.find((v) => v.value === visaType);
+  const app = applicants[currentApplicantIdx];
+
+  const calculateTotal = () => {
+    const visaPrice = selectedVisaOption?.price || 0;
+    const baseTotal = visaPrice * applicants.length;
+    const expressFee = processingType === 'express' ? 40 * applicants.length : 0;
+    return baseTotal + expressFee;
+  };
+
+  const renderDropZone = (idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id', file: UploadedFile | null, label: string) => (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-800">{label} <span className="text-red-500">*</span></label>
+      {!file ? (
+        <div onDragOver={(e) => { e.preventDefault(); setDragOver(`${type}-${idx}`); }} onDragLeave={() => setDragOver(null)} onDrop={(e) => handleFileDrop(e, idx, type)} onClick={() => document.getElementById(`${type}-${idx}`)?.click()} className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${dragOver === `${type}-${idx}` ? 'border-[#C9A04C] bg-[#C9A04C]/[0.03]' : 'border-gray-300 hover:border-[#DDBB7A] bg-gray-50/50'}`}>
+          <input id={`${type}-${idx}`} type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleFileSelect(e, idx, type)} className="hidden" />
+          <div className="flex flex-col items-center gap-1.5">
+            <UploadCloud size={22} className="text-gray-400" />
+            <p className="text-[10px] text-gray-500">{isAr ? 'اسحب الملف وأفلته هنا' : 'Drag & Drop Files'}<br /><span className="text-[#C9A04C]">{isAr ? 'اختر ملف للرفع' : 'Choose Files to Upload'}</span></p>
+          </div>
+        </div>
+      ) : (
+        <div className="relative rounded-xl overflow-hidden border border-gray-200">
+          <img src={file.preview} alt="" className="w-full h-20 object-cover" />
+          <button onClick={() => removeFile(idx, type)} className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"><X size={10} /></button>
+          <p className="text-[10px] text-gray-500 px-2 py-1 truncate">{file.file.name}</p>
+        </div>
+      )}
+    </div>
+  );
+
+  if (submitted) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 pb-20">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4"><CheckCircle size={40} className="text-emerald-500" /></div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{isAr ? 'تم الإرسال بنجاح!' : 'Application Submitted!'}</h2>
+          <p className="text-gray-500 mb-6">{isAr ? 'تم تقديم طلبك بنجاح.' : 'Your application has been submitted successfully.'}</p>
+          <div className="bg-gray-50 rounded-xl p-6 max-w-sm mx-auto mb-6">
+            <p className="text-sm text-gray-500 mb-2">{isAr ? 'رقم المرجع الخاص بك' : 'Your Reference Number'}</p>
+            <p className="text-3xl font-mono font-bold text-[#C9A04C]">{referenceNumber}</p>
+          </div>
+          <button onClick={() => { setSubmitted(false); setBaseType(null); setResidenceType(null); setApplicants([emptyApplicant(0)]); setTermsAccepted(false); }} className="px-8 py-3 rounded-lg font-semibold text-white bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 transition-all">{isAr ? 'تقديم طلب جديد' : 'Submit Another Application'}</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 sm:px-6 pb-20">
+      <form onSubmit={handleSubmit} className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="p-6 sm:p-8 lg:p-10">
+
+          {/* ===== STEP 1: SINGLE OR FAMILY ===== */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-xs font-bold">1</span>
+              <h3 className="text-base font-semibold text-gray-900">{isAr ? 'مين بيسافر؟' : 'Who is traveling?'}</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { key: 'single', icon: User, title: isAr ? 'متقدم واحد' : 'Single Applicant', desc: isAr ? 'أتقدم لنفسي' : 'I am applying for myself' },
+                { key: 'family', icon: Users, title: isAr ? 'طلب عائلي' : 'Family Application', desc: isAr ? 'أتقدم لعائلتي' : 'I am applying for my family' },
+              ].map((opt) => (
+                <button key={opt.key} type="button" onClick={() => handleBaseTypeChange(opt.key as BaseType)} className={`flex items-center gap-4 p-5 rounded-xl border-2 transition-all text-left ${baseType === opt.key ? 'border-[#C9A04C] bg-gradient-to-br from-[#C9A04C]/10 to-[#C9A04C]/5 shadow-sm' : 'border-gray-200 hover:border-[#DDBB7A]'}`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${baseType === opt.key ? 'bg-[#C9A04C] text-white' : 'bg-gray-100 text-gray-400'}`}><opt.icon size={24} /></div>
+                  <div><p className="font-semibold text-gray-900">{opt.title}</p><p className="text-xs text-gray-500">{opt.desc}</p></div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ===== STEP 2: RESIDENCE TYPE ===== */}
+          {step1Done && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-7 h-7 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-xs font-bold">2</span>
+                <h3 className="text-base font-semibold text-gray-900">{isAr ? 'نوع الإقامة / الحالة' : 'Residence Status'}</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { key: 'non-gcc', icon: Globe, title: isAr ? 'غير مقيم خليجي' : 'Non-GCC Resident', desc: isAr ? 'لا أملك إقامة خليجية' : 'I do not hold GCC residency' },
+                  { key: 'gcc-resident', icon: Building2, title: isAr ? 'مقيم خليجي' : 'GCC Resident', desc: isAr ? 'أملك إقامة خليجية' : 'I hold a valid GCC residency' },
+                  { key: 'non-gcc-accompany', icon: UsersRound, title: isAr ? 'مصاحب مواطن خليجي' : 'Accompanying GCC Citizen', desc: isAr ? 'غير خليجي + مسافر مع خليجي' : 'Non-GCC citizen accompanying a GCC citizen' },
+                  { key: 'gcc-accompany', icon: Crown, title: isAr ? 'مواطن خليجي بمرافق' : 'GCC Citizen with Companion', desc: isAr ? 'خليجي + مسافر مع مرافق' : 'GCC citizen traveling with a companion' },
+                ].map((opt) => (
+                  <button key={opt.key} type="button" onClick={() => setResidenceType(opt.key as ResidenceType)} className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-center ${residenceType === opt.key ? 'border-[#C9A04C] bg-gradient-to-br from-[#C9A04C]/10 to-[#C9A04C]/5 shadow-sm' : 'border-gray-200 hover:border-[#DDBB7A]'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${residenceType === opt.key ? 'bg-[#C9A04C] text-white' : 'bg-gray-100 text-gray-400'}`}><opt.icon size={20} /></div>
+                    <p className="text-sm font-semibold text-gray-900">{opt.title}</p>
+                    <p className="text-[10px] text-gray-500 leading-tight">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ===== STEP 3: FAMILY SIZE + PRICE ===== */}
+          {step2Done && isFamily && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-7 h-7 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-xs font-bold">3</span>
+                <h3 className="text-base font-semibold text-gray-900">{isAr ? 'عدد أفراد العائلة' : 'How many family members?'}</h3>
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="text-sm text-gray-600">{isAr ? 'عدد المتقدمين:' : 'Applicants:'}</label>
+                <input type="number" min={2} max={10} value={numApplicants} onChange={(e) => { const n = Math.max(2, Math.min(10, parseInt(e.target.value) || 2)); setNumApplicants(n); while (applicants.length < n) setApplicants((p) => [...p, emptyApplicant(p.length)]); while (applicants.length > n) setApplicants((p) => p.slice(0, -1)); }} className="w-20 px-3 py-2 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none text-center" />
+                <button type="button" onClick={addApplicant} disabled={applicants.length >= 10} className="flex items-center gap-1 px-3 py-2 text-sm text-[#C9A04C] border border-[#C9A04C] rounded-lg hover:bg-[#C9A04C]/5 disabled:opacity-40"><Plus size={14} /> {isAr ? 'إضافة' : 'Add'}</button>
+                <div className="ml-auto flex items-center gap-2 bg-gradient-to-r from-[#C9A04C]/10 to-[#C9A04C]/5 border border-[#C9A04C]/30 rounded-xl px-4 py-2">
+                  <span className="text-xs text-gray-500">{isAr ? 'الإجمالي:' : 'Total:'}</span>
+                  <span className="text-lg font-bold text-[#C9A04C]">${calculateTotal()}</span>
+                  <span className="text-[10px] text-gray-400">({applicants.length} {isAr ? 'شخص' : 'person'}{applicants.length > 1 ? 's' : ''})</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== APPLICANT TABS (Family) ===== */}
+          {step2Done && isFamily && applicants.length > 1 && (
+            <div className="mb-6 flex items-center gap-2 flex-wrap">
+              {applicants.map((_, idx) => (
+                <button key={idx} type="button" onClick={() => setCurrentApplicantIdx(idx)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${currentApplicantIdx === idx ? 'bg-[#C9A04C] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  <User size={14} /> {isAr ? `متقدم ${idx + 1}` : `Applicant ${idx + 1}`}
+                  {applicants.length > 2 && <span onClick={(e) => { e.stopPropagation(); removeApplicant(idx); }} className="ml-1 p-0.5 rounded-full hover:bg-white/20 cursor-pointer"><X size={10} /></span>}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ===== GCC/ACCOMPANY INFO BANNER ===== */}
+          {step2Done && isGCC && (
+            <div className="mb-6 bg-gradient-to-r from-[#C9A04C]/10 to-[#C9A04C]/5 border border-[#C9A04C]/30 rounded-xl p-4">
+              <p className="text-sm text-[#C9A04C] font-medium">
+                {residenceType === 'gcc-resident'
+                  ? (isAr ? 'أنت تقدم كـ مقيم خليجي. يرجى رفع صورة البطاقة الخليجية والتصريح أدناه.' : 'You are a GCC Resident. Please upload your GCC Residence ID and permit below.')
+                  : (isAr ? 'أنت تقدم كـ مواطن خليجي بمرافق. يرجى رفع البطاقة الخليجية والتصريح ونسخة المرافق أدناه.' : 'You are a GCC citizen traveling with a companion. Please upload GCC Residence ID, permit, and companion documents below.')
+                }
+              </p>
+            </div>
+          )}
+          {step2Done && residenceType === 'non-gcc-accompany' && (
+            <div className="mb-6 bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-500/30 rounded-xl p-4">
+              <p className="text-sm text-blue-600 font-medium">
+                {isAr ? 'أنت مسافر كمصاحب لمواطن خليجي. يرجى رفع نسخة جواز/هوية الكفيل أدناه.' : 'You are accompanying a GCC citizen. Please upload a copy of the sponsor\'s passport or GCC ID below.'}
+              </p>
+            </div>
+          )}
+
+          {/* ===== 2-COLUMN FORM ===== */}
+          {step2Done && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-5">
+              {/* LEFT COLUMN */}
+              <div className="space-y-5">
+                <div id="visa-type-field">
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'نوع التأشيرة' : 'Visa Type'} <span className="text-red-500">*</span></label>
+                  <select value={visaType} onChange={(e) => setVisaType(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] focus:ring-1 focus:ring-[#C9A04C] outline-none bg-white text-gray-800">
+                    {visaOptions.map((v) => <option key={v.value} value={v.value}>{isAr ? v.labelAr : v.label}</option>)}
+                  </select>
+                  {selectedVisaOption && <p className="text-xs text-gray-400 mt-1">{isAr ? 'السعر:' : 'Price:'} <span className="font-semibold text-[#C9A04C]">${selectedVisaOption.price}</span> {processingType === 'express' && <span className="text-gray-400">{isAr ? '(+ $40 سريع)' : '(+ $40 express)'}</span>}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'الجنسية' : 'Nationality'} <span className="text-red-500">*</span></label>
+                  <select value={app.nationality} onChange={(e) => updateApplicant(currentApplicantIdx, 'nationality', e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none bg-white text-gray-800" required>
+                    <option value="">{isAr ? 'اختر الجنسية' : 'Select Nationality'}</option>
+                    {allCountries.map((c) => <option key={c} value={c}>{isAr ? allCountriesAr[c] || c : c}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'رقم الجواز' : 'Passport Number'} <span className="text-red-500">*</span></label>
+                    <input type="text" value={app.passportNumber} onChange={(e) => updateApplicant(currentApplicantIdx, 'passportNumber', e.target.value)} placeholder={isAr ? 'أدخل الرقم' : 'Type number'} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none placeholder:text-gray-300" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'نوع الجواز' : 'Passport Type'}</label>
+                    <select value={app.passportType} onChange={(e) => updateApplicant(currentApplicantIdx, 'passportType', e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none bg-white text-gray-800">{passportTypes.map((p) => <option key={p.value} value={p.value}>{isAr ? p.labelAr : p.label}</option>)}</select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'أسافر من' : "I'm Traveling from"} <span className="text-red-500">*</span></label>
+                  <select value={app.travelingFrom} onChange={(e) => updateApplicant(currentApplicantIdx, 'travelingFrom', e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none bg-white text-gray-800" required>
+                    <option value="">{isAr ? 'اختر البلد' : 'Select Country'}</option>
+                    {allCountries.map((c) => <option key={c} value={c}>{isAr ? allCountriesAr[c] || c : c}</option>)}
+                  </select>
+                </div>
+
+                {/* GCC RESIDENT FIELDS */}
+                {isGCC && (
+                  <div className="bg-gradient-to-r from-[#C9A04C]/5 to-[#C9A04C]/[0.02] border border-[#C9A04C]/20 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-semibold text-[#C9A04C] flex items-center gap-2"><Building2 size={14} /> {residenceType === 'gcc-resident' ? (isAr ? 'بيانات الإقامة الخليجية' : 'GCC Residence Details') : (isAr ? 'بيانات الكفيل / المرافق' : 'Sponsor / Accompany Details')}</p>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">{residenceType === 'gcc-resident' ? (isAr ? 'رقم الإقامة' : 'Residence Number') : (isAr ? 'رقم إقامة الكفيل' : 'Sponsor Residence Number')} <span className="text-red-500">*</span></label>
+                      <input type="text" value={app.gccResidenceNumber} onChange={(e) => updateApplicant(currentApplicantIdx, 'gccResidenceNumber', e.target.value)} placeholder={isAr ? 'أدخل الرقم' : 'Enter number'} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none placeholder:text-gray-300" required={isGCC} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">{isAr ? 'بلد الإقامة' : 'Residence Country'} <span className="text-red-500">*</span></label>
+                      <select value={app.gccResidenceCountry} onChange={(e) => updateApplicant(currentApplicantIdx, 'gccResidenceCountry', e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none bg-white text-gray-800" required={isGCC}>
+                        <option value="">{isAr ? 'اختر البلد' : 'Select Country'}</option>
+                        {gccCountries.map((c) => <option key={c} value={c}>{isAr ? allCountriesAr[c] || c : c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* ACCOMPANY FIELDS (Non-GCC or GCC) */}
+                {isAccompany && (
+                  <div className="bg-gradient-to-r from-blue-500/5 to-blue-500/[0.02] border border-blue-500/20 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-semibold text-blue-600 flex items-center gap-2"><UsersRound size={14} /> {isAr ? 'بيانات الكفيل (المواطن الخليجي)' : 'Sponsor Information (GCC Citizen)'}</p>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">{isAr ? 'اسم الكفيل' : 'Sponsor Name'} <span className="text-red-500">*</span></label>
+                      <input type="text" value={app.sponsorName} onChange={(e) => updateApplicant(currentApplicantIdx, 'sponsorName', e.target.value)} placeholder={isAr ? 'الاسم الكامل للكفيل' : 'Full name of sponsor'} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 outline-none placeholder:text-gray-300" required={isAccompany} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-800 mb-1">{isAr ? 'صلة القرابة' : 'Relationship'} <span className="text-red-500">*</span></label>
+                      <select value={app.sponsorRelation} onChange={(e) => updateApplicant(currentApplicantIdx, 'sponsorRelation', e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-blue-500 outline-none bg-white text-gray-800" required={isAccompany}>
+                        <option value="">{isAr ? 'اختر' : 'Select'}</option>
+                        <option value="spouse">{isAr ? 'زوج/زوجة' : 'Spouse'}</option>
+                        <option value="parent">{isAr ? 'والد/والدة' : 'Parent'}</option>
+                        <option value="child">{isAr ? 'ابن/ابنة' : 'Child'}</option>
+                        <option value="sibling">{isAr ? 'أخ/أخت' : 'Sibling'}</option>
+                        <option value="other">{isAr ? 'أخرى' : 'Other'}</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'الاسم الكامل' : 'Full Name'} <span className="text-red-500">*</span></label>
+                  <input type="text" value={app.fullName} onChange={(e) => updateApplicant(currentApplicantIdx, 'fullName', e.target.value)} placeholder={isAr ? 'كما في الجواز' : 'As in passport'} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none placeholder:text-gray-300" required />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'البريد الإلكتروني' : 'Email Address'} {isFamily && <span className="text-xs text-gray-400 font-normal">({isAr ? 'مشترك' : 'shared'})</span>} <span className="text-red-500">*</span></label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@domain.com" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none placeholder:text-gray-300" required />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'رقم الهاتف / واتساب' : 'Phone / WhatsApp'} {isFamily && <span className="text-xs text-gray-400 font-normal">({isAr ? 'مشترك' : 'shared'})</span>} <span className="text-red-500">*</span></label>
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 50 123 4567" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none placeholder:text-gray-300" required />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'تاريخ الوصول' : 'Arrival Date'} {isFamily && <span className="text-xs text-gray-400 font-normal">({isAr ? 'مشترك' : 'shared'})</span>} <span className="text-red-500">*</span></label>
+                  <input type="date" value={arrivalDate} onChange={(e) => setArrivalDate(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none text-gray-800" required />
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN - FILES */}
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-gray-900">{isAr ? 'المرفقات' : 'Attach Files'}</h3>
+                  {isFamily && <span className="text-xs text-[#C9A04C] font-medium bg-[#C9A04C]/10 px-2.5 py-1 rounded-full">{isAr ? `متقدم ${currentApplicantIdx + 1} من ${applicants.length}` : `Applicant ${currentApplicantIdx + 1} of ${applicants.length}`}</span>}
+                </div>
+
+                {/* Standard Files */}
+                <div className="grid grid-cols-3 gap-3">
+                  {renderDropZone(currentApplicantIdx, 'face', app.facePhoto, isAr ? 'صورة شخصية' : 'Face Photo')}
+                  {renderDropZone(currentApplicantIdx, 'passport', app.passportCopy, isAr ? 'نسخة الجواز' : 'Passport Copy')}
+                  {renderDropZone(currentApplicantIdx, 'cover', app.passportCover, isAr ? 'غلاف الجواز' : 'Passport Cover')}
+                </div>
+
+                {/* GCC RESIDENT: Residence ID Front + Back + Residency Permit */}
+                {isGCC && (
+                  <div className="bg-[#C9A04C]/[0.03] border border-[#C9A04C]/15 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-semibold text-[#C9A04C]">{isAr ? 'ملفات الإقامة الخليجية' : 'GCC Residence ID & Permit'}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {renderDropZone(currentApplicantIdx, 'gcc-front', app.gccResidenceIdFront, isAr ? 'بطاقة الإقامة (أمام)' : 'Residence ID Front')}
+                      {renderDropZone(currentApplicantIdx, 'gcc-back', app.gccResidenceIdBack, isAr ? 'بطاقة الإقامة (خلف)' : 'Residence ID Back')}
+                    </div>
+                    {renderDropZone(currentApplicantIdx, 'gcc-permit', app.gccResidencyPermit, isAr ? 'تصريح الإقامة' : 'Copy of Residency Permit')}
+                  </div>
+                )}
+
+                {/* GCC ACCOMPANY: Same GCC files + Sponsor's ID */}
+                {residenceType === 'gcc-accompany' && (
+                  <div className="bg-blue-500/[0.03] border border-blue-500/15 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-semibold text-blue-600">{isAr ? 'ملفات الكفيل' : "Sponsor's ID or Passport"}</p>
+                    {renderDropZone(currentApplicantIdx, 'sponsor-id', app.sponsorIdOrPassport, isAr ? 'نسخة جواز/هوية الكفيل' : "A copy of the sponsor's ID or passport")}
+                  </div>
+                )}
+
+                {/* NON-GCC ACCOMPANY: Sponsor's ID only */}
+                {residenceType === 'non-gcc-accompany' && (
+                  <div className="bg-blue-500/[0.03] border border-blue-500/15 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-semibold text-blue-600">{isAr ? 'ملفات الكفيل (المواطن الخليجي)' : "Sponsor's Passport or GCC ID"}</p>
+                    {renderDropZone(currentApplicantIdx, 'sponsor-id', app.sponsorIdOrPassport, isAr ? 'نسخة جواز/هوية الكفيل' : "A copy of the sponsor's ID or passport")}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'تاريخ انتهاء الجواز' : 'Passport Expiry'} <span className="text-red-500">*</span></label>
+                  <input type="date" value={app.passportExpiry} onChange={(e) => updateApplicant(currentApplicantIdx, 'passportExpiry', e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none text-gray-800" required />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'المهنة' : 'Profession'} <span className="text-red-500">*</span></label>
+                  <input type="text" value={app.profession} onChange={(e) => updateApplicant(currentApplicantIdx, 'profession', e.target.value)} placeholder={isAr ? 'مثال: مهندس' : 'e.g. Engineer'} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] outline-none placeholder:text-gray-300" required />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'نوع المعالجة' : 'Processing Type'} <span className="text-red-500">*</span></label>
+                  <div className="flex gap-6 py-2">
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="regular" checked={processingType === 'regular'} onChange={() => setProcessingType('regular')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'عادي (3-4 أيام)' : 'Regular (3~4 days)'}</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="express" checked={processingType === 'express'} onChange={() => setProcessingType('express')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'سريع (+$40)' : 'Express (+$40)'}</span></label>
+                  </div>
+                </div>
+
+                {isFamily && applicants.length > 1 && (
+                  <div className="flex items-center justify-between pt-2">
+                    <button type="button" onClick={() => setCurrentApplicantIdx(Math.max(0, currentApplicantIdx - 1))} disabled={currentApplicantIdx === 0} className="flex items-center gap-1 px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:border-[#C9A04C] hover:text-[#C9A04C] disabled:opacity-30"><ChevronLeft size={14} /> {isAr ? 'السابق' : 'Prev'}</button>
+                    <span className="text-sm text-gray-500">{currentApplicantIdx + 1} / {applicants.length}</span>
+                    <button type="button" onClick={() => setCurrentApplicantIdx(Math.min(applicants.length - 1, currentApplicantIdx + 1))} disabled={currentApplicantIdx === applicants.length - 1} className="flex items-center gap-1 px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:border-[#C9A04C] hover:text-[#C9A04C] disabled:opacity-30">{isAr ? 'التالي' : 'Next'} <ChevronRight size={14} /></button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Terms */}
+          {step2Done && (
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 text-[#C9A04C] border-gray-300 rounded" required />
+                <span className="text-sm text-gray-600">{isAr ? 'لقد قرأت وأوافق على ' : 'I have read and agree to the '}<Link to="/terms" className="text-[#C9A04C] hover:underline">{isAr ? 'الشروط والأحكام' : 'Terms and Conditions'}</Link>. <span className="text-red-500">*</span></span>
+              </label>
+            </div>
+          )}
+
+          {/* Submit */}
+          {step2Done && (
+            <div className="mt-6 flex justify-center">
+              <button type="submit" className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all">
+                {isAr ? 'إرسال الطلب' : 'Submit Application'}
+              </button>
+            </div>
+          )}
+        </div>
+      </form>
+
+      {/* Pricing Cards */}
+      <div className="max-w-5xl mx-auto mt-10">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">{isAr ? 'أسعار التأشيرات' : 'UAE Visa Prices'}</h3>
+              <p className="text-sm text-gray-500 mt-1">{isAr ? 'اختر تأشيرة وانقر عليها لملء النموذج' : 'Select a visa and click to auto-fill the form'}</p>
+            </div>
+            <div className="flex bg-gray-100 rounded-full p-1">
+              <button onClick={() => setProcessingType('regular')} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${processingType === 'regular' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>{isAr ? 'عادي' : 'Regular'}</button>
+              <button onClick={() => setProcessingType('express')} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${processingType === 'express' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>{isAr ? 'سريع' : 'Express'}</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {visaOptions.map((visa) => {
+              const price = visa.price;
+              const finalPrice = processingType === 'express' ? price + 40 : price;
+              const isSelected = visaType === visa.value;
+              return (
+                <button key={visa.value} type="button" onClick={() => selectVisaFromCard(visa.value)} className={`relative p-4 rounded-xl border-2 transition-all text-left hover:-translate-y-1 ${isSelected ? 'border-[#C9A04C] bg-gradient-to-br from-[#C9A04C]/10 to-[#C9A04C]/5 shadow-md' : 'border-gray-200 hover:border-[#DDBB7A]'}`}>
+                  {isSelected && <span className="absolute top-2 right-2 w-5 h-5 bg-[#C9A04C] text-white rounded-full flex items-center justify-center text-xs">✓</span>}
+                  {processingType === 'express' && <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">EXPRESS</span>}
+                  <p className="text-sm font-semibold text-gray-900 mt-3">{isAr ? visa.labelAr : visa.label}</p>
+                  <p className="text-2xl font-bold text-[#C9A04C] mt-2">${finalPrice}</p>
+                  {processingType === 'express' && <p className="text-[10px] text-gray-400 line-through">${price}</p>}
+                  <p className="text-[11px] text-gray-500 mt-1">{processingType === 'express' ? '24~36 hrs' : '3~4 days'}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Track */}
+      <div className="max-w-5xl mx-auto mt-10">
+        <TrackApplication />
+      </div>
+    </div>
+  );
+}

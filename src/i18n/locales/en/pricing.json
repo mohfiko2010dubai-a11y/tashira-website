@@ -1,0 +1,25 @@
+{
+  "title": "UAE Visas & Prices",
+  "subtitle": "Choose Regular or Express processing service",
+  "processing": {
+    "regular": "Regular",
+    "express": "Express"
+  },
+  "features": {
+    "processingTime": "Delivered in {{time}}",
+    "validity": "{{days}} validity",
+    "prioritySupport": "Priority support"
+  },
+  "visaTypes": {
+    "14daysSingle": "14 Days Single Entry",
+    "30daysSingle": "30 Days Single Entry",
+    "60daysSingle": "60 Days Single Entry",
+    "90daysSingle": "90 Days Single Entry",
+    "14daysMultiple": "14 Days Multiple Entry",
+    "30daysMultiple": "30 Days Multiple Entry",
+    "60daysMultiple": "60 Days Multiple Entry",
+    "96hoursTransit": "96 Hours Transit Visa"
+  },
+  "applyNow": "Apply Now",
+  "applyExpress": "Apply Express"
+}
