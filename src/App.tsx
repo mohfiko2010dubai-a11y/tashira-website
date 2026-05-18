@@ -10,6 +10,8 @@ import Pricing from '@/pages/Pricing';
 import HowToApply from '@/pages/HowToApply';
 import Track from '@/pages/Track';
 import Legal from '@/pages/Legal';
+import Login from "./pages/Login"
+import NotFound from "./pages/NotFound"
 
 function AppContent() {
   const { i18n } = useTranslation();
@@ -32,6 +34,8 @@ function AppContent() {
           <Route path="/privacy" element={<Legal page="privacy" />} />
           <Route path="/refund" element={<Legal page="refund" />} />
           <Route path="/cookies" element={<Legal page="cookies" />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
