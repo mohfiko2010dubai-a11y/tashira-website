@@ -1,14 +1,18 @@
 import { authRouter } from "./auth-router";
-import { createRouter, publicQuery } from "./middleware";
+import { applicationRouter } from "./application-router";
+import { paymentRouter } from "./payment-router";
+import { chatRouter } from "./chat-router";
+import { createRouter } from "./middleware";
 
+/**
+ * App router — aggregates all tRPC sub-routers.
+ */
 export const appRouter = createRouter({
-  ping: publicQuery.query(() => ({ ok: true, ts: Date.now() })),
   auth: authRouter,
-
-  // TODO: add feature routers here, e.g.
-  // todo: createRouter({
-  //   list: publicQuery.query(() => findTodos()),
-  // }),
+  application: applicationRouter,
+  payment: paymentRouter,
+  chat: chatRouter,
 });
 
+// Export the type for tRPC client inference.
 export type AppRouter = typeof appRouter;

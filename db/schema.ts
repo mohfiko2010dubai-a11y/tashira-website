@@ -5,9 +5,13 @@ import {
   varchar,
   text,
   timestamp,
-  // bigint,
+  int,
+  decimal,
+  json,
+  bigint,
 } from "drizzle-orm/mysql-core";
 
+// ===== USERS (OAuth auth) =====
 export const users = mysqlTable("users", {
   id: serial("id").primaryKey(),
   unionId: varchar("unionId", { length: 255 }).notNull().unique(),
@@ -26,15 +30,97 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here. See docs/Database.md for schema examples and patterns.
-//
-// Example:
-// export const posts = mysqlTable("posts", {
-//   id: serial("id").primaryKey(),
-//   title: varchar("title", { length: 255 }).notNull(),
-//   content: text("content"),
-//   createdAt: timestamp("created_at").notNull().defaultNow(),
-// });
-//
-// Note: FK columns referencing a serial() PK must use:
-//   bigint("columnName", { mode: "number", unsigned: true }).notNull()
+// ===== APPLICATIONS =====
+export const applications = mysqlTable("applications", {
+  id: serial("id").primaryKey(),
+  referenceNumber: varchar("reference_number", { length: 20 }).notNull().unique(),
+  baseType: mysqlEnum("base_type", ["single", "family"]).notNull(),
+  residenceType: mysqlEnum("residence_type", ["non-gcc", "gcc-resident", "non-gcc-accompany", "gcc-accompany"]).notNull(),
+  visaType: varchar("visa_type", { length: 50 }).notNull(),
+  processingType: mysqlEnum("processing_type", ["regular", "express"]).default("regular").notNull(),
+  // Shared contact
+  contactEmail: varchar("contact_email", { length: 320 }).notNull(),
+  contactPhone: varchar("contact_phone", { length: 50 }).notNull(),
+  arrivalDate: varchar("arrival_date", { length: 20 }),
+  // Pricing
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  // Status
+  status: mysqlEnum("status", ["submitted", "under_review", "approved", "issued", "rejected"]).default("submitted").notNull(),
+  // Payment
+  paymentStatus: mysqlEnum("payment_status", ["pending", "paid", "failed"]).default("pending").notNull(),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 100 }),
+  // Metadata
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+export type Application = typeof applications.$inferSelect;
+export type InsertApplication = typeof applications.$inferInsert;
+
+// ===== APPLICANTS =====
+export const applicants = mysqlTable("applicants", {
+  id: serial("id").primaryKey(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
+  applicantIndex: int("applicant_index").notNull(), // 0, 1, 2...
+  fullName: varchar("full_name", { length: 255 }).notNull(),
+  nationality: varchar("nationality", { length: 100 }),
+  passportNumber: varchar("passport_number", { length: 100 }),
+  passportType: varchar("passport_type", { length: 50 }),
+  travelingFrom: varchar("traveling_from", { length: 100 }),
+  passportExpiry: varchar("passport_expiry", { length: 20 }),
+  profession: varchar("profession", { length: 100 }),
+  // GCC fields
+  gccResidenceNumber: varchar("gcc_residence_number", { length: 100 }),
+  gccResidenceCountry: varchar("gcc_residence_country", { length: 100 }),
+  // Accompany fields
+  sponsorName: varchar("sponsor_name", { length: 255 }),
+  sponsorRelation: varchar("sponsor_relation", { length: 50 }),
+  // File URLs (stored as JSON array)
+  fileUrls: json("file_urls"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Applicant = typeof applicants.$inferSelect;
+export type InsertApplicant = typeof applicants.$inferInsert;
+
+// ===== PAYMENTS =====
+export const payments = mysqlTable("payments", {
+  id: serial("id").primaryKey(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 100 }).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 10 }).default("usd").notNull(),
+  status: mysqlEnum("status", ["pending", "succeeded", "failed"]).default("pending").notNull(),
+  cardLast4: varchar("card_last4", { length: 4 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = typeof payments.$inferInsert;
+
+// ===== INVOICES =====
+export const invoices = mysqlTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
+  paymentId: bigint("payment_id", { mode: "number", unsigned: true }).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: mysqlEnum("status", ["generated", "sent", "viewed"]).default("generated").notNull(),
+  pdfUrl: text("pdf_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = typeof invoices.$inferInsert;
+
+// ===== CHAT MESSAGES (AI Chatbot) =====
+export const chatMessages = mysqlTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("session_id", { length: 64 }).notNull(),
+  role: mysqlEnum("role", ["user", "assistant"]).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;

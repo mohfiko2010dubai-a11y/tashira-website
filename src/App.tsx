@@ -1,17 +1,19 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import './i18n';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import ScrollToTop from '@/components/shared/ScrollToTop';
+import ChatBot from '@/components/shared/ChatBot';
 import Home from '@/pages/Home';
 import Pricing from '@/pages/Pricing';
 import HowToApply from '@/pages/HowToApply';
 import Track from '@/pages/Track';
 import Legal from '@/pages/Legal';
-import Login from "./pages/Login"
-import NotFound from "./pages/NotFound"
+import Dashboard from '@/pages/Dashboard';
+import Login from './pages/Login';
+import NotFound from './pages/NotFound';
 
 function AppContent() {
   const { i18n } = useTranslation();
@@ -34,22 +36,16 @@ function AppContent() {
           <Route path="/privacy" element={<Legal page="privacy" />} />
           <Route path="/refund" element={<Legal page="refund" />} />
           <Route path="/cookies" element={<Legal page="cookies" />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <Footer />
       <ScrollToTop />
+      <ChatBot />
     </div>
   );
 }
 
-function App() {
-  return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
-  );
-}
-
-export default App;
+export default AppContent;
