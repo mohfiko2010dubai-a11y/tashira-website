@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Permohonan e-Visa",
+    "pricing": "Visa UAE",
+    "saudiVisa": "Visa Arab Saudi",
+    "travelDeals": "Tawaran Pelancongan",
+    "howToApply": "Cara Memohon",
+    "track": "Jejaki Permohonan",
+    "terms": "Terma"
+  },
+  "buttons": {
+    "continue": "Teruskan",
+    "back": "Kembali",
+    "submit": "Hantar",
+    "applyNow": "Mohon Sekarang",
+    "applyExpress": "Ekspres",
+    "track": "Jejaki",
+    "pay": "Bayar",
+    "downloadPDF": "Muat Turun PDF"
+  },
+  "footer": {
+    "description": "Portal terkemuka untuk perkhidmatan visa elektronik UAE. Pemprosesan pantas dan sokongan global.",
+    "quickLinks": "Pautan Pantas",
+    "legalCenter": "Pusat Undang-undang",
+    "terms": "Terma & Syarat",
+    "privacy": "Dasar Privasi",
+    "refund": "Dasar Pemulangan",
+    "cookies": "Dasar Kuki",
+    "copyright": "© 2026 TASHIRA. Hak Cipta Terpelihara.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Bidang ini wajib diisi",
+    "email": "Sila masukkan emel yang sah",
+    "phone": "Sila masukkan telefon yang sah",
+    "termsRequired": "Anda mesti bersetuju dengan terma"
+  },
+  "status": {
+    "submitted": "Dihantar",
+    "underReview": "Dalam Semakan",
+    "approved": "Diluluskan",
+    "issued": "Dikeluarkan"
+  },
+  "processing": {
+    "regular": "Biasa",
+    "express": "Ekspres"
+  }
+}

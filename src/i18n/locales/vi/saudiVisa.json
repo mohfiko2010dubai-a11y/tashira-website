@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Dịch vụ thị thực Ả Rập Saudi",
+    "title": "Thị thực Ả Rập Saudi",
+    "subtitle": "Du lịch, Umrah, Thăm gia đình, Kinh doanh — Nhận thị thực Saudi của bạn nhanh chóng và dễ dàng",
+    "reqPassport": "Hộ chiếu hợp lệ (6+ tháng)",
+    "reqPhoto": "Ảnh mặt (nền trắng)",
+    "reqFlight": "Đặt vé máy bay",
+    "reqHotel": "Đặt phòng khách sạn",
+    "reqVaccine": "Giấy chứng nhận tiêm chủng"
+  },
+  "chooseTitle": "Chọn loại thị thực",
+  "chooseSubtitle": "Tất cả giá đã bao gồm phí thị thực và phí dịch vụ",
+  "save": "Tiết kiệm",
+  "moreDetails": "Chi tiết",
+  "less": "Ít hơn",
+  "validityLabel": "Hiệu lực",
+  "stayLabel": "Thờigian lưu trú",
+  "entryLabel": "Loại nhập cảnh",
+  "popular": "PHỔ BIẾN NHẤT",
+  "processingTime": "Thờigian xử lý",
+  "bookWhatsApp": "Đặt qua WhatsApp",
+  "inquiryMessage": "Xin chào, tôi muốn hỏi về thị thực {visaName} cho Ả Rập Saudi",
+  "documents": {
+    "title": "Tài liệu cần thiết",
+    "passport": "Bản sao hộ chiếu (còn hiệu lực 6+ tháng)",
+    "photo": "Ảnh cá nhân (nền trắng)",
+    "flight": "Đặt vé máy bay",
+    "hotel": "Đặt phòng khách sạn",
+    "vaccine": "Giấy chứng nhận tiêm chủng (nếu cần)",
+    "id": "Bản sao CMND",
+    "bank": "Sao kê ngân hàng (3 tháng gần nhất)",
+    "sponsor": "Thư bảo trợ (thị thực thăm)"
+  },
+  "ctaBanner": {
+    "title": "Sẵn sàng thăm Ả Rập Saudi?",
+    "subtitle": "Liên hệ với chúng tôi ngay qua WhatsApp và chúng tôi sẽ bắt đầu quy trình thị thực của bạn ngay lập tức",
+    "button": "Liên hệ qua WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "Thị thực du lịch 30 ngày",
+      "features": []
+    },
+    "umrah": {
+      "name": "Thị thực Umrah",
+      "features": []
+    },
+    "visit90": {
+      "name": "Thăm gia đình 90 ngày",
+      "features": []
+    },
+    "transit96": {
+      "name": "Quá cảnh 96 giờ",
+      "features": []
+    },
+    "business30": {
+      "name": "Thị thực kinh doanh 30 ngày",
+      "features": []
+    },
+    "premium365": {
+      "name": "Nhiều lần 1 năm",
+      "features": []
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "בקשת e-Visa",
+    "pricing": "ויזה לאמירויות",
+    "saudiVisa": "ויזה לסעודיה",
+    "travelDeals": "דילים לנסיעות",
+    "howToApply": "איך להגיש",
+    "track": "מעקב בקשה",
+    "terms": "תנאים"
+  },
+  "buttons": {
+    "continue": "המשך",
+    "back": "חזרה",
+    "submit": "שלח",
+    "applyNow": "הגש בקשה עכשיו",
+    "applyExpress": "אקספרס",
+    "track": "עקוב",
+    "pay": "שלם",
+    "downloadPDF": "הורד PDF"
+  },
+  "footer": {
+    "description": "פורטל מוביל לשירותי ויזה אלקטרונית לאמירויות. עיבוד מהיר ותמיכה גלובלית.",
+    "quickLinks": "קישורים מהירים",
+    "legalCenter": "מרכז משפטי",
+    "terms": "תנאים והגבלות",
+    "privacy": "מדיניות פרטיות",
+    "refund": "מדיניות החזרים",
+    "cookies": "מדיניות עוגיות",
+    "copyright": "© 2026 TASHIRA. כל הזכויות שמורות.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "שדה חובה",
+    "email": "אנא הזן אימייל תקין",
+    "phone": "אנא הזן טלפון תקין",
+    "termsRequired": "עליך להסכים לתנאים"
+  },
+  "status": {
+    "submitted": "נשלח",
+    "underReview": "בבדיקה",
+    "approved": "אושר",
+    "issued": "הונפק"
+  },
+  "processing": {
+    "regular": "רגיל",
+    "express": "אקספרס"
+  }
+}

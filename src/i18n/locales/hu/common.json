@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "e-Visa Kérelem",
+    "pricing": "UAE Vízumok",
+    "saudiVisa": "Szaúd-Arábia Vízum",
+    "travelDeals": "Utazási Ajánlatok",
+    "howToApply": "Hogyan Jelentkezzen",
+    "track": "Kérelem Nyomon Követése",
+    "terms": "Feltételek"
+  },
+  "buttons": {
+    "continue": "Folytatás",
+    "back": "Vissza",
+    "submit": "Beküldés",
+    "applyNow": "Jelentkezés Most",
+    "applyExpress": "Expressz",
+    "track": "Követés",
+    "pay": "Fizetés",
+    "downloadPDF": "PDF Letöltése"
+  },
+  "footer": {
+    "description": "Piacevezető portál az EAE elektronikus vízumszolgáltatásaihoz. Gyors feldolgozás és globális támogatás.",
+    "quickLinks": "Gyors Linkek",
+    "legalCenter": "Jogi Központ",
+    "terms": "Általános Szerződési Feltételek",
+    "privacy": "Adatvédelmi Irányelvek",
+    "refund": "Visszatérítési Szabályzat",
+    "cookies": "Cookie Szabályzat",
+    "copyright": "© 2026 TASHIRA. Minden jog fenntartva.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Ez a mező kötelező",
+    "email": "Kérjük, érvényes emailt adjon meg",
+    "phone": "Kérjük, érvényes telefonszámot adjon meg",
+    "termsRequired": "El kell fogadnia a feltételeket"
+  },
+  "status": {
+    "submitted": "Beküldve",
+    "underReview": "Ellenőrzés Alatt",
+    "approved": "Jóváhagyva",
+    "issued": "Kiállítva"
+  },
+  "processing": {
+    "regular": "Normál",
+    "express": "Expressz"
+  }
+}

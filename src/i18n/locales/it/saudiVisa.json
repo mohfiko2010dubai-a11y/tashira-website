@@ -1,0 +1,96 @@
+{
+  "hero": {
+    "badge": "Servizi Visto Arabia Saudita",
+    "title": "Visti Arabia Saudita",
+    "subtitle": "Turismo, Umrah, Visita Familiare, Affari — Ottieni il tuo visto saudita veloce e facile",
+    "reqPassport": "Passaporto valido (6+ mesi)",
+    "reqPhoto": "Foto facciale (sfondo bianco)",
+    "reqFlight": "Prenotazione volo",
+    "reqHotel": "Prenotazione hotel",
+    "reqVaccine": "Certificato vaccinazione"
+  },
+  "chooseTitle": "Scegli il Tuo Tipo di Visto",
+  "chooseSubtitle": "Tutti i prezzi includono tasse visto e servizio",
+  "save": "Risparmia",
+  "moreDetails": "Più dettagli",
+  "less": "Meno",
+  "validityLabel": "Validità",
+  "stayLabel": "Durata soggiorno",
+  "entryLabel": "Tipo ingresso",
+  "popular": "PIÙ POPOLARE",
+  "processingTime": "Elaborazione",
+  "bookWhatsApp": "Prenota via WhatsApp",
+  "inquiryMessage": "Ciao, vorrei informazioni sul visto {visaName} per l'Arabia Saudita",
+  "documents": {
+    "title": "Documenti Richiesti",
+    "passport": "Copia passaporto (valido 6+ mesi)",
+    "photo": "Foto personale (sfondo bianco)",
+    "flight": "Prenotazione volo",
+    "hotel": "Prenotazione hotel",
+    "vaccine": "Certificato vaccinazione (se richiesto)",
+    "id": "Copia carta d'identità",
+    "bank": "Estratto conto (ultimi 3 mesi)",
+    "sponsor": "Lettera sponsor (visto visita)"
+  },
+  "ctaBanner": {
+    "title": "Pronto per visitare l'Arabia Saudita?",
+    "subtitle": "Contattaci ora via WhatsApp e avvieremo immediatamente la tua pratica visto",
+    "button": "Contatto via WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "Visto Turistico 30 Giorni",
+      "features": [
+        "Consegna e-visto",
+        "Turismo permesso",
+        "Prenotazioni hotel incluse",
+        "90 giorni validità da emissione"
+      ]
+    },
+    "umrah": {
+      "name": "Visto Umrah",
+      "features": [
+        "Permesso Umrah incluso",
+        "Accesso alla Mecca e Medina",
+        "Pacchetti hotel disponibili",
+        "Trasporto terrestre opzionale"
+      ]
+    },
+    "visit90": {
+      "name": "Visita Familiare 90 Giorni",
+      "features": [
+        "Visita familiare",
+        "Prorogabile in AS",
+        "Elaborazione lettera sponsor",
+        "Assicurazione medica inclusa"
+      ]
+    },
+    "transit96": {
+      "name": "Transito 96 Ore",
+      "features": [
+        "Visto scalo breve",
+        "Trasferimento aeroporto-hotel",
+        "Elaborazione rapida",
+        "Opzione multi-ingresso disponibile"
+      ]
+    },
+    "business30": {
+      "name": "Visto Affari 30 Giorni",
+      "features": [
+        "Riunioni di affari permesse",
+        "Partecipazione conferenze",
+        "Elaborazione lettera invito",
+        "Opzione VIP fast-track"
+      ]
+    },
+    "premium365": {
+      "name": "Multi-Ingresso 1 Anno",
+      "features": [
+        "Ingressi illimitati",
+        "90 giorni per soggiorno",
+        "Turismo e affari",
+        "Elaborazione prioritaria"
+      ]
+    }
+  }
+}

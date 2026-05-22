@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Đơn xin e-Visa",
+    "pricing": "Thị thực UAE",
+    "saudiVisa": "Thị thực Ả Rập Saudi",
+    "travelDeals": "Ưu đãi du lịch",
+    "howToApply": "Cách nộp đơn",
+    "track": "Theo dõi đơn",
+    "terms": "Điều khoản"
+  },
+  "buttons": {
+    "continue": "Tiếp tục",
+    "back": "Quay lại",
+    "submit": "Gửi",
+    "applyNow": "Nộp đơn",
+    "applyExpress": "Nhanh",
+    "track": "Theo dõi",
+    "pay": "Thanh toán",
+    "downloadPDF": "Tải PDF"
+  },
+  "footer": {
+    "description": "Cổng thông tin hàng đầu cho dịch vụ thị thực điện tử UAE. Xử lý nhanh và hỗ trợ toàn cầu.",
+    "quickLinks": "Liên kết nhanh",
+    "legalCenter": "Trung tâm pháp lý",
+    "terms": "Điều khoản & Điều kiện",
+    "privacy": "Chính sách bảo mật",
+    "refund": "Chính sách hoàn tiền",
+    "cookies": "Chính sách Cookie",
+    "copyright": "© 2026 TASHIRA. Đã đăng ký bản quyền.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Trường này là bắt buộc",
+    "email": "Vui lòng nhập email hợp lệ",
+    "phone": "Vui lòng nhập số điện thoại hợp lệ",
+    "termsRequired": "Bạn phải đồng ý với các điều khoản"
+  },
+  "status": {
+    "submitted": "Đã gửi",
+    "underReview": "Đang xem xét",
+    "approved": "Đã phê duyệt",
+    "issued": "Đã cấp"
+  },
+  "processing": {
+    "regular": "Thường",
+    "express": "Nhanh"
+  }
+}

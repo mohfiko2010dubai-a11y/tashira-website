@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Aplikasyon sa e-Visa",
+    "pricing": "UAE Visa",
+    "saudiVisa": "Visa sa Saudi Arabia",
+    "travelDeals": "Mga Deal sa Paglalakbay",
+    "howToApply": "Paano Mag-apply",
+    "track": "Subaybayan ang Aplikasyon",
+    "terms": "Mga Tuntunin"
+  },
+  "buttons": {
+    "continue": "Magpatuloy",
+    "back": "Bumalik",
+    "submit": "Isumite",
+    "applyNow": "Mag-apply Ngayon",
+    "applyExpress": "Express",
+    "track": "Subaybayan",
+    "pay": "Magbayad",
+    "downloadPDF": "I-download ang PDF"
+  },
+  "footer": {
+    "description": "Nangungunang portal para sa mga serbisyo ng electronic visa ng UAE. Mabilis na pagproseso at pandaigdigang suporta.",
+    "quickLinks": "Mabilis na Links",
+    "legalCenter": "Legal na Sentro",
+    "terms": "Mga Tuntunin at Kundisyon",
+    "privacy": "Patakaran sa Pagkapribado",
+    "refund": "Patakaran sa Pagbabalik",
+    "cookies": "Patakaran sa Cookies",
+    "copyright": "© 2026 TASHIRA. Lahat ng karapatan ay nakalaan.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Kailangang punan ang patlang na ito",
+    "email": "Mangyaring maglagay ng wastong email",
+    "phone": "Mangyaring maglagay ng wastong telepono",
+    "termsRequired": "Dapat kang sumang-ayon sa mga tuntunin"
+  },
+  "status": {
+    "submitted": "Naisumite",
+    "underReview": "Sa Ilalim ng Pagsusuri",
+    "approved": "Naaprubahan",
+    "issued": "Naibigay"
+  },
+  "processing": {
+    "regular": "Regular",
+    "express": "Express"
+  }
+}

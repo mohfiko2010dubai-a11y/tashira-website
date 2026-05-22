@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Αίτηση e-Visa",
+    "pricing": "Βίζα ΗΑΕ",
+    "saudiVisa": "Βίζα Σαουδικής Αραβίας",
+    "travelDeals": "Ταξιδιωτικές Προσφορές",
+    "howToApply": "Πώς να Κάνετε Αίτηση",
+    "track": "Παρακολούθηση",
+    "terms": "Όροι"
+  },
+  "buttons": {
+    "continue": "Συνέχεια",
+    "back": "Πίσω",
+    "submit": "Υποβολή",
+    "applyNow": "Κάντε Αίτηση Τώρα",
+    "applyExpress": "Express",
+    "track": "Παρακολούθηση",
+    "pay": "Πληρωμή",
+    "downloadPDF": "Λήψη PDF"
+  },
+  "footer": {
+    "description": "Κορυφαία πύλη για ηλεκτρονικές υπηρεσίες βίζα ΗΑΕ. Γρήγορη επεξεργασία και παγκόσμια υποστήριξη.",
+    "quickLinks": "Γρήγοροι Σύνδεσμοι",
+    "legalCenter": "Νομικό Κέντρο",
+    "terms": "Όροι και Προϋποθέσεις",
+    "privacy": "Πολιτική Απορρήτου",
+    "refund": "Πολιτική Επιστροφών",
+    "cookies": "Πολιτική Cookies",
+    "copyright": "© 2026 TASHIRA. Με επιφύλαξη παντός δικαιώματος.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Αυτό το πεδίο είναι υποχρεωτικό",
+    "email": "Εισάγετε έγκυρο email",
+    "phone": "Εισάγετε έγκυρο τηλέφωνο",
+    "termsRequired": "Πρέπει να συμφωνήσετε με τους όρους"
+  },
+  "status": {
+    "submitted": "Υποβλήθηκε",
+    "underReview": "Σε Εξέλιξη",
+    "approved": "Εγκρίθηκε",
+    "issued": "Εκδόθηκε"
+  },
+  "processing": {
+    "regular": "Κανονική",
+    "express": "Express"
+  }
+}

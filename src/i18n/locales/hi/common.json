@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "ई-वीज़ा"
+  },
+  "nav": {
+    "home": "ई-वीज़ा आवेदन",
+    "pricing": "यूएई वीज़ा",
+    "saudiVisa": "सऊदी अरब वीज़ा",
+    "travelDeals": "यात्रा ऑफ़र",
+    "howToApply": "आवेदन कैसे करें",
+    "track": "आवेदन ट्रैक",
+    "terms": "नियम"
+  },
+  "buttons": {
+    "continue": "जारी रखें",
+    "back": "वापस",
+    "submit": "जमा करें",
+    "applyNow": "अभी आवेदन करें",
+    "applyExpress": "एक्सप्रेस",
+    "track": "ट्रैक करें",
+    "pay": "भुगतान",
+    "downloadPDF": "PDF डाउनलोड"
+  },
+  "footer": {
+    "description": "UAE इलेक्ट्रॉनिक वीज़ा सेवाओं का अग्रणी पोर्टल। तेज़ प्रोसेसिंग और विश्व स्तरीय सहायता।",
+    "quickLinks": "त्वरित लिंक",
+    "legalCenter": "कानूनी केंद्र",
+    "terms": "नियम और शर्तें",
+    "privacy": "गोपनीयता नीति",
+    "refund": "धनवापसी नीति",
+    "cookies": "कुकी नीति",
+    "copyright": "© 2026 TASHIRA। सर्वाधिकार सुरक्षित।",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "यह फ़ील्ड आवश्यक है",
+    "email": "कृपया वैध ईमेल दर्ज करें",
+    "phone": "कृपया वैध फ़ोन दर्ज करें",
+    "termsRequired": "आपको नियमों से सहमत होना होगा"
+  },
+  "status": {
+    "submitted": "जमा किया गया",
+    "underReview": "समीक्षा में",
+    "approved": "स्वीकृत",
+    "issued": "जारी किया गया"
+  },
+  "processing": {
+    "regular": "नियमित",
+    "express": "एक्सप्रेस"
+  }
+}

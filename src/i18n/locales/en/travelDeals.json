@@ -1,0 +1,29 @@
+{
+  "hero": {
+    "badge": "Exclusive Travel Packages",
+    "title": "Summer Travel Deals",
+    "subtitle": "Discover the most beautiful destinations at exclusive prices. Packages include flights, hotels, and guided tours.",
+    "featureFlight": "Flight Tickets",
+    "featureHotel": "5-Star Hotels",
+    "featureBreakfast": "Daily Breakfast",
+    "featureTours": "Guided Tours"
+  },
+  "from": "From",
+  "perPerson": "per person",
+  "save": "Save",
+  "processing": "Processing",
+  "validity": "Valid for",
+  "entry": "Entry",
+  "single": "Single",
+  "multiple": "Multiple",
+  "days": "days",
+  "hours": "hours",
+  "viewDetails": "View Details",
+  "backToDeals": "Back to Deals",
+  "inquiryMessage": "Hello, I would like to inquire about the {destination} package - {cities} for {duration} at ${price}",
+  "packageIncludes": "Package Includes",
+  "highlights": "Highlights",
+  "pricePerPerson": "Price per person",
+  "contactCTA": "Want a custom package for a specific destination? Contact us!",
+  "contactWhatsApp": "Contact via WhatsApp"
+}

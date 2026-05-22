@@ -1,0 +1,96 @@
+{
+  "hero": {
+    "badge": "沙特阿拉伯签证服务",
+    "title": "沙特阿拉伯签证",
+    "subtitle": "旅游、朝觐、探亲、商务 — 快速便捷获取您的沙特签证",
+    "reqPassport": "有效护照（6个月以上）",
+    "reqPhoto": "面部照片（白色背景）",
+    "reqFlight": "机票预订",
+    "reqHotel": "酒店预订",
+    "reqVaccine": "疫苗接种证明"
+  },
+  "chooseTitle": "选择您的签证类型",
+  "chooseSubtitle": "所有价格均包含签证费和服务费",
+  "save": "节省",
+  "moreDetails": "更多详情",
+  "less": "收起",
+  "validityLabel": "有效期",
+  "stayLabel": "停留时长",
+  "entryLabel": "入境类型",
+  "popular": "最受欢迎",
+  "processingTime": "处理时间",
+  "bookWhatsApp": "通过WhatsApp预订",
+  "inquiryMessage": "您好，我想咨询沙特阿拉伯的{visaName}",
+  "documents": {
+    "title": "所需文件",
+    "passport": "护照复印件（有效期6个月以上）",
+    "photo": "个人照片（白色背景）",
+    "flight": "机票预订",
+    "hotel": "酒店预订",
+    "vaccine": "疫苗接种证明（如需要）",
+    "id": "身份证复印件",
+    "bank": "银行对账单（最近3个月）",
+    "sponsor": "担保函（访问签证）"
+  },
+  "ctaBanner": {
+    "title": "准备前往沙特阿拉伯？",
+    "subtitle": "立即通过WhatsApp联系我们，我们将立即开始您的签证流程",
+    "button": "通过WhatsApp联系"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "30天旅游签证",
+      "features": [
+        "电子签证送达",
+        "允许旅游活动",
+        "包含酒店预订",
+        "签发之日起90天有效"
+      ]
+    },
+    "umrah": {
+      "name": "朝觐签证",
+      "features": [
+        "包含朝觐许可",
+        "麦加和麦地那通行",
+        "提供酒店套餐",
+        "可选地面交通"
+      ]
+    },
+    "visit90": {
+      "name": "90天探亲签证",
+      "features": [
+        "探亲目的",
+        "可在沙特延期",
+        "担保函处理",
+        "包含医疗保险"
+      ]
+    },
+    "transit96": {
+      "name": "96小时过境签证",
+      "features": [
+        "短期过境签证",
+        "机场至酒店接送",
+        "快速处理",
+        "提供多次入境选项"
+      ]
+    },
+    "business30": {
+      "name": "30天商务签证",
+      "features": [
+        "允许商务会议",
+        "参加会议",
+        "邀请函处理",
+        "VIP快速通道选项"
+      ]
+    },
+    "premium365": {
+      "name": "一年多次入境",
+      "features": [
+        "无限次入境",
+        "每次停留90天",
+        "旅游和商务",
+        "优先处理"
+      ]
+    }
+  }
+}

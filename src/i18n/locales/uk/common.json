@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Заява e-Visa",
+    "pricing": "Візи ОАЕ",
+    "saudiVisa": "Віза Саудівської Аравії",
+    "travelDeals": "Туристичні пропозиції",
+    "howToApply": "Як подати",
+    "track": "Відстеження",
+    "terms": "Умови"
+  },
+  "buttons": {
+    "continue": "Продовжити",
+    "back": "Назад",
+    "submit": "Надіслати",
+    "applyNow": "Подати зараз",
+    "applyExpress": "Експрес",
+    "track": "Відстежити",
+    "pay": "Сплатити",
+    "downloadPDF": "Завантажити PDF"
+  },
+  "footer": {
+    "description": "Провідний портал електронних візових послуг ОАЕ. Швидка обробка та підтримка по всьому світу.",
+    "quickLinks": "Швидкі посилання",
+    "legalCenter": "Юридичний центр",
+    "terms": "Правила та умови",
+    "privacy": "Політика конфіденційності",
+    "refund": "Політика повернення",
+    "cookies": "Політика файлів cookie",
+    "copyright": "© 2026 TASHIRA. Всі права захищено.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Це поле обов'язкове",
+    "email": "Введіть дійсну електронну пошту",
+    "phone": "Введіть дійсний телефон",
+    "termsRequired": "Ви повинні погодитися з умовами"
+  },
+  "status": {
+    "submitted": "Надіслано",
+    "underReview": "На розгляді",
+    "approved": "Схвалено",
+    "issued": "Видано"
+  },
+  "processing": {
+    "regular": "Звичайна",
+    "express": "Експрес"
+  }
+}

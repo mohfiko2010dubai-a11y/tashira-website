@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Pedido e-Visa",
+    "pricing": "Visas EAU",
+    "saudiVisa": "Visa Arábia Saudita",
+    "travelDeals": "Ofertas Viagem",
+    "howToApply": "Como Aplicar",
+    "track": "Rastreamento",
+    "terms": "Termos"
+  },
+  "buttons": {
+    "continue": "Continuar",
+    "back": "Voltar",
+    "submit": "Enviar",
+    "applyNow": "Aplicar",
+    "applyExpress": "Expresso",
+    "track": "Rastrear",
+    "pay": "Pagar",
+    "downloadPDF": "Baixar PDF"
+  },
+  "footer": {
+    "description": "Portal líder para serviços de visto eletrônico dos EAU. Processamento rápido e suporte dedicado mundial.",
+    "quickLinks": "Links Rápidos",
+    "legalCenter": "Centro Jurídico",
+    "terms": "Termos e Condições",
+    "privacy": "Política de Privacidade",
+    "refund": "Política de Reembolso",
+    "cookies": "Política de Cookies",
+    "copyright": "© 2026 TASHIRA. Todos os direitos reservados.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Este campo é obrigatório",
+    "email": "Por favor insira um email válido",
+    "phone": "Por favor insira um telefone válido",
+    "termsRequired": "Você deve concordar com os termos"
+  },
+  "status": {
+    "submitted": "Enviado",
+    "underReview": "Em Análise",
+    "approved": "Aprovado",
+    "issued": "Emitido"
+  },
+  "processing": {
+    "regular": "Regular",
+    "express": "Expresso"
+  }
+}

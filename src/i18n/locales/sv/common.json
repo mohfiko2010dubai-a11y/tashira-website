@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "e-Visa Ansökan",
+    "pricing": "UAE Visum",
+    "saudiVisa": "Saudiarabien Visum",
+    "travelDeals": "Reseerbjudanden",
+    "howToApply": "Hur Ansöka",
+    "track": "Spåra Ansökan",
+    "terms": "Villkor"
+  },
+  "buttons": {
+    "continue": "Fortsätt",
+    "back": "Tillbaka",
+    "submit": "Skicka",
+    "applyNow": "Ansök Nu",
+    "applyExpress": "Express",
+    "track": "Spåra",
+    "pay": "Betala",
+    "downloadPDF": "Ladda ner PDF"
+  },
+  "footer": {
+    "description": "Ledande portal för elektroniska visumtjänster i Förenade Arabemiraten. Snabb bearbetning och dedikerat stöd över hela världen.",
+    "quickLinks": "Snabblänkar",
+    "legalCenter": "Juridiskt Center",
+    "terms": "Villkor",
+    "privacy": "Integritetspolicy",
+    "refund": "Återbetalningspolicy",
+    "cookies": "Cookiepolicy",
+    "copyright": "© 2026 TASHIRA. Alla rättigheter förbehållna.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Detta fält är obligatoriskt",
+    "email": "Ange en giltig e-post",
+    "phone": "Ange ett giltigt telefonnummer",
+    "termsRequired": "Du måste godkänna villkoren"
+  },
+  "status": {
+    "submitted": "Inskickad",
+    "underReview": "Under Granskning",
+    "approved": "Godkänd",
+    "issued": "Utfärdad"
+  },
+  "processing": {
+    "regular": "Vanlig",
+    "express": "Express"
+  }
+}

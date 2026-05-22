@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "eビザ申請",
+    "pricing": "UAEビザ",
+    "saudiVisa": "サウジアラビアビザ",
+    "travelDeals": "旅行プラン",
+    "howToApply": "申請方法",
+    "track": "申請追跡",
+    "terms": "規約"
+  },
+  "buttons": {
+    "continue": "続ける",
+    "back": "戻る",
+    "submit": "送信",
+    "applyNow": "申請する",
+    "applyExpress": "エクスプレス",
+    "track": "追跡",
+    "pay": "支払い",
+    "downloadPDF": "PDFダウンロード"
+  },
+  "footer": {
+    "description": "UAE電子ビザサービスのリーディングポータル。迅速な処理と世界中の専門サポート。",
+    "quickLinks": "クイックリンク",
+    "legalCenter": "法務センター",
+    "terms": "利用規約",
+    "privacy": "プライバシーポリシー",
+    "refund": "返金ポリシー",
+    "cookies": "クッキーポリシー",
+    "copyright": "© 2026 TASHIRA. All rights reserved.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "必須項目です",
+    "email": "有効なメールアドレスを入力してください",
+    "phone": "有効な電話番号を入力してください",
+    "termsRequired": "規約に同意する必要があります"
+  },
+  "status": {
+    "submitted": "送信済み",
+    "underReview": "審査中",
+    "approved": "承認済み",
+    "issued": "発行済み"
+  },
+  "processing": {
+    "regular": "通常",
+    "express": "エクスプレス"
+  }
+}

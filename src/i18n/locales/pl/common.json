@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Wniosek e-Visa",
+    "pricing": "Wizy UAE",
+    "saudiVisa": "Wiza Arabii Saudyjskiej",
+    "travelDeals": "Oferty Podróży",
+    "howToApply": "Jak Złożyć",
+    "track": "Śledzenie",
+    "terms": "Warunki"
+  },
+  "buttons": {
+    "continue": "Kontynuuj",
+    "back": "Wstecz",
+    "submit": "Złóż",
+    "applyNow": "Złóż Wniosek",
+    "applyExpress": "Ekspres",
+    "track": "Śledź",
+    "pay": "Zapłać",
+    "downloadPDF": "Pobierz PDF"
+  },
+  "footer": {
+    "description": "Wiodący portal usług wiz elektronicznych ZEA. Szybkie przetwarzanie i wsparcie na całym świecie.",
+    "quickLinks": "Szybkie Linki",
+    "legalCenter": "Centrum Prawne",
+    "terms": "Regulamin",
+    "privacy": "Polityka Prywatności",
+    "refund": "Polityka Zwrotów",
+    "cookies": "Polityka Cookie",
+    "copyright": "© 2026 TASHIRA. Wszelkie prawa zastrzeżone.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "To pole jest wymagane",
+    "email": "Wprowadź prawidłowy email",
+    "phone": "Wprowadź prawidłowy telefon",
+    "termsRequired": "Musisz zaakceptować warunki"
+  },
+  "status": {
+    "submitted": "Złożone",
+    "underReview": "W Trakcie Przeglądu",
+    "approved": "Zatwierdzone",
+    "issued": "Wydane"
+  },
+  "processing": {
+    "regular": "Standard",
+    "express": "Ekspres"
+  }
+}

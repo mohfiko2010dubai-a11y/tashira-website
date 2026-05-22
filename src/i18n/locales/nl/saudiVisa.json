@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Saoedi-Arabië Visa Diensten",
+    "title": "Saoedi-Arabië Visa's",
+    "subtitle": "Toerisme, Umrah, Familiebezoek, Zakelijk — Krijg uw Saoedische visa snel en gemakkelijk",
+    "reqPassport": "Geldig paspoort (6+ maanden)",
+    "reqPhoto": "Pasfoto (witte achtergrond)",
+    "reqFlight": "Vluchtboeking",
+    "reqHotel": "Hotelreservering",
+    "reqVaccine": "Vaccinatiecertificaat"
+  },
+  "chooseTitle": "Kies Uw Visumtype",
+  "chooseSubtitle": "Alle prijzen zijn inclusief visumkosten en servicekosten",
+  "save": "Bespaar",
+  "moreDetails": "Meer details",
+  "less": "Minder",
+  "validityLabel": "Geldigheid",
+  "stayLabel": "Verblijfsduur",
+  "entryLabel": "Type toegang",
+  "popular": "MEEST POPULAIR",
+  "processingTime": "Verwerking",
+  "bookWhatsApp": "Boek via WhatsApp",
+  "inquiryMessage": "Hallo, ik wil graag informatie over het {visaName} voor Saoedi-Arabië",
+  "documents": {
+    "title": "Vereiste Documenten",
+    "passport": "Paspoortkopie (geldig 6+ maanden)",
+    "photo": "Pasfoto (witte achtergrond)",
+    "flight": "Vluchtboeking",
+    "hotel": "Hotelreservering",
+    "vaccine": "Vaccinatiecertificaat (indien vereist)",
+    "id": "ID-kaart kopie",
+    "bank": "Bankafschrift (afgelopen 3 maanden)",
+    "sponsor": "Sponsorbrief (bezoekersvisa)"
+  },
+  "ctaBanner": {
+    "title": "Klaar om Saoedi-Arabië te bezoeken?",
+    "subtitle": "Neem nu contact met ons op via WhatsApp en wij starten onmiddellijk uw visumprocedure",
+    "button": "Contact via WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "30 Dagen Toeristenvisa",
+      "features": []
+    },
+    "umrah": {
+      "name": "Umrah Visa",
+      "features": []
+    },
+    "visit90": {
+      "name": "90 Dagen Familiebezoek",
+      "features": []
+    },
+    "transit96": {
+      "name": "96 Uur Transit",
+      "features": []
+    },
+    "business30": {
+      "name": "30 Dagen Zakelijk Visa",
+      "features": []
+    },
+    "premium365": {
+      "name": "1 Jaar Meervoudig",
+      "features": []
+    }
+  }
+}

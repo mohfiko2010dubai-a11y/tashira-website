@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Usługi Wiz Arabii Saudyjskiej",
+    "title": "Wizy Arabii Saudyjskiej",
+    "subtitle": "Turystyka, Umrah, Wizyta Rodzinna, Biznes — Zdobądź wizę saudyjską szybko i łatwo",
+    "reqPassport": "Ważny paszport (6+ miesięcy)",
+    "reqPhoto": "Zdjęcie twarzy (białe tło)",
+    "reqFlight": "Rezerwacja lotu",
+    "reqHotel": "Rezerwacja hotelu",
+    "reqVaccine": "Certyfikat szczepienia"
+  },
+  "chooseTitle": "Wybierz Typ Wizy",
+  "chooseSubtitle": "Wszystkie ceny zawierają opłaty wizowe i serwisowe",
+  "save": "Oszczędź",
+  "moreDetails": "Więcej szczegółów",
+  "less": "Mniej",
+  "validityLabel": "Ważność",
+  "stayLabel": "Czas pobytu",
+  "entryLabel": "Typ wjazdu",
+  "popular": "NAJPOPULARNIEJSZE",
+  "processingTime": "Przetwarzanie",
+  "bookWhatsApp": "Zarezerwuj przez WhatsApp",
+  "inquiryMessage": "Cześć, chciałbym zapytać o wizę {visaName} do Arabii Saudyjskiej",
+  "documents": {
+    "title": "Wymagane Dokumenty",
+    "passport": "Kopia paszportu (ważny 6+ miesięcy)",
+    "photo": "Zdjęcie osobiste (białe tło)",
+    "flight": "Rezerwacja lotu",
+    "hotel": "Rezerwacja hotelu",
+    "vaccine": "Certyfikat szczepienia (jeśli wymagany)",
+    "id": "Kopia dowodu osobistego",
+    "bank": "Wyciąg bankowy (ostatnie 3 miesiące)",
+    "sponsor": "List sponsora (wiza wizytowa)"
+  },
+  "ctaBanner": {
+    "title": "Gotowy na wizytę w Arabii Saudyjskiej?",
+    "subtitle": "Skontaktuj się z nami teraz przez WhatsApp, a natychmiast rozpoczniemy proces wizowy",
+    "button": "Kontakt przez WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "Wiza Turystyczna 30 Dni",
+      "features": []
+    },
+    "umrah": {
+      "name": "Wiza Umrah",
+      "features": []
+    },
+    "visit90": {
+      "name": "Wizyta Rodzinna 90 Dni",
+      "features": []
+    },
+    "transit96": {
+      "name": "Transit 96 Godzin",
+      "features": []
+    },
+    "business30": {
+      "name": "Wiza Biznesowa 30 Dni",
+      "features": []
+    },
+    "premium365": {
+      "name": "Wielokrotny Wjazd 1 Rok",
+      "features": []
+    }
+  }
+}

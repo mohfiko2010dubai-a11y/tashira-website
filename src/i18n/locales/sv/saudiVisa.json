@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Saudiarabien Visumtjänster",
+    "title": "Saudiarabien Visum",
+    "subtitle": "Turism, Umrah, Familjebesök, Affärer — Få ditt saudiska visum snabbt och enkelt",
+    "reqPassport": "Giltigt pass (6+ månader)",
+    "reqPhoto": "Ansiktsfoto (vit bakgrund)",
+    "reqFlight": "Flygbokning",
+    "reqHotel": "Hotellbokning",
+    "reqVaccine": "Vaccinationsintyg"
+  },
+  "chooseTitle": "Välj Din Visumtyp",
+  "chooseSubtitle": "Alla priser inkluderar visumavgifter och serviceavgifter",
+  "save": "Spara",
+  "moreDetails": "Mer detaljer",
+  "less": "Mindre",
+  "validityLabel": "Giltighet",
+  "stayLabel": "Vistelselängd",
+  "entryLabel": "Typ av inresa",
+  "popular": "MEST POPULÄR",
+  "processingTime": "Bearbetning",
+  "bookWhatsApp": "Boka via WhatsApp",
+  "inquiryMessage": "Hej, jag skulle vilja fråga om {visaName} för Saudiarabien",
+  "documents": {
+    "title": "Nödvändiga Handlingar",
+    "passport": "Passkopia (giltigt 6+ månader)",
+    "photo": "Personligt foto (vit bakgrund)",
+    "flight": "Flygbokning",
+    "hotel": "Hotellbokning",
+    "vaccine": "Vaccinationsintyg (om krävs)",
+    "id": "ID-kort kopia",
+    "bank": "Kontoutdrag (senaste 3 månaderna)",
+    "sponsor": "Sponsorintyg (besöksvisum)"
+  },
+  "ctaBanner": {
+    "title": "Redo att besöka Saudiarabien?",
+    "subtitle": "Kontakta oss nu via WhatsApp så startar vi din visumprocess omedelbart",
+    "button": "Kontakt via WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "30 Dagar Turistvisum",
+      "features": []
+    },
+    "umrah": {
+      "name": "Umrah Visum",
+      "features": []
+    },
+    "visit90": {
+      "name": "90 Dagar Familjebesök",
+      "features": []
+    },
+    "transit96": {
+      "name": "96 Timmar Transit",
+      "features": []
+    },
+    "business30": {
+      "name": "30 Dagar Affärsvisum",
+      "features": []
+    },
+    "premium365": {
+      "name": "1 År Multi-inresa",
+      "features": []
+    }
+  }
+}

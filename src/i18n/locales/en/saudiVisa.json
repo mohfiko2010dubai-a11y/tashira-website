@@ -15,9 +15,9 @@
   "moreDetails": "More details",
   "less": "Less",
   "validityLabel": "Validity",
-  "stayLabel": "Stay",
-  "entryLabel": "Entry",
-  "popular": "POPULAR",
+  "stayLabel": "Stay duration",
+  "entryLabel": "Entry type",
+  "popular": "MOST POPULAR",
   "processingTime": "Processing",
   "bookWhatsApp": "Book via WhatsApp",
   "inquiryMessage": "Hello, I would like to inquire about {visaName} for Saudi Arabia",
@@ -40,27 +40,57 @@
   "visas": {
     "tourist30": {
       "name": "30 Days Tourist Visa",
-      "features": ["E-visa delivery", "Tourism activities allowed", "Hotel bookings included", "90 days validity from issue"]
+      "features": [
+        "E-visa delivery",
+        "Tourism activities allowed",
+        "Hotel bookings included",
+        "90 days validity from issue"
+      ]
     },
     "umrah": {
       "name": "Umrah Visa",
-      "features": ["Umrah permit included", "Mecca & Medina access", "Hotel packages available", "Ground transport optional"]
+      "features": [
+        "Umrah permit included",
+        "Mecca & Medina access",
+        "Hotel packages available",
+        "Ground transport optional"
+      ]
     },
     "visit90": {
       "name": "90 Days Family Visit",
-      "features": ["Family visit purpose", "Extendable in KSA", "Sponsor letter processing", "Medical insurance included"]
+      "features": [
+        "Family visit purpose",
+        "Extendable in KSA",
+        "Sponsor letter processing",
+        "Medical insurance included"
+      ]
     },
     "transit96": {
       "name": "96 Hours Transit",
-      "features": ["Short layover visa", "Airport to hotel transfer", "Quick processing", "Multi-entry option available"]
+      "features": [
+        "Short layover visa",
+        "Airport to hotel transfer",
+        "Quick processing",
+        "Multi-entry option available"
+      ]
     },
     "business30": {
       "name": "30 Days Business Visa",
-      "features": ["Business meetings allowed", "Conference attendance", "Invitation letter processing", "VIP fast-track option"]
+      "features": [
+        "Business meetings allowed",
+        "Conference attendance",
+        "Invitation letter processing",
+        "VIP fast-track option"
+      ]
     },
     "premium365": {
       "name": "1 Year Multiple Entry",
-      "features": ["Unlimited entries", "90 days per stay", "Tourism & business", "Priority processing"]
+      "features": [
+        "Unlimited entries",
+        "90 days per stay",
+        "Tourism & business",
+        "Priority processing"
+      ]
     }
   }
 }

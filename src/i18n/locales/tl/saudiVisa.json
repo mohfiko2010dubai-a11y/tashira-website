@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Mga Serbisyo ng Visa sa Saudi Arabia",
+    "title": "Visa sa Saudi Arabia",
+    "subtitle": "Turismo, Umrah, Pagbisita sa Pamilya, Negosyo — Kunin ang iyong Saudi visa nang mabilis at madali",
+    "reqPassport": "Wastong pasaporte (6+ buwan)",
+    "reqPhoto": "Larawan ng mukha (puting background)",
+    "reqFlight": "Pagbooook ng lipad",
+    "reqHotel": "Pagbooook ng hotel",
+    "reqVaccine": "Sertipiko ng bakuna"
+  },
+  "chooseTitle": "Piliin ang Iyong Uri ng Visa",
+  "chooseSubtitle": "Kasama sa lahat ng presyo ang bayad sa visa at serbisyo",
+  "save": "Makatipid",
+  "moreDetails": "Karagdagang detalye",
+  "less": "Mas kaunti",
+  "validityLabel": "Bisa",
+  "stayLabel": "Tagal ng pananatili",
+  "entryLabel": "Uri ng pagpasok",
+  "popular": "PINAKA SIKAT",
+  "processingTime": "Pagproseso",
+  "bookWhatsApp": "Mag-book sa WhatsApp",
+  "inquiryMessage": "Kamusta, gusto kong magtanong tungkol sa {visaName} para sa Saudi Arabia",
+  "documents": {
+    "title": "Mga Kinakailangang Dokumento",
+    "passport": "Kopya ng pasaporte (wasto 6+ buwan)",
+    "photo": "Personal na larawan (puting background)",
+    "flight": "Pagbooook ng lipad",
+    "hotel": "Pagbooook ng hotel",
+    "vaccine": "Sertipiko ng bakuna (kung kinakailangan)",
+    "id": "Kopya ng ID",
+    "bank": "Bank statement (nakaraang 3 buwan)",
+    "sponsor": "Liham ng sponsor (visa pagbisita)"
+  },
+  "ctaBanner": {
+    "title": "Handa nang bisitahin ang Saudi Arabia?",
+    "subtitle": "Makipag-ugnayan sa amin ngayon sa WhatsApp at agad naming sisimulan ang iyong proseso ng visa",
+    "button": "Makipag-ugnayan sa WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "30 Araw na Visa sa Turista",
+      "features": []
+    },
+    "umrah": {
+      "name": "Visa sa Umrah",
+      "features": []
+    },
+    "visit90": {
+      "name": "90 Araw na Pagbisita sa Pamilya",
+      "features": []
+    },
+    "transit96": {
+      "name": "96 Oras na Transit",
+      "features": []
+    },
+    "business30": {
+      "name": "30 Araw na Visa sa Negosyo",
+      "features": []
+    },
+    "premium365": {
+      "name": "1 Taon na Multi-Entry",
+      "features": []
+    }
+  }
+}

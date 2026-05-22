@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Szaúd-Arábia Vízumszolgáltatások",
+    "title": "Szaúd-Arábia Vízumok",
+    "subtitle": "Turizmus, Umrah, Családi Látogatás, Üzleti — Szerezze meg szaúdi vízumát gyorsan és egyszerűen",
+    "reqPassport": "Érvényes útlevél (6+ hónap)",
+    "reqPhoto": "Arcfotó (fehér háttér)",
+    "reqFlight": "Repülőjegy foglalás",
+    "reqHotel": "Szállásfoglalás",
+    "reqVaccine": "Oltási igazolás"
+  },
+  "chooseTitle": "Válassza ki Vízuma Típusát",
+  "chooseSubtitle": "Minden ár tartalmazza a vízumdíjat és a szolgáltatási díjat",
+  "save": "Megtakarítás",
+  "moreDetails": "További részletek",
+  "less": "Kevesebb",
+  "validityLabel": "Érvényesség",
+  "stayLabel": "Tartózkodás időtartama",
+  "entryLabel": "Belépés típusa",
+  "popular": "LEGNEPSZERŰBB",
+  "processingTime": "Feldolgozás",
+  "bookWhatsApp": "Foglalás WhatsApp-on",
+  "inquiryMessage": "Helló, szeretnék érdeklődni a {visaName} vízumról Szaúd-Arábiába",
+  "documents": {
+    "title": "Szükséges Dokumentumok",
+    "passport": "Útlevél másolat (érvényes 6+ hónap)",
+    "photo": "Személyes fénykép (fehér háttér)",
+    "flight": "Repülőjegy foglalás",
+    "hotel": "Szállásfoglalás",
+    "vaccine": "Oltási igazolás (ha szükséges)",
+    "id": "Személyi igazolvány másolat",
+    "bank": "Bankszámla kivonat (utóbbi 3 hónap)",
+    "sponsor": "Szponzori levél (látogatói vízum)"
+  },
+  "ctaBanner": {
+    "title": "Készen áll Szaúd-Arábia meglátogatására?",
+    "subtitle": "Lépjen kapcsolatba velünk most WhatsApp-on, és azonnal elindítjuk vízumügyintézését",
+    "button": "Kapcsolat WhatsApp-on"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "30 Napos Turista Vízum",
+      "features": []
+    },
+    "umrah": {
+      "name": "Umrah Vízum",
+      "features": []
+    },
+    "visit90": {
+      "name": "90 Napos Családi Látogatás",
+      "features": []
+    },
+    "transit96": {
+      "name": "96 Órás Tranzit",
+      "features": []
+    },
+    "business30": {
+      "name": "30 Napos Üzleti Vízum",
+      "features": []
+    },
+    "premium365": {
+      "name": "1 Éves Többszöri Belépés",
+      "features": []
+    }
+  }
+}

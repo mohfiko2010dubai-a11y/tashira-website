@@ -1,0 +1,29 @@
+{
+  "hero": {
+    "badge": "عروض سفر حصرية",
+    "title": "عروض السفر الصيفية",
+    "subtitle": "اكتشف أجمل الوجهات السياحية بأسعار حصرية. الباقات تشمل تذاكر الطيران والفنادق والجولات السياحية.",
+    "featureFlight": "تذاكر الطيران",
+    "featureHotel": "فنادق 5 نجوم",
+    "featureBreakfast": "إفطار يومي",
+    "featureTours": "جولات مرشدة"
+  },
+  "from": "من",
+  "perPerson": "للشخص",
+  "save": "توفير",
+  "processing": "مدة المعالجة",
+  "validity": "الصلاحية",
+  "entry": "الدخول",
+  "single": "مفرد",
+  "multiple": "متعدد",
+  "days": "أيام",
+  "hours": "ساعات",
+  "viewDetails": "عرض التفاصيل",
+  "backToDeals": "العودة للعروض",
+  "inquiryMessage": "مرحباً، أود الاستفسار عن باقة {destination} - {cities} لمدة {duration} بسعر ${price}",
+  "packageIncludes": "الباقة تشمل",
+  "highlights": "أبرز المعالم",
+  "pricePerPerson": "السعر للشخص الواحد",
+  "contactCTA": "عايز عرض مخصص لدولة معينة؟ تواصل معنا!",
+  "contactWhatsApp": "تواصل عبر واتساب"
+}

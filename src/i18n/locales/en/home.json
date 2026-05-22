@@ -1,138 +1,71 @@
 {
   "hero": {
-    "label": "Electronic UAE visa application",
-    "title": "Tashira E-VISA PORTAL",
-    "subtitle": "Fast, secure UAE visa processing for travelers worldwide"
+    "badge": "UAE Electronic Visa Portal",
+    "title": "Get Your UAE Visa Online",
+    "subtitle": "Fast, secure visa processing for tourists, families, and business travelers. Apply in minutes, get your visa in 24-72 hours.",
+    "ctaApply": "Apply for Visa",
+    "ctaTrack": "Track Application",
+    "stats": {
+      "applications": "Applications Processed",
+      "hours": "Avg Processing Time",
+      "countries": "Countries Served",
+      "rating": "Customer Rating"
+    }
   },
-  "wizard": {
-    "title": "Application Wizard",
-    "steps": {
-      "1": "Application Information",
-      "2": "Document Requirements",
-      "3": "Applicant Details",
-      "4": "Confirmation",
-      "5": "Payment"
+  "whyUs": {
+    "title": "Why Choose Tashira?",
+    "fast": {
+      "title": "Lightning Fast",
+      "desc": "Get your visa in 24-72 hours with our express service"
     },
+    "secure": {
+      "title": "100% Secure",
+      "desc": "Bank-level encryption protects your personal data"
+    },
+    "simple": {
+      "title": "Simple Process",
+      "desc": "Apply in 3 easy steps with our guided form"
+    },
+    "support": {
+      "title": "24/7 Support",
+      "desc": "Our team is here to help you around the clock"
+    }
+  },
+  "howItWorks": {
+    "title": "How It Works",
     "step1": {
-      "visaTypeTitle": "Visa Type & Service Fee",
-      "residencyStatus": "Residency Status",
-      "gccResident": "GCC Resident",
-      "nonGccResident": "Non-GCC Resident",
-      "gccSubType": "GCC Application Type",
-      "gccResidentOption": "I am applying as a GCC Resident",
-      "gccCitizenOption": "I am applying as a GCC Citizen Accompany",
-      "applicationType": "Application Type",
-      "singleApplicant": "Single Applicant",
-      "familyApplication": "Family Application",
-      "numberOfApplicants": "Number of Applicants",
-      "visaType": "Visa Type",
-      "familyPrice": "Family Price",
-      "contactInfo": "Contact Information",
-      "name": "Name",
-      "email": "Email",
-      "phone": "Phone",
-      "whatsapp": "WhatsApp Number",
-      "travelInfo": "Travel Information",
-      "fullName": "Full Name",
-      "nationality": "Nationality",
-      "countryOfDeparture": "Country of Departure",
-      "expectedArrival": "Expected Date of Arrival",
-      "cityOfArrival": "City of Arrival",
-      "profession": "Profession",
-      "terms": "I have read and agree to the",
-      "termsLink": "Terms and Conditions",
-      "continue": "Continue"
+      "title": "Fill Application",
+      "desc": "Complete our simple online form in under 5 minutes"
     },
     "step2": {
-      "title": "Document Requirements",
-      "subtitle": "Please upload the required documents for each applicant",
-      "passportCopy": "Passport Copy (Bio Page)",
-      "passportPhoto": "Passport Photo",
-      "dropzoneText": "Drag & drop your file here, or click to browse",
-      "supportedFormats": "Supported: {{formats}} | Max {{size}}",
-      "remove": "Remove"
+      "title": "Upload Documents",
+      "desc": "Upload your passport photo and required documents"
     },
     "step3": {
-      "title": "Applicant Details",
-      "dateOfBirth": "Date of Birth",
-      "gender": "Gender",
-      "male": "Male",
-      "female": "Female",
-      "passportNumber": "Passport Number",
-      "passportIssue": "Passport Issue Date",
-      "passportExpiry": "Passport Expiry Date"
-    },
-    "step4": {
-      "title": "Confirm Your Application",
-      "contactSummary": "Contact Information",
-      "travelSummary": "Travel Information",
-      "visaSummary": "Visa Information",
-      "applicantsSummary": "Applicants",
-      "pricing": {
-        "title": "Pricing Summary",
-        "visaFee": "Visa Fee",
-        "serviceFee": "Service Fee",
-        "expressFee": "Express Fee",
-        "total": "Total"
-      },
-      "termsConfirm": "I confirm that all information is correct and agree to the Terms and Conditions",
-      "submit": "Submit Application"
-    },
-    "step5": {
-      "title": "Secure Payment",
-      "cardNumber": "Card Number",
-      "expiry": "Expiry Date",
-      "cvv": "CVV",
-      "cardholder": "Cardholder Name",
-      "pay": "Pay ${{amount}}",
-      "success": {
-        "title": "Payment Successful!",
-        "message": "Your application has been submitted successfully.",
-        "reference": "Your Reference Number",
-        "emailInfo": "You will receive a confirmation email shortly.",
-        "downloadPDF": "Download Application PDF",
-        "trackApplication": "Track Application"
-      }
+      "title": "Receive Visa",
+      "desc": "Get your approved visa delivered to your email"
     }
   },
-  "track": {
-    "title": "Track Your Application",
-    "subtitle": "Enter your reference number to check status",
-    "placeholder": "Enter Reference Number (e.g., TSH-123456)",
-    "button": "Submit"
+  "visaTypes": {
+    "title": "Popular Visa Types",
+    "subtitle": "Choose the visa that fits your travel needs",
+    "tourist14": "14 Days Tourist",
+    "tourist30": "30 Days Tourist",
+    "tourist60": "60 Days Tourist",
+    "transit96": "96 Hours Transit",
+    "from": "From",
+    "details": "View Details",
+    "processing": "Processing"
   },
-  "countries": {
-    "title": "Citizens of the Following Countries Must Apply for a UAE Visa in Advance",
-    "subtitle": "Citizens from these countries need to obtain a visa before traveling to the UAE",
-    "regions": {
-      "africa": "Africa",
-      "asia": "Asia",
-      "europeAmericas": "Europe & Americas"
-    }
+  "testimonials": {
+    "title": "What Our Customers Say",
+    "review1": "The fastest visa service I have ever used. Got my visa in 36 hours!",
+    "review2": "Excellent customer support. They guided me through every step.",
+    "review3": "Very professional and reliable. Highly recommend for UAE visa."
   },
-  "faq": {
-    "title": "Frequently Asked Questions",
-    "items": [
-      {
-        "question": "How will I receive my UAE visa?",
-        "answer": "Once your visa processing is complete and approved by the immigration authorities, it will be sent directly to your registered email address in a secure PDF format."
-      },
-      {
-        "question": "Is visa fees refundable if my application is rejected?",
-        "answer": "Legally, as per government regulations, visa application fees are paid for the processing effort. In case your application is rejected by the immigration department, the fees are non-refundable."
-      },
-      {
-        "question": "How many days will it take to process my visa?",
-        "answer": "Standard processing typically takes 2 to 4 working days. For urgent requirements, our Express service can facilitate the process within 24 to 72 business hours, subject to government system availability."
-      },
-      {
-        "question": "What are the different types of UAE visas available?",
-        "answer": "We offer various options including Tourist Visas (14, 30, or 60 days), Single or Multiple Entry, and Transit visas. Your choice should depend on the purpose and duration of your visit."
-      },
-      {
-        "question": "What are the penalties if I overstay in the UAE?",
-        "answer": "Overstaying is a serious legal violation. Fines start at AED 50 per day. Furthermore, overstaying can result in a lifetime ban from entering the UAE and other GCC countries. We strongly advise renewing or exiting before your visa expires."
-      }
-    ]
+  "ctaSection": {
+    "title": "Ready to Travel to UAE?",
+    "subtitle": "Start your visa application now and get approved within 24-72 hours",
+    "button": "Start Application"
   }
 }

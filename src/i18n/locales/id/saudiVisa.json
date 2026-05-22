@@ -1,0 +1,96 @@
+{
+  "hero": {
+    "badge": "Layanan Visa Arab Saudi",
+    "title": "Visa Arab Saudi",
+    "subtitle": "Wisata, Umrah, Kunjungan Keluarga, Bisnis — Dapatkan visa Saudi Anda dengan cepat dan mudah",
+    "reqPassport": "Paspor berlaku (6+ bulan)",
+    "reqPhoto": "Foto wajah (latar belakang putih)",
+    "reqFlight": "Pemesanan penerbangan",
+    "reqHotel": "Pemesanan hotel",
+    "reqVaccine": "Sertifikat vaksinasi"
+  },
+  "chooseTitle": "Pilih Jenis Visa Anda",
+  "chooseSubtitle": "Semua harga sudah termasuk biaya visa dan layanan",
+  "save": "Hemat",
+  "moreDetails": "Lebih detail",
+  "less": "Lebih sedikit",
+  "validityLabel": "Berlaku",
+  "stayLabel": "Durasi tinggal",
+  "entryLabel": "Jenis masuk",
+  "popular": "PALING POPULER",
+  "processingTime": "Pemrosesan",
+  "bookWhatsApp": "Pesan via WhatsApp",
+  "inquiryMessage": "Halo, saya ingin menanyakan tentang visa {visaName} untuk Arab Saudi",
+  "documents": {
+    "title": "Dokumen yang Diperlukan",
+    "passport": "Fotokopi paspor (berlaku 6+ bulan)",
+    "photo": "Foto pribadi (latar belakang putih)",
+    "flight": "Pemesanan penerbangan",
+    "hotel": "Pemesanan hotel",
+    "vaccine": "Sertifikat vaksinasi (jika diperlukan)",
+    "id": "Fotokopi KTP",
+    "bank": "Rekening koran (3 bulan terakhir)",
+    "sponsor": "Surat sponsor (visa kunjungan)"
+  },
+  "ctaBanner": {
+    "title": "Siap mengunjungi Arab Saudi?",
+    "subtitle": "Hubungi kami sekarang via WhatsApp dan kami akan segera memulai proses visa Anda",
+    "button": "Kontak via WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "Visa Wisata 30 Hari",
+      "features": [
+        "Pengiriman e-visa",
+        "Wisata diizinkan",
+        "Pemesanan hotel termasuk",
+        "Berlaku 90 hari sejak diterbitkan"
+      ]
+    },
+    "umrah": {
+      "name": "Visa Umrah",
+      "features": [
+        "Izin umrah termasuk",
+        "Akses Mekkah & Madinah",
+        "Paket hotel tersedia",
+        "Transportasi darat opsional"
+      ]
+    },
+    "visit90": {
+      "name": "Kunjungan Keluarga 90 Hari",
+      "features": [
+        "Tujuan kunjungan keluarga",
+        "Dapat diperpanjang di AS",
+        "Pemrosesan surat sponsor",
+        "Asuransi kesehatan termasuk"
+      ]
+    },
+    "transit96": {
+      "name": "Transit 96 Jam",
+      "features": [
+        "Visa transit singkat",
+        "Transfer bandara-hotel",
+        "Pemrosesan cepat",
+        "Opsi multi-entry tersedia"
+      ]
+    },
+    "business30": {
+      "name": "Visa Bisnis 30 Hari",
+      "features": [
+        "Rapat bisnis diizinkan",
+        "Kehadiran konferensi",
+        "Pemrosesan surat undangan",
+        "Opsi VIP fast-track"
+      ]
+    },
+    "premium365": {
+      "name": "Multi-Entry 1 Tahun",
+      "features": [
+        "Entri tidak terbatas",
+        "90 hari per kunjungan",
+        "Wisata & bisnis",
+        "Pemrosesan prioritas"
+      ]
+    }
+  }
+}

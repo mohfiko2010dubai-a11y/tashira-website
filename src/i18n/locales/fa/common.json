@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "درخواست ای-ویزا",
+    "pricing": "ویزای امارات",
+    "saudiVisa": "ویزای عربستان",
+    "travelDeals": "پیشنهادات سفر",
+    "howToApply": "نحوه درخواست",
+    "track": "پیگیری درخواست",
+    "terms": "شرایط"
+  },
+  "buttons": {
+    "continue": "ادامه",
+    "back": "بازگشت",
+    "submit": "ارسال",
+    "applyNow": "درخواست",
+    "applyExpress": "اکسپرس",
+    "track": "پیگیری",
+    "pay": "پرداخت",
+    "downloadPDF": "دانلود PDF"
+  },
+  "footer": {
+    "description": "پورتال برتر خدمات ویزای الکترونیکی امارات. پردازش سریع و پشتیبانی اختصاصی در سراسر جهان.",
+    "quickLinks": "لینک‌های سریع",
+    "legalCenter": "مرکز حقوقی",
+    "terms": "شرایط و ضوابط",
+    "privacy": "سیاست حفظ حریم خصوصی",
+    "refund": "سیاست بازپرداخت",
+    "cookies": "سیاست کوکی",
+    "copyright": "© 2026 TASHIRA. کلیه حقوق محفوظ است.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "این فیلد الزامی است",
+    "email": "لطفاً ایمیل معتبر وارد کنید",
+    "phone": "لطفاً تلفن معتبر وارد کنید",
+    "termsRequired": "شما باید با شرایط موافقت کنید"
+  },
+  "status": {
+    "submitted": "ارسال شد",
+    "underReview": "در حال بررسی",
+    "approved": "تأیید شد",
+    "issued": "صادر شد"
+  },
+  "processing": {
+    "regular": "عادی",
+    "express": "اکسپرس"
+  }
+}

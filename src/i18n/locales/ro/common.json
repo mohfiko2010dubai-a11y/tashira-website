@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Cerere e-Visa",
+    "pricing": "Vize UAE",
+    "saudiVisa": "Viză Arabia Saudită",
+    "travelDeals": "Oferte Călătorii",
+    "howToApply": "Cum se Aplică",
+    "track": "Urmărire Cerere",
+    "terms": "Termeni"
+  },
+  "buttons": {
+    "continue": "Continuă",
+    "back": "Înapoi",
+    "submit": "Trimite",
+    "applyNow": "Aplică Acum",
+    "applyExpress": "Express",
+    "track": "Urmărește",
+    "pay": "Plătește",
+    "downloadPDF": "Descarcă PDF"
+  },
+  "footer": {
+    "description": "Portalul de top pentru servicii de viză electronică EAU. Procesare rapidă și suport la nivel mondial.",
+    "quickLinks": "Link-uri Rapide",
+    "legalCenter": "Centru Juridic",
+    "terms": "Termeni și Condiții",
+    "privacy": "Politica de Confidențialitate",
+    "refund": "Politica de Rambursare",
+    "cookies": "Politica Cookie",
+    "copyright": "© 2026 TASHIRA. Toate drepturile rezervate.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Acest câmp este obligatoriu",
+    "email": "Introduceți un email valid",
+    "phone": "Introduceți un telefon valid",
+    "termsRequired": "Trebuie să fiți de acord cu termenii"
+  },
+  "status": {
+    "submitted": "Trimis",
+    "underReview": "În Revizuire",
+    "approved": "Aprobat",
+    "issued": "Eliberat"
+  },
+  "processing": {
+    "regular": "Standard",
+    "express": "Express"
+  }
+}

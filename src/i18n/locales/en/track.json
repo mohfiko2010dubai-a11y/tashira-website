@@ -1,14 +1,29 @@
 {
   "title": "Track Your Application",
-  "subtitle": "Enter your reference number to check your application status",
-  "placeholder": "e.g., TSH-123456",
+  "subtitle": "Enter your reference number to check your visa status",
+  "refLabel": "Reference Number",
+  "refPlaceholder": "e.g. TSH-123456",
+  "emailLabel": "Email Address",
+  "emailPlaceholder": "Enter your email",
   "button": "Track Application",
-  "result": {
-    "reference": "Reference Number",
-    "status": "Status",
-    "applicant": "Applicant",
-    "visaType": "Visa Type",
-    "submittedDate": "Submitted Date",
-    "expectedDelivery": "Expected Delivery"
-  }
+  "status": {
+    "submitted": {
+      "title": "Application Submitted",
+      "desc": "We have received your application and documents."
+    },
+    "underReview": {
+      "title": "Under Review",
+      "desc": "Our team is reviewing your application."
+    },
+    "approved": {
+      "title": "Approved",
+      "desc": "Your visa has been approved! Check your email."
+    },
+    "issued": {
+      "title": "Issued",
+      "desc": "Your visa has been issued and sent to your email."
+    }
+  },
+  "notFound": "Application not found. Please check your reference number and try again.",
+  "error": "An error occurred. Please try again later."
 }

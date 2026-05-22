@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "e-Visa விண்ணப்பம்",
+    "pricing": "UAE விசா",
+    "saudiVisa": "சவூதி அரேபியா விசா",
+    "travelDeals": "பயண ஒப்பந்தங்கள்",
+    "howToApply": "விண்ணப்பிக்கும் முறை",
+    "track": "விண்ணப்பம் கண்காணிப்பு",
+    "terms": "விதிமுறைகள்"
+  },
+  "buttons": {
+    "continue": "தொடர்க",
+    "back": "பின்செல்",
+    "submit": "சமர்ப்பி",
+    "applyNow": "இப்போது விண்ணப்பி",
+    "applyExpress": "விரைவு",
+    "track": "கண்காணி",
+    "pay": "செலுத்து",
+    "downloadPDF": "PDF பதிவிறக்கு"
+  },
+  "footer": {
+    "description": "UAE மின்னணு விசா சேவைகளுக்கான முன்னணி இணையதளம். விரைவான செயலாக்கம் மற்றும் உலகளாவிய ஆதரவு.",
+    "quickLinks": "விரைவு இணைப்புகள்",
+    "legalCenter": "சட்ட மையம்",
+    "terms": "விதிமுறைகள்",
+    "privacy": "தனியுரிமைக் கொள்கை",
+    "refund": "திரும்பப்பெறும் கொள்கை",
+    "cookies": "குக்கீ கொள்கை",
+    "copyright": "© 2026 TASHIRA. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "இந்த புலம் கட்டாயமாகும்",
+    "email": "சரியான மின்னஞ்சலை உள்ளிடவும்",
+    "phone": "சரியான தொலைபேசியை உள்ளிடவும்",
+    "termsRequired": "விதிமுறைகளை ஒப்புக்கொள்ள வேண்டும்"
+  },
+  "status": {
+    "submitted": "சமர்ப்பிக்கப்பட்டது",
+    "underReview": "மதிப்பீட்டில்",
+    "approved": "அங்கீகரிக்கப்பட்டது",
+    "issued": "வழங்கப்பட்டது"
+  },
+  "processing": {
+    "regular": "வழக்கமான",
+    "express": "விரைவு"
+  }
+}

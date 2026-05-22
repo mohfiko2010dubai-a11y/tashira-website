@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "อี-วีซ่า"
+  },
+  "nav": {
+    "home": "สมัครอี-วีซ่า",
+    "pricing": "วีซ่าสหรัฐอาหรับเอมิเรตส์",
+    "saudiVisa": "วีซ่าซาอุดีอาระเบีย",
+    "travelDeals": "ดีลการเดินทาง",
+    "howToApply": "วิธีสมัคร",
+    "track": "ติดตามคำขอ",
+    "terms": "เงื่อนไข"
+  },
+  "buttons": {
+    "continue": "ดำเนินการต่อ",
+    "back": "กลับ",
+    "submit": "ส่ง",
+    "applyNow": "สมัครเลย",
+    "applyExpress": "ด่วน",
+    "track": "ติดตาม",
+    "pay": "ชำระเงิน",
+    "downloadPDF": "ดาวน์โหลด PDF"
+  },
+  "footer": {
+    "description": "พอร์ทัลชั้นนำสำหรับบริการวีซ่าอิเล็กทรอนิกส์ของสหรัฐอาหรับเอมิเรตส์ การประมวลผลที่รวดเร็วและการสนับสนุนทั่วโลก",
+    "quickLinks": "ลิงก์ด่วน",
+    "legalCenter": "ศูนย์กฎหมาย",
+    "terms": "ข้อกำหนดและเงื่อนไข",
+    "privacy": "นโยบายความเป็นส่วนตัว",
+    "refund": "นโยบายการคืนเงิน",
+    "cookies": "นโยบายคุกกี้",
+    "copyright": "© 2026 TASHIRA สงวนลิขสิทธิ์",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "จำเป็นต้องกรอก",
+    "email": "กรุณากรอกอีเมลที่ถูกต้อง",
+    "phone": "กรุณากรอกเบอร์โทรที่ถูกต้อง",
+    "termsRequired": "คุณต้องยอมรับข้อกำหนด"
+  },
+  "status": {
+    "submitted": "ส่งแล้ว",
+    "underReview": "อยู่ระหว่างตรวจสอบ",
+    "approved": "อนุมัติแล้ว",
+    "issued": "ออกแล้ว"
+  },
+  "processing": {
+    "regular": "ปกติ",
+    "express": "ด่วน"
+  }
+}

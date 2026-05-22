@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "ای-ویزا"
+  },
+  "nav": {
+    "home": "ای-ویزا درخواست",
+    "pricing": "یو اے ای ویزا",
+    "saudiVisa": "سعودی عرب ویزا",
+    "travelDeals": "سفر کے ڈیلز",
+    "howToApply": "درخواست کا طریقہ",
+    "track": "درخواست ٹریک",
+    "terms": "شرائط"
+  },
+  "buttons": {
+    "continue": "جاری رکھیں",
+    "back": "واپس",
+    "submit": "جمع کروائیں",
+    "applyNow": "اب درخواست دیں",
+    "applyExpress": "ایکسپریس",
+    "track": "ٹریک کریں",
+    "pay": "ادا کریں",
+    "downloadPDF": "PDF ڈاؤن لوڈ"
+  },
+  "footer": {
+    "description": "یو اے ای الیکٹرانک ویزا سروسز کا معروف پورٹل۔ تیز پراسیسنگ اور عالمی سطح پر معاونت۔",
+    "quickLinks": "فوری لنکس",
+    "legalCenter": "قانونی مرکز",
+    "terms": "شرائط و ضوابط",
+    "privacy": "رازداری کی پالیسی",
+    "refund": "رقم واپسی کی پالیسی",
+    "cookies": "کوکیز کی پالیسی",
+    "copyright": "© 2026 TASHIRA۔ جملہ حقوق محفوظ۔",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "یہ فیلڈ ضروری ہے",
+    "email": "براہ کرم درست ای میل درج کریں",
+    "phone": "براہ کرم درست فون نمبر درج کریں",
+    "termsRequired": "آپ کو شرائط سے اتفاق کرنا ہوگا"
+  },
+  "status": {
+    "submitted": "جمع کروایا گیا",
+    "underReview": "زیر جائزہ",
+    "approved": "منظور شدہ",
+    "issued": "جاری کردہ"
+  },
+  "processing": {
+    "regular": "باقاعدہ",
+    "express": "ایکسپریس"
+  }
+}

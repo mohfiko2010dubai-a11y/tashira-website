@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "ই-ভিসা"
+  },
+  "nav": {
+    "home": "ই-ভিসা আবেদন",
+    "pricing": "UAE ভিসা",
+    "saudiVisa": "সৌদি আরব ভিসা",
+    "travelDeals": "ভ্রমণ ডিল",
+    "howToApply": "কীভাবে আবেদন করবেন",
+    "track": "আবেদন ট্র্যাক",
+    "terms": "শর্তাবলী"
+  },
+  "buttons": {
+    "continue": "চালিয়ে যান",
+    "back": "পেছন",
+    "submit": "জমা দিন",
+    "applyNow": "এখন আবেদন করুন",
+    "applyExpress": "এক্সপ্রেস",
+    "track": "ট্র্যাক করুন",
+    "pay": "প্রদান করুন",
+    "downloadPDF": "PDF ডাউনলোড"
+  },
+  "footer": {
+    "description": "UAE ইলেকট্রনিক ভিসা সেবার শীর্ষস্থানীয় পোর্টাল। দ্রুত প্রক্রিয়াকরণ এবং বিশ্বব্যাপী সহায়তা।",
+    "quickLinks": "দ্রুত লিঙ্ক",
+    "legalCenter": "আইনি কেন্দ্র",
+    "terms": "শর্তাবলী",
+    "privacy": "গোপনীয়তা নীতি",
+    "refund": "ফেরত নীতি",
+    "cookies": "কুকি নীতি",
+    "copyright": "© 2026 TASHIRA। সর্বস্বত্ব সংরক্ষিত।",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "এই ক্ষেত্রটি প্রয়োজন",
+    "email": "দয়া করে একটি বৈধ ইমেইল লিখুন",
+    "phone": "দয়া করে একটি বৈধ ফোন লিখুন",
+    "termsRequired": "আপনাকে শর্তাবলীতে সম্মত হতে হবে"
+  },
+  "status": {
+    "submitted": "জমা দেওয়া হয়েছে",
+    "underReview": "পর্যালোচনাধীন",
+    "approved": "অনুমোদিত",
+    "issued": "প্রদত্ত"
+  },
+  "processing": {
+    "regular": "নিয়মিত",
+    "express": "এক্সপ্রেস"
+  }
+}

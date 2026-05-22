@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Servicii Viză Arabia Saudită",
+    "title": "Vize Arabia Saudită",
+    "subtitle": "Turism, Umrah, Vizită Familială, Afaceri — Obțineți viza dvs. saudită rapid și ușor",
+    "reqPassport": "Pașaport valabil (6+ luni)",
+    "reqPhoto": "Foto față (fundal alb)",
+    "reqFlight": "Rezervare zbor",
+    "reqHotel": "Rezervare hotel",
+    "reqVaccine": "Certificat de vaccinare"
+  },
+  "chooseTitle": "Alegeți Tipul Vizei",
+  "chooseSubtitle": "Toate prețurile includ taxele de viză și serviciu",
+  "save": "Economisiți",
+  "moreDetails": "Mai multe detalii",
+  "less": "Mai puțin",
+  "validityLabel": "Valabilitate",
+  "stayLabel": "Durata șederii",
+  "entryLabel": "Tip intrare",
+  "popular": "CEL MAI POPULAR",
+  "processingTime": "Procesare",
+  "bookWhatsApp": "Rezervă via WhatsApp",
+  "inquiryMessage": "Bună, aș dori să întreb despre viza {visaName} pentru Arabia Saudită",
+  "documents": {
+    "title": "Documente Necesare",
+    "passport": "Copie pașaport (valabil 6+ luni)",
+    "photo": "Foto personală (fundal alb)",
+    "flight": "Rezervare zbor",
+    "hotel": "Rezervare hotel",
+    "vaccine": "Certificat de vaccinare (dacă este necesar)",
+    "id": "Copie buletin",
+    "bank": "Extras bancar (ultimele 3 luni)",
+    "sponsor": "Scrisoare sponsor (viză vizită)"
+  },
+  "ctaBanner": {
+    "title": "Pregătit să vizitezi Arabia Saudită?",
+    "subtitle": "Contactează-ne acum via WhatsApp și vom începe imediat procesul tău de viză",
+    "button": "Contact via WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "Viză Turistică 30 Zile",
+      "features": []
+    },
+    "umrah": {
+      "name": "Viză Umrah",
+      "features": []
+    },
+    "visit90": {
+      "name": "Vizită Familială 90 Zile",
+      "features": []
+    },
+    "transit96": {
+      "name": "Tranzit 96 Ore",
+      "features": []
+    },
+    "business30": {
+      "name": "Viză de Afaceri 30 Zile",
+      "features": []
+    },
+    "premium365": {
+      "name": "Multi-Intrare 1 An",
+      "features": []
+    }
+  }
+}

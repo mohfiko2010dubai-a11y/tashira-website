@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "Заявка e-Visa",
+    "pricing": "Визы ОАЭ",
+    "saudiVisa": "Виза Саудовская Аравия",
+    "travelDeals": "Путешествия",
+    "howToApply": "Как подать",
+    "track": "Отслеживание",
+    "terms": "Условия"
+  },
+  "buttons": {
+    "continue": "Продолжить",
+    "back": "Назад",
+    "submit": "Отправить",
+    "applyNow": "Подать заявку",
+    "applyExpress": "Экспресс",
+    "track": "Отследить",
+    "pay": "Оплатить",
+    "downloadPDF": "Скачать PDF"
+  },
+  "footer": {
+    "description": "Ведущий портал электронных виз ОАЭ. Быстрая обработка и поддержка по всему миру.",
+    "quickLinks": "Быстрые ссылки",
+    "legalCenter": "Юридический центр",
+    "terms": "Условия использования",
+    "privacy": "Политика конфиденциальности",
+    "refund": "Политика возврата",
+    "cookies": "Политика cookie",
+    "copyright": "© 2026 TASHIRA. Все права защищены.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Обязательное поле",
+    "email": "Введите действительный email",
+    "phone": "Введите действительный телефон",
+    "termsRequired": "Необходимо согласиться с условиями"
+  },
+  "status": {
+    "submitted": "Отправлено",
+    "underReview": "На рассмотрении",
+    "approved": "Одобрено",
+    "issued": "Выдано"
+  },
+  "processing": {
+    "regular": "Стандарт",
+    "express": "Экспресс"
+  }
+}

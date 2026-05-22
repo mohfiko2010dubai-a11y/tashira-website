@@ -12,11 +12,6 @@
     "track": "Track Application",
     "terms": "Terms"
   },
-  "language": {
-    "en": "EN",
-    "ar": "عربي",
-    "switchTo": "Switch to Arabic"
-  },
   "buttons": {
     "continue": "Continue",
     "back": "Back",
@@ -25,30 +20,24 @@
     "applyExpress": "Apply Express",
     "track": "Track",
     "pay": "Pay",
-    "downloadPDF": "Download Application PDF",
-    "scrollToTop": "Scroll to top"
+    "downloadPDF": "Download PDF"
   },
   "footer": {
-    "description": "Leading portal for UAE electronic visa services. We provide fast-track processing and dedicated support for tourists and business travelers worldwide.",
+    "description": "Leading portal for UAE electronic visa services. Fast-track processing and dedicated support worldwide.",
     "quickLinks": "Quick Links",
     "legalCenter": "Legal Center",
-    "supportCenter": "Support Center",
     "terms": "Terms & Conditions",
     "privacy": "Privacy Policy",
     "refund": "Refund Policy",
     "cookies": "Cookie Policy",
-    "copyright": "© 2026 TASHIRA. All Rights Reserved by Only Tourism.",
+    "copyright": "© 2026 TASHIRA. All Rights Reserved.",
     "paymentMethods": "VISA | MASTERCARD | AMEX"
   },
   "validation": {
     "required": "This field is required",
     "email": "Please enter a valid email",
-    "phone": "Please enter a valid phone number",
-    "minLength": "Must be at least {{min}} characters",
-    "maxLength": "Must be at most {{max}} characters",
-    "min": "Must be at least {{min}}",
-    "max": "Must be at most {{max}}",
-    "termsRequired": "You must agree to the terms and conditions"
+    "phone": "Please enter a valid phone",
+    "termsRequired": "You must agree to the terms"
   },
   "status": {
     "submitted": "Submitted",

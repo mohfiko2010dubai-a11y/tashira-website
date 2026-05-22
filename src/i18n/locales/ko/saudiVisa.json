@@ -1,0 +1,96 @@
+{
+  "hero": {
+    "badge": "사우디아라비아 비자 서비스",
+    "title": "사우디아라비아 비자",
+    "subtitle": "관광, 우므라, 가족 방문, 비즈니스 — 사우디 비자를 빠르고 쉽게 받으세요",
+    "reqPassport": "유효한 여권(6개월 이상)",
+    "reqPhoto": "얼굴 사진(흰색 배경)",
+    "reqFlight": "항공권 예약",
+    "reqHotel": "호텔 예약",
+    "reqVaccine": "백신 접종 증명서"
+  },
+  "chooseTitle": "비자 유형 선택",
+  "chooseSubtitle": "모든 가격에 비자 수수료와 서비스 요금이 포함됩니다",
+  "save": "절약",
+  "moreDetails": "자세히 보기",
+  "less": "접기",
+  "validityLabel": "유효 기간",
+  "stayLabel": "체류 기간",
+  "entryLabel": "입국 유형",
+  "popular": "가장 인기",
+  "processingTime": "처리 시간",
+  "bookWhatsApp": "WhatsApp으로 예약",
+  "inquiryMessage": "안녕하세요, 사우디아라비아 {visaName}에 대해 문의하고 싶습니다",
+  "documents": {
+    "title": "필요 서류",
+    "passport": "여권 사본(유효 기간 6개월 이상)",
+    "photo": "개인 사진(흰색 배경)",
+    "flight": "항공권 예약",
+    "hotel": "호텔 예약",
+    "vaccine": "백신 접종 증명서(필요시)",
+    "id": "신분증 사본",
+    "bank": "은행 거래 내역(최근 3개월)",
+    "sponsor": "후원자 서한(방문 비자)"
+  },
+  "ctaBanner": {
+    "title": "사우디아라비아를 방문할 준비가 되셨나요?",
+    "subtitle": "지금 WhatsApp으로 연락하시면 비자 절차를 즉시 시작하겠습니다",
+    "button": "WhatsApp으로 연락"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "30일 관광 비자",
+      "features": [
+        "E-비자 발급",
+        "관광 허용",
+        "호텔 예약 포함",
+        "발급일로부터 90일 유효"
+      ]
+    },
+    "umrah": {
+      "name": "우므라 비자",
+      "features": [
+        "우므라 허가 포함",
+        "메카 & 메디나 접근",
+        "호텔 패키지 이용 가능",
+        "선택적 지상 교통"
+      ]
+    },
+    "visit90": {
+      "name": "90일 가족 방문",
+      "features": [
+        "가족 방문 목적",
+        "SA에서 연장 가능",
+        "후원자 서한 처리",
+        "의료 보험 포함"
+      ]
+    },
+    "transit96": {
+      "name": "96시간 경유",
+      "features": [
+        "단기 경유 비자",
+        "공항-호텔 교통편",
+        "빠른 처리",
+        "복수 입국 옵션 가능"
+      ]
+    },
+    "business30": {
+      "name": "30일 비즈니스 비자",
+      "features": [
+        "비즈니스 미팅 허용",
+        "컨퍼런스 참석",
+        "초청장 처리",
+        "VIP 패스트트랙 옵션"
+      ]
+    },
+    "premium365": {
+      "name": "1년 복수 입국",
+      "features": [
+        "무제한 입국",
+        "체류당 90일",
+        "관광 및 비즈니스",
+        "우선 처리"
+      ]
+    }
+  }
+}

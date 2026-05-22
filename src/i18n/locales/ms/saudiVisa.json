@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Perkhidmatan Visa Arab Saudi",
+    "title": "Visa Arab Saudi",
+    "subtitle": "Pelancongan, Umrah, Lawatan Keluarga, Perniagaan — Dapatkan visa Saudi anda dengan pantas dan mudah",
+    "reqPassport": "Pasport sah (6+ bulan)",
+    "reqPhoto": "Foto muka (latar belakang putih)",
+    "reqFlight": "Tempahan penerbangan",
+    "reqHotel": "Tempahan hotel",
+    "reqVaccine": "Sijil vaksinasi"
+  },
+  "chooseTitle": "Pilih Jenis Visa Anda",
+  "chooseSubtitle": "Semua harga termasuk yuran visa dan perkhidmatan",
+  "save": "Jimat",
+  "moreDetails": "Lebih detail",
+  "less": "Kurang",
+  "validityLabel": "Sah",
+  "stayLabel": "Tempoh tinggal",
+  "entryLabel": "Jenis kemasukan",
+  "popular": "PALING POPULAR",
+  "processingTime": "Masa pemprosesan",
+  "bookWhatsApp": "Tempah via WhatsApp",
+  "inquiryMessage": "Hai, saya ingin bertanya mengenai visa {visaName} untuk Arab Saudi",
+  "documents": {
+    "title": "Dokumen Diperlukan",
+    "passport": "Salinan pasport (sah 6+ bulan)",
+    "photo": "Foto peribadi (latar belakang putih)",
+    "flight": "Tempahan penerbangan",
+    "hotel": "Tempahan hotel",
+    "vaccine": "Sijil vaksinasi (jika diperlukan)",
+    "id": "Salinan Kad Pengenalan",
+    "bank": "Penyata bank (3 bulan terakhir)",
+    "sponsor": "Surat penaja (visa lawatan)"
+  },
+  "ctaBanner": {
+    "title": "Sedia melawat Arab Saudi?",
+    "subtitle": "Hubungi kami sekarang via WhatsApp dan kami akan memulakan proses visa anda dengan segera",
+    "button": "Hubungi via WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "Visa Pelancongan 30 Hari",
+      "features": []
+    },
+    "umrah": {
+      "name": "Visa Umrah",
+      "features": []
+    },
+    "visit90": {
+      "name": "Lawatan Keluarga 90 Hari",
+      "features": []
+    },
+    "transit96": {
+      "name": "Transit 96 Jam",
+      "features": []
+    },
+    "business30": {
+      "name": "Visa Perniagaan 30 Hari",
+      "features": []
+    },
+    "premium365": {
+      "name": "Multi-Kemasukan 1 Tahun",
+      "features": []
+    }
+  }
+}

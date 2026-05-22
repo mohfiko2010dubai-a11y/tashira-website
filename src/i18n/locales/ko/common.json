@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "e-비자 신청",
+    "pricing": "UAE 비자",
+    "saudiVisa": "사우디아라비아 비자",
+    "travelDeals": "여행 특가",
+    "howToApply": "신청 방법",
+    "track": "신청 추적",
+    "terms": "약관"
+  },
+  "buttons": {
+    "continue": "계속",
+    "back": "뒤로",
+    "submit": "제출",
+    "applyNow": "지금 신청",
+    "applyExpress": "익스프레스",
+    "track": "추적",
+    "pay": "결제",
+    "downloadPDF": "PDF 다운로드"
+  },
+  "footer": {
+    "description": "UAE 전자 비자 서비스의 선도적인 포털. 빠른 처리와 전 세계 전담 지원.",
+    "quickLinks": "빠른 링크",
+    "legalCenter": "법률 센터",
+    "terms": "이용 약관",
+    "privacy": "개인정보 보호정책",
+    "refund": "환불 정책",
+    "cookies": "쿠키 정책",
+    "copyright": "© 2026 TASHIRA. 모든 권리 보유.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "필수 입력 항목입니다",
+    "email": "유효한 이메일을 입력하세요",
+    "phone": "유효한 전화번호를 입력하세요",
+    "termsRequired": "약관에 동의해야 합니다"
+  },
+  "status": {
+    "submitted": "제출됨",
+    "underReview": "검토 중",
+    "approved": "승인됨",
+    "issued": "발급됨"
+  },
+  "processing": {
+    "regular": "일반",
+    "express": "익스프레스"
+  }
+}

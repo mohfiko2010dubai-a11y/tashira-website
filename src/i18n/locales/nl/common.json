@@ -1,0 +1,52 @@
+{
+  "brand": {
+    "name": "TASHIRA",
+    "subtitle": "E-VISA"
+  },
+  "nav": {
+    "home": "e-Visa Aanvraag",
+    "pricing": "UAE Visa's",
+    "saudiVisa": "Saoedi-Arabië Visa",
+    "travelDeals": "Reisaanbiedingen",
+    "howToApply": "Hoe Aanvragen",
+    "track": "Aanvraag Volgen",
+    "terms": "Voorwaarden"
+  },
+  "buttons": {
+    "continue": "Doorgaan",
+    "back": "Terug",
+    "submit": "Indienen",
+    "applyNow": "Nu Aanvragen",
+    "applyExpress": "Express",
+    "track": "Volgen",
+    "pay": "Betalen",
+    "downloadPDF": "PDF Downloaden"
+  },
+  "footer": {
+    "description": "Toonaangevend portaal voor elektronische visadiensten van de VAE. Snelle verwerking en wereldwijde ondersteuning.",
+    "quickLinks": "Snelle Links",
+    "legalCenter": "Juridisch Centrum",
+    "terms": "Algemene Voorwaarden",
+    "privacy": "Privacybeleid",
+    "refund": "Restitutiebeleid",
+    "cookies": "Cookiebeleid",
+    "copyright": "© 2026 TASHIRA. Alle rechten voorbehouden.",
+    "paymentMethods": "VISA | MASTERCARD | AMEX"
+  },
+  "validation": {
+    "required": "Dit veld is verplicht",
+    "email": "Voer een geldig e-mailadres in",
+    "phone": "Voer een geldig telefoonnummer in",
+    "termsRequired": "U moet akkoord gaan met de voorwaarden"
+  },
+  "status": {
+    "submitted": "Ingediend",
+    "underReview": "In Beoordeling",
+    "approved": "Goedgekeurd",
+    "issued": "Uitgegeven"
+  },
+  "processing": {
+    "regular": "Standaard",
+    "express": "Express"
+  }
+}
