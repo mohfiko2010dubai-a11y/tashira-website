@@ -1,0 +1,19 @@
+[Unit]
+Description=Tashira GitHub Webhook Auto-Deploy Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/tashira
+Environment="WEBHOOK_PORT=9000"
+Environment="GITHUB_SECRET=tashira-webhook-secret-2026"
+Environment="APP_DIR=/var/www/tashira"
+ExecStart=/usr/bin/python3 /var/www/tashira/scripts/webhook-server.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/tashira-webhook.log
+StandardError=append:/var/log/tashira-webhook.log
+
+[Install]
+WantedBy=multi-user.target
