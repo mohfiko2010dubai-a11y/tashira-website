@@ -9,6 +9,15 @@ import TrackApplication from './TrackApplication';
 type BaseType = 'single' | 'family';
 type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';
 
+interface ScreeningQuestion {
+  id: string;
+  questionEn: string;
+  questionAr: string;
+  icon: string;
+  infoEn: string;
+  infoAr: string;
+}
+
 interface ApplicantData {
   id: number;
   fullName: string;
@@ -55,6 +64,49 @@ const passportTypes = [
 ];
 
 const gccCountries = ['Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman', 'United Arab Emirates'];
+
+const screeningQuestions: ScreeningQuestion[] = [
+  {
+    id: 'passport-valid',
+    questionEn: 'Is your passport valid for at least 6 months from the date of travel?',
+    questionAr: 'هل جواز سفرك ساري لمدة 6 أشهر على الأقل من تاريخ السفر؟',
+    icon: '🛂',
+    infoEn: 'Your passport must be valid for at least 6 months. If it expires sooner, please renew it before applying.',
+    infoAr: 'يجب أن يكون جواز السفر ساري لمدة 6 أشهر على الأقل. إذا كان على وشك الانتهاء، يرجى تجديده قبل التقديم.',
+  },
+  {
+    id: 'photo-ready',
+    questionEn: 'Do you have a recent face photo with a white background (no glasses)?',
+    questionAr: 'هل لديك صورة شخصية حديثة بخلفية بيضاء (بدون نظارات)؟',
+    icon: '📷',
+    infoEn: 'A recent color photo with white background, no glasses, full face visible. Required for all applicants.',
+    infoAr: 'صورة شخصية حديثة بالألوان بخلفية بيضاء، بدون نظارات، الوجه كامل واضح. مطلوبة لجميع المتقدمين.',
+  },
+  {
+    id: 'travel-within-3months',
+    questionEn: 'Are you planning to travel within the next 3 months?',
+    questionAr: 'هل تخطط للسفر خلال الـ 3 أشهر القادمة؟',
+    icon: '✈️',
+    infoEn: 'Visa processing takes 3-4 days (or 24-36 hours for express). We recommend applying at least 2 weeks before travel.',
+    infoAr: 'تستغرق المعالجة 3-4 أيام (أو 24-36 ساعة للسريع). نوصي بالتقديم قبل السفر بأسبوعين على الأقل.',
+  },
+  {
+    id: 'no-uae-residence',
+    questionEn: 'Do you NOT currently hold a valid UAE residence visa?',
+    questionAr: 'هل ليس لديك إقامة سارية في الإمارات حالياً؟',
+    icon: '🏠',
+    infoEn: 'This service is for visitors only. UAE residents should use the visa amendment service through ICA.',
+    infoAr: 'هذه الخدمة للزوار فقط. المقيمون في الإمارات يجب استخدام خدمة تعديل التأشيرة من خلال الهيئة الاتحادية للهوية والجنسية.',
+  },
+  {
+    id: 'gcc-status-known',
+    questionEn: 'Do you know your GCC residency status? (GCC resident / Non-GCC / Accompanying GCC citizen)',
+    questionAr: 'هل تعرف حالة إقامتك الخليجية؟ (مقيم خليجي / غير خليجي / مصاحب مواطن خليجي)',
+    icon: '🆔',
+    infoEn: 'GCC residents and citizens get special visa rates. If you are accompanying a GCC citizen, you will need their passport copy.',
+    infoAr: 'المقيمون والمواطنون الخليجيون يحصلون على أسعار خاصة. إذا كنت مصاحباً لمواطن خليجي، ستحتاج نسخة من جواز سفره.',
+  },
+];
 
 const emptyApplicant = (id: number): ApplicantData => ({
   id,
@@ -193,10 +245,18 @@ export default function VisaApplicationForm() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [screeningAnswers, setScreeningAnswers] = useState<Record<string, boolean | null>>({});
+  const [screeningFailed, setScreeningFailed] = useState<string | null>(null);
+
+  const handleScreeningAnswer = (questionId: string, answer: boolean) => {
+    setScreeningAnswers((prev) => ({ ...prev, [questionId]: answer }));
+  };
+
+  const allScreeningYes = screeningQuestions.every((q) => screeningAnswers[q.id] === true);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!termsAccepted || !step1Done || !step2Done) return;
+    if (!termsAccepted || !step1Done || !step2Done || !allScreeningYes) return;
     setLoading(true);
     const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
     
@@ -274,7 +334,7 @@ export default function VisaApplicationForm() {
             <p className="text-sm text-gray-500 mb-2">{isAr ? 'رقم المرجع الخاص بك' : 'Your Reference Number'}</p>
             <p className="text-3xl font-mono font-bold text-[#C9A04C]">{referenceNumber}</p>
           </div>
-          <button onClick={() => { setSubmitted(false); setBaseType(null); setResidenceType(null); setApplicants([emptyApplicant(0)]); setTermsAccepted(false); }} className="px-8 py-3 rounded-lg font-semibold text-white bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 transition-all">{isAr ? 'تقديم طلب جديد' : 'Submit Another Application'}</button>
+          <button onClick={() => { setSubmitted(false); setBaseType(null); setResidenceType(null); setApplicants([emptyApplicant(0)]); setTermsAccepted(false); setScreeningAnswers({}); }} className="px-8 py-3 rounded-lg font-semibold text-white bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 transition-all">{isAr ? 'تقديم طلب جديد' : 'Submit Another Application'}</button>
         </div>
       </div>
     );
@@ -304,8 +364,95 @@ export default function VisaApplicationForm() {
             </div>
           </div>
 
-          {/* ===== STEP 2: RESIDENCE TYPE ===== */}
+          {/* ===== SCREENING QUESTIONS (after Step 1) ===== */}
           {step1Done && (
+            <div className="mb-8">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+                <p className="text-sm text-amber-700 font-medium flex items-center gap-2">
+                  <span>📋</span>
+                  {isAr
+                    ? 'لاستكمال طلب تأشيرتك، يجب الإجابة على الأسئلة التالية:'
+                    : 'To complete your visa application, please answer the following questions:'}
+                </p>
+              </div>
+              <div className="space-y-3">
+                {screeningQuestions.map((q, idx) => {
+                  const answer = screeningAnswers[q.id];
+                  const isFailed = screeningFailed === q.id;
+                  return (
+                    <div
+                      key={q.id}
+                      className={`rounded-xl border-2 transition-all overflow-hidden ${
+                        isFailed
+                          ? 'border-red-400 shadow-sm shadow-red-100'
+                          : answer === true
+                          ? 'border-emerald-400 shadow-sm'
+                          : answer === false
+                          ? 'border-red-300'
+                          : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="p-4">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl flex-shrink-0">{q.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                                {idx + 1}
+                              </span>
+                              <p className="text-sm font-medium text-gray-900">
+                                {isAr ? q.questionAr : q.questionEn}
+                              </p>
+                            </div>
+                            <div className="flex gap-2 ml-7">
+                              <button
+                                type="button"
+                                onClick={() => { handleScreeningAnswer(q.id, true); setScreeningFailed(null); }}
+                                className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all border-2 ${
+                                  answer === true
+                                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50'
+                                }`}
+                              >
+                                {isAr ? 'نعم ✓' : 'Yes ✓'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleScreeningAnswer(q.id, false)}
+                                className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all border-2 ${
+                                  answer === false
+                                    ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50'
+                                }`}
+                              >
+                                {isAr ? 'لا ✗' : 'No ✗'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {isFailed && (
+                        <div className="bg-red-50 border-t border-red-200 p-4">
+                          <div className="flex items-start gap-2">
+                            <span className="text-red-500 text-lg flex-shrink-0">⚠️</span>
+                            <div>
+                              <p className="font-semibold text-red-700 mb-0.5 text-sm">
+                                {isAr ? 'لا يمكن استكمال الطلب - ' : 'Cannot proceed - '}
+                                {isAr ? q.infoAr : q.infoEn}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ===== STEP 2: RESIDENCE TYPE ===== */}
+          {step1Done && allScreeningYes && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-7 h-7 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-xs font-bold">2</span>
@@ -329,7 +476,7 @@ export default function VisaApplicationForm() {
           )}
 
           {/* ===== STEP 3: FAMILY SIZE + PRICE ===== */}
-          {step2Done && isFamily && (
+          {step2Done && isFamily && allScreeningYes && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-7 h-7 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-xs font-bold">3</span>
@@ -349,7 +496,7 @@ export default function VisaApplicationForm() {
           )}
 
           {/* ===== APPLICANT TABS (Family) ===== */}
-          {step2Done && isFamily && applicants.length > 1 && (
+          {step2Done && isFamily && applicants.length > 1 && allScreeningYes && (
             <div className="mb-6 flex items-center gap-2 flex-wrap">
               {applicants.map((_, idx) => (
                 <button key={idx} type="button" onClick={() => setCurrentApplicantIdx(idx)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${currentApplicantIdx === idx ? 'bg-[#C9A04C] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -380,7 +527,7 @@ export default function VisaApplicationForm() {
           )}
 
           {/* ===== 2-COLUMN FORM ===== */}
-          {step2Done && (
+          {step2Done && allScreeningYes && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-5">
               {/* LEFT COLUMN */}
               <div className="space-y-5">
@@ -552,7 +699,7 @@ export default function VisaApplicationForm() {
           )}
 
           {/* Terms */}
-          {step2Done && (
+          {step2Done && allScreeningYes && (
             <div className="mt-6 pt-4 border-t border-gray-100">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 text-[#C9A04C] border-gray-300 rounded" required />
@@ -562,7 +709,7 @@ export default function VisaApplicationForm() {
           )}
 
           {/* Submit */}
-          {step2Done && (
+          {step2Done && allScreeningYes && (
             <div className="mt-6 flex justify-center">
               <button type="submit" disabled={loading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                 {loading ? (isAr ? 'جاري الإرسال...' : 'Submitting...') : (isAr ? 'إرسال الطلب' : 'Submit Application')}

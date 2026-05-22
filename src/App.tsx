@@ -9,6 +9,7 @@ import ChatBot from '@/components/shared/ChatBot';
 import AdminGuard from '@/components/shared/AdminGuard';
 import Home from '@/pages/Home';
 import Pricing from '@/pages/Pricing';
+import TravelDeals from '@/pages/TravelDeals';
 import HowToApply from '@/pages/HowToApply';
 import Track from '@/pages/Track';
 import Legal from '@/pages/Legal';
@@ -31,6 +32,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/visa-prices" element={<Pricing />} />
+          <Route path="/travel-deals" element={<TravelDeals />} />
           <Route path="/how-to-apply" element={<HowToApply />} />
           <Route path="/track" element={<Track />} />
           <Route path="/terms" element={<Legal page="terms" />} />
