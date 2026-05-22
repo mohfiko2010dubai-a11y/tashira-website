@@ -28,12 +28,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex flex-col items-start leading-tight">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-[#C9A04C] tracking-wide">{t('brand.name')}</span>
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded-full border border-emerald-200 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> LIVE
-              </span>
-            </div>
+            <span className="text-xl font-bold text-[#C9A04C] tracking-wide">{t('brand.name')}</span>
             <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-[0.15em] -mt-0.5">
               {t('brand.subtitle')}
             </span>
