@@ -19,8 +19,10 @@ log "============================================"
 log "  MANUAL DEPLOY STARTED"
 log "============================================"
 
-# Step 1
-log "[1/5] Pulling latest changes..."
+# Step 1: Reset to GitHub source of truth, then pull
+log "[1/5] Resetting local changes and pulling from GitHub..."
+git reset --hard HEAD | tee -a "$LOG_FILE"
+git clean -fd | tee -a "$LOG_FILE"
 git pull origin main | tee -a "$LOG_FILE"
 
 # Step 2

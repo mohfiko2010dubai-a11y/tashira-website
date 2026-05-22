@@ -72,8 +72,30 @@ def run_deploy():
         logger.info("Starting auto-deployment...")
         logger.info("=" * 50)
 
-        # Step 1: Pull latest changes
-        logger.info("[1/5] Pulling from GitHub...")
+        # Step 1: Reset to GitHub source of truth, then pull
+        logger.info("[1/5] Resetting local changes and pulling from GitHub...")
+
+        # 1a: Hard reset to discard any local changes
+        result = subprocess.run(
+            ['git', 'reset', '--hard', 'HEAD'],
+            cwd=APP_DIR,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        logger.info(f"Git reset: {result.stdout.strip() or 'OK'}")
+
+        # 1b: Clean untracked files
+        result = subprocess.run(
+            ['git', 'clean', '-fd'],
+            cwd=APP_DIR,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        logger.info(f"Git clean: {result.stdout.strip() or 'OK'}")
+
+        # 1c: Pull from GitHub
         result = subprocess.run(
             ['git', 'pull', 'origin', 'main'],
             cwd=APP_DIR,
@@ -84,7 +106,7 @@ def run_deploy():
         if result.returncode != 0:
             logger.error(f"Git pull failed: {result.stderr}")
             return
-        logger.info(f"Git output: {result.stdout.strip()}")
+        logger.info(f"Git pull: {result.stdout.strip()}")
 
         if 'Already up to date' in result.stdout:
             logger.info("No new changes. Deployment skipped.")

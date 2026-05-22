@@ -34,8 +34,10 @@ if [ "$LOCAL" != "$REMOTE" ] && [ -n "$REMOTE" ]; then
     log "Remote: $REMOTE"
     log "======================================"
 
-    # Step 1: Pull
-    log "[1/5] Pulling from origin/$BRANCH..."
+    # Step 1: Reset to GitHub source of truth, then pull
+    log "[1/5] Resetting local changes and pulling from origin/$BRANCH..."
+    git reset --hard HEAD >> "$LOG_FILE" 2>&1
+    git clean -fd >> "$LOG_FILE" 2>&1
     git pull origin "$BRANCH" >> "$LOG_FILE" 2>&1 || { log "ERROR: git pull failed"; rm -f "$LOCK_FILE"; exit 1; }
 
     # Step 2: Install dependencies
