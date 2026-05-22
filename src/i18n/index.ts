@@ -8,6 +8,7 @@ import enPricing from './locales/en/pricing.json';
 import enHowToApply from './locales/en/howToApply.json';
 import enTrack from './locales/en/track.json';
 import enLegal from './locales/en/legal.json';
+import enSaudiVisa from './locales/en/saudiVisa.json';
 
 import arCommon from './locales/ar/common.json';
 import arHome from './locales/ar/home.json';
@@ -15,6 +16,7 @@ import arPricing from './locales/ar/pricing.json';
 import arHowToApply from './locales/ar/howToApply.json';
 import arTrack from './locales/ar/track.json';
 import arLegal from './locales/ar/legal.json';
+import arSaudiVisa from './locales/ar/saudiVisa.json';
 
 const resources = {
   en: {
@@ -24,6 +26,7 @@ const resources = {
     howToApply: enHowToApply,
     track: enTrack,
     legal: enLegal,
+    saudiVisa: enSaudiVisa,
   },
   ar: {
     common: arCommon,
@@ -32,6 +35,7 @@ const resources = {
     howToApply: arHowToApply,
     track: arTrack,
     legal: arLegal,
+    saudiVisa: arSaudiVisa,
   },
 };
 

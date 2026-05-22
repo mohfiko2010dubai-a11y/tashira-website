@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Clock, Calendar, FileText, Plane, Hotel, Star, ChevronDown, ChevronUp, Phone } from 'lucide-react';
+import { Check, Calendar, FileText, Plane, Hotel, Star, ChevronDown, ChevronUp, Phone } from 'lucide-react';
 
 interface SaudiVisaType {
   id: string;
-  nameEn: string;
-  nameAr: string;
+  key: string;
   price: number;
   originalPrice: number;
   processingDays: string;
@@ -13,8 +12,6 @@ interface SaudiVisaType {
   stayDuration: string;
   entries: string;
   entriesAr: string;
-  features: string[];
-  featuresAr: string[];
   color: string;
   popular?: boolean;
 }
@@ -22,8 +19,7 @@ interface SaudiVisaType {
 const saudiVisas: SaudiVisaType[] = [
   {
     id: 'tourist-30',
-    nameEn: '30 Days Tourist Visa',
-    nameAr: 'تأشيرة سياحية 30 يوم',
+    key: 'tourist30',
     price: 185,
     originalPrice: 250,
     processingDays: '3 - 5 days',
@@ -31,15 +27,12 @@ const saudiVisas: SaudiVisaType[] = [
     stayDuration: '30 Days',
     entries: 'Single / Multiple',
     entriesAr: 'مفرد / متعدد',
-    features: ['E-visa delivery', 'Tourism activities allowed', 'Hotel bookings included', '90 days validity from issue'],
-    featuresAr: ['تأشيرة إلكترونية', 'السياحة مسموح', 'حجوزات فنادق', 'صالحة 90 يوم من الإصدار'],
     color: '#C9A04C',
     popular: true,
   },
   {
     id: 'umrah',
-    nameEn: 'Umrah Visa',
-    nameAr: 'تأشيرة عمرة',
+    key: 'umrah',
     price: 165,
     originalPrice: 220,
     processingDays: '3 - 7 days',
@@ -47,14 +40,11 @@ const saudiVisas: SaudiVisaType[] = [
     stayDuration: 'Up to 30 Days',
     entries: 'Single',
     entriesAr: 'دخول مفرد',
-    features: ['Umrah permit included', 'Mecca & Medina access', 'Hotel packages available', 'Ground transport optional'],
-    featuresAr: ['تصريح عمرة', 'مكة والمدينة', 'باقات فنادق', 'مواصلات اختيارية'],
     color: '#16a34a',
   },
   {
     id: 'visit-90',
-    nameEn: '90 Days Family Visit',
-    nameAr: 'زيارة عائلية 90 يوم',
+    key: 'visit90',
     price: 295,
     originalPrice: 380,
     processingDays: '5 - 7 days',
@@ -62,14 +52,11 @@ const saudiVisas: SaudiVisaType[] = [
     stayDuration: '90 Days',
     entries: 'Single / Multiple',
     entriesAr: 'مفرد / متعدد',
-    features: ['Family visit purpose', 'Extendable in KSA', 'Sponsor letter processing', 'Medical insurance included'],
-    featuresAr: ['غرض زيارة عائلية', 'قابلة للتمديد', 'خطاب كفالة', 'تأمين طبي'],
     color: '#2563eb',
   },
   {
     id: 'transit-96',
-    nameEn: '96 Hours Transit',
-    nameAr: 'عبور 96 ساعة',
+    key: 'transit96',
     price: 85,
     originalPrice: 120,
     processingDays: '1 - 3 days',
@@ -77,14 +64,11 @@ const saudiVisas: SaudiVisaType[] = [
     stayDuration: '96 Hours',
     entries: 'Single',
     entriesAr: 'دخول مفرد',
-    features: ['Short layover visa', 'Airport to hotel transfer', 'Quick processing', 'Multi-entry option available'],
-    featuresAr: ['تأشيرة ترانزيت', 'مواصلات المطار', 'معالجة سريعة', 'متعدد اختياري'],
     color: '#7c3aed',
   },
   {
     id: 'business-30',
-    nameEn: '30 Days Business Visa',
-    nameAr: 'تأشيرة عمل 30 يوم',
+    key: 'business30',
     price: 350,
     originalPrice: 450,
     processingDays: '5 - 10 days',
@@ -92,14 +76,11 @@ const saudiVisas: SaudiVisaType[] = [
     stayDuration: '30 Days',
     entries: 'Single / Multiple',
     entriesAr: 'مفرد / متعدد',
-    features: ['Business meetings allowed', 'Conference attendance', 'Invitation letter processing', 'VIP fast-track option'],
-    featuresAr: ['اجتماعات أعمال', 'مؤتمرات', 'خطاب دعوة', 'خدمة VIP سريعة'],
     color: '#dc2626',
   },
   {
     id: 'premium-365',
-    nameEn: '1 Year Multiple Entry',
-    nameAr: 'متعدد سنة كاملة',
+    key: 'premium365',
     price: 550,
     originalPrice: 750,
     processingDays: '5 - 7 days',
@@ -107,30 +88,29 @@ const saudiVisas: SaudiVisaType[] = [
     stayDuration: '90 Days per visit',
     entries: 'Multiple',
     entriesAr: 'دخول متعدد',
-    features: ['Unlimited entries', '90 days per stay', 'Tourism & business', 'Priority processing'],
-    featuresAr: ['دخول غير محدود', '90 يوم كل زيارة', 'سياحة وأعمال', 'معالجة أولوية'],
     color: '#C9A04C',
     popular: true,
   },
 ];
 
 const requirements = [
-  { en: 'Valid passport (6+ months)', ar: 'جواز سفر ساري (6+ شهور)', icon: FileText },
-  { en: 'Face photo (white background)', ar: 'صورة شخصية (خلفية بيضاء)', icon: FileText },
-  { en: 'Flight booking', ar: 'حجز طيران', icon: Plane },
-  { en: 'Hotel reservation', ar: 'حجز فندق', icon: Hotel },
-  { en: 'Vaccination certificate', ar: 'شهادة تطعيم', icon: FileText },
+  { key: 'reqPassport', icon: FileText },
+  { key: 'reqPhoto', icon: FileText },
+  { key: 'reqFlight', icon: Plane },
+  { key: 'reqHotel', icon: Hotel },
+  { key: 'reqVaccine', icon: FileText },
 ];
 
+const docKeys = ['passport', 'photo', 'flight', 'hotel', 'vaccine', 'id', 'bank', 'sponsor'];
+
 export default function SaudiVisa() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('saudiVisa');
   const isAr = i18n.language === 'ar';
   const [expandedVisa, setExpandedVisa] = useState<string | null>(null);
 
-  const handleWhatsApp = (visaName: string) => {
-    const message = isAr
-      ? `مرحباً، أود الاستفسار عن تأشيرة ${visaName} للسعودية`
-      : `Hello, I would like to inquire about ${visaName} for Saudi Arabia`;
+  const handleWhatsApp = (visaKey: string) => {
+    const visaName = t(`visas.${visaKey}.name`);
+    const message = t('inquiryMessage', { visaName });
     window.open(`https://wa.me/971508107710?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -142,21 +122,19 @@ export default function SaudiVisa() {
         <div className="relative z-10">
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-full text-sm font-medium mb-4 backdrop-blur-sm">
             <Star size={16} className="text-yellow-400 fill-yellow-400" />
-            {isAr ? 'خدمات التأشيرات السعودية' : 'Saudi Arabia Visa Services'}
+            {t('hero.badge')}
           </span>
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            {isAr ? 'تأشيرات المملكة العربية السعودية' : 'Saudi Arabia Visas'}
+            {t('hero.title')}
           </h1>
           <p className="text-white/80 max-w-2xl mx-auto text-lg">
-            {isAr
-              ? 'سياحة، عمرة، زيارة عائلية، عمل — أحصل على تأشيرتك السعودية بسرعة وسهولة'
-              : 'Tourism, Umrah, Family Visit, Business — Get your Saudi visa fast and easy'}
+            {t('hero.subtitle')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8 text-white/70 text-sm">
             {requirements.map((r) => (
-              <span key={r.en} className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
+              <span key={r.key} className="flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
                 <r.icon size={14} />
-                {isAr ? r.ar : r.en}
+                {t(`hero.${r.key}`)}
               </span>
             ))}
           </div>
@@ -167,113 +145,116 @@ export default function SaudiVisa() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="text-center mb-10">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            {isAr ? 'اختر نوع التأشيرة' : 'Choose Your Visa Type'}
+            {t('chooseTitle')}
           </h2>
           <p className="text-gray-500 mt-2">
-            {isAr ? 'جميع الأسعار تشمل رسوم التأشيرة والخدمة' : 'All prices include visa fees and service charges'}
+            {t('chooseSubtitle')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {saudiVisas.map((visa) => (
-            <div
-              key={visa.id}
-              className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col border border-gray-100"
-            >
-              {/* Card Header */}
-              <div className="p-5 flex-1">
-                <div className="flex items-center justify-between mb-3">
-                  <span
-                    className="inline-block px-3 py-1 text-[10px] font-bold rounded-full text-white uppercase tracking-wide"
-                    style={{ backgroundColor: visa.color }}
-                  >
-                    {visa.processingDays}
-                  </span>
-                  {visa.popular && (
-                    <span className="flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-full">
-                      <Star size={10} className="fill-red-500" />
-                      {isAr ? 'الأكثر طلباً' : 'POPULAR'}
+          {saudiVisas.map((visa) => {
+            const visaFeatures = t(`visas.${visa.key}.features`, { returnObjects: true }) as string[];
+            return (
+              <div
+                key={visa.id}
+                className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col border border-gray-100"
+              >
+                {/* Card Header */}
+                <div className="p-5 flex-1">
+                  <div className="flex items-center justify-between mb-3">
+                    <span
+                      className="inline-block px-3 py-1 text-[10px] font-bold rounded-full text-white uppercase tracking-wide"
+                      style={{ backgroundColor: visa.color }}
+                    >
+                      {visa.processingDays}
                     </span>
-                  )}
-                </div>
-
-                <h3 className="text-lg font-bold text-gray-900 leading-snug">
-                  {isAr ? visa.nameAr : visa.nameEn}
-                </h3>
-
-                <div className="flex items-baseline gap-2 mt-3">
-                  <span className="text-3xl font-extrabold" style={{ color: visa.color }}>${visa.price}</span>
-                  <span className="text-lg text-gray-400 line-through">${visa.originalPrice}</span>
-                </div>
-
-                <div className="flex items-center gap-1 mt-1">
-                  <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
-                    {isAr ? 'توفير' : 'Save'} ${visa.originalPrice - visa.price}
-                  </span>
-                </div>
-              </div>
-
-              {/* Features */}
-              <div className="px-5 pb-3 space-y-2">
-                {(isAr ? visa.featuresAr : visa.features).slice(0, 3).map((f, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                    <Check size={14} style={{ color: visa.color }} className="shrink-0" />
-                    <span>{f}</span>
+                    {visa.popular && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-full">
+                        <Star size={10} className="fill-red-500" />
+                        {t('popular')}
+                      </span>
+                    )}
                   </div>
-                ))}
 
-                {/* Expandable section */}
-                {expandedVisa === visa.id && (
-                  <div className="pt-2 space-y-2 border-t border-gray-100 mt-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar size={14} className="text-gray-400 shrink-0" />
-                      <span>{isAr ? 'الصلاحية:' : 'Validity:'} {visa.validity}</span>
+                  <h3 className="text-lg font-bold text-gray-900 leading-snug">
+                    {t(`visas.${visa.key}.name`)}
+                  </h3>
+
+                  <div className="flex items-baseline gap-2 mt-3">
+                    <span className="text-3xl font-extrabold" style={{ color: visa.color }}>${visa.price}</span>
+                    <span className="text-lg text-gray-400 line-through">${visa.originalPrice}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
+                      {t('save')} ${visa.originalPrice - visa.price}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="px-5 pb-3 space-y-2">
+                  {visaFeatures.slice(0, 3).map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                      <Check size={14} style={{ color: visa.color }} className="shrink-0" />
+                      <span>{f}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Clock size={14} className="text-gray-400 shrink-0" />
-                      <span>{isAr ? 'مدة البقاء:' : 'Stay:'} {visa.stayDuration}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Plane size={14} className="text-gray-400 shrink-0" />
-                      <span>{isAr ? 'نوع الدخول:' : 'Entry:'} {isAr ? visa.entriesAr : visa.entries}</span>
-                    </div>
-                    {(isAr ? visa.featuresAr : visa.features).slice(3).map((f, i) => (
-                      <div key={i + 3} className="flex items-center gap-2 text-sm text-gray-600">
-                        <Check size={14} style={{ color: visa.color }} className="shrink-0" />
-                        <span>{f}</span>
+                  ))}
+
+                  {/* Expandable section */}
+                  {expandedVisa === visa.id && (
+                    <div className="pt-2 space-y-2 border-t border-gray-100 mt-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar size={14} className="text-gray-400 shrink-0" />
+                        <span>{t('validityLabel')}: {visa.validity}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                <button
-                  onClick={() => setExpandedVisa(expandedVisa === visa.id ? null : visa.id)}
-                  className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors pt-1"
-                >
-                  {expandedVisa === visa.id ? (
-                    <>{isAr ? 'أقل' : 'Less'} <ChevronUp size={14} /></>
-                  ) : (
-                    <>{isAr ? 'المزيد من التفاصيل' : 'More details'} <ChevronDown size={14} /></>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar size={14} className="text-gray-400 shrink-0" />
+                        <span>{t('stayLabel')}: {visa.stayDuration}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Plane size={14} className="text-gray-400 shrink-0" />
+                        <span>{t('entryLabel')}: {isAr ? visa.entriesAr : visa.entries}</span>
+                      </div>
+                      {visaFeatures.slice(3).map((f, i) => (
+                        <div key={i + 3} className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check size={14} style={{ color: visa.color }} className="shrink-0" />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </button>
-              </div>
 
-              {/* CTA */}
-              <div className="px-5 pb-5 mt-auto">
-                <button
-                  onClick={() => handleWhatsApp(isAr ? visa.nameAr : visa.nameEn)}
-                  className="w-full py-3 rounded-xl font-bold text-sm text-white transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
-                  style={{
-                    background: `linear-gradient(135deg, ${visa.color}, ${visa.color}dd)`,
-                    boxShadow: `0 4px 16px ${visa.color}40`,
-                  }}
-                >
-                  <Phone size={16} />
-                  {isAr ? 'احجز عبر واتساب' : 'Book via WhatsApp'}
-                </button>
+                  <button
+                    onClick={() => setExpandedVisa(expandedVisa === visa.id ? null : visa.id)}
+                    className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors pt-1"
+                  >
+                    {expandedVisa === visa.id ? (
+                      <>{t('less')} <ChevronUp size={14} /></>
+                    ) : (
+                      <>{t('moreDetails')} <ChevronDown size={14} /></>
+                    )}
+                  </button>
+                </div>
+
+                {/* CTA */}
+                <div className="px-5 pb-5 mt-auto">
+                  <button
+                    onClick={() => handleWhatsApp(visa.key)}
+                    className="w-full py-3 rounded-xl font-bold text-sm text-white transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                    style={{
+                      background: `linear-gradient(135deg, ${visa.color}, ${visa.color}dd)`,
+                      boxShadow: `0 4px 16px ${visa.color}40`,
+                    }}
+                  >
+                    <Phone size={16} />
+                    {t('bookWhatsApp')}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -281,24 +262,15 @@ export default function SaudiVisa() {
       <div className="bg-white border-t border-gray-100 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
-            {isAr ? 'المستندات المطلوبة' : 'Required Documents'}
+            {t('documents.title')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { en: 'Passport copy (valid 6+ months)', ar: 'صورة جواز السفر (ساري 6+ شهور)', icon: FileText },
-              { en: 'Personal photo (white background)', ar: 'صورة شخصية (خلفية بيضاء)', icon: FileText },
-              { en: 'Flight reservation', ar: 'حجز طيران', icon: Plane },
-              { en: 'Hotel booking', ar: 'حجز فندق', icon: Hotel },
-              { en: 'Vaccination certificate (if required)', ar: 'شهادة تطعيم (إذا لزم)', icon: FileText },
-              { en: 'National ID copy', ar: 'صورة البطاقة الشخصية', icon: FileText },
-              { en: 'Bank statement (last 3 months)', ar: 'كشف حساب (آخر 3 شهور)', icon: FileText },
-              { en: 'Sponsor letter (for visit visa)', ar: 'خطاب كفالة (تأشيرة زيارة)', icon: FileText },
-            ].map((doc, i) => (
-              <div key={i} className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
+            {docKeys.map((key) => (
+              <div key={key} className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
                 <div className="w-10 h-10 rounded-lg bg-[#166534]/10 flex items-center justify-center shrink-0">
-                  <doc.icon size={18} className="text-[#166534]" />
+                  <FileText size={18} className="text-[#166534]" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">{isAr ? doc.ar : doc.en}</span>
+                <span className="text-sm font-medium text-gray-700">{t(`documents.${key}`)}</span>
               </div>
             ))}
           </div>
@@ -308,12 +280,10 @@ export default function SaudiVisa() {
       {/* CTA Banner */}
       <div className="py-16 px-4 text-center" style={{ background: 'linear-gradient(135deg, #1a472a 0%, #166534 50%, #14532d 100%)' }}>
         <h2 className="text-3xl font-bold text-white mb-4">
-          {isAr ? 'جاهز لزيارة السعودية؟' : 'Ready to visit Saudi Arabia?'}
+          {t('ctaBanner.title')}
         </h2>
         <p className="text-white/80 max-w-lg mx-auto mb-8">
-          {isAr
-            ? 'تواصل معنا الآن عبر واتساب وسنبدأ في إجراءات تأشيرتك فوراً'
-            : 'Contact us now via WhatsApp and we will start your visa process immediately'}
+          {t('ctaBanner.subtitle')}
         </p>
         <a
           href="https://wa.me/971508107710"
@@ -322,7 +292,7 @@ export default function SaudiVisa() {
           className="inline-flex items-center gap-2 px-10 py-4 rounded-xl font-bold text-lg bg-white text-[#166534] hover:bg-gray-100 transition-all hover:-translate-y-1 hover:shadow-xl"
         >
           <Phone size={20} />
-          {isAr ? 'تواصل عبر واتساب' : 'Contact via WhatsApp'}
+          {t('ctaBanner.button')}
         </a>
       </div>
     </div>

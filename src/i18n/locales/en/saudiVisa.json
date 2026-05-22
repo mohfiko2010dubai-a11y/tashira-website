@@ -1,0 +1,66 @@
+{
+  "hero": {
+    "badge": "Saudi Arabia Visa Services",
+    "title": "Saudi Arabia Visas",
+    "subtitle": "Tourism, Umrah, Family Visit, Business — Get your Saudi visa fast and easy",
+    "reqPassport": "Valid passport (6+ months)",
+    "reqPhoto": "Face photo (white background)",
+    "reqFlight": "Flight booking",
+    "reqHotel": "Hotel reservation",
+    "reqVaccine": "Vaccination certificate"
+  },
+  "chooseTitle": "Choose Your Visa Type",
+  "chooseSubtitle": "All prices include visa fees and service charges",
+  "save": "Save",
+  "moreDetails": "More details",
+  "less": "Less",
+  "validityLabel": "Validity",
+  "stayLabel": "Stay",
+  "entryLabel": "Entry",
+  "popular": "POPULAR",
+  "processingTime": "Processing",
+  "bookWhatsApp": "Book via WhatsApp",
+  "inquiryMessage": "Hello, I would like to inquire about {visaName} for Saudi Arabia",
+  "documents": {
+    "title": "Required Documents",
+    "passport": "Passport copy (valid 6+ months)",
+    "photo": "Personal photo (white background)",
+    "flight": "Flight reservation",
+    "hotel": "Hotel booking",
+    "vaccine": "Vaccination certificate (if required)",
+    "id": "National ID copy",
+    "bank": "Bank statement (last 3 months)",
+    "sponsor": "Sponsor letter (for visit visa)"
+  },
+  "ctaBanner": {
+    "title": "Ready to visit Saudi Arabia?",
+    "subtitle": "Contact us now via WhatsApp and we will start your visa process immediately",
+    "button": "Contact via WhatsApp"
+  },
+  "visas": {
+    "tourist30": {
+      "name": "30 Days Tourist Visa",
+      "features": ["E-visa delivery", "Tourism activities allowed", "Hotel bookings included", "90 days validity from issue"]
+    },
+    "umrah": {
+      "name": "Umrah Visa",
+      "features": ["Umrah permit included", "Mecca & Medina access", "Hotel packages available", "Ground transport optional"]
+    },
+    "visit90": {
+      "name": "90 Days Family Visit",
+      "features": ["Family visit purpose", "Extendable in KSA", "Sponsor letter processing", "Medical insurance included"]
+    },
+    "transit96": {
+      "name": "96 Hours Transit",
+      "features": ["Short layover visa", "Airport to hotel transfer", "Quick processing", "Multi-entry option available"]
+    },
+    "business30": {
+      "name": "30 Days Business Visa",
+      "features": ["Business meetings allowed", "Conference attendance", "Invitation letter processing", "VIP fast-track option"]
+    },
+    "premium365": {
+      "name": "1 Year Multiple Entry",
+      "features": ["Unlimited entries", "90 days per stay", "Tourism & business", "Priority processing"]
+    }
+  }
+}
