@@ -111,11 +111,11 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-sm text-gray-400">
                 <Phone size={13} className="text-[#C9A04C] shrink-0" />
-                <span>+971 4494 6106</span>
+                <span>+971 50 210 1784</span>
               </li>
               <li className="flex items-center gap-2.5 text-sm text-gray-400">
-                <Phone size={13} className="text-[#C9A04C] shrink-0" />
-                <span>+971 5081 07710</span>
+                <Phone size={13} className="text-emerald-500 shrink-0" />
+                <span>+971 58 989 6644 (WhatsApp)</span>
               </li>
               <li className="flex items-center gap-2.5 text-sm text-gray-400">
                 <Mail size={13} className="text-[#C9A04C] shrink-0" />
