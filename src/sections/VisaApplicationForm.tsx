@@ -84,8 +84,8 @@ export default function VisaApplicationForm() {
   const isAr = i18n.language === 'ar';
   const [dragOver, setDragOver] = useState<string | null>(null);
 
-  const [baseType, setBaseType] = useState<BaseType | null>(null);
-  const [residenceType, setResidenceType] = useState<ResidenceType | null>(null);
+  const [baseType, setBaseType] = useState<BaseType>('family');
+  const [residenceType, setResidenceType] = useState<ResidenceType>('gcc-resident');
   const [numApplicants, setNumApplicants] = useState(2);
   const [currentApplicantIdx, setCurrentApplicantIdx] = useState(0);
 
@@ -94,7 +94,7 @@ export default function VisaApplicationForm() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [arrivalDate, setArrivalDate] = useState('');
-  const [applicants, setApplicants] = useState<ApplicantData[]>([emptyApplicant(0)]);
+  const [applicants, setApplicants] = useState<ApplicantData[]>([emptyApplicant(0), emptyApplicant(1)]);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -102,9 +102,6 @@ export default function VisaApplicationForm() {
   const isGCC = residenceType === 'gcc-resident' || residenceType === 'gcc-accompany';
   const isFamily = baseType === 'family';
   const isAccompany = residenceType === 'gcc-accompany' || residenceType === 'non-gcc-accompany';
-
-  const step1Done = baseType !== null;
-  const step2Done = residenceType !== null;
 
   const updateApplicant = (idx: number, field: keyof ApplicantData, value: any) => {
     setApplicants((prev) => {
@@ -153,7 +150,6 @@ export default function VisaApplicationForm() {
 
   const handleBaseTypeChange = (type: BaseType) => {
     setBaseType(type);
-    setResidenceType(null);
     if (type === 'family') {
       setNumApplicants(2);
       setApplicants([emptyApplicant(0), emptyApplicant(1)]);
@@ -198,7 +194,7 @@ export default function VisaApplicationForm() {
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!termsAccepted || !step1Done || !step2Done || !allScreeningYes) return;
+    if (!termsAccepted || !allScreeningYes) return;
     setLoading(true);
     const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
     
@@ -226,13 +222,7 @@ export default function VisaApplicationForm() {
         sponsorRelation: a.sponsorRelation,
       })),
     });
-  }, [termsAccepted, step1Done, step2Done, baseType, residenceType, visaType, processingType, email, phone, arrivalDate, applicants, isAr, submitApplication]);
-
-  const selectVisaFromCard = (visaValue: string) => {
-    setVisaType(visaValue);
-    const el = document.getElementById('visa-type-field');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
+  }, [termsAccepted, baseType, residenceType, visaType, processingType, email, phone, arrivalDate, applicants, isAr, submitApplication]);
 
   const selectedVisaOption = visaOptions.find((v) => v.value === visaType);
   const app = applicants[currentApplicantIdx];
@@ -310,13 +300,12 @@ export default function VisaApplicationForm() {
           </div>
 
           {/* ===== STEP 2: RESIDENCE TYPE ===== */}
-          {step1Done && allScreeningYes && (
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-7 h-7 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-xs font-bold">2</span>
-                <h3 className="text-base font-semibold text-gray-900">{isAr ? 'نوع الإقامة / الحالة' : 'Residence Status'}</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-7 h-7 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-xs font-bold">2</span>
+              <h3 className="text-base font-semibold text-gray-900">{isAr ? 'نوع الإقامة / الحالة' : 'Residence Status'}</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                   { key: 'non-gcc', icon: Globe, title: isAr ? 'غير مقيم خليجي' : 'Non-GCC Resident', desc: isAr ? 'لا أملك إقامة خليجية' : 'I do not hold GCC residency' },
                   { key: 'gcc-resident', icon: Building2, title: isAr ? 'مقيم خليجي' : 'GCC Resident', desc: isAr ? 'أملك إقامة خليجية' : 'I hold a valid GCC residency' },
@@ -331,10 +320,9 @@ export default function VisaApplicationForm() {
                 ))}
               </div>
             </div>
-          )}
 
           {/* ===== STEP 3: FAMILY SIZE + PRICE ===== */}
-          {step2Done && isFamily && allScreeningYes && (
+          {isFamily && (
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-7 h-7 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-xs font-bold">3</span>
@@ -354,7 +342,7 @@ export default function VisaApplicationForm() {
           )}
 
           {/* ===== APPLICANT TABS (Family) ===== */}
-          {step2Done && isFamily && applicants.length > 1 && allScreeningYes && (
+          {isFamily && applicants.length > 1 && (
             <div className="mb-6 flex items-center gap-2 flex-wrap">
               {applicants.map((_, idx) => (
                 <button key={idx} type="button" onClick={() => setCurrentApplicantIdx(idx)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${currentApplicantIdx === idx ? 'bg-[#C9A04C] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -366,7 +354,7 @@ export default function VisaApplicationForm() {
           )}
 
           {/* ===== GCC/ACCOMPANY INFO BANNER ===== */}
-          {step2Done && isGCC && (
+          {isGCC && (
             <div className="mb-6 bg-gradient-to-r from-[#C9A04C]/10 to-[#C9A04C]/5 border border-[#C9A04C]/30 rounded-xl p-4">
               <p className="text-sm text-[#C9A04C] font-medium">
                 {residenceType === 'gcc-resident'
@@ -376,7 +364,7 @@ export default function VisaApplicationForm() {
               </p>
             </div>
           )}
-          {step2Done && residenceType === 'non-gcc-accompany' && (
+          {residenceType === 'non-gcc-accompany' && (
             <div className="mb-6 bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-500/30 rounded-xl p-4">
               <p className="text-sm text-blue-600 font-medium">
                 {isAr ? 'أنت مسافر كمصاحب لمواطن خليجي. يرجى رفع نسخة جواز/هوية الكفيل أدناه.' : 'You are accompanying a GCC citizen. Please upload a copy of the sponsor\'s passport or GCC ID below.'}
@@ -385,7 +373,6 @@ export default function VisaApplicationForm() {
           )}
 
           {/* ===== 2-COLUMN FORM ===== */}
-          {step2Done && allScreeningYes && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-5">
               {/* LEFT COLUMN */}
               <div className="space-y-5">
@@ -554,75 +541,26 @@ export default function VisaApplicationForm() {
                 )}
               </div>
             </div>
-          )}
 
           {/* Terms */}
-          {step2Done && allScreeningYes && (
-            <div className="mt-6 pt-4 border-t border-gray-100">
+          <div className="mt-6 pt-4 border-t border-gray-100">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 text-[#C9A04C] border-gray-300 rounded" required />
                 <span className="text-sm text-gray-600">{isAr ? 'لقد قرأت وأوافق على ' : 'I have read and agree to the '}<Link to="/terms" className="text-[#C9A04C] hover:underline">{isAr ? 'الشروط والأحكام' : 'Terms and Conditions'}</Link>. <span className="text-red-500">*</span></span>
               </label>
             </div>
-          )}
 
           {/* Submit */}
-          {step2Done && allScreeningYes && (
-            <div className="mt-6 flex justify-center">
-              <button type="submit" disabled={loading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-                {loading ? (isAr ? 'جاري الإرسال...' : 'Submitting...') : (isAr ? 'إرسال الطلب' : 'Submit Application')}
-              </button>
-            </div>
-          )}
+          <div className="mt-6 flex justify-center">
+            <button type="submit" disabled={loading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+              {loading ? (isAr ? 'جاري الإرسال...' : 'Submitting...') : (isAr ? 'إرسال الطلب' : 'Submit Application')}
+            </button>
+          </div>
         </div>
       </form>
 
-      {/* Pricing Cards */}
-      <div className="max-w-5xl mx-auto mt-10">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">{isAr ? 'أسعار التأشيرات' : 'UAE Visa Prices'}</h3>
-              <p className="text-sm text-gray-500 mt-1">{isAr ? 'اختر تأشيرة وانقر عليها لملء النموذج' : 'Select a visa and click to auto-fill the form'}</p>
-            </div>
-            <div className="flex bg-gray-100 rounded-full p-1">
-              <button onClick={() => setProcessingType('regular')} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${processingType === 'regular' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>{isAr ? 'عادي' : 'Regular'}</button>
-              <button onClick={() => setProcessingType('express')} className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${processingType === 'express' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>{isAr ? 'سريع' : 'Express'}</button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {visaOptions.map((visa) => {
-              const price = visa.price;
-              const finalPrice = processingType === 'express' ? price + 40 : price;
-              const isSelected = visaType === visa.value;
-              return (
-                <button
-                  key={visa.value}
-                  type="button"
-                  onClick={() => selectVisaFromCard(visa.value)}
-                  className={`group relative rounded-xl border-2 transition-all text-left p-4 hover:-translate-y-1 ${isSelected ? 'border-[#C9A04C] bg-gradient-to-br from-[#C9A04C]/[0.08] to-[#C9A04C]/[0.02] shadow-md' : 'border-gray-200 hover:border-[#DDBB7A] bg-white'}`}
-                >
-                  {/* Gold left accent bar */}
-                  <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-full transition-all ${isSelected ? 'bg-[#C9A04C]' : 'bg-gray-200 group-hover:bg-[#DDBB7A]'}`} />
-
-                  <div className="pl-2">
-                    {isSelected && <span className="absolute top-2 right-2 w-5 h-5 bg-[#C9A04C] text-white rounded-full flex items-center justify-center text-xs">✓</span>}
-                    {processingType === 'express' && <span className="absolute top-2 left-6 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">EXPRESS</span>}
-
-                    <p className="text-sm font-semibold text-gray-900 mt-1">{isAr ? visa.labelAr : visa.label}</p>
-                    <p className="text-2xl font-bold text-[#C9A04C] mt-2">${finalPrice}</p>
-                    {processingType === 'express' && <p className="text-[10px] text-gray-400 line-through">${price}</p>}
-                    <p className="text-[11px] text-gray-500 mt-1">{processingType === 'express' ? '24~36 hrs' : '3~4 days'}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Track */}
-      <div className="max-w-5xl mx-auto mt-10">
+      {/* Track - directly under form */}
+      <div className="max-w-5xl mx-auto mt-6">
         <TrackApplication />
       </div>
     </div>
