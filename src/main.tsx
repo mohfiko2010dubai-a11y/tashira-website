@@ -1,16 +1,22 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { TRPCProvider } from '@/providers/trpc'
 import './index.css'
 import App from './App'
 
+const router = createBrowserRouter([
+  { path: '*', element: <App /> }
+], {
+  future: {
+    v7_relativeSplatPath: true,
+  } as any,
+})
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <TRPCProvider>
-        <App />
-      </TRPCProvider>
-    </BrowserRouter>
+    <TRPCProvider>
+      <RouterProvider router={router} />
+    </TRPCProvider>
   </StrictMode>,
 )

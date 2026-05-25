@@ -6,10 +6,8 @@ export default function FAQSection() {
   const { t } = useTranslation('home');
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const faqItems = t('faq.items', { returnObjects: true }) as Array<{
-    question: string;
-    answer: string;
-  }>;
+  const _faqItems = t('faq.items', { returnObjects: true });
+  const faqItems = Array.isArray(_faqItems) ? _faqItems : [];
 
   const toggle = (idx: number) => {
     setOpenIndex(openIndex === idx ? null : idx);
