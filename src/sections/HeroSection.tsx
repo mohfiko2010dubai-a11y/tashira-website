@@ -32,7 +32,7 @@ export default function HeroSection() {
             className="w-8 h-auto rounded"
           />
           <p className="text-base font-normal text-gray-800">
-            {t('hero.label')}
+            {t('hero.badge')}
           </p>
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-wide uppercase">
