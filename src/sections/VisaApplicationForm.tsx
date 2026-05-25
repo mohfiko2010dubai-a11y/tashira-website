@@ -5,6 +5,7 @@ import { UploadCloud, X, CheckCircle, User, Users, Globe, Building2, Crown, User
 import { allCountries, allCountriesAr } from '@/data/countries';
 import { trpc } from '@/providers/trpc';
 import TrackApplication from './TrackApplication';
+import FormDecorations from '@/components/shared/FormDecorations';
 
 type BaseType = 'single' | 'family';
 type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';
@@ -39,14 +40,14 @@ interface UploadedFile {
 }
 
 const visaOptions = [
-  { value: '14days-single', label: '14 Days Visa', labelAr: 'تأشيرة 14 يوم', price: 165, image: '/images/visa-family.jpg' },
-  { value: '30days-single', label: '30 Days Visa', labelAr: 'تأشيرة 30 يوم', price: 185, image: '/images/visa-tourism.jpg' },
-  { value: '60days-single', label: '60 Days Visa', labelAr: 'تأشيرة 60 يوم', price: 295, image: '/images/visa-tourism.jpg' },
-  { value: '96hours-transit', label: '96 Hours Transit', labelAr: 'تأشيرة عبور 96 ساعة', price: 145, image: '/images/visa-transit.jpg' },
-  { value: '30days-gcc', label: '30 Days For GCC', labelAr: '30 يوم للخليجيين', price: 185, image: '/images/visa-family.jpg' },
-  { value: '30days-multiple', label: '30 Days Multiple', labelAr: 'تأشيرة 30 يوم متعدد', price: 285, image: '/images/visa-business.jpg' },
-  { value: '60days-multiple', label: '60 Days Multiple', labelAr: 'تأشيرة 60 يوم متعدد', price: 385, image: '/images/visa-business.jpg' },
-  { value: '90days-single', label: '90 Days Visa', labelAr: 'تأشيرة 90 يوم', price: 550, image: '/images/visa-tourism.jpg' },
+  { value: '14days-single', label: '14 Days Visa', labelAr: 'تأشيرة 14 يوم', price: 165 },
+  { value: '30days-single', label: '30 Days Visa', labelAr: 'تأشيرة 30 يوم', price: 185 },
+  { value: '60days-single', label: '60 Days Visa', labelAr: 'تأشيرة 60 يوم', price: 295 },
+  { value: '96hours-transit', label: '96 Hours Transit', labelAr: 'تأشيرة عبور 96 ساعة', price: 145 },
+  { value: '30days-gcc', label: '30 Days For GCC', labelAr: '30 يوم للخليجيين', price: 185 },
+  { value: '30days-multiple', label: '30 Days Multiple', labelAr: 'تأشيرة 30 يوم متعدد', price: 285 },
+  { value: '60days-multiple', label: '60 Days Multiple', labelAr: 'تأشيرة 60 يوم متعدد', price: 385 },
+  { value: '90days-single', label: '90 Days Visa', labelAr: 'تأشيرة 90 يوم', price: 550 },
 ];
 
 const passportTypes = [
@@ -282,8 +283,11 @@ export default function VisaApplicationForm() {
   }
 
   return (
-    <div className="px-4 sm:px-6 pb-20">
-      <form onSubmit={handleSubmit} className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+    <div className="px-4 sm:px-6 pb-20 relative">
+      {/* Floating side decorations */}
+      <FormDecorations />
+
+      <form onSubmit={handleSubmit} className="relative z-10 max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="p-6 sm:p-8 lg:p-10">
 
           {/* ===== STEP 1: SINGLE OR FAMILY ===== */}
@@ -592,21 +596,23 @@ export default function VisaApplicationForm() {
               const finalPrice = processingType === 'express' ? price + 40 : price;
               const isSelected = visaType === visa.value;
               return (
-                <button key={visa.value} type="button" onClick={() => selectVisaFromCard(visa.value)} className={`group relative rounded-xl border-2 transition-all text-left overflow-hidden hover:-translate-y-1 ${isSelected ? 'border-[#C9A04C] shadow-md' : 'border-gray-200 hover:border-[#DDBB7A]'}`}>
-                  {/* Image */}
-                  <div className="relative h-24 overflow-hidden">
-                    <img src={visa.image} alt={visa.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                    <div className={`absolute inset-0 transition-opacity ${isSelected ? 'bg-gradient-to-t from-[#C9A04C]/60 to-transparent' : 'bg-gradient-to-t from-black/50 to-transparent'}`} />
-                    {isSelected && <span className="absolute top-2 right-2 w-5 h-5 bg-[#C9A04C] text-white rounded-full flex items-center justify-center text-xs z-10">✓</span>}
-                    {processingType === 'express' && <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">EXPRESS</span>}
-                    {/* Label on image */}
-                    <p className="absolute bottom-2 left-2 right-2 text-xs font-semibold text-white drop-shadow-lg z-10">{isAr ? visa.labelAr : visa.label}</p>
-                  </div>
-                  {/* Price Info */}
-                  <div className={`p-3 ${isSelected ? 'bg-gradient-to-br from-[#C9A04C]/10 to-[#C9A04C]/5' : 'bg-white'}`}>
-                    <p className="text-2xl font-bold text-[#C9A04C]">${finalPrice}</p>
+                <button
+                  key={visa.value}
+                  type="button"
+                  onClick={() => selectVisaFromCard(visa.value)}
+                  className={`group relative rounded-xl border-2 transition-all text-left p-4 hover:-translate-y-1 ${isSelected ? 'border-[#C9A04C] bg-gradient-to-br from-[#C9A04C]/[0.08] to-[#C9A04C]/[0.02] shadow-md' : 'border-gray-200 hover:border-[#DDBB7A] bg-white'}`}
+                >
+                  {/* Gold left accent bar */}
+                  <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-full transition-all ${isSelected ? 'bg-[#C9A04C]' : 'bg-gray-200 group-hover:bg-[#DDBB7A]'}`} />
+
+                  <div className="pl-2">
+                    {isSelected && <span className="absolute top-2 right-2 w-5 h-5 bg-[#C9A04C] text-white rounded-full flex items-center justify-center text-xs">✓</span>}
+                    {processingType === 'express' && <span className="absolute top-2 left-6 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">EXPRESS</span>}
+
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{isAr ? visa.labelAr : visa.label}</p>
+                    <p className="text-2xl font-bold text-[#C9A04C] mt-2">${finalPrice}</p>
                     {processingType === 'express' && <p className="text-[10px] text-gray-400 line-through">${price}</p>}
-                    <p className="text-[11px] text-gray-500 mt-0.5">{processingType === 'express' ? '24~36 hrs' : '3~4 days'}</p>
+                    <p className="text-[11px] text-gray-500 mt-1">{processingType === 'express' ? '24~36 hrs' : '3~4 days'}</p>
                   </div>
                 </button>
               );
