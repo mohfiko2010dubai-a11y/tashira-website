@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 70" fill="none">
+  <!-- Elegant T mark -->
+  <rect x="4" y="4" width="44" height="4" rx="2" fill="#C9A04C"/>
+  <rect x="24" y="4" width="4" height="46" rx="2" fill="#C9A04C"/>
+  <circle cx="26" cy="60" r="3" fill="#C9A04C" opacity="0.5"/>
+
+  <!-- TASHIRA -->
+  <text x="62" y="46" font-family="'Inter', system-ui, -apple-system, Arial, sans-serif" font-size="40" font-weight="800" letter-spacing="6" fill="#1A2332">TASHIRA</text>
+
+  <!-- Thin gold line under -->
+  <rect x="62" y="54" width="250" height="2" rx="1" fill="#C9A04C" opacity="0.6"/>
+</svg>
