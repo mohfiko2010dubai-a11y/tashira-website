@@ -23,13 +23,10 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/tashira-logo.png" alt="TASHIRA" className="h-10 w-auto" />
-            <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded-full border border-emerald-200 animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> LIVE
-            </span>
+          <Link to="/" className="flex items-center">
+            <img src="/tashira-logo.png" alt="TASHIRA" className="h-14 w-auto" />
           </Link>
 
           {/* Desktop Nav - Center */}
