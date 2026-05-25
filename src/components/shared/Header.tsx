@@ -2,13 +2,10 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Menu, X } from 'lucide-react';
-import LanguageSelector from './LanguageSelector';
 
 const navLinks = [
   { key: 'home', label: 'HOME', path: '/' },
   { key: 'pricing', label: 'UAE VISAS', path: '/visa-prices' },
-  { key: 'saudiVisa', label: 'SAUDI VISA', path: '/saudi-visa' },
-  { key: 'travelDeals', label: 'TRAVEL DEALS', path: '/travel-deals' },
   { key: 'howToApply', label: 'HOW TO APPLY', path: '/how-to-apply' },
 ];
 
@@ -18,6 +15,10 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
+
+  const toggleLang = () => {
+    i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar');
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
@@ -53,11 +54,17 @@ export default function Header() {
             ))}
           </nav>
 
-          {/* Language + Mobile Menu */}
+          {/* Language Toggle + Mobile Menu */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:block">
-              <LanguageSelector />
-            </div>
+            <button
+              onClick={toggleLang}
+              className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-[#C9A04C] transition-colors uppercase tracking-wide"
+            >
+              {i18n.language === 'ar' ? 'ENGLISH' : 'ARABIC'}
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="ml-1">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
 
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
@@ -87,9 +94,12 @@ export default function Header() {
               </Link>
             ))}
           </nav>
-          <div className="mt-4 px-4">
-            <LanguageSelector />
-          </div>
+          <button
+            onClick={toggleLang}
+            className="mt-4 px-4 py-3 text-base font-medium text-gray-700 uppercase tracking-wide w-full text-left hover:bg-gray-50 rounded-lg"
+          >
+            {i18n.language === 'ar' ? 'ENGLISH' : 'ARABIC'}
+          </button>
         </div>
       )}
     </header>

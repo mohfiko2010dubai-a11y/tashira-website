@@ -10,11 +10,8 @@ export default function HowToApply() {
   const { t } = useTranslation('howToApply');
   const stepsRef = useRef<HTMLDivElement>(null);
 
-  const steps = t('steps', { returnObjects: true }) as Array<{
-    number: string;
-    title: string;
-    description: string;
-  }>;
+  const _steps = t('steps', { returnObjects: true });
+  const steps = Array.isArray(_steps) ? _steps : [];
 
   useEffect(() => {
     const ctx = gsap.context(() => {

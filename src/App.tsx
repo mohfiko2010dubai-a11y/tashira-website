@@ -6,12 +6,9 @@ import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import ScrollToTop from '@/components/shared/ScrollToTop';
 import ChatBot from '@/components/shared/ChatBot';
-import LanguageSelector from '@/components/shared/LanguageSelector';
 import AdminGuard from '@/components/shared/AdminGuard';
 import Home from '@/pages/Home';
 import Pricing from '@/pages/Pricing';
-import TravelDeals from '@/pages/TravelDeals';
-import SaudiVisa from '@/pages/SaudiVisa';
 import HowToApply from '@/pages/HowToApply';
 import Track from '@/pages/Track';
 import Legal from '@/pages/Legal';
@@ -29,25 +26,11 @@ function AppContent() {
 
   return (
     <div className={`min-h-screen bg-white ${i18n.language === 'ar' ? 'font-tajawal' : 'font-inter'}`}>
-      {/* Language Selector Bar */}
-      <div className="fixed top-16 left-0 right-0 z-40 bg-gradient-to-r from-gray-50 via-white to-gray-50 border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-10">
-          <span className="text-[10px] text-gray-400 font-medium hidden sm:inline">
-            26 Languages Supported
-          </span>
-          <div className="ml-auto">
-            <LanguageSelector />
-          </div>
-        </div>
-      </div>
-
       <Header />
-      <main className="pt-10">
+      <main>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/visa-prices" element={<Pricing />} />
-          <Route path="/travel-deals" element={<TravelDeals />} />
-          <Route path="/saudi-visa" element={<SaudiVisa />} />
           <Route path="/how-to-apply" element={<HowToApply />} />
           <Route path="/track" element={<Track />} />
           <Route path="/terms" element={<Legal page="terms" />} />
