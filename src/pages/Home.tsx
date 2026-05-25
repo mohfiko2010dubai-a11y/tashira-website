@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import HeroSection from '@/sections/HeroSection';
+import DubaiShowcase from '@/sections/DubaiShowcase';
 import VisaApplicationForm from '@/sections/VisaApplicationForm';
 import CountriesSection from '@/sections/CountriesSection';
 import FAQSection from '@/sections/FAQSection';
@@ -32,6 +33,7 @@ export default function Home() {
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #FAFAF7 0%, #F5F3EE 15%, #FFFFFF 30%)' }}>
       <HeroSection />
+      <DubaiShowcase />
       <VisaApplicationForm />
       <div ref={countriesRef}>
         <CountriesSection />
