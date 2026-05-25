@@ -1,12 +1,40 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, FileCheck } from 'lucide-react';
 
 export default function Footer() {
   const { t } = useTranslation('common');
 
   return (
     <footer className="bg-[#1A2332] text-white">
+      {/* License Badge Banner */}
+      <div className="border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+            <div className="flex items-center gap-3">
+              <ShieldCheck size={22} className="text-[#C9A04C]" />
+              <div>
+                <p className="text-xs text-gray-400">A licensed company under</p>
+                <p className="text-sm font-semibold text-white">Meydan Free Zone, Dubai Government</p>
+              </div>
+            </div>
+            <div className="hidden sm:block w-px h-8 bg-white/20" />
+            <div className="flex items-center gap-3">
+              <FileCheck size={22} className="text-[#C9A04C]" />
+              <div>
+                <p className="text-xs text-gray-400">Commercial License No.</p>
+                <p className="text-sm font-semibold text-white" dir="ltr">2541485.01</p>
+              </div>
+            </div>
+            <div className="hidden sm:block w-px h-8 bg-white/20" />
+            <div className="text-center sm:text-left">
+              <p className="text-xs text-gray-400">Company Name</p>
+              <p className="text-sm font-semibold text-white">Tashira E-Visa and Tourism L.L.C-FZ</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Company Info */}
@@ -95,7 +123,7 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-2.5 text-sm text-gray-400">
                 <MapPin size={13} className="text-[#C9A04C] shrink-0 mt-0.5" />
-                <span>Burjuman Tower, Dubai, UAE</span>
+                <span>Meydan Grandstand, 6th Floor, Meydan Road, Nad Al Sheba, Dubai, U.A.E.</span>
               </li>
             </ul>
           </div>
