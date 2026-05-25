@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import HeroSection from '@/sections/HeroSection';
 import DubaiShowcase from '@/sections/DubaiShowcase';
 import VisaApplicationForm from '@/sections/VisaApplicationForm';
+import WhyChooseTashira from '@/sections/WhyChooseTashira';
 import CountriesSection from '@/sections/CountriesSection';
 import FAQSection from '@/sections/FAQSection';
 
@@ -35,6 +36,7 @@ export default function Home() {
       <HeroSection />
       <DubaiShowcase />
       <VisaApplicationForm />
+      <WhyChooseTashira />
       <div ref={countriesRef}>
         <CountriesSection />
       </div>

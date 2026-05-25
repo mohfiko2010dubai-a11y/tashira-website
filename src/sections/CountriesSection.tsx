@@ -29,7 +29,7 @@ export default function CountriesSection() {
         <p className="text-sm text-gray-500 text-center mb-2">
           {isAr
             ? 'مواطنو الدول التالية يجب عليهم التقدم بطلب تأشيرة دبي مسبقاً.'
-            : 'Citizens of the following countries must apply for a Dubai visa in advance.'}
+            : 'Citizens of the following countries must apply for a UAE visa in advance.'}
         </p>
         <p className="text-xs text-gray-400 text-center mb-8">
           {isAr

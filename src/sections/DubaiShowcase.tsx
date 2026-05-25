@@ -66,7 +66,7 @@ export default function DubaiShowcase() {
         {/* Section label */}
         <div className="text-center mb-4">
           <p className="text-[10px] text-gray-400 tracking-[0.25em] uppercase font-medium">
-            Discover Dubai
+            Discover the Emirates
           </p>
         </div>
 

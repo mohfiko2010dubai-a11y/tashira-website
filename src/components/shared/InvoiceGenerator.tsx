@@ -37,7 +37,7 @@ export function generateInvoicePDF(data: InvoiceData): void {
   // Contact info
   doc.setFontSize(8);
   doc.text('info@tashira.me | +971 4494 6106', 20, 40);
-  doc.text('Burjuman Tower, Dubai, UAE', 20, 45);
+  doc.text('Meydan Grandstand, Dubai, U.A.E.', 20, 45);
   
   // INVOICE title
   doc.setFontSize(28);
