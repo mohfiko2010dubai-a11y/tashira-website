@@ -67,5 +67,30 @@
     "title": "Ready to Travel to UAE?",
     "subtitle": "Start your visa application now and get approved within 24-72 hours",
     "button": "Start Application"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "items": [
+      {
+        "question": "How will I receive my UAE visa?",
+        "answer": "Once your visa is processed and approved by the immigration authorities, it will be sent directly to your registered email address as a secure PDF."
+      },
+      {
+        "question": "Can I get a refund if my visa application is rejected?",
+        "answer": "Legally, as per government regulations, visa application fees are paid for the processing effort. In case your application is rejected by the Immigration Department, the fees are non-refundable."
+      },
+      {
+        "question": "How many days will my visa processing take?",
+        "answer": "Standard processing typically takes 2 to 4 business days. For urgent requirements, express service can facilitate the process within 24 to 72 business hours, subject to government system availability."
+      },
+      {
+        "question": "What are the different types of UAE visas available?",
+        "answer": "We offer various options including tourist visas (14, 30, or 60 days), single or multiple entry, and transit visas. Your choice should be based on the purpose and duration of your visit."
+      },
+      {
+        "question": "What are the penalties for overstaying in the UAE?",
+        "answer": "Overstaying is a serious legal violation. Fines start from AED 50 per day. Furthermore, overstaying can result in a lifetime ban from entering the UAE and other Gulf countries. We strongly advise renewing your visa or departing before its expiration."
+      }
+    ]
   }
 }

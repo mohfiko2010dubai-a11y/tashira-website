@@ -1,26 +1,33 @@
 {
   "title": "How to Apply",
   "subtitle": "Follow these simple steps to get your UAE visa",
-  "step1": {
-    "title": "Choose Your Visa",
-    "desc": "Select the visa type that matches your travel purpose and duration."
-  },
-  "step2": {
-    "title": "Fill the Form",
-    "desc": "Complete our secure online application form with your personal details."
-  },
-  "step3": {
-    "title": "Upload Documents",
-    "desc": "Upload clear copies of your passport, photo, and other required documents."
-  },
-  "step4": {
-    "title": "Make Payment",
-    "desc": "Pay securely using credit card, debit card, or other available methods."
-  },
-  "step5": {
-    "title": "Receive Your Visa",
-    "desc": "Get your approved visa via email within the selected processing time."
-  },
+  "steps": [
+    {
+      "number": "1",
+      "title": "Choose Your Visa",
+      "description": "Select the visa type that matches your travel purpose and duration."
+    },
+    {
+      "number": "2",
+      "title": "Fill the Form",
+      "description": "Complete our secure online application form with your personal details."
+    },
+    {
+      "number": "3",
+      "title": "Upload Documents",
+      "description": "Upload clear copies of your passport, photo, and other required documents."
+    },
+    {
+      "number": "4",
+      "title": "Make Payment",
+      "description": "Pay securely using credit card, debit card, or other available methods."
+    },
+    {
+      "number": "5",
+      "title": "Receive Your Visa",
+      "description": "Get your approved visa via email within the selected processing time."
+    }
+  ],
   "requirements": {
     "title": "Required Documents",
     "passport": "Passport (valid 6+ months)",
