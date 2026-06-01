@@ -6,6 +6,7 @@ import { allCountries, allCountriesAr } from '@/data/countries';
 import { trpc } from '@/providers/trpc';
 import TrackApplication from './TrackApplication';
 import FormDecorations from '@/components/shared/FormDecorations';
+import StripePaymentForm, { PaymentSuccessModal } from '@/components/shared/StripePaymentForm';
 
 type BaseType = 'single' | 'family';
 type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';
@@ -180,8 +181,8 @@ export default function VisaApplicationForm() {
   const submitApplication = trpc.application.create.useMutation({
     onSuccess: (data) => {
       setReferenceNumber(data.referenceNumber);
-      setSubmitted(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setLoading(false);
+      setShowPaymentModal(true); // Show payment after successful submit
     },
     onError: () => {
       setLoading(false);
@@ -190,6 +191,8 @@ export default function VisaApplicationForm() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentInvoiceNumber, setPaymentInvoiceNumber] = useState('');
   const allScreeningYes = true; // screening questions removed, form always visible
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -563,6 +566,36 @@ export default function VisaApplicationForm() {
       <div className="max-w-5xl mx-auto mt-6">
         <TrackApplication />
       </div>
+
+      {/* ===== PAYMENT MODAL ===== */}
+      {showPaymentModal && referenceNumber && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+            {paymentInvoiceNumber ? (
+              <PaymentSuccessModal
+                invoiceNumber={paymentInvoiceNumber}
+                referenceNumber={referenceNumber}
+                onClose={() => { setShowPaymentModal(false); setSubmitted(true); }}
+              />
+            ) : (
+              <>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                  {isAr ? 'الدفع الآمن' : 'Secure Payment'}
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  {isAr ? 'أكمل الدفع لتأكيد طلبك' : 'Complete payment to confirm your application'}
+                </p>
+                <StripePaymentForm
+                  amount={calculateTotal()}
+                  referenceNumber={referenceNumber}
+                  onSuccess={(invoiceNumber) => setPaymentInvoiceNumber(invoiceNumber)}
+                  onClose={() => setShowPaymentModal(false)}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
