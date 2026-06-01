@@ -1,47 +1,35 @@
 import { z } from "zod";
 import { createRouter, publicQuery } from "./middleware";
 
-const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
-const GOOGLE_SERVICE_ACCOUNT_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || "";
-
-// Get Google access token using service account
-async function getAccessToken(): Promise<string> {
-  if (!GOOGLE_SERVICE_ACCOUNT_KEY) {
-    throw new Error("Google service account key not configured");
+// Only load googleapis on the server
+async function getDriveClient() {
+  const { google } = await import("googleapis");
+  
+  const serviceKeyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || "";
+  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
+  
+  if (!serviceKeyJson || !folderId) {
+    throw new Error("Google Drive not configured. Set GOOGLE_SERVICE_ACCOUNT_KEY and GOOGLE_DRIVE_FOLDER_ID in .env");
   }
 
-  const key = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
-  const now = Math.floor(Date.now() / 1000);
+  let credentials: Record<string, unknown>;
+  try {
+    credentials = JSON.parse(serviceKeyJson);
+  } catch {
+    throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY JSON");
+  }
 
-  const jwtHeader = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const jwtClaim = btoa(JSON.stringify({
-    iss: key.client_email,
-    scope: "https://www.googleapis.com/auth/drive",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now,
-  }));
-
-  // Note: In production, sign with the private_key using a crypto library
-  // For now, we'll use a simpler approach with the key's private key
-  const signature = ""; // This would be the signed JWT
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: `${jwtHeader}.${jwtClaim}.${signature}`,
-    }),
+  const auth = new google.auth.GoogleAuth({
+    credentials: credentials as any,
+    scopes: ["https://www.googleapis.com/auth/drive.file"],
   });
 
-  const data = await response.json() as { access_token?: string; error?: string };
-  if (data.error) throw new Error(data.error);
-  return data.access_token || "";
+  const drive = google.drive({ version: "v3", auth });
+  return { drive, folderId };
 }
 
 export const driveRouter = createRouter({
-  // Upload file to Google Drive
+  // Upload base64 file to Google Drive
   upload: publicQuery
     .input(z.object({
       fileName: z.string(),
@@ -51,41 +39,68 @@ export const driveRouter = createRouter({
     }))
     .mutation(async ({ input }) => {
       try {
-        // For production, use proper Google auth
-        // For now, store the file info and return a reference
-        
-        // Decode base64
+        const { drive, folderId } = await getDriveClient();
+
+        // Decode base64 to buffer
         const buffer = Buffer.from(input.base64Data, "base64");
-        
-        // In production, upload to Google Drive here
-        // For now, we store metadata and the file would be uploaded
-        // via a separate process or webhook
-        
-        const fileId = `gdrive_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        
+
+        // Upload to Google Drive
+        const response = await drive.files.create({
+          requestBody: {
+            name: `${input.referenceNumber}_${input.fileName}`,
+            parents: [folderId],
+          },
+          media: {
+            mimeType: input.mimeType,
+            body: buffer,
+          },
+          fields: "id, webViewLink",
+        });
+
+        const fileId = response.data.id;
+
+        // Make file viewable by link
+        if (fileId) {
+          await drive.permissions.create({
+            fileId: fileId,
+            requestBody: {
+              role: "reader",
+              type: "anyone",
+            },
+          });
+        }
+
         return {
           success: true,
-          fileId,
+          fileId: fileId || "",
           fileName: input.fileName,
-          viewUrl: `https://drive.google.com/file/d/${fileId}/view`,
+          viewUrl: response.data.webViewLink || `https://drive.google.com/file/d/${fileId}/view`,
         };
       } catch (err: any) {
+        console.error("Google Drive upload error:", err.message);
         return { success: false, error: err.message || "Upload failed" };
       }
     }),
 
-  // Get upload URL for direct client-side upload
-  getUploadUrl: publicQuery
-    .input(z.object({
-      fileName: z.string(),
-      mimeType: z.string(),
-    }))
-    .query(async ({ input }) => {
-      // Return a presigned upload URL
-      // In production, this would be a real Google Drive upload URL
-      return {
-        uploadUrl: `/api/upload-direct?filename=${encodeURIComponent(input.fileName)}`,
-        fileId: `pending_${Date.now()}`,
-      };
+  // List files in the drive folder
+  listFiles: publicQuery
+    .query(async () => {
+      try {
+        const { drive, folderId } = await getDriveClient();
+
+        const response = await drive.files.list({
+          q: `'${folderId}' in parents and trashed=false`,
+          fields: "files(id, name, webViewLink, createdTime, mimeType)",
+          orderBy: "createdTime desc",
+        });
+
+        return {
+          success: true,
+          files: response.data.files || [],
+        };
+      } catch (err: any) {
+        console.error("Google Drive list error:", err.message);
+        return { success: false, error: err.message || "List failed", files: [] };
+      }
     }),
 });
