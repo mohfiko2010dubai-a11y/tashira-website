@@ -32,10 +32,11 @@ export const applicationRouter = createRouter({
       })),
     }))
     .mutation(async ({ input }) => {
-      const db = getDb();
-      
-      // Insert application
-      const [app] = await db.insert(applications).values({
+      try {
+        const db = getDb();
+        
+        // Insert application
+        const [app] = await db.insert(applications).values({
         referenceNumber: input.referenceNumber,
         baseType: input.baseType,
         residenceType: input.residenceType,
@@ -69,7 +70,11 @@ export const applicationRouter = createRouter({
         });
       }
 
-      return { id: appId, referenceNumber: input.referenceNumber };
+        return { id: appId, referenceNumber: input.referenceNumber };
+      } catch (err: any) {
+        console.error('[API ERROR] Application create failed:', err.message, err.stack);
+        throw new Error(`Database error: ${err.message}`);
+      }
     }),
 
   // Get application by reference number

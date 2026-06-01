@@ -184,9 +184,11 @@ export default function VisaApplicationForm() {
       setLoading(false);
       setShowPaymentModal(true); // Show payment after successful submit
     },
-    onError: () => {
+    onError: (err) => {
       setLoading(false);
-      alert(isAr ? 'حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.' : 'An error occurred. Please try again.');
+      console.error('Submission error:', err);
+      const msg = err.message || 'Unknown error';
+      alert(isAr ? `حدث خطأ: ${msg}` : `Error: ${msg}\n\nPlease check console for details.`);
     },
   });
 
