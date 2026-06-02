@@ -118,8 +118,8 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   }
 }
 
-// VIEW route (inline)
-app.get("/api/invoices/:invoiceNumber/view", async (c) => {
+// VIEW route (inline) - NOT under /api/ to avoid catch-all conflict
+app.get("/invoices/:invoiceNumber/view", async (c) => {
   const invoiceNumber = c.req.param("invoiceNumber");
   const result = await getOrGeneratePdf(invoiceNumber);
 
@@ -139,8 +139,8 @@ app.get("/api/invoices/:invoiceNumber/view", async (c) => {
   }
 });
 
-// DOWNLOAD route (attachment)
-app.get("/api/invoices/:invoiceNumber/download", async (c) => {
+// DOWNLOAD route (attachment) - NOT under /api/ to avoid catch-all conflict
+app.get("/invoices/:invoiceNumber/download", async (c) => {
   const invoiceNumber = c.req.param("invoiceNumber");
   const result = await getOrGeneratePdf(invoiceNumber);
 

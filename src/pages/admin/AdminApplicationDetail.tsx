@@ -205,7 +205,7 @@ export default function AdminApplicationDetail() {
                 </p>
                 <div className="flex gap-2">
                   <a
-                    href={`/api/invoices/${app.invoiceNumber}/view`}
+                    href={`/invoices/${app.invoiceNumber}/view`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#C9A04C] text-white text-sm rounded-lg hover:shadow-md transition-all"
@@ -214,7 +214,7 @@ export default function AdminApplicationDetail() {
                     View Invoice
                   </a>
                   <a
-                    href={`/api/invoices/${app.invoiceNumber}/download`}
+                    href={`/invoices/${app.invoiceNumber}/download`}
                     className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-sm rounded-lg hover:bg-gray-50 transition-all"
                   >
                     <Download size={14} />

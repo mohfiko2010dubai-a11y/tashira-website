@@ -181,7 +181,7 @@ export default function AdminApplications() {
                           </Link>
                           {app.invoiceNumber && (
                             <a
-                              href={`/api/invoices/${app.invoiceNumber}/download`}
+                              href={`/invoices/${app.invoiceNumber}/download`}
                               className="p-1.5 text-gray-400 hover:text-emerald-600 transition-colors"
                               title="Download Invoice"
                             >
