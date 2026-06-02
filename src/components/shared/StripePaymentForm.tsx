@@ -46,11 +46,14 @@ function PaymentFormInner({
 
     try {
       // 1. Create payment intent
-      const { clientSecret, error: intentError } = createIntent.mutateSync({
+      const intentResult = await createIntent.mutateAsync({
         amount: amount * 100, // cents
         currency: 'usd',
         referenceNumber,
       });
+
+      const clientSecret = intentResult.clientSecret;
+      const intentError = intentResult.error;
 
       if (intentError || !clientSecret) {
         throw new Error(intentError || 'Failed to create payment intent');
@@ -73,7 +76,7 @@ function PaymentFormInner({
 
       if (paymentIntent?.status === 'succeeded') {
         // 3. Confirm on backend
-        const result = confirmPayment.mutateSync({
+        const result = await confirmPayment.mutateAsync({
           referenceNumber,
           paymentIntentId: paymentIntent.id,
         });
