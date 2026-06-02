@@ -45,10 +45,25 @@ export const applications = mysqlTable("applications", {
   // Pricing
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   // Status
-  status: mysqlEnum("status", ["submitted", "under_review", "approved", "issued", "rejected"]).default("submitted").notNull(),
+  status: mysqlEnum("status", [
+    "submitted",
+    "payment_received",
+    "documents_pending",
+    "documents_received",
+    "under_review",
+    "visa_processing",
+    "visa_received",
+    "completed",
+    "rejected",
+    "cancelled",
+  ]).default("submitted").notNull(),
   // Payment
   paymentStatus: mysqlEnum("payment_status", ["pending", "paid", "failed"]).default("pending").notNull(),
   stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 100 }),
+  // Invoice
+  invoiceNumber: varchar("invoice_number", { length: 50 }),
+  invoicePdfPath: varchar("invoice_pdf_path", { length: 255 }),
+  invoicePdfUrl: varchar("invoice_pdf_url", { length: 255 }),
   // Metadata
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),

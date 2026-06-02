@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { trpc } from '@/providers/trpc';
-import { CreditCard, Lock, CheckCircle } from 'lucide-react';
+import { CreditCard, Lock, CheckCircle, FileText, Download, RefreshCw } from 'lucide-react';
+import { generateInvoicePDF } from './InvoiceGenerator';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -18,17 +19,24 @@ const cardStyle = {
   },
 };
 
-function PaymentFormInner({
-  amount,
-  referenceNumber,
-  onSuccess,
-  onClose,
-}: {
+interface PaymentFormInnerProps {
   amount: number;
   referenceNumber: string;
+  applicantData: {
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    passportNumber?: string;
+    nationality?: string;
+    visaType: string;
+    processingType: string;
+    arrivalDate?: string;
+  };
   onSuccess: (invoiceNumber: string) => void;
   onClose: () => void;
-}) {
+}
+
+function PaymentFormInner({ amount, referenceNumber, applicantData, onSuccess, onClose }: PaymentFormInnerProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -36,6 +44,7 @@ function PaymentFormInner({
 
   const createIntent = trpc.payment.createIntent.useMutation();
   const confirmPayment = trpc.payment.confirm.useMutation();
+  const saveInvoicePdf = trpc.invoice.savePdf.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +56,7 @@ function PaymentFormInner({
     try {
       // 1. Create payment intent
       const intentResult = await createIntent.mutateAsync({
-        amount: amount * 100, // cents
+        amount: amount * 100,
         currency: 'usd',
         referenceNumber,
       });
@@ -65,7 +74,7 @@ function PaymentFormInner({
         {
           payment_method: {
             card: elements.getElement(CardElement)!,
-            billing_details: { name: 'Tashira Customer' },
+            billing_details: { name: applicantData.customerName },
           },
         }
       );
@@ -81,8 +90,39 @@ function PaymentFormInner({
           paymentIntentId: paymentIntent.id,
         });
 
-        if (result.success) {
-          onSuccess(result.invoiceNumber || '');
+        if (result.success && result.invoiceNumber) {
+          // 4. Generate and save invoice PDF
+          try {
+            const invoiceData = {
+              invoiceNumber: result.invoiceNumber,
+              referenceNumber,
+              createdAt: new Date().toISOString(),
+              customerName: applicantData.customerName,
+              customerEmail: result.customerEmail || applicantData.customerEmail,
+              customerPhone: result.customerPhone || applicantData.customerPhone,
+              passportNumber: applicantData.passportNumber,
+              nationality: applicantData.nationality,
+              visaType: result.visaType || applicantData.visaType,
+              processingType: result.processingType || applicantData.processingType,
+              arrivalDate: applicantData.arrivalDate,
+              totalAmount: result.totalAmount || amount,
+              stripePaymentIntentId: result.stripePaymentIntentId || paymentIntent.id,
+            };
+
+            const doc = generateInvoicePDF(invoiceData);
+            const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+            await saveInvoicePdf.mutateAsync({
+              invoiceNumber: result.invoiceNumber,
+              referenceNumber,
+              pdfBase64,
+            });
+          } catch (invoiceErr: any) {
+            console.error('Invoice generation failed:', invoiceErr);
+            // Don't block payment success if invoice fails
+          }
+
+          onSuccess(result.invoiceNumber);
         }
       }
     } catch (err: any) {
@@ -96,7 +136,7 @@ function PaymentFormInner({
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* TEST MODE badge */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
-        <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">🧪 Test Mode — No real charges</p>
+        <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Test Mode - No real charges</p>
         <p className="text-[10px] text-amber-500">Use card: 4242 4242 4242 4242 | Any future date | Any 3 digits</p>
       </div>
 
@@ -152,22 +192,20 @@ function PaymentFormInner({
   );
 }
 
+// ==================== MAIN EXPORT ====================
 export default function StripePaymentForm({
   amount,
   referenceNumber,
+  applicantData,
   onSuccess,
   onClose,
-}: {
-  amount: number;
-  referenceNumber: string;
-  onSuccess: (invoiceNumber: string) => void;
-  onClose: () => void;
-}) {
+}: PaymentFormInnerProps) {
   return (
     <Elements stripe={stripePromise}>
       <PaymentFormInner
         amount={amount}
         referenceNumber={referenceNumber}
+        applicantData={applicantData}
         onSuccess={onSuccess}
         onClose={onClose}
       />
@@ -175,16 +213,58 @@ export default function StripePaymentForm({
   );
 }
 
-// Success modal after payment
+// ==================== SUCCESS MODAL ====================
 export function PaymentSuccessModal({
   invoiceNumber,
   referenceNumber,
+  totalAmount,
   onClose,
 }: {
   invoiceNumber: string;
   referenceNumber: string;
+  totalAmount: number;
   onClose: () => void;
 }) {
+  const [regenerating, setRegenerating] = useState(false);
+  const regenerate = trpc.invoice.regenerate.useMutation();
+  const saveInvoicePdf = trpc.invoice.savePdf.useMutation();
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    try {
+      const result = await regenerate.mutateAsync({ referenceNumber });
+      if (result.success) {
+        const invoiceData = {
+          invoiceNumber: result.invoiceNumber,
+          referenceNumber,
+          createdAt: new Date().toISOString(),
+          customerName: 'Customer',
+          customerEmail: result.customerEmail || '',
+          customerPhone: result.customerPhone || '',
+          visaType: result.visaType || '',
+          processingType: result.processingType || '',
+          totalAmount: result.totalAmount || totalAmount,
+          stripePaymentIntentId: result.stripePaymentIntentId,
+        };
+        const doc = generateInvoicePDF(invoiceData);
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+        await saveInvoicePdf.mutateAsync({
+          invoiceNumber: result.invoiceNumber,
+          referenceNumber,
+          pdfBase64,
+        });
+        // Open the regenerated invoice
+        const pdfBlob = doc.output('blob');
+        const url = URL.createObjectURL(pdfBlob);
+        window.open(url, '_blank');
+      }
+    } catch (err) {
+      console.error('Regenerate failed:', err);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   return (
     <div className="text-center space-y-4">
       <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
@@ -203,12 +283,46 @@ export function PaymentSuccessModal({
           <span className="text-gray-500">Invoice:</span>{' '}
           <span className="font-mono font-semibold">{invoiceNumber}</span>
         </p>
+        <p className="text-sm">
+          <span className="text-gray-500">Amount Paid:</span>{' '}
+          <span className="font-semibold">${totalAmount.toFixed(2)}</span>
+        </p>
       </div>
+
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        <a
+          href={`/invoices/${invoiceNumber}.pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+        >
+          <FileText size={16} />
+          View Invoice
+        </a>
+        <a
+          href={`/invoices/${invoiceNumber}.pdf`}
+          download
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-all"
+        >
+          <Download size={16} />
+          Download Invoice
+        </a>
+        <button
+          onClick={handleRegenerate}
+          disabled={regenerating}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-500 hover:text-[#C9A04C] transition-colors"
+        >
+          <RefreshCw size={14} className={regenerating ? 'animate-spin' : ''} />
+          {regenerating ? 'Regenerating...' : 'Regenerate Invoice'}
+        </button>
+      </div>
+
       <button
         onClick={onClose}
-        className="w-full px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+        className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
       >
-        Done
+        Submit Another Application
       </button>
     </div>
   );

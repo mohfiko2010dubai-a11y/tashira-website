@@ -75,6 +75,7 @@ export const paymentRouter = createRouter({
       // Update application payment status
       await db.update(applications).set({
         paymentStatus: "paid",
+        status: "payment_received",
       }).where(eq(applications.referenceNumber, input.referenceNumber));
 
       // Update payment status
@@ -87,7 +88,7 @@ export const paymentRouter = createRouter({
       const [payment] = await db.select().from(payments).where(eq(payments.stripePaymentIntentId, input.paymentIntentId)).limit(1);
       
       if (app && payment) {
-        const invoiceNumber = `INV-${Date.now()}`;
+        const invoiceNumber = `INV-${input.referenceNumber}`;
         await db.insert(invoices).values({
           invoiceNumber,
           applicationId: app.id,
@@ -99,6 +100,12 @@ export const paymentRouter = createRouter({
           success: true, 
           invoiceNumber,
           referenceNumber: input.referenceNumber,
+          totalAmount: Number(app.totalAmount),
+          customerEmail: app.contactEmail,
+          customerPhone: app.contactPhone,
+          visaType: app.visaType,
+          processingType: app.processingType,
+          stripePaymentIntentId: input.paymentIntentId,
         };
       }
 

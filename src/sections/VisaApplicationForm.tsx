@@ -577,6 +577,7 @@ export default function VisaApplicationForm() {
               <PaymentSuccessModal
                 invoiceNumber={paymentInvoiceNumber}
                 referenceNumber={referenceNumber}
+                totalAmount={calculateTotal()}
                 onClose={() => { setShowPaymentModal(false); setSubmitted(true); }}
               />
             ) : (
@@ -590,6 +591,16 @@ export default function VisaApplicationForm() {
                 <StripePaymentForm
                   amount={calculateTotal()}
                   referenceNumber={referenceNumber}
+                  applicantData={{
+                    customerName: applicants[0]?.fullName || '',
+                    customerEmail: email,
+                    customerPhone: phone,
+                    passportNumber: applicants[0]?.passportNumber,
+                    nationality: applicants[0]?.nationality,
+                    visaType: visaType || '',
+                    processingType: processingType,
+                    arrivalDate: arrivalDate,
+                  }}
                   onSuccess={(invoiceNumber) => setPaymentInvoiceNumber(invoiceNumber)}
                   onClose={() => setShowPaymentModal(false)}
                 />

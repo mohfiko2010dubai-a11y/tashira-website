@@ -1,163 +1,169 @@
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface InvoiceData {
-  referenceNumber: string;
   invoiceNumber: string;
-  date: string;
+  referenceNumber: string;
+  createdAt: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  passportNumber?: string;
+  nationality?: string;
   visaType: string;
   processingType: string;
-  baseType: string;
-  residenceType: string;
-  applicantName: string;
-  email: string;
-  phone: string;
-  amount: number;
-  applicantsCount: number;
+  arrivalDate?: string;
+  totalAmount: number;
+  stripePaymentIntentId?: string;
 }
 
-export function generateInvoicePDF(data: InvoiceData): void {
+const VAT_RATE = 0.05;
+
+export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF();
-  const primaryColor: [number, number, number] = [201, 160, 76]; // #C9A04C
-  
-  // Header background
-  doc.setFillColor(250, 250, 247);
-  doc.rect(0, 0, 210, 50, 'F');
-  
-  // Logo / Company name
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // Subtotal & VAT calculation
+  const total = data.totalAmount;
+  const subtotal = total / (1 + VAT_RATE);
+  const vatAmount = total - subtotal;
+
+  // Colors
+  const goldColor = '#C9A04C';
+  const darkColor = '#1A2332';
+  const grayColor = '#666666';
+
+  // === HEADER ===
+  doc.setFillColor(darkColor);
+  doc.rect(0, 0, pageWidth, 50, 'F');
+
+  doc.setTextColor(goldColor);
   doc.setFontSize(24);
-  doc.setTextColor(...primaryColor);
   doc.setFont('helvetica', 'bold');
-  doc.text('TASHIRA', 20, 25);
-  
+  doc.text('TASHIRA', 15, 25);
+
+  doc.setTextColor('#FFFFFF');
   doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'normal');
-  doc.text('E-VISA PORTAL', 20, 32);
-  
-  // Contact info
-  doc.setFontSize(8);
-  doc.text('info@tashira.me | +971 4494 6106', 20, 40);
-  doc.text('Meydan Grandstand, Dubai, U.A.E.', 20, 45);
-  
-  // INVOICE title
-  doc.setFontSize(28);
-  doc.setTextColor(60, 60, 60);
+  doc.text('E-Visa & Tourism L.L.C-FZ', 15, 32);
+  doc.text('Meydan Free Zone, Dubai, U.A.E.', 15, 37);
+  doc.text('License No: 2541485.01', 15, 42);
+  doc.text('Website: tashiraev.com', 15, 47);
+
+  // Invoice Title
+  doc.setTextColor(goldColor);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('INVOICE', 140, 30);
-  
-  // Invoice details box
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(130, 38, 60, 25, 3, 3, 'S');
-  
+  doc.text('TAX INVOICE', pageWidth - 15, 25, { align: 'right' });
+
+  doc.setTextColor('#FFFFFF');
   doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Invoice #: ${data.invoiceNumber}`, 135, 46);
-  doc.text(`Date: ${data.date}`, 135, 52);
-  doc.text(`Ref: ${data.referenceNumber}`, 135, 58);
-  
-  // Gold line
-  doc.setDrawColor(...primaryColor);
-  doc.setLineWidth(0.8);
-  doc.line(20, 55, 190, 55);
-  
-  // Billed To
+  doc.text(`Invoice #: ${data.invoiceNumber}`, pageWidth - 15, 32, { align: 'right' });
+  doc.text(`Date: ${new Date(data.createdAt).toLocaleDateString('en-AE')}`, pageWidth - 15, 37, { align: 'right' });
+  doc.text(`TRN: TO-BE-ADDED`, pageWidth - 15, 42, { align: 'right' });
+
+  // === BILL TO ===
+  doc.setTextColor(darkColor);
   doc.setFontSize(11);
-  doc.setTextColor(60, 60, 60);
   doc.setFont('helvetica', 'bold');
-  doc.text('Billed To:', 20, 70);
-  
-  doc.setFontSize(9);
-  doc.setTextColor(80, 80, 80);
+  doc.text('BILL TO:', 15, 65);
+
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(data.applicantName, 20, 77);
-  doc.text(data.email, 20, 83);
-  doc.text(data.phone, 20, 89);
-  
-  // Application Details
+  doc.setTextColor(grayColor);
+  doc.text(data.customerName, 15, 72);
+  doc.text(data.customerEmail, 15, 78);
+  doc.text(data.customerPhone, 15, 84);
+  if (data.passportNumber) doc.text(`Passport: ${data.passportNumber}`, 15, 90);
+  if (data.nationality) doc.text(`Nationality: ${data.nationality}`, 15, 96);
+
+  // === APPLICATION DETAILS ===
+  doc.setTextColor(darkColor);
   doc.setFontSize(11);
-  doc.setTextColor(60, 60, 60);
   doc.setFont('helvetica', 'bold');
-  doc.text('Application Details:', 120, 70);
-  
-  doc.setFontSize(9);
-  doc.setTextColor(80, 80, 80);
+  doc.text('APPLICATION DETAILS:', pageWidth - 15, 65, { align: 'right' });
+
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Visa Type: ${data.visaType}`, 120, 77);
-  doc.text(`Processing: ${data.processingType}`, 120, 83);
-  doc.text(`Type: ${data.baseType} | ${data.residenceType}`, 120, 89);
-  doc.text(`Travelers: ${data.applicantsCount}`, 120, 95);
-  
-  // Table header
-  let y = 110;
-  doc.setFillColor(...primaryColor);
-  doc.setDrawColor(...primaryColor);
-  doc.rect(20, y, 170, 10, 'F');
-  
+  doc.setTextColor(grayColor);
+  doc.text(`Reference: ${data.referenceNumber}`, pageWidth - 15, 72, { align: 'right' });
+  doc.text(`Visa Type: ${data.visaType}`, pageWidth - 15, 78, { align: 'right' });
+  doc.text(`Processing: ${data.processingType}`, pageWidth - 15, 84, { align: 'right' });
+  if (data.arrivalDate) doc.text(`Arrival: ${data.arrivalDate}`, pageWidth - 15, 90, { align: 'right' });
+
+  // === LINE ITEMS TABLE ===
+  autoTable(doc, {
+    startY: 108,
+    head: [['Description', 'Qty', 'Unit Price', 'Amount (USD)']],
+    body: [
+      [`${data.visaType} - ${data.processingType} Processing`, '1', `$${subtotal.toFixed(2)}`, `$${subtotal.toFixed(2)}`],
+      ['', '', '', ''],
+      ['', '', `Subtotal (excl. VAT):`, `$${subtotal.toFixed(2)}`],
+      ['', '', `VAT 5%:`, `$${vatAmount.toFixed(2)}`],
+      ['', '', `Total (incl. VAT):`, `$${total.toFixed(2)}`],
+    ],
+    headStyles: {
+      fillColor: darkColor,
+      textColor: goldColor,
+      fontStyle: 'bold',
+    },
+    footStyles: {
+      fillColor: '#F5F5F0',
+      textColor: darkColor,
+      fontStyle: 'bold',
+    },
+    columnStyles: {
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 20, halign: 'center' },
+      2: { cellWidth: 40, halign: 'right' },
+      3: { cellWidth: 40, halign: 'right' },
+    },
+    styles: {
+      fontSize: 9,
+      cellPadding: 5,
+    },
+    alternateRowStyles: {
+      fillColor: '#FAFAF7',
+    },
+    didParseCell: (data) => {
+      // Bold the total row
+      if (data.row.index === 4 && data.section === 'body') {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.textColor = goldColor;
+      }
+    },
+  });
+
+  const finalY = (doc as any).lastAutoTable?.finalY || 150;
+
+  // === PAYMENT INFO ===
+  doc.setTextColor(grayColor);
   doc.setFontSize(9);
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Description', 25, y + 7);
-  doc.text('Qty', 120, y + 7);
-  doc.text('Amount', 155, y + 7);
-  
-  // Table content
-  y += 15;
-  doc.setTextColor(60, 60, 60);
   doc.setFont('helvetica', 'normal');
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.2);
-  
-  // Row 1: Visa fee
-  doc.line(20, y + 5, 190, y + 5);
-  doc.text(`${data.visaType} - ${data.processingType} Processing`, 25, y);
-  doc.text(String(data.applicantsCount), 125, y);
-  doc.text(`$${data.amount.toFixed(2)}`, 155, y);
-  
-  // Row 2: Service fee
-  y += 10;
-  doc.line(20, y + 5, 190, y + 5);
-  doc.text('Service Fee (Included)', 25, y);
-  doc.text('1', 125, y);
-  doc.text('$0.00', 155, y);
-  
-  // Totals
-  y += 20;
-  doc.setDrawColor(200, 200, 200);
-  doc.line(120, y, 190, y);
-  
-  y += 8;
-  doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
-  doc.text('Subtotal:', 125, y);
-  doc.text(`$${data.amount.toFixed(2)}`, 165, y);
-  
-  y += 8;
-  doc.text('Tax:', 125, y);
-  doc.text('$0.00', 165, y);
-  
-  y += 12;
-  doc.setFillColor(250, 250, 247);
-  doc.rect(120, y - 8, 70, 18, 'F');
-  doc.setDrawColor(...primaryColor);
+  doc.text(`Payment Status: PAID`, 15, finalY + 15);
+  doc.text(`Payment Method: Credit Card (Stripe)`, 15, finalY + 21);
+  if (data.stripePaymentIntentId) {
+    doc.text(`Transaction ID: ${data.stripePaymentIntentId}`, 15, finalY + 27);
+  }
+
+  // === FOOTER ===
+  doc.setDrawColor(goldColor);
   doc.setLineWidth(0.5);
-  doc.line(120, y + 10, 190, y + 10);
-  
-  doc.setFontSize(14);
-  doc.setTextColor(...primaryColor);
-  doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL:', 125, y + 5);
-  doc.text(`$${data.amount.toFixed(2)}`, 165, y + 5);
-  
-  // Footer
+  doc.line(15, finalY + 40, pageWidth - 15, finalY + 40);
+
+  doc.setTextColor(grayColor);
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Thank you for choosing Tashira E-Visa Portal!', 20, 270);
-  doc.text('For inquiries: info@tashira.me | +971 4494 6106', 20, 276);
-  doc.text('This is a computer-generated invoice.', 20, 282);
-  
-  // Save
-  doc.save(`Tashira-Invoice-${data.invoiceNumber}.pdf`);
+  doc.text('Thank you for choosing TASHIRA E-Visa & Tourism L.L.C-FZ', pageWidth / 2, finalY + 48, { align: 'center' });
+  doc.text('This is a computer-generated invoice and does not require a signature.', pageWidth / 2, finalY + 53, { align: 'center' });
+
+  return doc;
+}
+
+export function saveInvoicePDF(data: InvoiceData): { pdfBlob: Blob; pdfPath: string; pdfUrl: string } {
+  const doc = generateInvoicePDF(data);
+  const pdfBlob = doc.output('blob');
+  const pdfPath = `/invoices/${data.invoiceNumber}.pdf`;
+  const pdfUrl = URL.createObjectURL(pdfBlob);
+  return { pdfBlob, pdfPath, pdfUrl };
 }
