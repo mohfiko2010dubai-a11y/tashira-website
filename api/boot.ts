@@ -12,12 +12,7 @@ import path from "path";
 import { getDb } from "./queries/connection";
 import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
-import { generateInvoicePDF } from "./lib/invoice-pdf";
-
-const INVOICES_DIR = path.resolve(process.cwd(), "dist/public/invoices");
-if (!fs.existsSync(INVOICES_DIR)) {
-  fs.mkdirSync(INVOICES_DIR, { recursive: true });
-}
+import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -25,123 +20,144 @@ app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
 
 // ===== INVOICE PDF ROUTES (must be BEFORE /api/trpc and catch-all) =====
+
+const INVOICES_DIR = getStorageDir();
+
+// Helper: find application by invoice number (with fallback to reference)
+async function findApplicationByInvoice(invoiceNumber: string) {
+  const db = getDb();
+
+  // 1. Try by invoice_number
+  const [byInvoice] = await db.select().from(applications)
+    .where(eq(applications.invoiceNumber, invoiceNumber))
+    .limit(1);
+
+  if (byInvoice) {
+    console.log(`[Invoice] Found by invoice_number: ${invoiceNumber}`);
+    return byInvoice;
+  }
+
+  // 2. Fallback: try by reference_number (strip INV- prefix)
+  const refNumber = invoiceNumber.replace(/^INV-/, "");
+  const [byRef] = await db.select().from(applications)
+    .where(eq(applications.referenceNumber, refNumber))
+    .limit(1);
+
+  if (byRef) {
+    console.log(`[Invoice] Found by reference_number: ${refNumber}`);
+    return byRef;
+  }
+
+  console.log(`[Invoice] Not found: ${invoiceNumber}`);
+  return null;
+}
+
+// Helper: get or regenerate PDF
+async function getOrGeneratePdf(invoiceNumber: string) {
+  const fileName = `${invoiceNumber}.pdf`;
+  const absolutePath = path.join(INVOICES_DIR, fileName);
+
+  console.log(`[Invoice] Request: ${invoiceNumber}`);
+  console.log(`[Invoice] Checking: ${absolutePath}`);
+
+  // 1. Check if file already exists
+  if (fs.existsSync(absolutePath)) {
+    console.log(`[Invoice] File exists: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);
+    return { absolutePath, fileName, regenerated: false };
+  }
+
+  console.log(`[Invoice] File missing, looking up DB...`);
+
+  // 2. Find application
+  const appRow = await findApplicationByInvoice(invoiceNumber);
+  if (!appRow) {
+    console.log(`[Invoice] Application not found for: ${invoiceNumber}`);
+    return null;
+  }
+
+  // 3. Check DB stored path
+  if (appRow.invoicePdfPath && fs.existsSync(appRow.invoicePdfPath)) {
+    console.log(`[Invoice] Found existing PDF at DB path: ${appRow.invoicePdfPath}`);
+    return { absolutePath: appRow.invoicePdfPath, fileName, regenerated: false };
+  }
+
+  // 4. Auto-regenerate
+  console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
+  try {
+    const invoiceData = {
+      invoiceNumber,
+      referenceNumber: appRow.referenceNumber,
+      createdAt: appRow.createdAt ? new Date(appRow.createdAt).toISOString() : new Date().toISOString(),
+      customerName: appRow.contactEmail.split("@")[0] || "Customer",
+      customerEmail: appRow.contactEmail,
+      customerPhone: appRow.contactPhone,
+      visaType: appRow.visaType,
+      processingType: appRow.processingType,
+      arrivalDate: appRow.arrivalDate || undefined,
+      totalAmount: Number(appRow.totalAmount),
+      stripePaymentIntentId: appRow.stripePaymentIntentId || undefined,
+    };
+
+    const doc = generateInvoicePDF(invoiceData);
+    const pdfOutput = doc.output("arraybuffer");
+    fs.writeFileSync(absolutePath, Buffer.from(pdfOutput));
+
+    // Update DB
+    const db = getDb();
+    await db.update(applications).set({
+      invoiceNumber,
+      invoicePdfPath: absolutePath,
+      invoicePdfUrl: `/api/invoices/${invoiceNumber}/view`,
+    }).where(eq(applications.id, appRow.id));
+
+    console.log(`[Invoice] Regenerated and saved: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);
+    return { absolutePath, fileName, regenerated: true };
+  } catch (err: any) {
+    console.error(`[Invoice] Regeneration failed: ${err.message}`);
+    return null;
+  }
+}
+
+// VIEW route (inline)
 app.get("/api/invoices/:invoiceNumber/view", async (c) => {
   const invoiceNumber = c.req.param("invoiceNumber");
+  const result = await getOrGeneratePdf(invoiceNumber);
+
+  if (!result) {
+    return c.json({ error: "Invoice not found" }, 404);
+  }
 
   try {
-    const db = getDb();
-
-    // Find by invoice_number
-    const [appRow] = await db.select().from(applications)
-      .where(eq(applications.invoiceNumber, invoiceNumber))
-      .limit(1);
-
-    if (!appRow) {
-      // Try by reference_number fallback
-      const [appByRef] = await db.select().from(applications)
-        .where(eq(applications.referenceNumber, invoiceNumber.replace("INV-", "")))
-        .limit(1);
-      if (!appByRef) return c.json({ error: "Invoice not found" }, 404);
-    }
-
-    const row = appRow;
-    const fileName = `${invoiceNumber}.pdf`;
-    let absolutePath = path.join(INVOICES_DIR, fileName);
-
-    // If file doesn't exist but invoice exists in DB, regenerate
-    if (!fs.existsSync(absolutePath)) {
-      if (!row.invoicePdfPath || !fs.existsSync(row.invoicePdfPath)) {
-        // Auto-regenerate PDF
-        const invoiceData = {
-          invoiceNumber,
-          referenceNumber: row.referenceNumber,
-          createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
-          customerName: row.contactEmail.split("@")[0] || "Customer",
-          customerEmail: row.contactEmail,
-          customerPhone: row.contactPhone,
-          visaType: row.visaType,
-          processingType: row.processingType,
-          arrivalDate: row.arrivalDate || undefined,
-          totalAmount: Number(row.totalAmount),
-          stripePaymentIntentId: row.stripePaymentIntentId || undefined,
-        };
-        const doc = generateInvoicePDF(invoiceData);
-        doc.save(absolutePath);
-
-        // Update DB
-        await db.update(applications).set({
-          invoiceNumber,
-          invoicePdfPath: absolutePath,
-          invoicePdfUrl: `/invoices/${fileName}`,
-        }).where(eq(applications.id, row.id));
-      } else {
-        absolutePath = row.invoicePdfPath;
-      }
-    }
-
-    const pdfBuffer = fs.readFileSync(absolutePath);
+    const pdfBuffer = fs.readFileSync(result.absolutePath);
     c.header("Content-Type", "application/pdf");
-    c.header("Content-Disposition", `inline; filename="${fileName}"`);
+    c.header("Content-Disposition", `inline; filename="${result.fileName}"`);
+    console.log(`[Invoice] Serving VIEW: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
     return c.body(pdfBuffer);
   } catch (err: any) {
-    console.error("[Invoice View Error]", err.message);
-    return c.json({ error: "Internal server error" }, 500);
+    console.error(`[Invoice] Read error: ${err.message}`);
+    return c.json({ error: "Failed to read PDF" }, 500);
   }
 });
 
+// DOWNLOAD route (attachment)
 app.get("/api/invoices/:invoiceNumber/download", async (c) => {
   const invoiceNumber = c.req.param("invoiceNumber");
+  const result = await getOrGeneratePdf(invoiceNumber);
+
+  if (!result) {
+    return c.json({ error: "Invoice not found" }, 404);
+  }
 
   try {
-    const db = getDb();
-
-    const [appRow] = await db.select().from(applications)
-      .where(eq(applications.invoiceNumber, invoiceNumber))
-      .limit(1);
-
-    if (!appRow) {
-      return c.json({ error: "Invoice not found" }, 404);
-    }
-
-    const fileName = `${invoiceNumber}.pdf`;
-    let absolutePath = path.join(INVOICES_DIR, fileName);
-
-    // Auto-regenerate if missing
-    if (!fs.existsSync(absolutePath)) {
-      if (appRow.invoicePdfPath && fs.existsSync(appRow.invoicePdfPath)) {
-        absolutePath = appRow.invoicePdfPath;
-      } else {
-        const invoiceData = {
-          invoiceNumber,
-          referenceNumber: appRow.referenceNumber,
-          createdAt: appRow.createdAt ? new Date(appRow.createdAt).toISOString() : new Date().toISOString(),
-          customerName: appRow.contactEmail.split("@")[0] || "Customer",
-          customerEmail: appRow.contactEmail,
-          customerPhone: appRow.contactPhone,
-          visaType: appRow.visaType,
-          processingType: appRow.processingType,
-          arrivalDate: appRow.arrivalDate || undefined,
-          totalAmount: Number(appRow.totalAmount),
-          stripePaymentIntentId: appRow.stripePaymentIntentId || undefined,
-        };
-        const doc = generateInvoicePDF(invoiceData);
-        doc.save(absolutePath);
-
-        await db.update(applications).set({
-          invoicePdfPath: absolutePath,
-          invoicePdfUrl: `/invoices/${fileName}`,
-        }).where(eq(applications.id, appRow.id));
-      }
-    }
-
-    const pdfBuffer = fs.readFileSync(absolutePath);
+    const pdfBuffer = fs.readFileSync(result.absolutePath);
     c.header("Content-Type", "application/pdf");
-    c.header("Content-Disposition", `attachment; filename="${fileName}"`);
+    c.header("Content-Disposition", `attachment; filename="${result.fileName}"`);
     c.header("Content-Length", String(pdfBuffer.length));
+    console.log(`[Invoice] Serving DOWNLOAD: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
     return c.body(pdfBuffer);
   } catch (err: any) {
-    console.error("[Invoice Download Error]", err.message);
-    return c.json({ error: "Internal server error" }, 500);
+    console.error(`[Invoice] Read error: ${err.message}`);
+    return c.json({ error: "Failed to read PDF" }, 500);
   }
 });
 

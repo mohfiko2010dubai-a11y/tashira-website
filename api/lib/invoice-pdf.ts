@@ -3,11 +3,17 @@ import path from "path";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 
-const INVOICES_DIR = path.resolve(process.cwd(), "dist/public/invoices");
+// Permanent storage - outside dist/ so it survives rebuilds
+const STORAGE_DIR = path.resolve(process.cwd(), "storage/invoices");
 
 // Ensure directory exists
-if (!fs.existsSync(INVOICES_DIR)) {
-  fs.mkdirSync(INVOICES_DIR, { recursive: true });
+if (!fs.existsSync(STORAGE_DIR)) {
+  fs.mkdirSync(STORAGE_DIR, { recursive: true });
+  console.log(`[Invoice] Created storage dir: ${STORAGE_DIR}`);
+}
+
+export function getStorageDir(): string {
+  return STORAGE_DIR;
 }
 
 interface InvoiceData {
@@ -59,7 +65,6 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
 
   doc.setTextColor("#FFFFFF");
   doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
   doc.text(`Invoice #: ${data.invoiceNumber}`, pageWidth - 15, 32, { align: "right" });
   doc.text(`Date: ${new Date(data.createdAt).toLocaleDateString("en-AE")}`, pageWidth - 15, 37, { align: "right" });
   doc.text(`TRN: TO-BE-ADDED`, pageWidth - 15, 42, { align: "right" });
@@ -105,7 +110,6 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
       ["", "", "Total (incl. VAT):", `$${total.toFixed(2)}`],
     ],
     headStyles: { fillColor: "#1A2332", textColor: "#C9A04C", fontStyle: "bold" },
-    footStyles: { fillColor: "#F5F5F0", textColor: "#1A2332", fontStyle: "bold" },
     columnStyles: {
       0: { cellWidth: "auto" },
       1: { cellWidth: 20, halign: "center" },
@@ -114,12 +118,6 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     },
     styles: { fontSize: 9, cellPadding: 5 },
     alternateRowStyles: { fillColor: "#FAFAF7" },
-    didParseCell: (hookData: any) => {
-      if (hookData.row.index === 4 && hookData.section === "body") {
-        hookData.cell.styles.fontStyle = "bold";
-        hookData.cell.styles.textColor = "#C9A04C";
-      }
-    },
   });
 
   const finalY = (doc as any).lastAutoTable?.finalY || 150;
@@ -138,7 +136,6 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setDrawColor("#C9A04C");
   doc.setLineWidth(0.5);
   doc.line(15, finalY + 40, pageWidth - 15, finalY + 40);
-
   doc.setTextColor("#666666");
   doc.setFontSize(8);
   doc.text("Thank you for choosing TASHIRA E-Visa & Tourism L.L.C-FZ", pageWidth / 2, finalY + 48, { align: "center" });
@@ -150,9 +147,14 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
 export function saveInvoiceToDisk(data: InvoiceData): { pdfPath: string; pdfUrl: string } {
   const doc = generateInvoicePDF(data);
   const fileName = `${data.invoiceNumber}.pdf`;
-  const pdfPath = path.join(INVOICES_DIR, fileName);
-  const pdfUrl = `/invoices/${fileName}`;
+  const pdfPath = path.join(STORAGE_DIR, fileName);
+  const pdfUrl = `/api/invoices/${data.invoiceNumber}/view`;
 
-  doc.save(pdfPath);
+  // Use fs.writeFileSync - Node.js compatible, unlike doc.save()
+  const pdfOutput = doc.output("arraybuffer");
+  fs.writeFileSync(pdfPath, Buffer.from(pdfOutput));
+
+  console.log(`[Invoice] Saved to: ${pdfPath} (${fs.statSync(pdfPath).size} bytes)`);
+
   return { pdfPath, pdfUrl };
 }
