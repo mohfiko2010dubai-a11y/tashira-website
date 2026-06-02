@@ -90,17 +90,20 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   // 4. Auto-regenerate
   console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
   try {
+    const customerEmail = appRow.contactEmail || "customer@example.com";
+    const customerName = appRow.applicants?.[0]?.fullName || customerEmail.split("@")[0] || "Customer";
+    
     const invoiceData = {
       invoiceNumber,
       referenceNumber: appRow.referenceNumber,
       createdAt: appRow.createdAt ? new Date(appRow.createdAt).toISOString() : new Date().toISOString(),
-      customerName: appRow.contactEmail.split("@")[0] || "Customer",
-      customerEmail: appRow.contactEmail,
-      customerPhone: appRow.contactPhone,
-      visaType: appRow.visaType,
-      processingType: appRow.processingType,
+      customerName,
+      customerEmail,
+      customerPhone: appRow.contactPhone || "",
+      visaType: appRow.visaType || "",
+      processingType: appRow.processingType || "",
       arrivalDate: appRow.arrivalDate || undefined,
-      totalAmount: Number(appRow.totalAmount),
+      totalAmount: Number(appRow.totalAmount) || 0,
       stripePaymentIntentId: appRow.stripePaymentIntentId || undefined,
     };
 
