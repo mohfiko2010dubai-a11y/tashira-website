@@ -156,7 +156,7 @@ app.use("/api/trpc/*", async (c) => {
 });
 
 // Catch-all
-c.app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
+app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
 export default app;
 
