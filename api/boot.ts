@@ -91,7 +91,7 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
   try {
     const customerEmail = appRow.contactEmail || "customer@example.com";
-    const customerName = appRow.applicants?.[0]?.fullName || customerEmail.split("@")[0] || "Customer";
+    const customerName = customerEmail.split("@")[0] || "Customer";
     
     const invoiceData = {
       invoiceNumber,
