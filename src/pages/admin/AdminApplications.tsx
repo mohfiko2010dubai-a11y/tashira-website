@@ -179,13 +179,11 @@ export default function AdminApplications() {
                           >
                             <Eye size={16} />
                           </Link>
-                          {app.invoicePdfUrl && (
+                          {app.invoiceNumber && (
                             <a
-                              href={app.invoicePdfUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              href={`/api/invoices/${app.invoiceNumber}/download`}
                               className="p-1.5 text-gray-400 hover:text-emerald-600 transition-colors"
-                              title="Invoice"
+                              title="Download Invoice"
                             >
                               <FileText size={16} />
                             </a>

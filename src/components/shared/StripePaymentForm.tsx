@@ -292,7 +292,7 @@ export function PaymentSuccessModal({
       {/* Action Buttons */}
       <div className="space-y-2">
         <a
-          href={`/invoices/${invoiceNumber}.pdf`}
+          href={`/api/invoices/${invoiceNumber}/view`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
@@ -301,8 +301,7 @@ export function PaymentSuccessModal({
           View Invoice
         </a>
         <a
-          href={`/invoices/${invoiceNumber}.pdf`}
-          download
+          href={`/api/invoices/${invoiceNumber}/download`}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-all"
         >
           <Download size={16} />
