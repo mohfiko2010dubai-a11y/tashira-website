@@ -3,6 +3,7 @@ import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, payments, invoices } from "@db/schema";
 import { eq } from "drizzle-orm";
+import { saveInvoiceToDisk } from "./lib/invoice-pdf";
 
 // Stripe secret key from env
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
@@ -89,12 +90,43 @@ export const paymentRouter = createRouter({
       
       if (app && payment) {
         const invoiceNumber = `INV-${input.referenceNumber}`;
+        
+        // Insert invoice record
         await db.insert(invoices).values({
           invoiceNumber,
           applicationId: app.id,
           paymentId: payment.id,
           amount: app.totalAmount,
         });
+
+        // Auto-generate PDF server-side
+        try {
+          const { pdfPath, pdfUrl } = saveInvoiceToDisk({
+            invoiceNumber,
+            referenceNumber: input.referenceNumber,
+            createdAt: new Date().toISOString(),
+            customerName: app.contactEmail.split("@")[0] || "Customer",
+            customerEmail: app.contactEmail,
+            customerPhone: app.contactPhone,
+            visaType: app.visaType,
+            processingType: app.processingType,
+            arrivalDate: app.arrivalDate || undefined,
+            totalAmount: Number(app.totalAmount),
+            stripePaymentIntentId: input.paymentIntentId,
+          });
+
+          // Update application with invoice info
+          await db.update(applications).set({
+            invoiceNumber,
+            invoicePdfPath: pdfPath,
+            invoicePdfUrl: pdfUrl,
+          }).where(eq(applications.id, app.id));
+
+          console.log(`[Invoice] Generated: ${pdfPath}`);
+        } catch (pdfErr: any) {
+          console.error("[Invoice Auto-Gen Error]", pdfErr.message);
+          // Don't fail payment if invoice generation fails
+        }
         
         return { 
           success: true, 
