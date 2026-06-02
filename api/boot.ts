@@ -76,9 +76,15 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   }
 
   // 3. Check DB stored path
-  if (appRow.invoicePdfPath && fs.existsSync(appRow.invoicePdfPath)) {
-    console.log(`[Invoice] Found existing PDF at DB path: ${appRow.invoicePdfPath}`);
-    return { absolutePath: appRow.invoicePdfPath, fileName, regenerated: false };
+  const dbPath = appRow.invoicePdfPath;
+  if (dbPath && typeof dbPath === 'string' && dbPath.length > 0) {
+    if (fs.existsSync(dbPath)) {
+      console.log(`[Invoice] Found existing PDF at DB path: ${dbPath}`);
+      return { absolutePath: dbPath, fileName, regenerated: false };
+    }
+    console.log(`[Invoice] DB path exists but file missing: ${dbPath}`);
+  } else {
+    console.log(`[Invoice] No invoicePdfPath in DB for: ${invoiceNumber}`);
   }
 
   // 4. Auto-regenerate
