@@ -27,7 +27,7 @@ export const paymentRouter = createRouter({
             amount: String(input.amount),
             currency: input.currency,
             "automatic_payment_methods[enabled]": "true",
-            metadata: JSON.stringify({ referenceNumber: input.referenceNumber }),
+            "metadata[referenceNumber]": input.referenceNumber,
           }),
         });
 
