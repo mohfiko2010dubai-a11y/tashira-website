@@ -21,6 +21,7 @@ import AdminApplicationDetail from '@/pages/admin/AdminApplicationDetail';
 
 function AppContent() {
   const { i18n } = useTranslation();
+  const location = useLocation();
 
   useEffect(() => {
     document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
