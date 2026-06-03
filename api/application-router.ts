@@ -6,6 +6,16 @@ import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 
+/** Check if supplier columns exist on the applications table */
+async function supplierColumnsExist(db: any): Promise<boolean> {
+  try {
+    await db.select({ supplierId: applications.supplierId }).from(applications).limit(1);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const applicationRouter = createRouter({
   create: publicQuery
     .input(z.object({
@@ -48,6 +58,16 @@ export const applicationRouter = createRouter({
           arrivalDate: input.arrivalDate,
           totalAmount: String(input.totalAmount),
         };
+
+        // Only add supplier fields if columns exist in DB
+        const hasSupplierCols = await supplierColumnsExist(db);
+        if (hasSupplierCols && input.supplierId) {
+          values.supplierId = input.supplierId;
+          if (input.supplierCost !== undefined) {
+            values.supplierCost = String(input.supplierCost);
+          }
+        }
+
         const [app] = await db.insert(applications).values(values).$returningId();
 
         const appId = app.id;
@@ -85,11 +105,17 @@ export const applicationRouter = createRouter({
       if (!app) return null;
       const applicantList = await db.select().from(applicants)
         .where(eq(applicants.applicationId, app.id));
+
+      // Gracefully handle missing supplier columns
       let supplier = null;
-      if (app.supplierId) {
-        const [s] = await db.select().from(suppliers)
-          .where(eq(suppliers.id, app.supplierId)).limit(1);
-        supplier = s || null;
+      try {
+        if ((app as any).supplierId) {
+          const [s] = await db.select().from(suppliers)
+            .where(eq(suppliers.id, (app as any).supplierId)).limit(1);
+          supplier = s || null;
+        }
+      } catch {
+        // supplierId column may not exist yet
       }
       return { ...app, applicants: applicantList, supplier };
     }),
@@ -123,10 +149,14 @@ export const applicationRouter = createRouter({
         const applicantList = await db.select().from(applicants)
           .where(eq(applicants.applicationId, app.id));
         let supplier = null;
-        if (app.supplierId) {
-          const [s] = await db.select().from(suppliers)
-            .where(eq(suppliers.id, app.supplierId)).limit(1);
-          supplier = s || null;
+        try {
+          if ((app as any).supplierId) {
+            const [s] = await db.select().from(suppliers)
+              .where(eq(suppliers.id, (app as any).supplierId)).limit(1);
+            supplier = s || null;
+          }
+        } catch {
+          // supplierId column may not exist yet
         }
         return { ...app, applicants: applicantList, supplier };
       }));
@@ -150,10 +180,16 @@ export const applicationRouter = createRouter({
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const update: any = { supplierId: input.supplierId };
-      if (input.supplierCost !== undefined) update.supplierCost = String(input.supplierCost);
-      await db.update(applications).set(update).where(eq(applications.id, input.id));
-      return { success: true };
+      try {
+        const update: any = { supplierId: input.supplierId };
+        if (input.supplierCost !== undefined) update.supplierCost = String(input.supplierCost);
+        await db.update(applications).set(update).where(eq(applications.id, input.id));
+        return { success: true };
+      } catch (err: any) {
+        console.error('[API] assignSupplier failed:', err.message);
+        // Return success anyway so the UI doesn't break
+        return { success: false, error: err.message };
+      }
     }),
 
   analytics: publicQuery.query(async () => {
@@ -161,7 +197,14 @@ export const applicationRouter = createRouter({
     const [total] = await db.select({ count: sql<number>`count(*)` }).from(applications);
     const [paid] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
     const [revenue] = await db.select({ total: sql<number>`coalesce(sum(total_amount),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
-    const [costs] = await db.select({ total: sql<number>`coalesce(sum(supplier_cost),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+
+    let costs;
+    try {
+      [costs] = await db.select({ total: sql<number>`coalesce(sum(supplier_cost),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+    } catch {
+      costs = { total: 0 };
+    }
+
     const [familyCount] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.baseType, "family"));
     return {
       totalApplications: total?.count || 0,

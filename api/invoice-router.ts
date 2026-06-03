@@ -51,78 +51,18 @@ export const invoiceRouter = createRouter({
       }
     }),
 
-  // View invoice PDF (inline)
+  // View invoice PDF (inline) - handled by Hono routes in boot.ts
   view: publicQuery
     .input(z.object({ invoiceNumber: z.string() }))
-    .query(async ({ input, ctx }) => {
-      try {
-        const fileName = `${input.invoiceNumber}.pdf`;
-        const absolutePath = path.join(INVOICES_DIR, fileName);
-
-        if (!fs.existsSync(absolutePath)) {
-          // Try to find by looking up the DB
-          const db = getDb();
-          const [app] = await db.select().from(applications)
-            .where(eq(applications.invoiceNumber, input.invoiceNumber))
-            .limit(1);
-
-          if (!app || !app.invoicePdfPath || !fs.existsSync(app.invoicePdfPath)) {
-            ctx.res.status(404);
-            return { error: "Invoice not found" };
-          }
-
-          const pdfBuffer = fs.readFileSync(app.invoicePdfPath);
-          ctx.res.headers.set("Content-Type", "application/pdf");
-          ctx.res.headers.set("Content-Disposition", `inline; filename="${fileName}"`);
-          return pdfBuffer;
-        }
-
-        const pdfBuffer = fs.readFileSync(absolutePath);
-        ctx.res.headers.set("Content-Type", "application/pdf");
-        ctx.res.headers.set("Content-Disposition", `inline; filename="${fileName}"`);
-        return pdfBuffer;
-      } catch (err: any) {
-        console.error("[Invoice View Error]", err.message);
-        ctx.res.status(500);
-        return { error: err.message };
-      }
+    .query(async () => {
+      return { message: "Use /invoices/:invoiceNumber/view route" };
     }),
 
-  // Download invoice PDF (attachment)
+  // Download invoice PDF (attachment) - handled by Hono routes in boot.ts
   download: publicQuery
     .input(z.object({ invoiceNumber: z.string() }))
-    .query(async ({ input, ctx }) => {
-      try {
-        const fileName = `${input.invoiceNumber}.pdf`;
-        const absolutePath = path.join(INVOICES_DIR, fileName);
-
-        let pdfBuffer: Buffer;
-
-        if (fs.existsSync(absolutePath)) {
-          pdfBuffer = fs.readFileSync(absolutePath);
-        } else {
-          // Try DB lookup
-          const db = getDb();
-          const [app] = await db.select().from(applications)
-            .where(eq(applications.invoiceNumber, input.invoiceNumber))
-            .limit(1);
-
-          if (!app || !app.invoicePdfPath || !fs.existsSync(app.invoicePdfPath)) {
-            ctx.res.status(404);
-            return { error: "Invoice not found" };
-          }
-          pdfBuffer = fs.readFileSync(app.invoicePdfPath);
-        }
-
-        ctx.res.headers.set("Content-Type", "application/pdf");
-        ctx.res.headers.set("Content-Disposition", `attachment; filename="${fileName}"`);
-        ctx.res.headers.set("Content-Length", String(pdfBuffer.length));
-        return pdfBuffer;
-      } catch (err: any) {
-        console.error("[Invoice Download Error]", err.message);
-        ctx.res.status(500);
-        return { error: err.message };
-      }
+    .query(async () => {
+      return { message: "Use /invoices/:invoiceNumber/download route" };
     }),
 
   // Regenerate invoice data for admin

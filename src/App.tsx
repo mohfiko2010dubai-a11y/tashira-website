@@ -19,6 +19,11 @@ import AdminLogin from '@/pages/admin/AdminLogin';
 import AdminApplications from '@/pages/admin/AdminApplications';
 import AdminApplicationDetail from '@/pages/admin/AdminApplicationDetail';
 import AdminSuppliers from '@/pages/admin/AdminSuppliers';
+import AdminStaff from '@/pages/admin/AdminStaff';
+import StaffLogin from '@/pages/admin/StaffLogin';
+import StaffDashboard from '@/pages/admin/StaffDashboard';
+import StaffApplicationDetail from '@/pages/admin/StaffApplicationDetail';
+import StaffGuard from '@/components/shared/StaffGuard';
 
 function AppContent() {
   const { i18n } = useTranslation();
@@ -50,6 +55,10 @@ function AppContent() {
           <Route path="/admin/applications" element={<AdminApplications />} />
           <Route path="/admin/applications/:referenceNumber" element={<AdminApplicationDetail />} />
           <Route path="/admin/suppliers" element={<AdminSuppliers />} />
+          <Route path="/admin/staff" element={<AdminStaff />} />
+          <Route path="/staff/login" element={<StaffLogin />} />
+          <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
+          <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

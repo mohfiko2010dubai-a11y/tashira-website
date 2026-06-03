@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { Lock, Shield } from 'lucide-react';
+import { Lock, Shield, UserCircle } from 'lucide-react';
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('');
@@ -54,6 +54,17 @@ export default function AdminLogin() {
             Login
           </button>
         </form>
+
+        {/* Staff Login Link */}
+        <div className="mt-6 text-center">
+          <a
+            href="/staff/login"
+            className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-[#C9A04C] transition-colors"
+          >
+            <UserCircle size={14} />
+            Staff Login
+          </a>
+        </div>
       </div>
     </div>
   );

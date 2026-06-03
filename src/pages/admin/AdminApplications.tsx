@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
-import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';
+import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
 import * as XLSX from 'xlsx';
 import {
-  Search, FileText, Eye, LogOut, Filter, RefreshCw, Building2,
-  Download, Calendar, DollarSign, Users, TrendingUp,
+  Search, Eye, LogOut, Filter, RefreshCw, Building2,
+  Download, Calendar, DollarSign, Users, TrendingUp, UserCircle,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -106,6 +106,9 @@ export default function AdminApplications() {
         <div className="flex items-center gap-3">
           <Link to="/admin/suppliers" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Building2 size={14} /> Suppliers
+          </Link>
+          <Link to="/admin/staff" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <UserCircle size={14} /> Staff
           </Link>
           <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <RefreshCw size={14} /> Refresh

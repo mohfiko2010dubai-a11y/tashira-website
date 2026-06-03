@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/providers/trpc';
-import {
-  ArrowLeft, Receipt, Building2, RefreshCw,
-} from 'lucide-react';
+import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { ArrowLeft, Receipt, FileText } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';
 import { generateInvoicePDF } from '@/components/shared/InvoiceGenerator';
 
@@ -20,30 +18,21 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-gray-200 text-gray-500',
 };
 
-export default function AdminApplicationDetail() {
+export default function StaffApplicationDetail() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
-  const [statusValue, setStatusValue] = useState('');
+  const { staff } = useStaffAuth();
 
-  const utils = trpc.useUtils();
   const { data: app, isLoading } = trpc.application.getByReference.useQuery(
     { referenceNumber: referenceNumber || '' },
     { enabled: !!referenceNumber }
   );
 
-  const updateStatus = trpc.application.updateStatus.useMutation({
-    onSuccess: () => {
-      utils.application.getByReference.invalidate();
-      utils.application.list.invalidate();
-    },
-  });
-
-  const handleStatusChange = (newStatus: string) => {
-    if (!app || !newStatus) return;
-    updateStatus.mutate({ id: app.id, status: newStatus as any });
-  };
-
   if (isLoading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">
+        Loading...
+      </div>
+    );
   }
 
   if (!app) {
@@ -51,7 +40,7 @@ export default function AdminApplicationDetail() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-500 mb-4">Application not found</p>
-          <Link to="/admin/applications" className="text-[#C9A04C] hover:underline">
+          <Link to="/staff/dashboard" className="text-[#C9A04C] hover:underline">
             Back to list
           </Link>
         </div>
@@ -61,7 +50,6 @@ export default function AdminApplicationDetail() {
 
   const mainApplicant = app.applicants?.[0];
 
-  // Generate invoice on the fly
   const handleGenerateInvoice = () => {
     const invoiceNumber = app.invoiceNumber || `INV-${app.referenceNumber}`;
     const doc = generateInvoicePDF({
@@ -89,18 +77,25 @@ export default function AdminApplicationDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-[#1A2332] text-white px-6 py-4 flex items-center gap-4">
-        <Link to="/admin/applications" className="text-gray-400 hover:text-white transition-colors">
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-lg font-bold">Application Details</h1>
-          <p className="text-xs text-gray-400 font-mono">{app.referenceNumber}</p>
+      <header className="bg-[#1A2332] text-white px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/staff/dashboard" className="text-gray-400 hover:text-white transition-colors">
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <h1 className="text-lg font-bold">Application Details</h1>
+            <p className="text-xs text-gray-400 font-mono">{app.referenceNumber}</p>
+          </div>
         </div>
+        {staff && (
+          <span className="text-xs bg-[#C9A04C]/20 text-[#C9A04C] px-2 py-0.5 rounded-full">
+            Staff: {staff.name}
+          </span>
+        )}
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-        {/* Status Bar */}
+        {/* Status Bar - Read Only */}
         <div className="bg-white rounded-lg border border-gray-100 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[app.status] || ''}`}>
@@ -114,24 +109,8 @@ export default function AdminApplicationDetail() {
               {app.paymentStatus}
             </span>
           </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <select
-              value={statusValue || app.status}
-              onChange={(e) => { setStatusValue(e.target.value); handleStatusChange(e.target.value); }}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none"
-            >
-              <option value="submitted">Submitted</option>
-              <option value="payment_received">Payment Received</option>
-              <option value="documents_pending">Documents Pending</option>
-              <option value="documents_received">Documents Received</option>
-              <option value="under_review">Under Review</option>
-              <option value="visa_processing">Visa Processing</option>
-              <option value="visa_received">Visa Received</option>
-              <option value="completed">Completed</option>
-              <option value="rejected">Rejected</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            {updateStatus.isPending && <RefreshCw size={14} className="animate-spin text-[#C9A04C]" />}
+          <div className="ml-auto text-xs text-gray-400">
+            Staff View Only
           </div>
         </div>
 
@@ -263,46 +242,41 @@ export default function AdminApplicationDetail() {
             </div>
           </div>
 
-          {/* Supplier & Profit */}
+          {/* All Applicants */}
           <div className="bg-white rounded-lg border border-gray-100 p-5 lg:col-span-2">
             <h2 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide flex items-center gap-2">
-              <Building2 size={14} /> Supplier & Profit
+              <FileText size={14} /> All Applicants ({app.applicants?.length || 0})
             </h2>
-            {app.supplier ? (
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500">Supplier</p>
-                  <p className="text-sm font-semibold">{app.supplier.name}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Contact</p>
-                  <p className="text-sm">{app.supplier.contactPerson || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Cost</p>
-                  <p className="text-sm font-semibold text-red-500">${Number(app.supplierCost || 0).toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Profit Margin</p>
-                  <p className="text-sm font-semibold text-emerald-600">
-                    ${(Number(app.totalAmount || 0) - Number(app.supplierCost || 0)).toFixed(2)}
-                    ({Number(app.totalAmount || 0) > 0 ? (((Number(app.totalAmount || 0) - Number(app.supplierCost || 0)) / Number(app.totalAmount || 0)) * 100).toFixed(0) : '0'}%)
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <p className="text-gray-400 text-sm mb-3">No supplier assigned.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Documents Placeholder */}
-          <div className="bg-white rounded-lg border border-gray-100 p-5 lg:col-span-2">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Documents</h2>
-            <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center">
-              <p className="text-gray-400 text-sm">Document upload coming soon.</p>
-              <p className="text-gray-300 text-xs mt-1">Passport, Photo, Residence ID will appear here.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">#</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Full Name</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Nationality</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Passport</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Type</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Profession</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">GCC Residence</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {(app.applicants || []).map((a: any, i: number) => (
+                    <tr key={a.id} className="hover:bg-gray-50/50">
+                      <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                      <td className="px-3 py-2 font-medium">{a.fullName}</td>
+                      <td className="px-3 py-2 text-gray-500">{a.nationality || '-'}</td>
+                      <td className="px-3 py-2 font-mono text-gray-500">{a.passportNumber || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{a.passportType || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{a.profession || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{a.gccResidenceNumber || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {(!app.applicants || app.applicants.length === 0) && (
+                <p className="text-center py-6 text-gray-400">No applicants found.</p>
+              )}
             </div>
           </div>
         </div>

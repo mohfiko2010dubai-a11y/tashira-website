@@ -4,7 +4,6 @@ import {
   varchar,
   timestamp,
   text,
-  json,
   mysqlEnum,
   decimal,
   bigint,
@@ -98,6 +97,18 @@ export const suppliers = mysqlTable("suppliers", {
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 50 }),
   notes: text("notes"),
+  isActive: mysqlEnum("is_active", ["active", "inactive"]).default("active").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+export const staffUsers = mysqlTable("staff_users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 50 }),
   isActive: mysqlEnum("is_active", ["active", "inactive"]).default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
