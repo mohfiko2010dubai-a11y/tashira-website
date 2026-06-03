@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/providers/trpc';
 import {
-  ArrowLeft, FileText, Download, RefreshCw, Receipt,
+  ArrowLeft, FileText, Download, RefreshCw, Receipt, Building2, DollarSign,
 } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';
 import { generateInvoicePDF } from '@/components/shared/InvoiceGenerator';
@@ -261,6 +261,40 @@ export default function AdminApplicationDetail() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Supplier & Profit */}
+          <div className="bg-white rounded-lg border border-gray-100 p-5 lg:col-span-2">
+            <h2 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide flex items-center gap-2">
+              <Building2 size={14} /> Supplier & Profit
+            </h2>
+            {app.supplier ? (
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Supplier</p>
+                  <p className="text-sm font-semibold">{app.supplier.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Contact</p>
+                  <p className="text-sm">{app.supplier.contactPerson || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Cost</p>
+                  <p className="text-sm font-semibold text-red-500">${Number(app.supplierCost || 0).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Profit Margin</p>
+                  <p className="text-sm font-semibold text-emerald-600">
+                    ${(Number(app.totalAmount || 0) - Number(app.supplierCost || 0)).toFixed(2)}
+                    ({Number(app.totalAmount || 0) > 0 ? (((Number(app.totalAmount || 0) - Number(app.supplierCost || 0)) / Number(app.totalAmount || 0)) * 100).toFixed(0) : '0'}%)
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-gray-400 text-sm mb-3">No supplier assigned.</p>
+              </div>
+            )}
           </div>
 
           {/* Documents Placeholder */}

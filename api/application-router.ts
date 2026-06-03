@@ -4,10 +4,9 @@ import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
-const STATUS_ENUM = ["submitted", "payment_received", "documents_pending", "documents_received", "under_review", "visa_processing", "visa_received", "completed", "rejected", "cancelled"] as const;
+const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 
 export const applicationRouter = createRouter({
-  // Create new application
   create: publicQuery
     .input(z.object({
       referenceNumber: z.string().min(1),
@@ -19,6 +18,8 @@ export const applicationRouter = createRouter({
       contactPhone: z.string(),
       arrivalDate: z.string().optional(),
       totalAmount: z.number(),
+      supplierId: z.number().optional(),
+      supplierCost: z.number().optional(),
       applicants: z.array(z.object({
         fullName: z.string(),
         nationality: z.string().optional(),
@@ -36,7 +37,7 @@ export const applicationRouter = createRouter({
     .mutation(async ({ input }) => {
       try {
         const db = getDb();
-        const [app] = await db.insert(applications).values({
+        const values: any = {
           referenceNumber: input.referenceNumber,
           baseType: input.baseType,
           residenceType: input.residenceType,
@@ -46,7 +47,12 @@ export const applicationRouter = createRouter({
           contactPhone: input.contactPhone,
           arrivalDate: input.arrivalDate,
           totalAmount: String(input.totalAmount),
-        }).$returningId();
+        };
+        if (input.supplierId) {
+          values.supplierId = input.supplierId;
+          values.supplierCost = input.supplierCost ? String(input.supplierCost) : null;
+        }
+        const [app] = await db.insert(applications).values(values).$returningId();
 
         const appId = app.id;
         for (let i = 0; i < input.applicants.length; i++) {
@@ -69,34 +75,29 @@ export const applicationRouter = createRouter({
         }
         return { id: appId, referenceNumber: input.referenceNumber };
       } catch (err: any) {
-        console.error('[API ERROR] Application create failed:', err.message, err.stack);
+        console.error('[API ERROR]', err.message);
         throw new Error(`Database error: ${err.message}`);
       }
     }),
 
-  // Get application by reference number
   getByReference: publicQuery
     .input(z.object({ referenceNumber: z.string() }))
     .query(async ({ input }) => {
       const db = getDb();
       const [app] = await db.select().from(applications)
-        .where(eq(applications.referenceNumber, input.referenceNumber))
-        .limit(1);
+        .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
       if (!app) return null;
       const applicantList = await db.select().from(applicants)
         .where(eq(applicants.applicationId, app.id));
-      // Get supplier info if exists
       let supplier = null;
       if (app.supplierId) {
         const [s] = await db.select().from(suppliers)
-          .where(eq(suppliers.id, app.supplierId))
-          .limit(1);
+          .where(eq(suppliers.id, app.supplierId)).limit(1);
         supplier = s || null;
       }
       return { ...app, applicants: applicantList, supplier };
     }),
 
-  // List all applications with date filter + supplier info
   list: publicQuery
     .input(z.object({
       search: z.string().optional(),
@@ -112,58 +113,39 @@ export const applicationRouter = createRouter({
       const offset = input?.offset || 0;
 
       let query = db.select().from(applications);
-
-      // Apply filters
       const conditions = [];
-      if (input?.status) {
-        conditions.push(eq(applications.status, input.status as any));
-      }
-      if (input?.dateFrom) {
-        conditions.push(gte(applications.createdAt, new Date(input.dateFrom)));
-      }
-      if (input?.dateTo) {
-        conditions.push(lte(applications.createdAt, new Date(input.dateTo)));
-      }
 
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions)) as any;
-      }
+      if (input?.status) conditions.push(eq(applications.status, input.status as any));
+      if (input?.dateFrom) conditions.push(gte(applications.createdAt, new Date(input.dateFrom)));
+      if (input?.dateTo) conditions.push(lte(applications.createdAt, new Date(input.dateTo + 'T23:59:59')));
+
+      if (conditions.length > 0) query = query.where(and(...conditions)) as any;
 
       const allApps = await query.orderBy(desc(applications.createdAt)).limit(limit).offset(offset);
 
-      // Get applicants + supplier for each
-      const appsWithData = await Promise.all(
-        allApps.map(async (app) => {
-          const applicantList = await db.select().from(applicants)
-            .where(eq(applicants.applicationId, app.id));
-          let supplier = null;
-          if (app.supplierId) {
-            const [s] = await db.select().from(suppliers)
-              .where(eq(suppliers.id, app.supplierId))
-              .limit(1);
-            supplier = s || null;
-          }
-          return { ...app, applicants: applicantList, supplier };
-        })
-      );
+      const result = await Promise.all(allApps.map(async (app) => {
+        const applicantList = await db.select().from(applicants)
+          .where(eq(applicants.applicationId, app.id));
+        let supplier = null;
+        if (app.supplierId) {
+          const [s] = await db.select().from(suppliers)
+            .where(eq(suppliers.id, app.supplierId)).limit(1);
+          supplier = s || null;
+        }
+        return { ...app, applicants: applicantList, supplier };
+      }));
 
-      return appsWithData;
+      return result;
     }),
 
-  // Update application status
   updateStatus: publicQuery
-    .input(z.object({
-      id: z.number(),
-      status: z.enum(STATUS_ENUM),
-    }))
+    .input(z.object({ id: z.number(), status: z.enum(STATUS_ENUM) }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      await db.update(applications).set({ status: input.status })
-        .where(eq(applications.id, input.id));
+      await db.update(applications).set({ status: input.status }).where(eq(applications.id, input.id));
       return { success: true };
     }),
 
-  // Assign supplier to application
   assignSupplier: publicQuery
     .input(z.object({
       id: z.number(),
@@ -172,29 +154,26 @@ export const applicationRouter = createRouter({
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const updateData: any = { supplierId: input.supplierId };
-      if (input.supplierCost !== undefined) {
-        updateData.supplierCost = String(input.supplierCost);
-      }
-      await db.update(applications).set(updateData)
-        .where(eq(applications.id, input.id));
+      const update: any = { supplierId: input.supplierId };
+      if (input.supplierCost !== undefined) update.supplierCost = String(input.supplierCost);
+      await db.update(applications).set(update).where(eq(applications.id, input.id));
       return { success: true };
     }),
 
-  // Analytics
   analytics: publicQuery.query(async () => {
     const db = getDb();
-    const total = await db.select({ count: sql<number>`count(*)` }).from(applications);
-    const paid = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
-    const revenue = await db.select({ total: sql<number>`coalesce(sum(total_amount), 0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
-    const costs = await db.select({ total: sql<number>`coalesce(sum(supplier_cost), 0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
-
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(applications);
+    const [paid] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+    const [revenue] = await db.select({ total: sql<number>`coalesce(sum(total_amount),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+    const [costs] = await db.select({ total: sql<number>`coalesce(sum(supplier_cost),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+    const [familyCount] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.baseType, "family"));
     return {
-      totalApplications: total[0]?.count || 0,
-      paidApplications: paid[0]?.count || 0,
-      totalRevenue: revenue[0]?.total || 0,
-      totalCosts: costs[0]?.total || 0,
-      profit: (revenue[0]?.total || 0) - (costs[0]?.total || 0),
+      totalApplications: total?.count || 0,
+      paidApplications: paid?.count || 0,
+      totalRevenue: Number(revenue?.total || 0),
+      totalCosts: Number(costs?.total || 0),
+      profit: Number(revenue?.total || 0) - Number(costs?.total || 0),
+      familyCount: familyCount?.count || 0,
     };
   }),
 });

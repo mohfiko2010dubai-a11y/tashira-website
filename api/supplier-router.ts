@@ -2,72 +2,66 @@ import { z } from "zod";
 import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { suppliers } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export const supplierRouter = createRouter({
-  // List all suppliers
   list: publicQuery.query(async () => {
     const db = getDb();
     return db.select().from(suppliers).orderBy(suppliers.name);
   }),
 
-  // Get single supplier
   get: publicQuery
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = getDb();
-      const [supplier] = await db.select().from(suppliers)
-        .where(eq(suppliers.id, input.id))
-        .limit(1);
-      return supplier || null;
+      const [s] = await db.select().from(suppliers).where(eq(suppliers.id, input.id)).limit(1);
+      return s || null;
     }),
 
-  // Create supplier
   create: publicQuery
     .input(z.object({
       name: z.string().min(1),
       contactPerson: z.string().optional(),
-      email: z.string().email().optional().or(z.literal("")),
+      email: z.string().optional(),
       phone: z.string().optional(),
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const [supplier] = await db.insert(suppliers).values({
+      const [result] = await db.insert(suppliers).values({
         name: input.name,
         contactPerson: input.contactPerson || null,
         email: input.email || null,
         phone: input.phone || null,
         notes: input.notes || null,
       });
-      return { id: supplier.insertId, success: true };
+      return { id: Number(result.insertId), success: true };
     }),
 
-  // Update supplier
   update: publicQuery
     .input(z.object({
       id: z.number(),
       name: z.string().min(1),
       contactPerson: z.string().optional(),
-      email: z.string().email().optional().or(z.literal("")),
+      email: z.string().optional(),
       phone: z.string().optional(),
       notes: z.string().optional(),
       isActive: z.enum(["active", "inactive"]).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      await db.update(suppliers).set({
+      const update: any = {
         name: input.name,
         contactPerson: input.contactPerson || null,
         email: input.email || null,
         phone: input.phone || null,
         notes: input.notes || null,
-        ...(input.isActive && { isActive: input.isActive }),
-      }).where(eq(suppliers.id, input.id));
+      };
+      if (input.isActive) update.isActive = input.isActive;
+      await db.update(suppliers).set(update).where(eq(suppliers.id, input.id));
       return { success: true };
     }),
 
-  // Delete supplier
   delete: publicQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {

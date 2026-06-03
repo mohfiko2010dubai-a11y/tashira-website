@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
+import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';
+import * as XLSX from 'xlsx';
 import {
-  Search, FileText, Eye, LogOut, Filter, Download, RefreshCw,
+  Search, FileText, Eye, LogOut, Filter, RefreshCw, Building2,
+  Download, Calendar, DollarSign, Users, TrendingUp,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -19,31 +22,35 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-gray-200 text-gray-500',
 };
 
-const paymentStatusColors: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-700',
-  paid: 'bg-emerald-100 text-emerald-700',
-  failed: 'bg-red-100 text-red-700',
-};
-
 export default function AdminApplications() {
   const { logout } = useAdminAuth();
+  const utils = trpc.useUtils();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [assigningSupplier, setAssigningSupplier] = useState<string | null>(null);
+  const [supplierCostInput, setSupplierCostInput] = useState('');
 
-  const utils = trpc.useUtils();
   const { data: applications, isLoading, refetch } = trpc.application.list.useQuery({
     status: statusFilter || undefined,
-    limit: 100,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    limit: 500,
   });
 
-  // Sort by newest first
-  const sortedApplications = [...(applications || [])].sort((a, b) => {
-    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return dateB - dateA; // newest first
+  const { data: suppliersList } = trpc.supplier.list.useQuery();
+  const { data: analytics } = trpc.application.analytics.useQuery();
+
+  const assignSupplierMut = trpc.application.assignSupplier.useMutation({
+    onSuccess: () => { utils.application.list.invalidate(); setAssigningSupplier(null); setSupplierCostInput(''); },
   });
 
-  const filtered = sortedApplications.filter((app) => {
+  const sorted = [...(applications || [])].sort((a: any, b: any) => {
+    return (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+  });
+
+  const filtered = sorted.filter((app: any) => {
     const q = search.toLowerCase();
     return (
       app.referenceNumber.toLowerCase().includes(q) ||
@@ -52,91 +59,115 @@ export default function AdminApplications() {
     );
   });
 
+  const handleExportExcel = () => {
+    const data = filtered.map((app: any) => {
+      const applicant = app.applicants?.[0] || {};
+      const cost = Number(app.supplierCost || 0);
+      const revenue = Number(app.totalAmount || 0);
+      const profit = revenue - cost;
+      const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0';
+      return {
+        'Ref #': app.referenceNumber,
+        'Date': app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-',
+        'Name': applicant.fullName || '-',
+        'Email': app.contactEmail,
+        'Phone': app.contactPhone,
+        'Nationality': applicant.nationality || '-',
+        'Visa Type': app.visaType,
+        'Processing': app.processingType,
+        'Base Type': app.baseType,
+        'Applicants': app.applicants?.length || 1,
+        'Status': app.status,
+        'Payment': app.paymentStatus,
+        'Total Amount': revenue,
+        'Supplier': app.supplier?.name || '-',
+        'Supplier Cost': cost,
+        'Profit': profit,
+        'Margin %': margin + '%',
+        'Stripe PI': app.stripePaymentIntentId || '-',
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Applications');
+    XLSX.writeFile(wb, `tashira-applications-${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleAssignSupplier = (appId: number, supplierId: number) => {
+    const cost = parseFloat(supplierCostInput);
+    assignSupplierMut.mutate({ id: appId, supplierId, supplierCost: isNaN(cost) ? 0 : cost });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-[#1A2332] text-white px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3"><h1 className="text-lg font-bold">TASHIRA Admin</h1></div>
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold">TASHIRA Admin</h1>
-          <span className="text-xs text-gray-400">Applications</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
-            title="Refresh"
-          >
-            <RefreshCw size={14} />
-            Refresh
+          <Link to="/admin/suppliers" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <Building2 size={14} /> Suppliers
+          </Link>
+          <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <RefreshCw size={14} /> Refresh
           </button>
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            <LogOut size={14} />
-            Logout
+          <button onClick={logout} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <LogOut size={14} /> Logout
           </button>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by reference, email, or name..."
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] focus:outline-none"
-            />
+        {/* Analytics Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+          <div className="bg-white rounded-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-[#C9A04C]" /><p className="text-xs text-gray-500">Total</p></div>
+            <p className="text-2xl font-bold text-[#C9A04C]">{analytics?.totalApplications || 0}</p>
           </div>
-          <div className="relative">
-            <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] focus:outline-none bg-white"
-            >
-              <option value="">All Statuses</option>
-              <option value="submitted">Submitted</option>
-              <option value="payment_received">Payment Received</option>
-              <option value="documents_pending">Documents Pending</option>
-              <option value="documents_received">Documents Received</option>
-              <option value="under_review">Under Review</option>
-              <option value="visa_processing">Visa Processing</option>
-              <option value="visa_received">Visa Received</option>
-              <option value="completed">Completed</option>
-              <option value="rejected">Rejected</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+          <div className="bg-white rounded-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">Revenue</p></div>
+            <p className="text-2xl font-bold text-emerald-600">${(analytics?.totalRevenue || 0).toFixed(2)}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-red-400" /><p className="text-xs text-gray-500">Costs</p></div>
+            <p className="text-2xl font-bold text-red-500">${(analytics?.totalCosts || 0).toFixed(2)}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-1"><TrendingUp size={14} className="text-purple-500" /><p className="text-xs text-gray-500">Profit</p></div>
+            <p className="text-2xl font-bold text-purple-600">${(analytics?.profit || 0).toFixed(2)}</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-blue-500" /><p className="text-xs text-gray-500">Paid</p></div>
+            <p className="text-2xl font-bold text-blue-600">{analytics?.paidApplications || 0}</p>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <p className="text-2xl font-bold text-[#C9A04C]">{sortedApplications.length}</p>
-            <p className="text-xs text-gray-500">Total</p>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <p className="text-2xl font-bold text-emerald-600">
-              {sortedApplications.filter((a) => a.paymentStatus === 'paid').length}
-            </p>
-            <p className="text-xs text-gray-500">Paid</p>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <p className="text-2xl font-bold text-amber-600">
-              {sortedApplications.filter((a) => a.paymentStatus === 'pending').length}
-            </p>
-            <p className="text-xs text-gray-500">Pending</p>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <p className="text-2xl font-bold text-gray-800">
-              ${sortedApplications.reduce((s, a) => s + Number(a.totalAmount), 0).toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500">Revenue</p>
+        {/* Filters */}
+        <div className="bg-white rounded-lg border border-gray-100 p-4 mb-6">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ref, email, name..." className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none" />
+            </div>
+            <div className="relative min-w-[140px]">
+              <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white w-full">
+                <option value="">All Statuses</option>
+                <option value="submitted">Submitted</option><option value="payment_received">Payment Received</option>
+                <option value="documents_pending">Docs Pending</option><option value="documents_received">Docs Received</option>
+                <option value="under_review">Under Review</option><option value="visa_processing">Visa Processing</option>
+                <option value="visa_received">Visa Received</option><option value="completed">Completed</option>
+                <option value="rejected">Rejected</option><option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar size={14} className="text-gray-400" />
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none" />
+              <span className="text-gray-400">-</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none" />
+            </div>
+            <button onClick={handleExportExcel} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:shadow-md transition-all">
+              <Download size={14} /> Export Excel
+            </button>
           </div>
         </div>
 
@@ -146,78 +177,82 @@ export default function AdminApplications() {
         ) : (
           <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Ref #</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Email</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Visa</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Amount</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Payment</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Ref #</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Date</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Name</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Visa</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Qty</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Amount</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Supplier</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Cost</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Profit</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Status</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((app) => (
-                    <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-[#C9A04C] font-semibold">
-                        {app.referenceNumber}
-                      </td>
-                      <td className="px-4 py-3">
-                        {app.applicants?.[0]?.fullName || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">{app.contactEmail}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs">{app.visaType}</span>
-                        <span className="text-xs text-gray-400 ml-1">({app.processingType})</span>
-                      </td>
-                      <td className="px-4 py-3 font-semibold">${app.totalAmount}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${paymentStatusColors[app.paymentStatus] || ''}`}>
-                          {app.paymentStatus}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[app.status] || ''}`}>
-                          {app.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
-                        {app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <Link
-                            to={`/admin/applications/${app.referenceNumber}`}
-                            className="p-1.5 text-gray-400 hover:text-[#C9A04C] transition-colors"
-                            title="View"
-                          >
-                            <Eye size={16} />
-                          </Link>
-                          {app.invoiceNumber && (
-                            <a
-                              href={`/invoices/${app.invoiceNumber}/download`}
-                              className="p-1.5 text-gray-400 hover:text-emerald-600 transition-colors"
-                              title="Download Invoice"
+                  {filtered.map((app: any) => {
+                    const cost = Number(app.supplierCost || 0);
+                    const revenue = Number(app.totalAmount || 0);
+                    const profit = revenue - cost;
+                    const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(0) : '0';
+                    return (
+                      <tr key={app.id} className="hover:bg-gray-50/50">
+                        <td className="px-3 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}</td>
+                        <td className="px-3 py-2 text-gray-500">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-'}</td>
+                        <td className="px-3 py-2">{app.applicants?.[0]?.fullName || '-'}</td>
+                        <td className="px-3 py-2">{app.visaType}<br/><span className="text-gray-400">{app.processingType}</span></td>
+                        <td className="px-3 py-2 text-center">{app.applicants?.length || 1}</td>
+                        <td className="px-3 py-2 font-semibold">${revenue.toFixed(2)}</td>
+                        <td className="px-3 py-2">
+                          {app.supplier ? (
+                            <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{app.supplier.name}</span>
+                          ) : (
+                            <select
+                              value=""
+                              onChange={e => {
+                                if (e.target.value) {
+                                  setAssigningSupplier(app.id + '-' + e.target.value);
+                                }
+                              }}
+                              className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:border-[#C9A04C] focus:outline-none"
                             >
-                              <FileText size={16} />
-                            </a>
+                              <option value="">Assign...</option>
+                              {(suppliersList || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          {assigningSupplier === app.id + '-' + (app.supplierId || '') && (
+                            <div className="mt-1 flex gap-1">
+                              <input type="number" placeholder="Cost" value={supplierCostInput} onChange={e => setSupplierCostInput(e.target.value)} className="w-16 text-xs border border-gray-200 rounded px-1 py-0.5" />
+                              <button onClick={() => { const parts = assigningSupplier.split('-'); handleAssignSupplier(app.id, parseInt(parts[1])); }} className="text-xs bg-[#C9A04C] text-white px-2 py-0.5 rounded">OK</button>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-red-500">${cost.toFixed(2)}</td>
+                        <td className="px-3 py-2">
+                          <span className={profit >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                            ${profit.toFixed(2)} ({margin}%)
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${statusColors[app.status] || ''}`}>{app.status}</span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex gap-1">
+                            <Link to={`/admin/applications/${app.referenceNumber}`} className="p-1 text-gray-400 hover:text-[#C9A04C]"><Eye size={14} /></Link>
+                            {app.invoiceNumber && <ViewInvoiceButton invoiceNumber={app.invoiceNumber} referenceNumber={app.referenceNumber} totalAmount={revenue} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            {filtered.length === 0 && (
-              <div className="text-center py-12 text-gray-400">
-                No applications found.
-              </div>
-            )}
+            {filtered.length === 0 && <div className="text-center py-12 text-gray-400">No applications found.</div>}
           </div>
         )}
       </div>

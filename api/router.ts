@@ -7,9 +7,6 @@ import { invoiceRouter } from "./invoice-router";
 import { supplierRouter } from "./supplier-router";
 import { createRouter } from "./middleware";
 
-/**
- * App router — aggregates all tRPC sub-routers.
- */
 export const appRouter = createRouter({
   auth: authRouter,
   application: applicationRouter,
@@ -20,5 +17,4 @@ export const appRouter = createRouter({
   supplier: supplierRouter,
 });
 
-// Export the type for tRPC client inference.
 export type AppRouter = typeof appRouter;
