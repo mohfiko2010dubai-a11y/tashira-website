@@ -4,6 +4,7 @@ import { trpc } from '@/providers/trpc';
 import {
   ArrowLeft, FileText, Download, RefreshCw,
 } from 'lucide-react';
+import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';
 
 const statusColors: Record<string, string> = {
   submitted: 'bg-gray-100 text-gray-700',
@@ -197,29 +198,31 @@ export default function AdminApplicationDetail() {
           {/* Invoice */}
           <div className="bg-white rounded-lg border border-gray-100 p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Invoice</h2>
-            {app.invoicePdfUrl ? (
+            {app.invoiceNumber ? (
               <div className="space-y-3">
                 <p className="text-sm">
                   <span className="text-gray-500">Invoice #:</span>{' '}
                   <span className="font-mono font-semibold">{app.invoiceNumber}</span>
                 </p>
                 <div className="flex gap-2">
-                  <a
-                    href={`/invoices/${app.invoiceNumber}/view`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#C9A04C] text-white text-sm rounded-lg hover:shadow-md transition-all"
-                  >
-                    <FileText size={14} />
-                    View Invoice
-                  </a>
-                  <a
-                    href={`/invoices/${app.invoiceNumber}/download`}
-                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-sm rounded-lg hover:bg-gray-50 transition-all"
-                  >
-                    <Download size={14} />
-                    Download
-                  </a>
+                  <ViewInvoiceButton
+                    invoiceNumber={app.invoiceNumber}
+                    referenceNumber={app.referenceNumber}
+                    totalAmount={Number(app.totalAmount)}
+                    customerEmail={app.contactEmail}
+                    customerPhone={app.contactPhone}
+                    visaType={app.visaType}
+                    processingType={app.processingType}
+                  />
+                  <DownloadInvoiceButton
+                    invoiceNumber={app.invoiceNumber}
+                    referenceNumber={app.referenceNumber}
+                    totalAmount={Number(app.totalAmount)}
+                    customerEmail={app.contactEmail}
+                    customerPhone={app.contactPhone}
+                    visaType={app.visaType}
+                    processingType={app.processingType}
+                  />
                 </div>
               </div>
             ) : (

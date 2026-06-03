@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { trpc } from '@/providers/trpc';
-import { CreditCard, Lock, CheckCircle, FileText, Download, RefreshCw } from 'lucide-react';
-import { generateInvoicePDF } from './InvoiceGenerator';
+import { CreditCard, Lock, CheckCircle } from 'lucide-react';
+import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -36,7 +36,12 @@ interface PaymentFormInnerProps {
   onClose: () => void;
 }
 
-function PaymentFormInner({ amount, referenceNumber, applicantData, onSuccess, onClose }: PaymentFormInnerProps) {
+function PaymentFormInner({
+  amount,
+  referenceNumber,
+  onSuccess,
+  onClose,
+}: PaymentFormInnerProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -44,7 +49,6 @@ function PaymentFormInner({ amount, referenceNumber, applicantData, onSuccess, o
 
   const createIntent = trpc.payment.createIntent.useMutation();
   const confirmPayment = trpc.payment.confirm.useMutation();
-  const saveInvoicePdf = trpc.invoice.savePdf.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,27 +58,22 @@ function PaymentFormInner({ amount, referenceNumber, applicantData, onSuccess, o
     setError('');
 
     try {
-      // 1. Create payment intent
       const intentResult = await createIntent.mutateAsync({
         amount: amount * 100,
         currency: 'usd',
         referenceNumber,
       });
 
-      const clientSecret = intentResult.clientSecret;
-      const intentError = intentResult.error;
-
-      if (intentError || !clientSecret) {
-        throw new Error(intentError || 'Failed to create payment intent');
+      if (intentResult.error || !intentResult.clientSecret) {
+        throw new Error(intentResult.error || 'Failed to create payment intent');
       }
 
-      // 2. Confirm card payment
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
+        intentResult.clientSecret,
         {
           payment_method: {
             card: elements.getElement(CardElement)!,
-            billing_details: { name: applicantData.customerName },
+            billing_details: { name: 'Tashira Customer' },
           },
         }
       );
@@ -84,46 +83,11 @@ function PaymentFormInner({ amount, referenceNumber, applicantData, onSuccess, o
       }
 
       if (paymentIntent?.status === 'succeeded') {
-        // 3. Confirm on backend
-        const result = await confirmPayment.mutateAsync({
+        await confirmPayment.mutateAsync({
           referenceNumber,
           paymentIntentId: paymentIntent.id,
         });
-
-        if (result.success && result.invoiceNumber) {
-          // 4. Generate and save invoice PDF
-          try {
-            const invoiceData = {
-              invoiceNumber: result.invoiceNumber,
-              referenceNumber,
-              createdAt: new Date().toISOString(),
-              customerName: applicantData.customerName,
-              customerEmail: result.customerEmail || applicantData.customerEmail,
-              customerPhone: result.customerPhone || applicantData.customerPhone,
-              passportNumber: applicantData.passportNumber,
-              nationality: applicantData.nationality,
-              visaType: result.visaType || applicantData.visaType,
-              processingType: result.processingType || applicantData.processingType,
-              arrivalDate: applicantData.arrivalDate,
-              totalAmount: result.totalAmount || amount,
-              stripePaymentIntentId: result.stripePaymentIntentId || paymentIntent.id,
-            };
-
-            const doc = generateInvoicePDF(invoiceData);
-            const pdfBase64 = doc.output('datauristring').split(',')[1];
-
-            await saveInvoicePdf.mutateAsync({
-              invoiceNumber: result.invoiceNumber,
-              referenceNumber,
-              pdfBase64,
-            });
-          } catch (invoiceErr: any) {
-            console.error('Invoice generation failed:', invoiceErr);
-            // Don't block payment success if invoice fails
-          }
-
-          onSuccess(result.invoiceNumber);
-        }
+        onSuccess(`INV-${referenceNumber}`);
       }
     } catch (err: any) {
       setError(err.message || 'Payment failed. Please try again.');
@@ -134,20 +98,17 @@ function PaymentFormInner({ amount, referenceNumber, applicantData, onSuccess, o
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* TEST MODE badge */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
         <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Test Mode - No real charges</p>
         <p className="text-[10px] text-amber-500">Use card: 4242 4242 4242 4242 | Any future date | Any 3 digits</p>
       </div>
 
-      {/* Amount display */}
       <div className="bg-gradient-to-r from-[#C9A04C]/10 to-[#C9A04C]/5 border border-[#C9A04C]/20 rounded-xl p-4 text-center">
         <p className="text-sm text-gray-500 mb-1">Total Amount</p>
         <p className="text-3xl font-bold text-[#C9A04C]">${amount}</p>
         <p className="text-xs text-gray-400 mt-1">Ref: {referenceNumber}</p>
       </div>
 
-      {/* Card input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
           <CreditCard size={14} className="text-[#C9A04C]" />
@@ -158,33 +119,22 @@ function PaymentFormInner({ amount, referenceNumber, applicantData, onSuccess, o
         </div>
       </div>
 
-      {/* Security note */}
       <div className="flex items-center gap-2 text-xs text-gray-500">
         <Lock size={12} className="text-emerald-500" />
         <span>Secured by Stripe. Your card details are never stored on our servers.</span>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
           {error}
         </div>
       )}
 
-      {/* Buttons */}
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-        >
+        <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={!stripe || loading}
-          className="flex-1 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50"
-        >
+        <button type="submit" disabled={!stripe || loading} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50">
           {loading ? 'Processing...' : `Pay $${amount}`}
         </button>
       </div>
@@ -192,23 +142,10 @@ function PaymentFormInner({ amount, referenceNumber, applicantData, onSuccess, o
   );
 }
 
-// ==================== MAIN EXPORT ====================
-export default function StripePaymentForm({
-  amount,
-  referenceNumber,
-  applicantData,
-  onSuccess,
-  onClose,
-}: PaymentFormInnerProps) {
+export default function StripePaymentForm(props: PaymentFormInnerProps) {
   return (
     <Elements stripe={stripePromise}>
-      <PaymentFormInner
-        amount={amount}
-        referenceNumber={referenceNumber}
-        applicantData={applicantData}
-        onSuccess={onSuccess}
-        onClose={onClose}
-      />
+      <PaymentFormInner {...props} />
     </Elements>
   );
 }
@@ -220,136 +157,60 @@ export function PaymentSuccessModal({
   totalAmount,
   applicantData,
   onClose,
-}: {
-  invoiceNumber: string;
-  referenceNumber: string;
-  totalAmount: number;
-  applicantData: {
-    customerName: string;
-    customerEmail: string;
-    customerPhone: string;
-    visaType: string;
-    processingType: string;
-    arrivalDate?: string;
-    stripePaymentIntentId?: string;
-  };
-  onClose: () => void;
-}) {
-  const [showViewer, setShowViewer] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState('');
-
-  // Auto-generate PDF on mount
-  useEffect(() => {
-    const doc = generateInvoicePDF({
-      invoiceNumber,
-      referenceNumber,
-      createdAt: new Date().toISOString(),
-      ...applicantData,
-      totalAmount,
-    });
-    const blob = doc.output('blob');
-    const url = URL.createObjectURL(blob);
-    setPdfUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, []);
-
-  const handleView = () => setShowViewer(true);
-
-  const handleDownload = () => {
-    if (!pdfUrl) return;
-    const a = document.createElement('a');
-    a.href = pdfUrl;
-    a.download = `${invoiceNumber}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
+}: PaymentFormInnerProps & { invoiceNumber: string }) {
   return (
-    <>
-      <div className="text-center space-y-4">
-        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-          <CheckCircle size={32} className="text-emerald-500" />
-        </div>
-        <h3 className="text-xl font-bold text-gray-900">Payment Successful!</h3>
-        <p className="text-sm text-gray-500">
-          Your application has been submitted and payment received.
+    <div className="text-center space-y-4">
+      <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+        <CheckCircle size={32} className="text-emerald-500" />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900">Payment Successful!</h3>
+      <p className="text-sm text-gray-500">
+        Your application has been submitted and payment received.
+      </p>
+      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-left">
+        <p className="text-sm">
+          <span className="text-gray-500">Reference:</span>{' '}
+          <span className="font-mono font-semibold text-[#C9A04C]">{referenceNumber}</span>
         </p>
-        <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-left">
-          <p className="text-sm">
-            <span className="text-gray-500">Reference:</span>{' '}
-            <span className="font-mono font-semibold text-[#C9A04C]">{referenceNumber}</span>
-          </p>
-          <p className="text-sm">
-            <span className="text-gray-500">Invoice:</span>{' '}
-            <span className="font-mono font-semibold">{invoiceNumber}</span>
-          </p>
-          <p className="text-sm">
-            <span className="text-gray-500">Amount Paid:</span>{' '}
-            <span className="font-semibold">${totalAmount.toFixed(2)}</span>
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-2">
-          <button
-            onClick={handleView}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
-          >
-            <FileText size={16} />
-            View Invoice
-          </button>
-          <button
-            onClick={handleDownload}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-all"
-          >
-            <Download size={16} />
-            Download Invoice
-          </button>
-        </div>
-
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
-        >
-          Submit Another Application
-        </button>
+        <p className="text-sm">
+          <span className="text-gray-500">Invoice:</span>{' '}
+          <span className="font-mono font-semibold">{invoiceNumber}</span>
+        </p>
+        <p className="text-sm">
+          <span className="text-gray-500">Amount Paid:</span>{' '}
+          <span className="font-semibold">${totalAmount.toFixed(2)}</span>
+        </p>
       </div>
 
-      {/* Invoice Viewer Modal */}
-      {showViewer && pdfUrl && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <FileText size={18} className="text-[#C9A04C]" />
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900">{invoiceNumber}</h3>
-                  <p className="text-xs text-gray-400">Tax Invoice</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#C9A04C] text-white text-sm rounded-lg hover:shadow-md transition-all"
-                >
-                  <Download size={14} />
-                  Download
-                </button>
-                <button
-                  onClick={() => setShowViewer(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 bg-gray-50 overflow-hidden">
-              <iframe src={pdfUrl} className="w-full h-full" title="Invoice PDF" />
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      {/* Invoice Buttons - Generate fresh PDF every time */}
+      <div className="space-y-2">
+        <ViewInvoiceButton
+          invoiceNumber={invoiceNumber}
+          referenceNumber={referenceNumber}
+          totalAmount={totalAmount}
+          customerName={applicantData.customerName}
+          customerEmail={applicantData.customerEmail}
+          customerPhone={applicantData.customerPhone}
+          visaType={applicantData.visaType}
+          processingType={applicantData.processingType}
+          arrivalDate={applicantData.arrivalDate}
+        />
+        <DownloadInvoiceButton
+          invoiceNumber={invoiceNumber}
+          referenceNumber={referenceNumber}
+          totalAmount={totalAmount}
+          customerName={applicantData.customerName}
+          customerEmail={applicantData.customerEmail}
+          customerPhone={applicantData.customerPhone}
+          visaType={applicantData.visaType}
+          processingType={applicantData.processingType}
+          arrivalDate={applicantData.arrivalDate}
+        />
+      </div>
+
+      <button onClick={onClose} className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all">
+        Submit Another Application
+      </button>
+    </div>
   );
 }
