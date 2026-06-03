@@ -47,8 +47,6 @@ export const applicationRouter = createRouter({
           contactPhone: input.contactPhone,
           arrivalDate: input.arrivalDate,
           totalAmount: String(input.totalAmount),
-          supplierId: input.supplierId || null,
-          supplierCost: input.supplierId && input.supplierCost ? String(input.supplierCost) : null,
         };
         const [app] = await db.insert(applications).values(values).$returningId();
 
