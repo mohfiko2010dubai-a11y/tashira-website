@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
 import {
-  Search, FileText, Eye, LogOut, Filter, Download,
+  Search, FileText, Eye, LogOut, Filter, Download, RefreshCw,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -30,12 +30,20 @@ export default function AdminApplications() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const { data: applications, isLoading } = trpc.application.list.useQuery({
+  const utils = trpc.useUtils();
+  const { data: applications, isLoading, refetch } = trpc.application.list.useQuery({
     status: statusFilter || undefined,
     limit: 100,
   });
 
-  const filtered = (applications || []).filter((app) => {
+  // Sort by newest first
+  const sortedApplications = [...(applications || [])].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA; // newest first
+  });
+
+  const filtered = sortedApplications.filter((app) => {
     const q = search.toLowerCase();
     return (
       app.referenceNumber.toLowerCase().includes(q) ||
@@ -52,13 +60,23 @@ export default function AdminApplications() {
           <h1 className="text-lg font-bold">TASHIRA Admin</h1>
           <span className="text-xs text-gray-400">Applications</span>
         </div>
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
-        >
-          <LogOut size={14} />
-          Logout
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </button>
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            <LogOut size={14} />
+            Logout
+          </button>
+        </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -99,24 +117,24 @@ export default function AdminApplications() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <p className="text-2xl font-bold text-[#C9A04C]">{filtered.length}</p>
+            <p className="text-2xl font-bold text-[#C9A04C]">{sortedApplications.length}</p>
             <p className="text-xs text-gray-500">Total</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <p className="text-2xl font-bold text-emerald-600">
-              {filtered.filter((a) => a.paymentStatus === 'paid').length}
+              {sortedApplications.filter((a) => a.paymentStatus === 'paid').length}
             </p>
             <p className="text-xs text-gray-500">Paid</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <p className="text-2xl font-bold text-amber-600">
-              {filtered.filter((a) => a.paymentStatus === 'pending').length}
+              {sortedApplications.filter((a) => a.paymentStatus === 'pending').length}
             </p>
             <p className="text-xs text-gray-500">Pending</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <p className="text-2xl font-bold text-gray-800">
-              ${filtered.reduce((s, a) => s + Number(a.totalAmount), 0).toFixed(2)}
+              ${sortedApplications.reduce((s, a) => s + Number(a.totalAmount), 0).toFixed(2)}
             </p>
             <p className="text-xs text-gray-500">Revenue</p>
           </div>
