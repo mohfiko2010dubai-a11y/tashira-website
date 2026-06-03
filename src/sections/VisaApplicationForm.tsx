@@ -578,6 +578,14 @@ export default function VisaApplicationForm() {
                 invoiceNumber={paymentInvoiceNumber}
                 referenceNumber={referenceNumber}
                 totalAmount={calculateTotal()}
+                applicantData={{
+                  customerName: applicants[0]?.fullName || '',
+                  customerEmail: email,
+                  customerPhone: phone,
+                  visaType: visaType || '',
+                  processingType: processingType,
+                  arrivalDate: arrivalDate,
+                }}
                 onClose={() => { setShowPaymentModal(false); setSubmitted(true); }}
               />
             ) : (

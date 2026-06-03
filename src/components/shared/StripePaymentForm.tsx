@@ -218,111 +218,138 @@ export function PaymentSuccessModal({
   invoiceNumber,
   referenceNumber,
   totalAmount,
+  applicantData,
   onClose,
 }: {
   invoiceNumber: string;
   referenceNumber: string;
   totalAmount: number;
+  applicantData: {
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    visaType: string;
+    processingType: string;
+    arrivalDate?: string;
+    stripePaymentIntentId?: string;
+  };
   onClose: () => void;
 }) {
-  const [regenerating, setRegenerating] = useState(false);
-  const regenerate = trpc.invoice.regenerate.useMutation();
-  const saveInvoicePdf = trpc.invoice.savePdf.useMutation();
+  const [showViewer, setShowViewer] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState('');
 
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    try {
-      const result = await regenerate.mutateAsync({ referenceNumber });
-      if (result.success) {
-        const invoiceData = {
-          invoiceNumber: result.invoiceNumber,
-          referenceNumber,
-          createdAt: new Date().toISOString(),
-          customerName: 'Customer',
-          customerEmail: result.customerEmail || '',
-          customerPhone: result.customerPhone || '',
-          visaType: result.visaType || '',
-          processingType: result.processingType || '',
-          totalAmount: result.totalAmount || totalAmount,
-          stripePaymentIntentId: result.stripePaymentIntentId,
-        };
-        const doc = generateInvoicePDF(invoiceData);
-        const pdfBase64 = doc.output('datauristring').split(',')[1];
-        await saveInvoicePdf.mutateAsync({
-          invoiceNumber: result.invoiceNumber,
-          referenceNumber,
-          pdfBase64,
-        });
-        // Open the regenerated invoice
-        const pdfBlob = doc.output('blob');
-        const url = URL.createObjectURL(pdfBlob);
-        window.open(url, '_blank');
-      }
-    } catch (err) {
-      console.error('Regenerate failed:', err);
-    } finally {
-      setRegenerating(false);
-    }
+  // Auto-generate PDF on mount
+  useEffect(() => {
+    const doc = generateInvoicePDF({
+      invoiceNumber,
+      referenceNumber,
+      createdAt: new Date().toISOString(),
+      ...applicantData,
+      totalAmount,
+    });
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    setPdfUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, []);
+
+  const handleView = () => setShowViewer(true);
+
+  const handleDownload = () => {
+    if (!pdfUrl) return;
+    const a = document.createElement('a');
+    a.href = pdfUrl;
+    a.download = `${invoiceNumber}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
-    <div className="text-center space-y-4">
-      <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
-        <CheckCircle size={32} className="text-emerald-500" />
-      </div>
-      <h3 className="text-xl font-bold text-gray-900">Payment Successful!</h3>
-      <p className="text-sm text-gray-500">
-        Your application has been submitted and payment received.
-      </p>
-      <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-left">
-        <p className="text-sm">
-          <span className="text-gray-500">Reference:</span>{' '}
-          <span className="font-mono font-semibold text-[#C9A04C]">{referenceNumber}</span>
+    <>
+      <div className="text-center space-y-4">
+        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle size={32} className="text-emerald-500" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">Payment Successful!</h3>
+        <p className="text-sm text-gray-500">
+          Your application has been submitted and payment received.
         </p>
-        <p className="text-sm">
-          <span className="text-gray-500">Invoice:</span>{' '}
-          <span className="font-mono font-semibold">{invoiceNumber}</span>
-        </p>
-        <p className="text-sm">
-          <span className="text-gray-500">Amount Paid:</span>{' '}
-          <span className="font-semibold">${totalAmount.toFixed(2)}</span>
-        </p>
-      </div>
+        <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-left">
+          <p className="text-sm">
+            <span className="text-gray-500">Reference:</span>{' '}
+            <span className="font-mono font-semibold text-[#C9A04C]">{referenceNumber}</span>
+          </p>
+          <p className="text-sm">
+            <span className="text-gray-500">Invoice:</span>{' '}
+            <span className="font-mono font-semibold">{invoiceNumber}</span>
+          </p>
+          <p className="text-sm">
+            <span className="text-gray-500">Amount Paid:</span>{' '}
+            <span className="font-semibold">${totalAmount.toFixed(2)}</span>
+          </p>
+        </div>
 
-      {/* Action Buttons */}
-      <div className="space-y-2">
-        <a
-          href={`/invoices/${invoiceNumber}/view`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
-        >
-          <FileText size={16} />
-          View Invoice
-        </a>
-        <a
-          href={`/invoices/${invoiceNumber}/download`}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-all"
-        >
-          <Download size={16} />
-          Download Invoice
-        </a>
+        {/* Action Buttons */}
+        <div className="space-y-2">
+          <button
+            onClick={handleView}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+          >
+            <FileText size={16} />
+            View Invoice
+          </button>
+          <button
+            onClick={handleDownload}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 transition-all"
+          >
+            <Download size={16} />
+            Download Invoice
+          </button>
+        </div>
+
         <button
-          onClick={handleRegenerate}
-          disabled={regenerating}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-500 hover:text-[#C9A04C] transition-colors"
+          onClick={onClose}
+          className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
         >
-          <RefreshCw size={14} className={regenerating ? 'animate-spin' : ''} />
-          {regenerating ? 'Regenerating...' : 'Regenerate Invoice'}
+          Submit Another Application
         </button>
       </div>
 
-      <button
-        onClick={onClose}
-        className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all"
-      >
-        Submit Another Application
-      </button>
-    </div>
+      {/* Invoice Viewer Modal */}
+      {showViewer && pdfUrl && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <FileText size={18} className="text-[#C9A04C]" />
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">{invoiceNumber}</h3>
+                  <p className="text-xs text-gray-400">Tax Invoice</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#C9A04C] text-white text-sm rounded-lg hover:shadow-md transition-all"
+                >
+                  <Download size={14} />
+                  Download
+                </button>
+                <button
+                  onClick={() => setShowViewer(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 bg-gray-50 overflow-hidden">
+              <iframe src={pdfUrl} className="w-full h-full" title="Invoice PDF" />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
