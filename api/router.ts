@@ -4,6 +4,7 @@ import { paymentRouter } from "./payment-router";
 import { chatRouter } from "./chat-router";
 import { driveRouter } from "./drive-router";
 import { invoiceRouter } from "./invoice-router";
+import { supplierRouter } from "./supplier-router";
 import { createRouter } from "./middleware";
 
 /**
@@ -16,6 +17,7 @@ export const appRouter = createRouter({
   chat: chatRouter,
   drive: driveRouter,
   invoice: invoiceRouter,
+  supplier: supplierRouter,
 });
 
 // Export the type for tRPC client inference.

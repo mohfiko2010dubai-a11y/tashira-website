@@ -44,6 +44,9 @@ export const applications = mysqlTable("applications", {
   arrivalDate: varchar("arrival_date", { length: 20 }),
   // Pricing
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  // Supplier
+  supplierId: bigint("supplier_id", { mode: "number", unsigned: true }),
+  supplierCost: decimal("supplier_cost", { precision: 10, scale: 2 }),
   // Status
   status: mysqlEnum("status", [
     "submitted",
@@ -127,6 +130,22 @@ export const invoices = mysqlTable("invoices", {
 
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = typeof invoices.$inferInsert;
+
+// ===== SUPPLIERS (Vendors) =====
+export const suppliers = mysqlTable("suppliers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  contactPerson: varchar("contact_person", { length: 255 }),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 50 }),
+  notes: text("notes"),
+  isActive: mysqlEnum("is_active", ["active", "inactive"]).default("active").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+});
+
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = typeof suppliers.$inferInsert;
 
 // ===== CHAT MESSAGES (AI Chatbot) =====
 export const chatMessages = mysqlTable("chat_messages", {
