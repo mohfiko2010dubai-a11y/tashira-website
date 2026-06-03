@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/providers/trpc';
 import {
-  ArrowLeft, FileText, Download, RefreshCw,
+  ArrowLeft, FileText, Download, RefreshCw, Receipt,
 } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';
+import { generateInvoicePDF } from '@/components/shared/InvoiceGenerator';
 
 const statusColors: Record<string, string> = {
   submitted: 'bg-gray-100 text-gray-700',
@@ -59,6 +60,31 @@ export default function AdminApplicationDetail() {
   }
 
   const mainApplicant = app.applicants?.[0];
+
+  // Generate invoice on the fly
+  const handleGenerateInvoice = () => {
+    const invoiceNumber = app.invoiceNumber || `INV-${app.referenceNumber}`;
+    const doc = generateInvoicePDF({
+      invoiceNumber,
+      referenceNumber: app.referenceNumber,
+      createdAt: app.createdAt ? new Date(app.createdAt).toISOString() : new Date().toISOString(),
+      customerName: mainApplicant?.fullName || app.contactEmail?.split('@')[0] || 'Customer',
+      customerEmail: app.contactEmail || '',
+      customerPhone: app.contactPhone || '',
+      passportNumber: mainApplicant?.passportNumber || undefined,
+      nationality: mainApplicant?.nationality || undefined,
+      visaType: app.visaType || '',
+      processingType: app.processingType || '',
+      arrivalDate: app.arrivalDate || undefined,
+      totalAmount: Number(app.totalAmount) || 0,
+      stripePaymentIntentId: app.stripePaymentIntentId || undefined,
+    });
+
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -198,36 +224,43 @@ export default function AdminApplicationDetail() {
           {/* Invoice */}
           <div className="bg-white rounded-lg border border-gray-100 p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Invoice</h2>
-            {app.invoiceNumber ? (
-              <div className="space-y-3">
-                <p className="text-sm">
-                  <span className="text-gray-500">Invoice #:</span>{' '}
-                  <span className="font-mono font-semibold">{app.invoiceNumber}</span>
-                </p>
-                <div className="flex gap-2">
-                  <ViewInvoiceButton
-                    invoiceNumber={app.invoiceNumber}
-                    referenceNumber={app.referenceNumber}
-                    totalAmount={Number(app.totalAmount)}
-                    customerEmail={app.contactEmail}
-                    customerPhone={app.contactPhone}
-                    visaType={app.visaType}
-                    processingType={app.processingType}
-                  />
-                  <DownloadInvoiceButton
-                    invoiceNumber={app.invoiceNumber}
-                    referenceNumber={app.referenceNumber}
-                    totalAmount={Number(app.totalAmount)}
-                    customerEmail={app.contactEmail}
-                    customerPhone={app.contactPhone}
-                    visaType={app.visaType}
-                    processingType={app.processingType}
-                  />
-                </div>
+            <div className="space-y-3">
+              <p className="text-sm">
+                <span className="text-gray-500">Invoice #:</span>{' '}
+                <span className="font-mono font-semibold">{app.invoiceNumber || `INV-${app.referenceNumber}`}</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleGenerateInvoice}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm rounded-lg hover:shadow-md transition-all"
+                >
+                  <Receipt size={14} />
+                  Generate Invoice
+                </button>
+                {app.invoiceNumber && (
+                  <>
+                    <ViewInvoiceButton
+                      invoiceNumber={app.invoiceNumber}
+                      referenceNumber={app.referenceNumber}
+                      totalAmount={Number(app.totalAmount)}
+                      customerEmail={app.contactEmail}
+                      customerPhone={app.contactPhone}
+                      visaType={app.visaType}
+                      processingType={app.processingType}
+                    />
+                    <DownloadInvoiceButton
+                      invoiceNumber={app.invoiceNumber}
+                      referenceNumber={app.referenceNumber}
+                      totalAmount={Number(app.totalAmount)}
+                      customerEmail={app.contactEmail}
+                      customerPhone={app.contactPhone}
+                      visaType={app.visaType}
+                      processingType={app.processingType}
+                    />
+                  </>
+                )}
               </div>
-            ) : (
-              <p className="text-gray-400 text-sm">No invoice generated yet.</p>
-            )}
+            </div>
           </div>
 
           {/* Documents Placeholder */}
