@@ -212,28 +212,58 @@ export default function AdminApplications() {
                         <td className="px-3 py-2 font-semibold">${revenue.toFixed(2)}</td>
                         <td className="px-3 py-2">
                           {app.supplier ? (
-                            <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{app.supplier.name}</span>
+                            <div>
+                              <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{app.supplier.name}</span>
+                              <div className="text-xs text-red-500 mt-1">${cost.toFixed(2)}</div>
+                            </div>
                           ) : (
-                            <select
-                              value=""
-                              onChange={e => {
-                                if (e.target.value) {
-                                  setAssigningSupplier(app.id + '-' + e.target.value);
-                                }
-                              }}
-                              className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:border-[#C9A04C] focus:outline-none"
-                            >
-                              <option value="">Assign...</option>
-                              {(suppliersList || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
-                          )}
-                          {assigningSupplier === app.id + '-' + (app.supplierId || '') && (
-                            <div className="mt-1 flex gap-1">
-                              <input type="number" placeholder="Cost" value={supplierCostInput} onChange={e => setSupplierCostInput(e.target.value)} className="w-16 text-xs border border-gray-200 rounded px-1 py-0.5" />
-                              <button onClick={() => { const parts = assigningSupplier.split('-'); handleAssignSupplier(app.id, parseInt(parts[1])); }} className="text-xs bg-[#C9A04C] text-white px-2 py-0.5 rounded">OK</button>
+                            <div>
+                              {/* Show supplier selector */}
+                              <select
+                                value={assigningSupplier?.startsWith(app.id + '-') ? assigningSupplier.split('-')[1] : ''}
+                                onChange={e => {
+                                  if (e.target.value) {
+                                    setAssigningSupplier(app.id + '-' + e.target.value);
+                                    setSupplierCostInput('');
+                                  }
+                                }}
+                                className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:border-[#C9A04C] focus:outline-none"
+                              >
+                                <option value="">Assign...</option>
+                                {(suppliersList || []).map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
+                              </select>
+                              {/* Show cost input when supplier is selected for this app */}
+                              {assigningSupplier?.startsWith(app.id + '-') && (
+                                <div className="mt-1 flex gap-1 items-center">
+                                  <span className="text-xs text-gray-500">Cost $</span>
+                                  <input 
+                                    type="number" 
+                                    placeholder="0.00" 
+                                    value={supplierCostInput} 
+                                    onChange={e => setSupplierCostInput(e.target.value)} 
+                                    className="w-20 text-xs border border-gray-200 rounded px-1 py-0.5" 
+                                  />
+                                  <button 
+                                    onClick={() => { 
+                                      const parts = assigningSupplier.split('-'); 
+                                      handleAssignSupplier(app.id, parseInt(parts[1])); 
+                                    }} 
+                                    className="text-xs bg-[#C9A04C] text-white px-2 py-0.5 rounded hover:bg-[#B08D3F]"
+                                  >
+                                    Save
+                                  </button>
+                                  <button 
+                                    onClick={() => { setAssigningSupplier(null); setSupplierCostInput(''); }} 
+                                    className="text-xs text-gray-400 hover:text-gray-600 px-1"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </td>
+                        <td className="px-3 py-2 text-red-500">${cost.toFixed(2)}</td>
                         <td className="px-3 py-2 text-red-500">${cost.toFixed(2)}</td>
                         <td className="px-3 py-2">
                           <span className={profit >= 0 ? 'text-emerald-600' : 'text-red-600'}>
