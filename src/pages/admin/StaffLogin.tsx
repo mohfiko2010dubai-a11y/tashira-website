@@ -15,7 +15,8 @@ export default function StaffLogin() {
   const loginMutation = trpc.staff.login.useMutation({
     onSuccess: (data) => {
       login(data.token, data.staff);
-      navigate('/staff/dashboard');
+      // Use full page reload instead of navigate to ensure StaffGuard picks up the token
+      window.location.href = '/staff/dashboard';
     },
     onError: (err) => {
       setError(err.message || 'Invalid username or password');

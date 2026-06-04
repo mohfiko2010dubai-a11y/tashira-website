@@ -14,7 +14,7 @@ interface StaffUser {
 export function useStaffAuth() {
   const [token, setToken] = useState<string | null>(null);
   const [staff, setStaff] = useState<StaffUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   const verifyQuery = trpc.staff.verify.useQuery(
     { token: token || '' },
@@ -26,11 +26,21 @@ export function useStaffAuth() {
     const saved = localStorage.getItem(STAFF_AUTH_KEY);
     if (saved) {
       setToken(saved);
+    } else {
+      // No token in localStorage, auth check is done
+      setInitialCheckDone(true);
     }
-    setIsLoading(false);
   }, []);
 
-  // Update staff state when verify query returns
+  // When verify query finishes (success or error), mark initial check as done
+  useEffect(() => {
+    if (!token) return;
+    if (verifyQuery.isSuccess || verifyQuery.isError) {
+      setInitialCheckDone(true);
+    }
+  }, [verifyQuery.isSuccess, verifyQuery.isError, token]);
+
+  // Update staff state when verify query returns data
   useEffect(() => {
     if (verifyQuery.data) {
       setStaff(verifyQuery.data);
@@ -49,18 +59,26 @@ export function useStaffAuth() {
   };
 
   const logout = () => {
-    // Call server logout
-    if (token) {
-      trpc.staff.logout.useMutation().mutate({ token });
-    }
     localStorage.removeItem(STAFF_AUTH_KEY);
     setToken(null);
     setStaff(null);
+    // Call server logout in background
+    if (token) {
+      try {
+        trpc.staff.logout.useMutation().mutate({ token });
+      } catch {
+        // ignore
+      }
+    }
+    window.location.href = '/staff/login';
   };
+
+  // Loading: true if initial check not done, OR verify query is loading
+  const isLoading = !initialCheckDone || (verifyQuery.isLoading && !!token);
 
   return {
     isAuthenticated: !!staff,
-    isLoading: isLoading || verifyQuery.isLoading,
+    isLoading,
     staff,
     token,
     login,

@@ -10,6 +10,7 @@ interface StaffGuardProps {
 export default function StaffGuard({ children }: StaffGuardProps) {
   const { isAuthenticated, isLoading } = useStaffAuth();
 
+  // Show loader while checking auth state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -18,6 +19,7 @@ export default function StaffGuard({ children }: StaffGuardProps) {
     );
   }
 
+  // Only redirect after loading is complete AND not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/staff/login" replace />;
   }
