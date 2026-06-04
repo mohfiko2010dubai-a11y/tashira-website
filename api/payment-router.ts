@@ -91,13 +91,21 @@ export const paymentRouter = createRouter({
       if (app && payment) {
         const invoiceNumber = `INV-${input.referenceNumber}`;
         
-        // Insert invoice record
-        await db.insert(invoices).values({
-          invoiceNumber,
-          applicationId: app.id,
-          paymentId: payment.id,
-          amount: app.totalAmount,
-        });
+        // Insert invoice record - ensure paymentId is valid number
+        const paymentIdNum = typeof payment.id === 'bigint' ? Number(payment.id) : payment.id;
+        const appIdNum = typeof app.id === 'bigint' ? Number(app.id) : app.id;
+        
+        try {
+          await db.insert(invoices).values({
+            invoiceNumber,
+            applicationId: appIdNum,
+            paymentId: paymentIdNum,
+            amount: app.totalAmount,
+          });
+        } catch (invoiceErr: any) {
+          console.error("[Invoice Insert Error]", invoiceErr.message);
+          // Don't fail payment if invoice insert fails
+        }
 
         // Auto-generate PDF server-side
         try {
