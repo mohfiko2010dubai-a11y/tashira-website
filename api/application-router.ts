@@ -5,16 +5,8 @@ import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
-
-/** Check if supplier columns exist on the applications table */
-async function supplierColumnsExist(db: any): Promise<boolean> {
-  try {
-    await db.select({ supplierId: applications.supplierId }).from(applications).limit(1);
-    return true;
-  } catch {
-    return false;
-  }
-}
+const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
+const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
 
 export const applicationRouter = createRouter({
   create: publicQuery
@@ -27,9 +19,9 @@ export const applicationRouter = createRouter({
       contactEmail: z.string().email(),
       contactPhone: z.string(),
       arrivalDate: z.string().optional(),
-      totalAmount: z.number(),
-      supplierId: z.number().optional(),
-      supplierCost: z.number().optional(),
+      exchangeRate: z.number().default(3.6725),
+      totalAmountAed: z.number(),
+      totalAmountUsd: z.number().optional(),
       applicants: z.array(z.object({
         fullName: z.string(),
         nationality: z.string().optional(),
@@ -56,17 +48,10 @@ export const applicationRouter = createRouter({
           contactEmail: input.contactEmail,
           contactPhone: input.contactPhone,
           arrivalDate: input.arrivalDate,
-          totalAmount: String(input.totalAmount),
+          exchangeRate: String(input.exchangeRate),
+          totalAmountAed: String(input.totalAmountAed),
+          totalAmountUsd: input.totalAmountUsd ? String(input.totalAmountUsd) : null,
         };
-
-        // Only add supplier fields if columns exist in DB
-        const hasSupplierCols = await supplierColumnsExist(db);
-        if (hasSupplierCols && input.supplierId) {
-          values.supplierId = input.supplierId;
-          if (input.supplierCost !== undefined) {
-            values.supplierCost = String(input.supplierCost);
-          }
-        }
 
         const [app] = await db.insert(applications).values(values).$returningId();
 
@@ -105,8 +90,6 @@ export const applicationRouter = createRouter({
       if (!app) return null;
       const applicantList = await db.select().from(applicants)
         .where(eq(applicants.applicationId, app.id));
-
-      // Gracefully handle missing supplier columns
       let supplier = null;
       try {
         if ((app as any).supplierId) {
@@ -172,22 +155,34 @@ export const applicationRouter = createRouter({
       return { success: true };
     }),
 
+  // Full supplier assignment with VAT details
   assignSupplier: publicQuery
     .input(z.object({
       id: z.number(),
       supplierId: z.number(),
-      supplierCost: z.number().optional(),
+      supplierCostAed: z.number().optional(),
+      supplierVatStatus: z.enum(VAT_STATUS_ENUM).optional(),
+      supplierPlaceOfSupply: z.enum(PLACE_OF_SUPPLY_ENUM).optional(),
+      supplierVatAmount: z.number().optional(),
+      supplierTotalAed: z.number().optional(),
+      supplierInvoiceNumber: z.string().optional(),
+      supplierNotes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
       try {
         const update: any = { supplierId: input.supplierId };
-        if (input.supplierCost !== undefined) update.supplierCost = String(input.supplierCost);
+        if (input.supplierCostAed !== undefined) update.supplierCostAed = String(input.supplierCostAed);
+        if (input.supplierVatStatus) update.supplierVatStatus = input.supplierVatStatus;
+        if (input.supplierPlaceOfSupply) update.supplierPlaceOfSupply = input.supplierPlaceOfSupply;
+        if (input.supplierVatAmount !== undefined) update.supplierVatAmount = String(input.supplierVatAmount);
+        if (input.supplierTotalAed !== undefined) update.supplierTotalAed = String(input.supplierTotalAed);
+        if (input.supplierInvoiceNumber) update.supplierInvoiceNumber = input.supplierInvoiceNumber;
+        if (input.supplierNotes) update.supplierNotes = input.supplierNotes;
         await db.update(applications).set(update).where(eq(applications.id, input.id));
         return { success: true };
       } catch (err: any) {
         console.error('[API] assignSupplier failed:', err.message);
-        // Return success anyway so the UI doesn't break
         return { success: false, error: err.message };
       }
     }),
@@ -196,22 +191,39 @@ export const applicationRouter = createRouter({
     const db = getDb();
     const [total] = await db.select({ count: sql<number>`count(*)` }).from(applications);
     const [paid] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
-    const [revenue] = await db.select({ total: sql<number>`coalesce(sum(total_amount),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
 
-    let costs;
+    // Revenue in AED
+    let revenueAed;
     try {
-      [costs] = await db.select({ total: sql<number>`coalesce(sum(supplier_cost),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+      [revenueAed] = await db.select({ total: sql<number>`coalesce(sum(total_amount_aed),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
     } catch {
-      costs = { total: 0 };
+      [revenueAed] = await db.select({ total: sql<number>`coalesce(sum(total_amount),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+    }
+
+    // Costs in AED
+    let costsAed;
+    try {
+      [costsAed] = await db.select({ total: sql<number>`coalesce(sum(supplier_cost_aed),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+    } catch {
+      costsAed = { total: 0 };
     }
 
     const [familyCount] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.baseType, "family"));
+
+    const revAed = Number(revenueAed?.total || 0);
+    const costAed = Number(costsAed?.total || 0);
+    const profitAed = revAed - costAed;
+
     return {
       totalApplications: total?.count || 0,
       paidApplications: paid?.count || 0,
-      totalRevenue: Number(revenue?.total || 0),
-      totalCosts: Number(costs?.total || 0),
-      profit: Number(revenue?.total || 0) - Number(costs?.total || 0),
+      totalRevenueAed: revAed,
+      totalRevenueUsd: revAed / 3.6725,
+      totalCostsAed: costAed,
+      totalCostsUsd: costAed / 3.6725,
+      profitAed: profitAed,
+      profitUsd: profitAed / 3.6725,
+      profitMargin: revAed > 0 ? ((profitAed / revAed) * 100).toFixed(1) : '0',
       familyCount: familyCount?.count || 0,
     };
   }),

@@ -13,22 +13,24 @@ interface InvoiceData {
   visaType: string;
   processingType: string;
   arrivalDate?: string;
-  totalAmount: number;
+  totalAmount: number; // This is now AED
+  exchangeRate?: number;
   stripePaymentIntentId?: string;
 }
 
 const VAT_RATE = 0.05;
+const DEFAULT_EXCHANGE_RATE = 3.6725;
 
 export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
-  // Subtotal & VAT calculation
-  const total = data.totalAmount;
-  const subtotal = total / (1 + VAT_RATE);
-  const vatAmount = total - subtotal;
+  const exchangeRate = data.exchangeRate || DEFAULT_EXCHANGE_RATE;
+  const totalAed = data.totalAmount;
+  const subtotalAed = totalAed / (1 + VAT_RATE);
+  const vatAmountAed = totalAed - subtotalAed;
+  const totalUsd = totalAed / exchangeRate;
 
-  // Colors
   const goldColor = '#C9A04C';
   const darkColor = '#1A2332';
   const grayColor = '#666666';
@@ -50,7 +52,6 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.text('License No: 2541485.01', 15, 42);
   doc.text('Website: tashiraev.com', 15, 47);
 
-  // Invoice Title
   doc.setTextColor(goldColor);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
@@ -91,17 +92,30 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.text(`Visa Type: ${data.visaType}`, pageWidth - 15, 78, { align: 'right' });
   doc.text(`Processing: ${data.processingType}`, pageWidth - 15, 84, { align: 'right' });
   if (data.arrivalDate) doc.text(`Arrival: ${data.arrivalDate}`, pageWidth - 15, 90, { align: 'right' });
+  doc.text(`Exchange Rate: ${exchangeRate} AED/USD`, pageWidth - 15, 96, { align: 'right' });
 
-  // === LINE ITEMS TABLE ===
+  // === TOTAL AMOUNT (USD) - ON TOP ===
+  doc.setFillColor('#FFF8E7');
+  doc.roundedRect(15, 105, pageWidth - 30, 20, 3, 3, 'F');
+  doc.setTextColor(darkColor);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('TOTAL AMOUNT (USD):', 20, 118);
+  doc.setTextColor(goldColor);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`$${totalUsd.toFixed(2)}`, pageWidth - 20, 118, { align: 'right' });
+
+  // === LINE ITEMS TABLE (AED DETAILS) ===
   autoTable(doc, {
-    startY: 108,
-    head: [['Description', 'Qty', 'Unit Price', 'Amount (USD)']],
+    startY: 135,
+    head: [['Description', 'Qty', 'Unit Price (AED)', 'Amount (AED)']],
     body: [
-      [`${data.visaType} - ${data.processingType} Processing`, '1', `$${subtotal.toFixed(2)}`, `$${subtotal.toFixed(2)}`],
+      [`${data.visaType} - ${data.processingType} Processing`, '1', `AED ${subtotalAed.toFixed(2)}`, `AED ${subtotalAed.toFixed(2)}`],
       ['', '', '', ''],
-      ['', '', `Subtotal (excl. VAT):`, `$${subtotal.toFixed(2)}`],
-      ['', '', `VAT 5%:`, `$${vatAmount.toFixed(2)}`],
-      ['', '', `Total (incl. VAT):`, `$${total.toFixed(2)}`],
+      ['', '', 'Subtotal (excl. VAT):', `AED ${subtotalAed.toFixed(2)}`],
+      ['', '', 'VAT 5%:', `AED ${vatAmountAed.toFixed(2)}`],
+      ['', '', 'Total (incl. VAT):', `AED ${totalAed.toFixed(2)}`],
     ],
     headStyles: {
       fillColor: darkColor,
@@ -116,8 +130,8 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     columnStyles: {
       0: { cellWidth: 'auto' },
       1: { cellWidth: 20, halign: 'center' },
-      2: { cellWidth: 40, halign: 'right' },
-      3: { cellWidth: 40, halign: 'right' },
+      2: { cellWidth: 50, halign: 'right' },
+      3: { cellWidth: 50, halign: 'right' },
     },
     styles: {
       fontSize: 9,
@@ -127,7 +141,6 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
       fillColor: '#FAFAF7',
     },
     didParseCell: (data) => {
-      // Bold the total row
       if (data.row.index === 4 && data.section === 'body') {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.textColor = goldColor;
@@ -137,25 +150,37 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
 
   const finalY = (doc as any).lastAutoTable?.finalY || 150;
 
+  // === TOTAL AMOUNT (USD) - AT BOTTOM ===
+  doc.setFillColor(darkColor);
+  doc.roundedRect(15, finalY + 10, pageWidth - 30, 18, 3, 3, 'F');
+  doc.setTextColor('#FFFFFF');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Equivalent in USD (Rate: ${exchangeRate}):`, 20, finalY + 22);
+  doc.setTextColor(goldColor);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`$${totalUsd.toFixed(2)}`, pageWidth - 20, finalY + 22, { align: 'right' });
+
   // === PAYMENT INFO ===
   doc.setTextColor(grayColor);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Payment Status: PAID`, 15, finalY + 15);
-  doc.text(`Payment Method: Credit Card (Stripe)`, 15, finalY + 21);
+  doc.text(`Payment Status: PAID`, 15, finalY + 42);
+  doc.text(`Payment Method: Credit Card (Stripe)`, 15, finalY + 48);
   if (data.stripePaymentIntentId) {
-    doc.text(`Transaction ID: ${data.stripePaymentIntentId}`, 15, finalY + 27);
+    doc.text(`Transaction ID: ${data.stripePaymentIntentId}`, 15, finalY + 54);
   }
 
   // === FOOTER ===
   doc.setDrawColor(goldColor);
   doc.setLineWidth(0.5);
-  doc.line(15, finalY + 40, pageWidth - 15, finalY + 40);
+  doc.line(15, finalY + 65, pageWidth - 15, finalY + 65);
 
   doc.setTextColor(grayColor);
   doc.setFontSize(8);
-  doc.text('Thank you for choosing TASHIRA E-Visa & Tourism L.L.C-FZ', pageWidth / 2, finalY + 48, { align: 'center' });
-  doc.text('This is a computer-generated invoice and does not require a signature.', pageWidth / 2, finalY + 53, { align: 'center' });
+  doc.text('Thank you for choosing TASHIRA E-Visa & Tourism L.L.C-FZ', pageWidth / 2, finalY + 73, { align: 'center' });
+  doc.text('This is a computer-generated invoice and does not require a signature.', pageWidth / 2, finalY + 78, { align: 'center' });
 
   return doc;
 }

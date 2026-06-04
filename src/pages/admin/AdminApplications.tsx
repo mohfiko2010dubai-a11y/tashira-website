@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
 import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
+import SupplierCostModal from '@/components/shared/SupplierCostModal';
 import * as XLSX from 'xlsx';
 import {
   Search, Eye, LogOut, Filter, RefreshCw, Building2,
-  Download, Calendar, DollarSign, Users, TrendingUp, UserCircle,
+  Download, Calendar, DollarSign, Users, TrendingUp, UserCircle, Edit3,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -29,8 +30,7 @@ export default function AdminApplications() {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [assigningSupplier, setAssigningSupplier] = useState<string | null>(null);
-  const [supplierCostInput, setSupplierCostInput] = useState('');
+  const [costModalApp, setCostModalApp] = useState<number | null>(null);
 
   const { data: applications, isLoading, refetch } = trpc.application.list.useQuery({
     status: statusFilter || undefined,
@@ -39,12 +39,7 @@ export default function AdminApplications() {
     limit: 500,
   });
 
-  const { data: suppliersList } = trpc.supplier.list.useQuery();
   const { data: analytics } = trpc.application.analytics.useQuery();
-
-  const assignSupplierMut = trpc.application.assignSupplier.useMutation({
-    onSuccess: () => { utils.application.list.invalidate(); setAssigningSupplier(null); setSupplierCostInput(''); },
-  });
 
   const sorted = [...(applications || [])].sort((a: any, b: any) => {
     return (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0);
@@ -61,30 +56,32 @@ export default function AdminApplications() {
 
   const handleExportExcel = () => {
     const data = filtered.map((app: any) => {
-      const applicant = app.applicants?.[0] || {};
-      const cost = Number(app.supplierCost || 0);
-      const revenue = Number(app.totalAmount || 0);
-      const profit = revenue - cost;
-      const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '0';
+      const a = app as any;
+      const revenueAed = Number(a.totalAmountAed || a.totalAmount || 0);
+      const costAed = Number(a.supplierCostAed || 0);
+      const profitAed = revenueAed - costAed;
+      const exchangeRate = Number(a.exchangeRate || 3.6725);
       return {
         'Ref #': app.referenceNumber,
         'Date': app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-',
-        'Name': applicant.fullName || '-',
+        'Name': app.applicants?.[0]?.fullName || '-',
         'Email': app.contactEmail,
-        'Phone': app.contactPhone,
-        'Nationality': applicant.nationality || '-',
         'Visa Type': app.visaType,
         'Processing': app.processingType,
         'Base Type': app.baseType,
         'Applicants': app.applicants?.length || 1,
+        'Exchange Rate': exchangeRate,
+        'Total (AED)': revenueAed,
+        'Total (USD)': (revenueAed / exchangeRate).toFixed(2),
         'Status': app.status,
         'Payment': app.paymentStatus,
-        'Total Amount': revenue,
         'Supplier': app.supplier?.name || '-',
-        'Supplier Cost': cost,
-        'Profit': profit,
-        'Margin %': margin + '%',
-        'Stripe PI': app.stripePaymentIntentId || '-',
+        'Supplier Cost (AED)': costAed,
+        'Supplier VAT': a.supplierVatStatus || '-',
+        'Supplier Total (AED)': Number(a.supplierTotalAed || costAed),
+        'Profit (AED)': profitAed,
+        'Profit (USD)': (profitAed / exchangeRate).toFixed(2),
+        'Margin %': revenueAed > 0 ? ((profitAed / revenueAed) * 100).toFixed(1) + '%' : '0%',
       };
     });
 
@@ -92,11 +89,6 @@ export default function AdminApplications() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Applications');
     XLSX.writeFile(wb, `tashira-applications-${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
-  const handleAssignSupplier = (appId: number, supplierId: number) => {
-    const cost = parseFloat(supplierCostInput);
-    assignSupplierMut.mutate({ id: appId, supplierId, supplierCost: isNaN(cost) ? 0 : cost });
   };
 
   return (
@@ -120,27 +112,32 @@ export default function AdminApplications() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Analytics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        {/* Analytics Cards - AED + USD */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-[#C9A04C]" /><p className="text-xs text-gray-500">Total</p></div>
-            <p className="text-2xl font-bold text-[#C9A04C]">{analytics?.totalApplications || 0}</p>
+            <p className="text-xl font-bold text-[#C9A04C]">{analytics?.totalApplications || 0}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">Revenue</p></div>
-            <p className="text-2xl font-bold text-emerald-600">${(analytics?.totalRevenue || 0).toFixed(2)}</p>
+            <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">Revenue (AED)</p></div>
+            <p className="text-xl font-bold text-emerald-600">AED {(analytics?.totalRevenueAed || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-red-400" /><p className="text-xs text-gray-500">Costs</p></div>
-            <p className="text-2xl font-bold text-red-500">${(analytics?.totalCosts || 0).toFixed(2)}</p>
+            <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-blue-500" /><p className="text-xs text-gray-500">Revenue (USD)</p></div>
+            <p className="text-xl font-bold text-blue-600">${(analytics?.totalRevenueUsd || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-1"><TrendingUp size={14} className="text-purple-500" /><p className="text-xs text-gray-500">Profit</p></div>
-            <p className="text-2xl font-bold text-purple-600">${(analytics?.profit || 0).toFixed(2)}</p>
+            <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-red-400" /><p className="text-xs text-gray-500">Costs (AED)</p></div>
+            <p className="text-xl font-bold text-red-500">AED {(analytics?.totalCostsAed || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-blue-500" /><p className="text-xs text-gray-500">Paid</p></div>
-            <p className="text-2xl font-bold text-blue-600">{analytics?.paidApplications || 0}</p>
+            <div className="flex items-center gap-2 mb-1"><TrendingUp size={14} className="text-purple-500" /><p className="text-xs text-gray-500">Profit (AED)</p></div>
+            <p className="text-xl font-bold text-purple-600">AED {(analytics?.profitAed || 0).toLocaleString('en-AE', {minimumFractionDigits: 2})}</p>
+            <p className="text-xs text-gray-400">{analytics?.profitMargin || 0}% margin</p>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-1"><TrendingUp size={14} className="text-indigo-500" /><p className="text-xs text-gray-500">Profit (USD)</p></div>
+            <p className="text-xl font-bold text-indigo-600">${(analytics?.profitUsd || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
           </div>
         </div>
 
@@ -188,20 +185,23 @@ export default function AdminApplications() {
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Name</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Visa</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Qty</th>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Amount</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Rate</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Revenue (AED)</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Supplier</th>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Cost</th>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Profit</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Cost (AED)</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Profit (AED)</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Status</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filtered.map((app: any) => {
-                    const cost = Number(app.supplierCost || 0);
-                    const revenue = Number(app.totalAmount || 0);
-                    const profit = revenue - cost;
-                    const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(0) : '0';
+                    const a = app as any;
+                    const exchangeRate = Number(a.exchangeRate || 3.6725);
+                    const revenueAed = Number(a.totalAmountAed || a.totalAmount || 0);
+                    const costAed = Number(a.supplierCostAed || 0);
+                    const profitAed = revenueAed - costAed;
+                    const margin = revenueAed > 0 ? ((profitAed / revenueAed) * 100).toFixed(0) : '0';
                     return (
                       <tr key={app.id} className="hover:bg-gray-50/50">
                         <td className="px-3 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}</td>
@@ -209,65 +209,29 @@ export default function AdminApplications() {
                         <td className="px-3 py-2">{app.applicants?.[0]?.fullName || '-'}</td>
                         <td className="px-3 py-2">{app.visaType}<br/><span className="text-gray-400">{app.processingType}</span></td>
                         <td className="px-3 py-2 text-center">{app.applicants?.length || 1}</td>
-                        <td className="px-3 py-2 font-semibold">${revenue.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-gray-500">{exchangeRate}</td>
+                        <td className="px-3 py-2 font-semibold">AED {revenueAed.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
                         <td className="px-3 py-2">
                           {app.supplier ? (
-                            <div>
+                            <div className="flex items-center gap-1">
                               <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{app.supplier.name}</span>
-                              <div className="text-xs text-red-500 mt-1">${cost.toFixed(2)}</div>
+                              <button onClick={() => setCostModalApp(app.id)} className="text-gray-400 hover:text-[#C9A04C]">
+                                <Edit3 size={10} />
+                              </button>
                             </div>
                           ) : (
-                            <div>
-                              {/* Show supplier selector */}
-                              <select
-                                value={assigningSupplier?.startsWith(app.id + '-') ? assigningSupplier.split('-')[1] : ''}
-                                onChange={e => {
-                                  if (e.target.value) {
-                                    setAssigningSupplier(app.id + '-' + e.target.value);
-                                    setSupplierCostInput('');
-                                  }
-                                }}
-                                className="text-xs border border-gray-200 rounded px-1 py-0.5 focus:border-[#C9A04C] focus:outline-none"
-                              >
-                                <option value="">Assign...</option>
-                                {(suppliersList || []).map(s => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
-                              </select>
-                              {/* Show cost input when supplier is selected for this app */}
-                              {assigningSupplier?.startsWith(app.id + '-') && (
-                                <div className="mt-1 flex gap-1 items-center">
-                                  <span className="text-xs text-gray-500">Cost $</span>
-                                  <input 
-                                    type="number" 
-                                    placeholder="0.00" 
-                                    value={supplierCostInput} 
-                                    onChange={e => setSupplierCostInput(e.target.value)} 
-                                    className="w-20 text-xs border border-gray-200 rounded px-1 py-0.5" 
-                                  />
-                                  <button 
-                                    onClick={() => { 
-                                      const parts = assigningSupplier.split('-'); 
-                                      handleAssignSupplier(app.id, parseInt(parts[1])); 
-                                    }} 
-                                    className="text-xs bg-[#C9A04C] text-white px-2 py-0.5 rounded hover:bg-[#B08D3F]"
-                                  >
-                                    Save
-                                  </button>
-                                  <button 
-                                    onClick={() => { setAssigningSupplier(null); setSupplierCostInput(''); }} 
-                                    className="text-xs text-gray-400 hover:text-gray-600 px-1"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                            <button
+                              onClick={() => setCostModalApp(app.id)}
+                              className="text-xs text-[#C9A04C] hover:underline"
+                            >
+                              + Add Cost
+                            </button>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-red-500">${cost.toFixed(2)}</td>
-                        <td className="px-3 py-2 text-red-500">${cost.toFixed(2)}</td>
+                        <td className="px-3 py-2 text-red-500">{costAed > 0 ? `AED ${costAed.toFixed(2)}` : '-'}</td>
                         <td className="px-3 py-2">
-                          <span className={profit >= 0 ? 'text-emerald-600' : 'text-red-600'}>
-                            ${profit.toFixed(2)} ({margin}%)
+                          <span className={profitAed >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
+                            AED {profitAed.toFixed(2)} ({margin}%)
                           </span>
                         </td>
                         <td className="px-3 py-2">
@@ -276,7 +240,7 @@ export default function AdminApplications() {
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
                             <Link to={`/admin/applications/${app.referenceNumber}`} className="p-1 text-gray-400 hover:text-[#C9A04C]"><Eye size={14} /></Link>
-                            {app.invoiceNumber && <ViewInvoiceButton invoiceNumber={app.invoiceNumber} referenceNumber={app.referenceNumber} totalAmount={revenue} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
+                            {app.invoiceNumber && <ViewInvoiceButton invoiceNumber={app.invoiceNumber} referenceNumber={app.referenceNumber} totalAmount={revenueAed} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
                           </div>
                         </td>
                       </tr>
@@ -289,6 +253,15 @@ export default function AdminApplications() {
           </div>
         )}
       </div>
+
+      {/* Supplier Cost Modal */}
+      {costModalApp && (
+        <SupplierCostModal
+          applicationId={costModalApp}
+          onClose={() => setCostModalApp(null)}
+          onSaved={() => {}}
+        />
+      )}
     </div>
   );
 }
