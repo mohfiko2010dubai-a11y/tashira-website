@@ -4,7 +4,8 @@ import { generateInvoicePDF } from './InvoiceGenerator';
 interface InvoiceButtonProps {
   invoiceNumber: string;
   referenceNumber: string;
-  totalAmount: number;
+  totalAmountUsd: number;
+  exchangeRate?: number;
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
@@ -26,14 +27,14 @@ export function ViewInvoiceButton(props: InvoiceButtonProps) {
       visaType: props.visaType || '',
       processingType: props.processingType || '',
       arrivalDate: props.arrivalDate,
-      totalAmount: props.totalAmount,
+      totalAmountUsd: props.totalAmountUsd,
+      exchangeRate: props.exchangeRate,
       stripePaymentIntentId: props.stripePaymentIntentId,
     });
 
     const blob = doc.output('blob');
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
-    // Clean up after a delay
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
@@ -60,7 +61,8 @@ export function DownloadInvoiceButton(props: InvoiceButtonProps) {
       visaType: props.visaType || '',
       processingType: props.processingType || '',
       arrivalDate: props.arrivalDate,
-      totalAmount: props.totalAmount,
+      totalAmountUsd: props.totalAmountUsd,
+      exchangeRate: props.exchangeRate,
       stripePaymentIntentId: props.stripePaymentIntentId,
     });
 

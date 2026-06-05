@@ -13,8 +13,8 @@ interface InvoiceData {
   visaType: string;
   processingType: string;
   arrivalDate?: string;
-  totalAmount: number; // This is now AED
-  exchangeRate?: number;
+  totalAmountUsd: number; // USD from Stripe - PRIMARY
+  exchangeRate?: number;  // Rate to convert to AED
   stripePaymentIntentId?: string;
 }
 
@@ -25,11 +25,12 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
+  // USD is primary, calculate AED
   const exchangeRate = data.exchangeRate || DEFAULT_EXCHANGE_RATE;
-  const totalAed = data.totalAmount;
+  const totalUsd = data.totalAmountUsd;
+  const totalAed = totalUsd * exchangeRate;
   const subtotalAed = totalAed / (1 + VAT_RATE);
   const vatAmountAed = totalAed - subtotalAed;
-  const totalUsd = totalAed / exchangeRate;
 
   const goldColor = '#C9A04C';
   const darkColor = '#1A2332';

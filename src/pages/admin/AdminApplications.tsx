@@ -248,7 +248,7 @@ export default function AdminApplications() {
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
                             <Link to={`/admin/applications/${app.referenceNumber}`} className="p-1 text-gray-400 hover:text-[#C9A04C]"><Eye size={14} /></Link>
-                            {app.invoiceNumber && <ViewInvoiceButton invoiceNumber={app.invoiceNumber} referenceNumber={app.referenceNumber} totalAmount={totalAed} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
+                            {app.invoiceNumber && <ViewInvoiceButton invoiceNumber={app.invoiceNumber} referenceNumber={app.referenceNumber} totalAmountUsd={totalUsd} exchangeRate={exchangeRate} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
                           </div>
                         </td>
                       </tr>

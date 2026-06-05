@@ -188,7 +188,7 @@ export default function AdminInvoices() {
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
                             <Link to={`/admin/applications/${app.referenceNumber}`} className="p-1 text-gray-400 hover:text-[#C9A04C]"><Receipt size={14} /></Link>
-                            {a.invoiceNumber && <ViewInvoiceButton invoiceNumber={a.invoiceNumber} referenceNumber={app.referenceNumber} totalAmount={aed} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
+                            {a.invoiceNumber && <ViewInvoiceButton invoiceNumber={a.invoiceNumber} referenceNumber={app.referenceNumber} totalAmountUsd={usd} exchangeRate={exchangeRate} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
                           </div>
                         </td>
                       </tr>

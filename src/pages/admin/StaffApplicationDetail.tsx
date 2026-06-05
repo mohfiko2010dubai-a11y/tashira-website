@@ -49,6 +49,10 @@ export default function StaffApplicationDetail() {
   }
 
   const mainApplicant = app.applicants?.[0];
+  const a = app as any;
+  const exchangeRate = Number(a.exchangeRate || 3.6725);
+  const totalUsd = Number(a.totalAmountUsd || a.totalAmount || 0);
+  const totalAed = Number(a.totalAmountAed || totalUsd * exchangeRate);
 
   const handleGenerateInvoice = () => {
     const invoiceNumber = app.invoiceNumber || `INV-${app.referenceNumber}`;
@@ -64,7 +68,8 @@ export default function StaffApplicationDetail() {
       visaType: app.visaType || '',
       processingType: app.processingType || '',
       arrivalDate: app.arrivalDate || undefined,
-      totalAmount: Number(app.totalAmount) || 0,
+      totalAmountUsd: totalUsd,
+      exchangeRate,
       stripePaymentIntentId: app.stripePaymentIntentId || undefined,
     });
 
@@ -95,7 +100,7 @@ export default function StaffApplicationDetail() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-        {/* Status Bar - Read Only */}
+        {/* Status Bar */}
         <div className="bg-white rounded-lg border border-gray-100 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[app.status] || ''}`}>
@@ -182,8 +187,16 @@ export default function StaffApplicationDetail() {
             <h2 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Payment Details</h2>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-gray-50">
-                <span className="text-gray-500">Total Amount</span>
-                <span className="font-bold text-lg text-[#C9A04C]">${app.totalAmount}</span>
+                <span className="text-gray-500">Total Amount (USD)</span>
+                <span className="font-bold text-lg text-[#C9A04C]">${totalUsd.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-50">
+                <span className="text-gray-500">Total Amount (AED)</span>
+                <span className="font-bold text-lg text-emerald-600">AED {totalAed.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-50">
+                <span className="text-gray-500">Exchange Rate</span>
+                <span className="text-gray-700">{exchangeRate} AED/USD</span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-50">
                 <span className="text-gray-500">Payment Status</span>
@@ -221,7 +234,8 @@ export default function StaffApplicationDetail() {
                     <ViewInvoiceButton
                       invoiceNumber={app.invoiceNumber}
                       referenceNumber={app.referenceNumber}
-                      totalAmount={Number(app.totalAmount)}
+                      totalAmountUsd={totalUsd}
+                      exchangeRate={exchangeRate}
                       customerEmail={app.contactEmail}
                       customerPhone={app.contactPhone}
                       visaType={app.visaType}
@@ -230,7 +244,8 @@ export default function StaffApplicationDetail() {
                     <DownloadInvoiceButton
                       invoiceNumber={app.invoiceNumber}
                       referenceNumber={app.referenceNumber}
-                      totalAmount={Number(app.totalAmount)}
+                      totalAmountUsd={totalUsd}
+                      exchangeRate={exchangeRate}
                       customerEmail={app.contactEmail}
                       customerPhone={app.contactPhone}
                       visaType={app.visaType}
@@ -261,15 +276,15 @@ export default function StaffApplicationDetail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {(app.applicants || []).map((a: any, i: number) => (
-                    <tr key={a.id} className="hover:bg-gray-50/50">
+                  {(app.applicants || []).map((ap: any, i: number) => (
+                    <tr key={ap.id} className="hover:bg-gray-50/50">
                       <td className="px-3 py-2 text-gray-400">{i + 1}</td>
-                      <td className="px-3 py-2 font-medium">{a.fullName}</td>
-                      <td className="px-3 py-2 text-gray-500">{a.nationality || '-'}</td>
-                      <td className="px-3 py-2 font-mono text-gray-500">{a.passportNumber || '-'}</td>
-                      <td className="px-3 py-2 text-gray-500">{a.passportType || '-'}</td>
-                      <td className="px-3 py-2 text-gray-500">{a.profession || '-'}</td>
-                      <td className="px-3 py-2 text-gray-500">{a.gccResidenceNumber || '-'}</td>
+                      <td className="px-3 py-2 font-medium">{ap.fullName}</td>
+                      <td className="px-3 py-2 text-gray-500">{ap.nationality || '-'}</td>
+                      <td className="px-3 py-2 font-mono text-gray-500">{ap.passportNumber || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{ap.passportType || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{ap.profession || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{ap.gccResidenceNumber || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

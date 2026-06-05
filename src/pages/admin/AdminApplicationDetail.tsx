@@ -76,7 +76,8 @@ export default function AdminApplicationDetail() {
       visaType: app.visaType || '',
       processingType: app.processingType || '',
       arrivalDate: app.arrivalDate || undefined,
-      totalAmount: Number(app.totalAmount) || 0,
+      totalAmountUsd: Number((app as any).totalAmountUsd || app.totalAmount) || 0,
+      exchangeRate: Number((app as any).exchangeRate || 3.6725),
       stripePaymentIntentId: app.stripePaymentIntentId || undefined,
     });
 
@@ -203,8 +204,16 @@ export default function AdminApplicationDetail() {
             <h2 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide">Payment Details</h2>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-gray-50">
-                <span className="text-gray-500">Total Amount</span>
-                <span className="font-bold text-lg text-[#C9A04C]">${app.totalAmount}</span>
+                <span className="text-gray-500">Total Amount (USD)</span>
+                <span className="font-bold text-lg text-[#C9A04C]">${(app as any).totalAmountUsd || app.totalAmount}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-50">
+                <span className="text-gray-500">Total Amount (AED)</span>
+                <span className="font-bold text-lg text-emerald-600">AED {(app as any).totalAmountAed || ((app as any).totalAmountUsd || app.totalAmount) * ((app as any).exchangeRate || 3.6725)}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-50">
+                <span className="text-gray-500">Exchange Rate</span>
+                <span className="text-gray-700">{(app as any).exchangeRate || 3.6725} AED/USD</span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-50">
                 <span className="text-gray-500">Payment Status</span>
@@ -242,7 +251,8 @@ export default function AdminApplicationDetail() {
                     <ViewInvoiceButton
                       invoiceNumber={app.invoiceNumber}
                       referenceNumber={app.referenceNumber}
-                      totalAmount={Number(app.totalAmount)}
+                      totalAmountUsd={Number((app as any).totalAmountUsd || app.totalAmount) || 0}
+                      exchangeRate={Number((app as any).exchangeRate || 3.6725)}
                       customerEmail={app.contactEmail}
                       customerPhone={app.contactPhone}
                       visaType={app.visaType}
@@ -251,7 +261,8 @@ export default function AdminApplicationDetail() {
                     <DownloadInvoiceButton
                       invoiceNumber={app.invoiceNumber}
                       referenceNumber={app.referenceNumber}
-                      totalAmount={Number(app.totalAmount)}
+                      totalAmountUsd={Number((app as any).totalAmountUsd || app.totalAmount) || 0}
+                      exchangeRate={Number((app as any).exchangeRate || 3.6725)}
                       customerEmail={app.contactEmail}
                       customerPhone={app.contactPhone}
                       visaType={app.visaType}

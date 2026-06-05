@@ -161,7 +161,7 @@ export default function StaffDashboard() {
                               <ViewInvoiceButton
                                 invoiceNumber={app.invoiceNumber}
                                 referenceNumber={app.referenceNumber}
-                                totalAmount={revenue}
+                                totalAmountUsd={revenue} exchangeRate={exchangeRate}
                                 customerEmail={app.contactEmail}
                                 customerPhone={app.contactPhone}
                                 visaType={app.visaType}
