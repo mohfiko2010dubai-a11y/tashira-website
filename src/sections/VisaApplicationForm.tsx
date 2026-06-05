@@ -203,6 +203,9 @@ export default function VisaApplicationForm() {
     setLoading(true);
     const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
     
+    const totalUsd = calculateTotal();
+    const exchangeRate = 3.6725; // Default rate - can be made editable
+    
     submitApplication.mutate({
       referenceNumber: ref,
       baseType: baseType!,
@@ -212,7 +215,8 @@ export default function VisaApplicationForm() {
       contactEmail: email,
       contactPhone: phone,
       arrivalDate,
-      totalAmount: calculateTotal(),
+      exchangeRate,
+      totalAmountUsd: totalUsd,
       applicants: applicants.map((a) => ({
         fullName: a.fullName,
         nationality: a.nationality,
