@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import {
   Search, Eye, LogOut, Filter, RefreshCw, Building2,
   Download, Calendar, DollarSign, Users, TrendingUp, UserCircle, Edit3,
+  FileText, Receipt, Percent,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -57,10 +58,11 @@ export default function AdminApplications() {
   const handleExportExcel = () => {
     const data = filtered.map((app: any) => {
       const a = app as any;
-      const revenueAed = Number(a.totalAmountAed || a.totalAmount || 0);
-      const costAed = Number(a.supplierCostAed || 0);
-      const profitAed = revenueAed - costAed;
       const exchangeRate = Number(a.exchangeRate || 3.6725);
+      const totalAed = Number(a.totalAmountAed || a.totalAmount || 0);
+      const totalUsd = Number(a.totalAmountUsd || a.stripeAmountUsd || totalAed / exchangeRate);
+      const costAed = Number(a.supplierCostAed || 0);
+      const profitAed = totalAed - costAed;
       return {
         'Ref #': app.referenceNumber,
         'Date': app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-',
@@ -70,18 +72,17 @@ export default function AdminApplications() {
         'Processing': app.processingType,
         'Base Type': app.baseType,
         'Applicants': app.applicants?.length || 1,
+        'Invoice Price (USD)': totalUsd.toFixed(2),
         'Exchange Rate': exchangeRate,
-        'Total (AED)': revenueAed,
-        'Total (USD)': (revenueAed / exchangeRate).toFixed(2),
+        'Amount (AED)': totalAed.toFixed(2),
         'Status': app.status,
         'Payment': app.paymentStatus,
         'Supplier': app.supplier?.name || '-',
         'Supplier Cost (AED)': costAed,
         'Supplier VAT': a.supplierVatStatus || '-',
         'Supplier Total (AED)': Number(a.supplierTotalAed || costAed),
-        'Profit (AED)': profitAed,
-        'Profit (USD)': (profitAed / exchangeRate).toFixed(2),
-        'Margin %': revenueAed > 0 ? ((profitAed / revenueAed) * 100).toFixed(1) + '%' : '0%',
+        'Profit (AED)': profitAed.toFixed(2),
+        'Margin %': totalAed > 0 ? ((profitAed / totalAed) * 100).toFixed(1) + '%' : '0%',
       };
     });
 
@@ -96,6 +97,15 @@ export default function AdminApplications() {
       <header className="bg-[#1A2332] text-white px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3"><h1 className="text-lg font-bold">TASHIRA Admin</h1></div>
         <div className="flex items-center gap-3">
+          <Link to="/admin/invoices" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <Receipt size={14} /> Customer Invoices
+          </Link>
+          <Link to="/admin/supplier-dashboard" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <Building2 size={14} /> Supplier Bills
+          </Link>
+          <Link to="/admin/vat" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <Percent size={14} /> VAT
+          </Link>
           <Link to="/admin/suppliers" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Building2 size={14} /> Suppliers
           </Link>
@@ -112,7 +122,7 @@ export default function AdminApplications() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Analytics Cards - AED + USD */}
+        {/* Analytics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-[#C9A04C]" /><p className="text-xs text-gray-500">Total</p></div>
@@ -185,8 +195,9 @@ export default function AdminApplications() {
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Name</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Visa</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Qty</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Invoice Price (USD)</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Rate</th>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Revenue (AED)</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Amount (AED)</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Supplier</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Cost (AED)</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Profit (AED)</th>
@@ -198,10 +209,11 @@ export default function AdminApplications() {
                   {filtered.map((app: any) => {
                     const a = app as any;
                     const exchangeRate = Number(a.exchangeRate || 3.6725);
-                    const revenueAed = Number(a.totalAmountAed || a.totalAmount || 0);
+                    const totalAed = Number(a.totalAmountAed || a.totalAmount || 0);
+                    const totalUsd = Number(a.totalAmountUsd || a.stripeAmountUsd || totalAed / exchangeRate);
                     const costAed = Number(a.supplierCostAed || 0);
-                    const profitAed = revenueAed - costAed;
-                    const margin = revenueAed > 0 ? ((profitAed / revenueAed) * 100).toFixed(0) : '0';
+                    const profitAed = totalAed - costAed;
+                    const margin = totalAed > 0 ? ((profitAed / totalAed) * 100).toFixed(0) : '0';
                     return (
                       <tr key={app.id} className="hover:bg-gray-50/50">
                         <td className="px-3 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}</td>
@@ -209,8 +221,9 @@ export default function AdminApplications() {
                         <td className="px-3 py-2">{app.applicants?.[0]?.fullName || '-'}</td>
                         <td className="px-3 py-2">{app.visaType}<br/><span className="text-gray-400">{app.processingType}</span></td>
                         <td className="px-3 py-2 text-center">{app.applicants?.length || 1}</td>
+                        <td className="px-3 py-2 font-semibold text-blue-600">${totalUsd.toFixed(2)}</td>
                         <td className="px-3 py-2 text-gray-500">{exchangeRate}</td>
-                        <td className="px-3 py-2 font-semibold">AED {revenueAed.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
+                        <td className="px-3 py-2 font-semibold text-emerald-600">AED {totalAed.toLocaleString('en-AE', {minimumFractionDigits: 2})}</td>
                         <td className="px-3 py-2">
                           {app.supplier ? (
                             <div className="flex items-center gap-1">
@@ -220,12 +233,7 @@ export default function AdminApplications() {
                               </button>
                             </div>
                           ) : (
-                            <button
-                              onClick={() => setCostModalApp(app.id)}
-                              className="text-xs text-[#C9A04C] hover:underline"
-                            >
-                              + Add Cost
-                            </button>
+                            <button onClick={() => setCostModalApp(app.id)} className="text-xs text-[#C9A04C] hover:underline">+ Add Cost</button>
                           )}
                         </td>
                         <td className="px-3 py-2 text-red-500">{costAed > 0 ? `AED ${costAed.toFixed(2)}` : '-'}</td>
@@ -240,7 +248,7 @@ export default function AdminApplications() {
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
                             <Link to={`/admin/applications/${app.referenceNumber}`} className="p-1 text-gray-400 hover:text-[#C9A04C]"><Eye size={14} /></Link>
-                            {app.invoiceNumber && <ViewInvoiceButton invoiceNumber={app.invoiceNumber} referenceNumber={app.referenceNumber} totalAmount={revenueAed} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
+                            {app.invoiceNumber && <ViewInvoiceButton invoiceNumber={app.invoiceNumber} referenceNumber={app.referenceNumber} totalAmount={totalAed} customerEmail={app.contactEmail} customerPhone={app.contactPhone} visaType={app.visaType} processingType={app.processingType} />}
                           </div>
                         </td>
                       </tr>
@@ -254,13 +262,8 @@ export default function AdminApplications() {
         )}
       </div>
 
-      {/* Supplier Cost Modal */}
       {costModalApp && (
-        <SupplierCostModal
-          applicationId={costModalApp}
-          onClose={() => setCostModalApp(null)}
-          onSaved={() => {}}
-        />
+        <SupplierCostModal applicationId={costModalApp} onClose={() => setCostModalApp(null)} onSaved={() => {}} />
       )}
     </div>
   );

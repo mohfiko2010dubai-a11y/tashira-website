@@ -20,6 +20,9 @@ import AdminApplications from '@/pages/admin/AdminApplications';
 import AdminApplicationDetail from '@/pages/admin/AdminApplicationDetail';
 import AdminSuppliers from '@/pages/admin/AdminSuppliers';
 import AdminStaff from '@/pages/admin/AdminStaff';
+import AdminInvoices from '@/pages/admin/AdminInvoices';
+import AdminSupplierDashboard from '@/pages/admin/AdminSupplierDashboard';
+import AdminVat from '@/pages/admin/AdminVat';
 import StaffLogin from '@/pages/admin/StaffLogin';
 import StaffDashboard from '@/pages/admin/StaffDashboard';
 import StaffApplicationDetail from '@/pages/admin/StaffApplicationDetail';
@@ -56,6 +59,9 @@ function AppContent() {
           <Route path="/admin/applications/:referenceNumber" element={<AdminApplicationDetail />} />
           <Route path="/admin/suppliers" element={<AdminSuppliers />} />
           <Route path="/admin/staff" element={<AdminStaff />} />
+          <Route path="/admin/invoices" element={<AdminInvoices />} />
+          <Route path="/admin/supplier-dashboard" element={<AdminSupplierDashboard />} />
+          <Route path="/admin/vat" element={<AdminVat />} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
