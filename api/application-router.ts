@@ -20,8 +20,8 @@ export const applicationRouter = createRouter({
       contactPhone: z.string(),
       arrivalDate: z.string().optional(),
       exchangeRate: z.number().default(3.6725),
-      totalAmountAed: z.number(),
-      totalAmountUsd: z.number().optional(),
+      totalAmountUsd: z.number(),
+      totalAmountAed: z.number().optional(),
       applicants: z.array(z.object({
         fullName: z.string(),
         nationality: z.string().optional(),
@@ -49,8 +49,8 @@ export const applicationRouter = createRouter({
           contactPhone: input.contactPhone,
           arrivalDate: input.arrivalDate,
           exchangeRate: String(input.exchangeRate),
-          totalAmountAed: String(input.totalAmountAed),
-          totalAmountUsd: input.totalAmountUsd ? String(input.totalAmountUsd) : null,
+          totalAmountUsd: String(input.totalAmountUsd),
+          totalAmountAed: String(input.totalAmountAed || (input.totalAmountUsd * input.exchangeRate)),
         };
 
         const [app] = await db.insert(applications).values(values).$returningId();
