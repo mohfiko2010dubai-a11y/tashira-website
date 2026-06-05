@@ -581,7 +581,8 @@ export default function VisaApplicationForm() {
               <PaymentSuccessModal
                 invoiceNumber={paymentInvoiceNumber}
                 referenceNumber={referenceNumber}
-                totalAmount={calculateTotal()}
+                totalAmountUsd={calculateTotal()}
+                exchangeRate={3.6725}
                 applicantData={{
                   customerName: applicants[0]?.fullName || '',
                   customerEmail: email,

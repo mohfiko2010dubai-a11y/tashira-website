@@ -154,10 +154,27 @@ export default function StripePaymentForm(props: PaymentFormInnerProps) {
 export function PaymentSuccessModal({
   invoiceNumber,
   referenceNumber,
-  totalAmount,
+  totalAmountUsd,
+  exchangeRate,
   applicantData,
   onClose,
-}: PaymentFormInnerProps & { invoiceNumber: string }) {
+}: {
+  invoiceNumber: string;
+  referenceNumber: string;
+  totalAmountUsd: number;
+  exchangeRate: number;
+  applicantData: {
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    passportNumber?: string;
+    nationality?: string;
+    visaType: string;
+    processingType: string;
+    arrivalDate?: string;
+  };
+  onClose: () => void;
+}) {
   return (
     <div className="text-center space-y-4">
       <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
@@ -177,8 +194,12 @@ export function PaymentSuccessModal({
           <span className="font-mono font-semibold">{invoiceNumber}</span>
         </p>
         <p className="text-sm">
-          <span className="text-gray-500">Amount Paid:</span>{' '}
-          <span className="font-semibold">${totalAmount.toFixed(2)}</span>
+          <span className="text-gray-500">Amount Paid (USD):</span>{' '}
+          <span className="font-semibold">${totalAmountUsd.toFixed(2)}</span>
+        </p>
+        <p className="text-sm">
+          <span className="text-gray-500">Exchange Rate:</span>{' '}
+          <span className="font-semibold">{exchangeRate} AED/USD</span>
         </p>
       </div>
 
@@ -187,7 +208,8 @@ export function PaymentSuccessModal({
         <ViewInvoiceButton
           invoiceNumber={invoiceNumber}
           referenceNumber={referenceNumber}
-          totalAmount={totalAmount}
+          totalAmountUsd={totalAmountUsd}
+          exchangeRate={exchangeRate}
           customerName={applicantData.customerName}
           customerEmail={applicantData.customerEmail}
           customerPhone={applicantData.customerPhone}
@@ -198,7 +220,8 @@ export function PaymentSuccessModal({
         <DownloadInvoiceButton
           invoiceNumber={invoiceNumber}
           referenceNumber={referenceNumber}
-          totalAmount={totalAmount}
+          totalAmountUsd={totalAmountUsd}
+          exchangeRate={exchangeRate}
           customerName={applicantData.customerName}
           customerEmail={applicantData.customerEmail}
           customerPhone={applicantData.customerPhone}
