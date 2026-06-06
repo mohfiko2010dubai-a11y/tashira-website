@@ -136,6 +136,47 @@ export default function VisaApplicationForm() {
     }
   };
 
+  // Map file type to document_type enum
+  const getDocumentType = (type: string): PendingFile['documentType'] => {
+    switch (type) {
+      case 'face': return 'photo';
+      case 'passport': return 'passport';
+      case 'cover': return 'passport';
+      case 'gcc-front': return 'gcc_residence';
+      case 'gcc-back': return 'gcc_residence';
+      case 'gcc-permit': return 'gcc_residence';
+      case 'sponsor-id': return 'sponsor_id';
+      default: return 'supporting';
+    }
+  };
+
+  // Collect all pending files from all applicants
+  const collectPendingFiles = (): PendingFile[] => {
+    const files: PendingFile[] = [];
+    const fileTypes: Array<{ key: keyof ApplicantData; type: string }> = [
+      { key: 'facePhoto', type: 'face' },
+      { key: 'passportCopy', type: 'passport' },
+      { key: 'passportCover', type: 'cover' },
+      { key: 'gccResidenceIdFront', type: 'gcc-front' },
+      { key: 'gccResidenceIdBack', type: 'gcc-back' },
+      { key: 'gccResidencyPermit', type: 'gcc-permit' },
+      { key: 'sponsorIdOrPassport', type: 'sponsor-id' },
+    ];
+    applicants.forEach((applicant, idx) => {
+      fileTypes.forEach(({ key, type }) => {
+        const uploadedFile = applicant[key] as UploadedFile | null;
+        if (uploadedFile?.file) {
+          files.push({
+            file: uploadedFile.file,
+            documentType: getDocumentType(type),
+            applicantIndex: idx,
+          });
+        }
+      });
+    });
+    return files;
+  };
+
   const processFile = (file: File, idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id') => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -181,6 +222,7 @@ export default function VisaApplicationForm() {
   const submitApplication = trpc.application.create.useMutation({
     onSuccess: (data) => {
       setReferenceNumber(data.referenceNumber);
+      setApplicationId(data.id);
       setLoading(false);
       setShowPaymentModal(true); // Show payment after successful submit
     },
@@ -195,6 +237,7 @@ export default function VisaApplicationForm() {
   const [loading, setLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentInvoiceNumber, setPaymentInvoiceNumber] = useState('');
+  const [applicationId, setApplicationId] = useState<number | null>(null);
   const allScreeningYes = true; // screening questions removed, form always visible
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -583,6 +626,8 @@ export default function VisaApplicationForm() {
                 referenceNumber={referenceNumber}
                 totalAmountUsd={calculateTotal()}
                 exchangeRate={3.6725}
+                applicationId={applicationId || 0}
+                pendingFiles={collectPendingFiles()}
                 applicantData={{
                   customerName: applicants[0]?.fullName || '',
                   customerEmail: email,

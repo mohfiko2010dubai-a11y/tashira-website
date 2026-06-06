@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import {
   Search, Eye, LogOut, Filter, RefreshCw, Building2,
   Download, Calendar, DollarSign, Users, TrendingUp, UserCircle, Edit3,
-  FileText, Receipt, Percent,
+  FileText, Receipt, Percent, FolderOpen,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -201,6 +201,7 @@ export default function AdminApplications() {
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Supplier</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Cost (AED)</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Profit (AED)</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Docs</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Status</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Actions</th>
                   </tr>
@@ -241,6 +242,12 @@ export default function AdminApplications() {
                           <span className={profitAed >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
                             AED {profitAed.toFixed(2)} ({margin}%)
                           </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Link to={`/admin/applications/${app.referenceNumber}?tab=documents`} className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#C9A04C] transition-colors">
+                            <FolderOpen size={12} />
+                            <span>View</span>
+                          </Link>
                         </td>
                         <td className="px-3 py-2">
                           <span className={`px-2 py-0.5 rounded-full text-xs ${statusColors[app.status] || ''}`}>{app.status}</span>

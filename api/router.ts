@@ -6,6 +6,8 @@ import { driveRouter } from "./drive-router";
 import { invoiceRouter } from "./invoice-router";
 import { supplierRouter } from "./supplier-router";
 import { staffRouter } from "./staff-router";
+import { storageRouter } from "./storage-router";
+import { documentRouter } from "./document-router";
 import { createRouter } from "./middleware";
 
 export const appRouter = createRouter({
@@ -17,6 +19,8 @@ export const appRouter = createRouter({
   invoice: invoiceRouter,
   supplier: supplierRouter,
   staff: staffRouter,
+  storage: storageRouter,
+  document: documentRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -125,3 +125,30 @@ export const staffUsers = mysqlTable("staff_users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
 });
+
+export const documents = mysqlTable("documents", {
+  id: serial("id").primaryKey(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
+  applicantId: bigint("applicant_id", { mode: "number", unsigned: true }),
+  documentType: mysqlEnum("document_type", [
+    "passport",
+    "photo",
+    "national_id",
+    "supporting",
+    "visa",
+    "invoice",
+    "gcc_residence",
+    "sponsor_id",
+  ]).notNull(),
+  originalFileName: varchar("original_file_name", { length: 255 }).notNull(),
+  storedFileName: varchar("stored_file_name", { length: 255 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  fileSize: bigint("file_size", { mode: "number", unsigned: true }).notNull(),
+  storageProvider: varchar("storage_provider", { length: 50 }).default("supabase").notNull(),
+  storageBucket: varchar("storage_bucket", { length: 100 }).default("tashira-documents").notNull(),
+  storagePath: varchar("storage_path", { length: 500 }).notNull(),
+  uploadStatus: mysqlEnum("upload_status", ["pending", "uploaded", "failed", "replaced"]).default("pending").notNull(),
+  uploadedBy: varchar("uploaded_by", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+});
