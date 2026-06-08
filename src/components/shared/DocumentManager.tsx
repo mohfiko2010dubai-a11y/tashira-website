@@ -64,7 +64,15 @@ export default function DocumentManager({ applicationId }: DocumentManagerProps)
   const { data: countData } = trpc.document.countByApplication.useQuery({ applicationId });
 
   const deleteDoc = trpc.document.delete.useMutation({
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Also delete from Supabase Storage
+      if (data.success && data.storagePath) {
+        try {
+          await utils.storage.delete.fetch({ path: data.storagePath });
+        } catch (err) {
+          console.error("[Delete] Supabase storage delete failed:", err);
+        }
+      }
       utils.document.listByApplication.invalidate({ applicationId });
       utils.document.countByApplication.invalidate({ applicationId });
       setDeletingId(null);
