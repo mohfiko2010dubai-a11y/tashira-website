@@ -4,7 +4,7 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { trpc } from '@/providers/trpc';
 import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
-import type { PendingFile } from '@/hooks/useDocumentUpload';
+import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 

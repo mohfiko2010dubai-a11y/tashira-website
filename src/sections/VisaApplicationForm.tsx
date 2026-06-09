@@ -162,17 +162,10 @@ export default function VisaApplicationForm() {
       { key: 'gccResidencyPermit', type: 'gcc-permit' },
       { key: 'sponsorIdOrPassport', type: 'sponsor-id' },
     ];
-    console.log('[collectPendingFiles] applicants count:', applicants.length);
     applicants.forEach((applicant, idx) => {
-      console.log(`[collectPendingFiles] applicant ${idx}:`, {
-        facePhoto: applicant.facePhoto ? 'EXISTS' : 'null',
-        passportCopy: applicant.passportCopy ? 'EXISTS' : 'null',
-        passportCover: applicant.passportCover ? 'EXISTS' : 'null',
-      });
       fileTypes.forEach(({ key, type }) => {
         const uploadedFile = applicant[key] as UploadedFile | null;
         if (uploadedFile?.file) {
-          console.log(`[collectPendingFiles] FOUND file: ${key} for applicant ${idx}`);
           files.push({
             file: uploadedFile.file,
             documentType: getDocumentType(type),
@@ -181,16 +174,13 @@ export default function VisaApplicationForm() {
         }
       });
     });
-    console.log('[collectPendingFiles] total files found:', files.length);
     return files;
   };
 
   const processFile = (file: File, idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id') => {
-    console.log(`[processFile] Storing file: ${file.name} (${file.type}, ${file.size} bytes) for applicant ${idx}, type: ${type}`);
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      console.log(`[processFile] File read success, preview length: ${result?.length || 0}`);
       updateApplicant(idx, getFileField(type), { file, preview: result });
     };
     reader.onerror = (e) => {
