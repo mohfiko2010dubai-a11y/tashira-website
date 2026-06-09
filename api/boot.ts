@@ -183,17 +183,6 @@ app.use("/api/trpc/*", async (c) => {
 // Health check
 app.get("/api/health", (c) => c.json({ status: "ok", time: new Date().toISOString() }));
 
-// Test storage router availability
-app.get("/api/test-storage", (c) => {
-  const hasStorage = !!appRouter._def.procedures.storage;
-  const hasDocument = !!appRouter._def.procedures.document;
-  return c.json({ 
-    storageRouter: hasStorage, 
-    documentRouter: hasDocument,
-    procedures: Object.keys(appRouter._def.procedures)
-  });
-});
-
 // Catch-all
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
