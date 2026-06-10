@@ -172,12 +172,23 @@ app.get("/invoices/:invoiceNumber/download", async (c) => {
 
 // ===== tRPC ROUTES =====
 app.use("/api/trpc/*", async (c) => {
-  return fetchRequestHandler({
-    endpoint: "/api/trpc",
-    req: c.req.raw,
-    router: appRouter,
-    createContext,
-  });
+  try {
+    return await fetchRequestHandler({
+      endpoint: "/api/trpc",
+      req: c.req.raw,
+      router: appRouter,
+      createContext,
+    });
+  } catch (err: any) {
+    console.error("[tRPC] Unhandled error in fetchRequestHandler:", err?.message || err);
+    return c.json(
+      {
+        error: "Internal Server Error",
+        message: env.isProduction ? "Something went wrong" : err?.message,
+      },
+      500,
+    );
+  }
 });
 
 // Health check
