@@ -1,0 +1,90 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+          log-public-key: false
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SERVER_PORT || '22' }} -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT || '22' }}
+          PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
+        run: |
+          set -e
+          echo "=== Deploying to $SERVER_HOST ==="
+          
+          ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'REMOTE_SCRIPT'
+            set -e
+            PROJECT_PATH="${PROJECT_PATH:-/var/www/tashira}"
+            cd "$PROJECT_PATH"
+            
+            echo "[1/6] Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+            
+            echo "[2/6] Checking if npm install is needed..."
+            if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
+              echo "Installing dependencies..."
+              npm ci
+            else
+              echo "Dependencies up to date."
+            fi
+            
+            echo "[3/6] Building project..."
+            npm run build
+            
+            echo "[4/6] Deploying built files..."
+            # Ensure dist directory exists
+            if [ ! -d "dist" ]; then
+              echo "ERROR: dist directory not found after build"
+              exit 1
+            fi
+            
+            echo "[5/6] Restarting PM2..."
+            pm2 restart tashira || pm2 start dist/boot.js --name tashira --cwd "$PROJECT_PATH"
+            
+            echo "[6/6] Saving PM2 config..."
+            pm2 save
+            
+            echo ""
+            echo "=== Deployment Complete ==="
+            echo "Status:"
+            pm2 status tashira
+          REMOTE_SCRIPT
+
+      - name: Notify on success
+        if: success()
+        run: echo "✅ Deployment to production completed successfully!"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "❌ Deployment failed! Check the logs above."
