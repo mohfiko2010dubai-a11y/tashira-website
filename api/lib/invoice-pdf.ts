@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import { autoTable } from "jspdf-autotable";
 
 // Permanent storage - outside dist/ so it survives rebuilds
 const STORAGE_DIR = path.resolve(process.cwd(), "storage/invoices");
@@ -32,14 +32,15 @@ interface InvoiceData {
   stripePaymentIntentId?: string;
 }
 
-const VAT_RATE = 0.05;
+// VAT temporarily disabled until TRN is obtained
+// const VAT_RATE = 0.05;
 
 export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const total = data.totalAmount;
-  const subtotal = total / (1 + VAT_RATE);
-  const vatAmount = total - subtotal;
+  // No VAT breakdown - total is the final amount
+  const subtotal = total;
 
   // === HEADER ===
   doc.setFillColor("#1A2332");
@@ -61,13 +62,14 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setTextColor("#C9A04C");
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("TAX INVOICE", pageWidth - 15, 25, { align: "right" });
+  doc.text("INVOICE", pageWidth - 15, 25, { align: "right" });
 
   doc.setTextColor("#FFFFFF");
   doc.setFontSize(9);
   doc.text(`Invoice #: ${data.invoiceNumber}`, pageWidth - 15, 32, { align: "right" });
   doc.text(`Date: ${new Date(data.createdAt).toLocaleDateString("en-AE")}`, pageWidth - 15, 37, { align: "right" });
-  doc.text(`TRN: TO-BE-ADDED`, pageWidth - 15, 42, { align: "right" });
+  // TRN will be added once obtained from FTA
+  // doc.text(`TRN: XXXXXXXXXXXXXXXX`, pageWidth - 15, 42, { align: "right" });
 
   // === BILL TO ===
   doc.setTextColor("#1A2332");
@@ -99,15 +101,13 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   if (data.arrivalDate) doc.text(`Arrival: ${data.arrivalDate}`, pageWidth - 15, 90, { align: "right" });
 
   // === LINE ITEMS TABLE ===
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: 108,
     head: [["Description", "Qty", "Unit Price", "Amount (USD)"]],
     body: [
       [`${data.visaType} - ${data.processingType} Processing`, "1", `$${subtotal.toFixed(2)}`, `$${subtotal.toFixed(2)}`],
       ["", "", "", ""],
-      ["", "", "Subtotal (excl. VAT):", `$${subtotal.toFixed(2)}`],
-      ["", "", "VAT 5%:", `$${vatAmount.toFixed(2)}`],
-      ["", "", "Total (incl. VAT):", `$${total.toFixed(2)}`],
+      ["", "", "Total:", `$${total.toFixed(2)}`],
     ],
     headStyles: { fillColor: "#1A2332", textColor: "#C9A04C", fontStyle: "bold" },
     columnStyles: {
@@ -121,6 +121,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   });
 
   const finalY = (doc as any).lastAutoTable?.finalY || 150;
+  // Note: lastAutoTable is added by jspdf-autotable plugin
 
   // === PAYMENT INFO ===
   doc.setTextColor("#666666");

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc";
 import {
   ArrowLeft, Receipt, Building2, RefreshCw, FileText,
@@ -32,7 +32,11 @@ const TABS = [
 
 export default function AdminApplicationDetail() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return tab && TABS.some((t) => t.key === tab) ? tab : "overview";
+  });
   const [statusValue, setStatusValue] = useState("");
 
   const utils = trpc.useUtils();
@@ -112,7 +116,7 @@ export default function AdminApplicationDetail() {
         </Link>
         <div className="flex-1">
           <h1 className="text-lg font-bold">Application #{app.referenceNumber}</h1>
-          <p className="text-xs text-gray-400">{app.visaType} · {app.processingType} · {applicants.length} applicant{applicants.length > 1 ? "s" : ""}</p>
+          <p className="text-xs text-gray-400">{app.visaType} · {app.processingType} · {app.applicants?.length || 0} applicant{(app.applicants?.length || 0) > 1 ? "s" : ""}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[app.status] || ""}`}>{app.status}</span>

@@ -9,11 +9,11 @@ type App = Hono<{ Bindings: HttpBindings }>;
 export function serveStaticFiles(app: App) {
   const distPath = path.resolve(process.cwd(), "dist/public");
 
-  // Serve static files for non-API routes only
+  // Serve static files for non-API, non-storage routes only
   app.use("*", async (c, next) => {
     const path = c.req.path;
-    // Never serve static files for API routes
-    if (path.startsWith("/api/")) {
+    // Never serve static files for API or storage routes
+    if (path.startsWith("/api/") || path.startsWith("/storage/") || path.startsWith("/invoices/")) {
       return await next();
     }
     return serveStatic({ root: distPath })(c, next);

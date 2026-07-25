@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://tashiraev.com/</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tashiraev.com/" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://tashiraev.com/" />
+  </url>
+  <url>
+    <loc>https://tashiraev.com/visa-prices</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tashiraev.com/visa-prices" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://tashiraev.com/visa-prices" />
+  </url>
+  <url>
+    <loc>https://tashiraev.com/how-to-apply</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tashiraev.com/how-to-apply" />
+    <xhtml:link rel="alternate" hreflang="ar" href="https://tashiraev.com/how-to-apply" />
+  </url>
+  <url>
+    <loc>https://tashiraev.com/track</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tashiraev.com/terms</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://tashiraev.com/privacy</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://tashiraev.com/refund</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>

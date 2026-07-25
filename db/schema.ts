@@ -97,8 +97,12 @@ export const invoices = mysqlTable("invoices", {
 export const chatMessages = mysqlTable("chat_messages", {
   id: serial("id").primaryKey(),
   sessionId: varchar("session_id", { length: 100 }).notNull(),
-  role: mysqlEnum("role", ["user", "assistant"]).notNull(),
+  role: mysqlEnum("role", ["user", "assistant", "admin"]).notNull(),
   content: text("content").notNull(),
+  visitorName: varchar("visitor_name", { length: 255 }),
+  visitorEmail: varchar("visitor_email", { length: 320 }),
+  visitorPhone: varchar("visitor_phone", { length: 50 }),
+  isRead: mysqlEnum("is_read", ["unread", "read"]).default("unread").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { ArrowDown } from 'lucide-react';
 import gsap from 'gsap';
@@ -34,6 +35,15 @@ export default function HowToApply() {
   }, []);
 
   return (
+    <>
+      <Helmet>
+        <title>How to Apply for UAE Visa | Step by Step Guide | Tashira</title>
+        <meta name="description" content="Learn how to apply for UAE visa online. Step by step guide: fill form, upload documents, pay online, receive visa. Get your Dubai visa in 24-48 hours." />
+        <link rel="canonical" href="https://tashiraev.com/how-to-apply" />
+        <meta property="og:title" content="How to Apply for UAE Visa | Step by Step Guide | Tashira" />
+        <meta property="og:description" content="Step by step guide to apply for UAE visa online." />
+        <meta property="og:url" content="https://tashiraev.com/how-to-apply" />
+      </Helmet>
     <div className="min-h-screen">
       {/* Page Header */}
       <div
@@ -66,5 +76,6 @@ export default function HowToApply() {
         </div>
       </div>
     </div>
+    </>
   );
 }

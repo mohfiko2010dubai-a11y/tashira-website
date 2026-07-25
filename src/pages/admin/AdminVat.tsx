@@ -191,6 +191,118 @@ export default function AdminVat() {
           </div>
         </div>
 
+        {/* Detailed Sales Invoices */}
+        <div className="mt-6 bg-white rounded-lg border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Receipt size={16} className="text-emerald-500" /> Output VAT - Sales Invoices Detail
+            </h2>
+            <span className="text-xs text-gray-400">{customerInvoices.length} invoices</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">Invoice #</th>
+                  <th className="text-left px-4 py-2 font-semibold">Date</th>
+                  <th className="text-left px-4 py-2 font-semibold">Customer</th>
+                  <th className="text-right px-4 py-2 font-semibold">Subtotal (AED)</th>
+                  <th className="text-right px-4 py-2 font-semibold">VAT 5% (AED)</th>
+                  <th className="text-right px-4 py-2 font-semibold">Total (AED)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {customerInvoices.map((app: any) => {
+                  const a = app as any;
+                  const aed = Number(a.totalAmountAed || app.totalAmount || 0);
+                  const subtotal = aed / 1.05;
+                  const vat = aed - subtotal;
+                  return (
+                    <tr key={app.id} className="hover:bg-gray-50/50">
+                      <td className="px-4 py-2 font-mono text-[#C9A04C] font-semibold">{a.invoiceNumber || `INV-${app.referenceNumber}`}</td>
+                      <td className="px-4 py-2 text-gray-500">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-'}</td>
+                      <td className="px-4 py-2">{app.applicants?.[0]?.fullName || '-'}<br/><span className="text-gray-400 text-xs">{app.contactEmail}</span></td>
+                      <td className="px-4 py-2 text-right">AED {subtotal.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-right text-purple-600">AED {vat.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-emerald-600">AED {aed.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+                {customerInvoices.length === 0 && (
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No sales invoices found.</td></tr>
+                )}
+              </tbody>
+              {customerInvoices.length > 0 && (
+                <tfoot className="bg-gray-50 font-semibold text-gray-700">
+                  <tr>
+                    <td className="px-4 py-2" colSpan={3}>Total</td>
+                    <td className="px-4 py-2 text-right">AED {(totalSalesAed / 1.05).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-right text-purple-600">AED {vatOnSales.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-right text-emerald-600">AED {totalSalesAed.toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+
+        {/* Detailed Purchase Invoices */}
+        <div className="mt-6 bg-white rounded-lg border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Building2 size={16} className="text-red-400" /> Input VAT - Supplier Purchase Invoices Detail
+            </h2>
+            <span className="text-xs text-gray-400">{supplierBills.length} bills</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">Ref #</th>
+                  <th className="text-left px-4 py-2 font-semibold">Date</th>
+                  <th className="text-left px-4 py-2 font-semibold">Supplier</th>
+                  <th className="text-left px-4 py-2 font-semibold">VAT Status</th>
+                  <th className="text-right px-4 py-2 font-semibold">Cost (AED)</th>
+                  <th className="text-right px-4 py-2 font-semibold">VAT (AED)</th>
+                  <th className="text-right px-4 py-2 font-semibold">Total (AED)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {supplierBills.map((app: any) => {
+                  const a = app as any;
+                  const cost = Number(a.supplierCostAed || 0);
+                  const vat = Number(a.supplierVatAmount || 0);
+                  const total = Number(a.supplierTotalAed || cost + vat);
+                  return (
+                    <tr key={app.id} className="hover:bg-gray-50/50">
+                      <td className="px-4 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}</td>
+                      <td className="px-4 py-2 text-gray-500">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-'}</td>
+                      <td className="px-4 py-2">{app.supplier?.name || a.supplierName || '-'}</td>
+                      <td className="px-4 py-2"><span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded">{a.supplierVatStatus || '-'}</span></td>
+                      <td className="px-4 py-2 text-right">AED {cost.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-right text-purple-600">AED {vat.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-red-500">AED {total.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+                {supplierBills.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No supplier bills found.</td></tr>
+                )}
+              </tbody>
+              {supplierBills.length > 0 && (
+                <tfoot className="bg-gray-50 font-semibold text-gray-700">
+                  <tr>
+                    <td className="px-4 py-2" colSpan={4}>Total</td>
+                    <td className="px-4 py-2 text-right">AED {(totalPurchasesAed - vatOnPurchases).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-right text-purple-600">AED {vatOnPurchases.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-right text-red-500">AED {totalPurchasesAed.toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+
         {/* Net VAT */}
         <div className={`mt-6 rounded-lg p-5 ${netVat >= 0 ? 'bg-amber-50 border border-amber-200' : 'bg-purple-50 border border-purple-200'}`}>
           <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">

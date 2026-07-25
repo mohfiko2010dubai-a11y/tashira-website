@@ -37,13 +37,24 @@ async function exchangeAuthCode(
   return resp.json() as Promise<TokenResponse>;
 }
 
-const jwks = jose.createRemoteJWKSet(
-  new URL(`${env.kimiAuthUrl}/api/.well-known/jwks.json`),
-);
+// Lazy init JWKS to avoid crash when env.kimiAuthUrl is not set
+let jwksInstance: any = null;
+function getJwks() {
+  if (!jwksInstance && env.kimiAuthUrl) {
+    jwksInstance = jose.createRemoteJWKSet(
+      new URL(`${env.kimiAuthUrl}/api/.well-known/jwks.json`),
+    );
+  }
+  return jwksInstance;
+}
 
 async function verifyAccessToken(
   accessToken: string,
 ): Promise<{ userId: string; clientId: string }> {
+  const jwks = getJwks();
+  if (!jwks) {
+    throw new Error("JWKS not configured - KIMI_AUTH_URL is not set");
+  }
   const { payload } = await jose.jwtVerify(accessToken, jwks);
   const userId = payload.user_id as string;
   const clientId = payload.client_id as string;

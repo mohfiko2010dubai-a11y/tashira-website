@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HelmetProvider } from 'react-helmet-async';
 import './i18n';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
@@ -12,6 +13,7 @@ import Pricing from '@/pages/Pricing';
 import HowToApply from '@/pages/HowToApply';
 import Track from '@/pages/Track';
 import Legal from '@/pages/Legal';
+import PaymentPage from '@/pages/PaymentPage';
 import Dashboard from '@/pages/Dashboard';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
@@ -23,6 +25,7 @@ import AdminStaff from '@/pages/admin/AdminStaff';
 import AdminInvoices from '@/pages/admin/AdminInvoices';
 import AdminSupplierDashboard from '@/pages/admin/AdminSupplierDashboard';
 import AdminVat from '@/pages/admin/AdminVat';
+import AdminChat from '@/pages/admin/AdminChat';
 import StaffLogin from '@/pages/admin/StaffLogin';
 import StaffDashboard from '@/pages/admin/StaffDashboard';
 import StaffApplicationDetail from '@/pages/admin/StaffApplicationDetail';
@@ -40,6 +43,7 @@ function AppContent() {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
+    <HelmetProvider>
     <div className={`min-h-screen bg-white ${i18n.language === 'ar' ? 'font-tajawal' : 'font-inter'}`}>
       {!isAdminRoute && <Header />}
       <main>
@@ -48,6 +52,7 @@ function AppContent() {
           <Route path="/visa-prices" element={<Pricing />} />
           <Route path="/how-to-apply" element={<HowToApply />} />
           <Route path="/track" element={<Track />} />
+          <Route path="/pay/:referenceNumber" element={<PaymentPage />} />
           <Route path="/terms" element={<Legal page="terms" />} />
           <Route path="/privacy" element={<Legal page="privacy" />} />
           <Route path="/refund" element={<Legal page="refund" />} />
@@ -62,6 +67,7 @@ function AppContent() {
           <Route path="/admin/invoices" element={<AdminInvoices />} />
           <Route path="/admin/supplier-dashboard" element={<AdminSupplierDashboard />} />
           <Route path="/admin/vat" element={<AdminVat />} />
+          <Route path="/admin/chat" element={<AdminChat />} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
@@ -72,6 +78,7 @@ function AppContent() {
       {!isAdminRoute && <ScrollToTop />}
       {!isAdminRoute && <ChatBot />}
     </div>
+    </HelmetProvider>
   );
 }
 

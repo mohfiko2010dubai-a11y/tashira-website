@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { createRouter, publicQuery } from "./middleware";
-import { supabase, STORAGE_BUCKET, SIGNED_URL_EXPIRY } from "./lib/supabase";
+import {
+  storageUpload,
+  storageDelete,
+  storageCreateSignedUrl,
+  STORAGE_BUCKET,
+  SIGNED_URL_EXPIRY,
+  isStorageConfigured,
+} from "./lib/local-storage";
 import { TRPCError } from "@trpc/server";
 
 // Validate file type
@@ -13,7 +20,7 @@ const ALLOWED_MIME_TYPES = [
 
 const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"];
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB per file
 
 // Sanitize filename: remove path traversal, special chars
 function sanitizeFileName(name: string): string {
@@ -30,7 +37,7 @@ function validateFile(mimeType: string, size: number): { valid: boolean; error?:
     return { valid: false, error: `File type not allowed. Allowed: PDF, JPG, JPEG, PNG` };
   }
   if (size > MAX_FILE_SIZE) {
-    return { valid: false, error: `File size exceeds 10MB limit` };
+    return { valid: false, error: `File size exceeds 100MB limit` };
   }
   return { valid: true };
 }
@@ -41,21 +48,22 @@ export const storageRouter = createRouter({
     .input(z.object({ path: z.string().min(1) }))
     .query(async ({ input }) => {
       try {
-        const { data, error } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .createSignedUrl(input.path, SIGNED_URL_EXPIRY);
-
-        if (error || !data?.signedUrl) {
+        if (!isStorageConfigured()) {
           throw new TRPCError({
-            code: "NOT_FOUND",
-            message: error?.message || "Failed to generate signed URL",
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Storage not configured",
           });
         }
 
-        return { signedUrl: data.signedUrl, expiresIn: SIGNED_URL_EXPIRY };
+        const { signedUrl } = await storageCreateSignedUrl(input.path, SIGNED_URL_EXPIRY);
+
+        return { signedUrl, expiresIn: SIGNED_URL_EXPIRY };
       } catch (err: any) {
         console.error("[Storage] getSignedUrl error:", err.message);
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: err.message || "Failed to generate signed URL",
+        });
       }
     }),
 
@@ -73,6 +81,13 @@ export const storageRouter = createRouter({
     }))
     .mutation(async ({ input }) => {
       try {
+        if (!isStorageConfigured()) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Storage not configured",
+          });
+        }
+
         // Validate file
         const validation = validateFile(input.mimeType, input.fileSize);
         if (!validation.valid) {
@@ -81,28 +96,14 @@ export const storageRouter = createRouter({
 
         const sanitizedName = sanitizeFileName(input.fileName);
         const timestamp = Date.now();
-        const ext = sanitizedName.split(".").pop() || "bin";
         const storedName = `${timestamp}-${sanitizedName}`;
         const storagePath = `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
         // Decode base64 to Buffer
         const fileBuffer = Buffer.from(input.base64Data, "base64");
 
-        // Upload to Supabase
-        const { data, error } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .upload(storagePath, fileBuffer, {
-            contentType: input.mimeType,
-            upsert: false,
-          });
-
-        if (error) {
-          console.error("[Storage] Upload error:", error.message);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Upload failed: ${error.message}`,
-          });
-        }
+        // Upload via REST API
+        await storageUpload(storagePath, fileBuffer, input.mimeType);
 
         return {
           success: true,
@@ -122,16 +123,14 @@ export const storageRouter = createRouter({
     .input(z.object({ path: z.string().min(1) }))
     .mutation(async ({ input }) => {
       try {
-        const { error } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .remove([input.path]);
-
-        if (error) {
+        if (!isStorageConfigured()) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: `Delete failed: ${error.message}`,
+            message: "Storage not configured",
           });
         }
+
+        await storageDelete(input.path);
 
         return { success: true };
       } catch (err: any) {
@@ -155,6 +154,13 @@ export const storageRouter = createRouter({
     }))
     .mutation(async ({ input }) => {
       try {
+        if (!isStorageConfigured()) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Storage not configured",
+          });
+        }
+
         // Validate new file
         const validation = validateFile(input.mimeType, input.fileSize);
         if (!validation.valid) {
@@ -162,7 +168,7 @@ export const storageRouter = createRouter({
         }
 
         // Delete old file
-        await supabase.storage.from(STORAGE_BUCKET).remove([input.oldPath]);
+        await storageDelete(input.oldPath);
 
         // Upload new file
         const sanitizedName = sanitizeFileName(input.fileName);
@@ -172,19 +178,7 @@ export const storageRouter = createRouter({
 
         const fileBuffer = Buffer.from(input.base64Data, "base64");
 
-        const { error } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .upload(storagePath, fileBuffer, {
-            contentType: input.mimeType,
-            upsert: false,
-          });
-
-        if (error) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Replace upload failed: ${error.message}`,
-          });
-        }
+        await storageUpload(storagePath, fileBuffer, input.mimeType);
 
         return {
           success: true,

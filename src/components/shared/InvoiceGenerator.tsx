@@ -18,7 +18,8 @@ interface InvoiceData {
   stripePaymentIntentId?: string;
 }
 
-const VAT_RATE = 0.05;
+// VAT temporarily disabled until TRN is obtained
+// const VAT_RATE = 0.05;
 const DEFAULT_EXCHANGE_RATE = 3.6725;
 
 export function generateInvoicePDF(data: InvoiceData): jsPDF {
@@ -29,8 +30,8 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const exchangeRate = data.exchangeRate || DEFAULT_EXCHANGE_RATE;
   const totalUsd = data.totalAmountUsd;
   const totalAed = totalUsd * exchangeRate;
-  const subtotalAed = totalAed / (1 + VAT_RATE);
-  const vatAmountAed = totalAed - subtotalAed;
+  // No VAT breakdown - total is the final amount
+  const subtotalAed = totalAed;
 
   const goldColor = '#C9A04C';
   const darkColor = '#1A2332';
@@ -56,14 +57,15 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setTextColor(goldColor);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('TAX INVOICE', pageWidth - 15, 25, { align: 'right' });
+  doc.text('INVOICE', pageWidth - 15, 25, { align: 'right' });
 
   doc.setTextColor('#FFFFFF');
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(`Invoice #: ${data.invoiceNumber}`, pageWidth - 15, 32, { align: 'right' });
   doc.text(`Date: ${new Date(data.createdAt).toLocaleDateString('en-AE')}`, pageWidth - 15, 37, { align: 'right' });
-  doc.text(`TRN: TO-BE-ADDED`, pageWidth - 15, 42, { align: 'right' });
+  // TRN will be added once obtained from FTA
+  // doc.text(`TRN: XXXXXXXXXXXXXXXX`, pageWidth - 15, 42, { align: 'right' });
 
   // === BILL TO ===
   doc.setTextColor(darkColor);
@@ -114,9 +116,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     body: [
       [`${data.visaType} - ${data.processingType} Processing`, '1', `AED ${subtotalAed.toFixed(2)}`, `AED ${subtotalAed.toFixed(2)}`],
       ['', '', '', ''],
-      ['', '', 'Subtotal (excl. VAT):', `AED ${subtotalAed.toFixed(2)}`],
-      ['', '', 'VAT 5%:', `AED ${vatAmountAed.toFixed(2)}`],
-      ['', '', 'Total (incl. VAT):', `AED ${totalAed.toFixed(2)}`],
+      ['', '', 'Total:', `AED ${totalAed.toFixed(2)}`],
     ],
     headStyles: {
       fillColor: darkColor,

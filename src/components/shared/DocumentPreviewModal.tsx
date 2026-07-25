@@ -27,11 +27,14 @@ export default function DocumentPreviewModal({
   );
 
   useEffect(() => {
-    if (urlData?.signedUrl) {
-      setSignedUrl(urlData.signedUrl);
-      setLoading(false);
-    } else if (!isLoading && !urlData) {
-      setError("Failed to generate preview URL");
+    if (!isLoading) {
+      if (urlData?.signedUrl) {
+        setSignedUrl(urlData.signedUrl);
+        setError("");
+      } else {
+        setError("Failed to generate preview URL");
+        setSignedUrl(null);
+      }
       setLoading(false);
     }
   }, [urlData, isLoading]);

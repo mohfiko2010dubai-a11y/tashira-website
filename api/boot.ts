@@ -16,7 +16,7 @@ import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
-app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
+app.use(bodyLimit({ maxSize: 500 * 1024 * 1024 })); // 500MB total request
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
 
 // ===== INVOICE PDF ROUTES (must be BEFORE /api/trpc and catch-all) =====
@@ -168,6 +168,36 @@ app.get("/invoices/:invoiceNumber/download", async (c) => {
     console.error(`[Invoice] Read error: ${err.message}`);
     return c.json({ error: "Failed to read PDF" }, 500);
   }
+});
+
+// ===== LOCAL FILE STORAGE ROUTES =====
+const STORAGE_ROOT = "/var/www/tashira/storage/documents";
+app.get("/storage/*", async (c) => {
+  const filePath = c.req.path.replace("/storage/", "");
+  const fullPath = path.join(STORAGE_ROOT, filePath);
+
+  // Security: prevent path traversal
+  if (!fullPath.startsWith(STORAGE_ROOT)) {
+    return c.json({ error: "Invalid path" }, 400);
+  }
+
+  if (!fs.existsSync(fullPath)) {
+    return c.json({ error: "File not found" }, 404);
+  }
+
+  const ext = path.extname(fullPath).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    ".pdf": "application/pdf",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+  };
+  const contentType = mimeTypes[ext] || "application/octet-stream";
+
+  const fileBuffer = fs.readFileSync(fullPath);
+  c.header("Content-Type", contentType);
+  c.header("Cache-Control", "public, max-age=3600");
+  return c.body(fileBuffer);
 });
 
 // ===== tRPC ROUTES =====

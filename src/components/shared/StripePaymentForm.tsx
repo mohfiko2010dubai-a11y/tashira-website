@@ -2,9 +2,20 @@ import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { trpc } from '@/providers/trpc';
-import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle } from 'lucide-react';
+import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle, Loader2 } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
+
+// Google Ads Conversion Tracking
+function trackConversion(eventName: string, value?: number, currency?: string) {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    (window as any).gtag('event', eventName, {
+      send_to: 'AW-XXXXXXXXXX', // Replace with your Google Ads Conversion ID
+      value: value || 0,
+      currency: currency || 'USD',
+    });
+  }
+}
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -53,6 +64,8 @@ function PaymentFormInner({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Google Ads: Begin checkout conversion
+    trackConversion('begin_checkout', amount, currency);
     if (!stripe || !elements) return;
 
     setLoading(true);
@@ -88,6 +101,8 @@ function PaymentFormInner({
           referenceNumber,
           paymentIntentId: paymentIntent.id,
         });
+        // Google Ads: Purchase conversion (replace AW-XXXXXXXXXX with your real Conversion ID)
+        trackConversion('purchase', amount, currency);
         onSuccess(`INV-${referenceNumber}`);
       }
     } catch (err: any) {
@@ -182,6 +197,7 @@ export function PaymentSuccessModal({
 }) {
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "success" | "partial" | "failed">("idle");
   const [progress, setProgress] = useState<UploadProgress[]>([]);
+  const [uploadError, setUploadError] = useState("");
 
   const storageUpload = trpc.storage.upload.useMutation();
   const docCreate = trpc.document.create.useMutation();
@@ -190,6 +206,7 @@ export function PaymentSuccessModal({
     if (pendingFiles.length === 0) return;
 
     setUploadState("uploading");
+    setUploadError("");
     setProgress(
       pendingFiles.map((f) => ({
         fileName: f.file.name,
@@ -259,6 +276,7 @@ export function PaymentSuccessModal({
         uploaded++;
       } catch (err: any) {
         console.error(`[Upload] Failed for ${pf.file.name}:`, err.message);
+        setUploadError(err.message || "Upload failed. Please try again.");
         setProgress((prev) => {
           const updated = [...prev];
           updated[i] = { fileName: pf.file.name, status: "failed", progress: 0 };
@@ -268,7 +286,11 @@ export function PaymentSuccessModal({
       }
     }
 
-    if (failed === 0) setUploadState("success");
+    if (failed === 0) {
+      setUploadState("success");
+      // Google Ads: Document upload conversion
+      trackConversion('submit_application');
+    }
     else if (uploaded > 0) setUploadState("partial");
     else setUploadState("failed");
   };
@@ -352,6 +374,11 @@ export function PaymentSuccessModal({
       {/* Upload Progress */}
       {uploadState === "uploading" && progress.length > 0 && (
         <div className="space-y-2 text-left">
+          {uploadError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-xs text-red-600 mb-2">
+              Error: {uploadError}
+            </div>
+          )}
           <h4 className="text-sm font-semibold text-gray-700">Uploading Documents...</h4>
           {progress.map((p, i) => (
             <div key={i} className="flex items-center gap-2 text-xs">

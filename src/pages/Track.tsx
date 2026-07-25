@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Search, CheckCircle, ArrowRight } from 'lucide-react';
@@ -56,6 +57,15 @@ export default function Track() {
   const getStatusIndex = (status: string) => statusSteps.indexOf(status as any);
 
   return (
+    <>
+      <Helmet>
+        <title>Track UAE Visa Application | Check Visa Status | Tashira</title>
+        <meta name="description" content="Track your UAE visa application status online. Enter your reference number and check your Dubai visa status in real-time." />
+        <link rel="canonical" href="https://tashiraev.com/track" />
+        <meta property="og:title" content="Track UAE Visa Application | Check Visa Status | Tashira" />
+        <meta property="og:description" content="Track your UAE visa application status online." />
+        <meta property="og:url" content="https://tashiraev.com/track" />
+      </Helmet>
     <div className="min-h-screen">
       {/* Page Header */}
       <div
@@ -163,5 +173,6 @@ export default function Track() {
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -48,6 +48,8 @@ export default function Footer() {
             <p className="text-sm text-gray-400 leading-relaxed mb-5">
               {t('footer.description')}
             </p>
+            {/* Social media links hidden - will be enabled when accounts are created */}
+            {/*
             <div className="flex gap-2">
               {['FB', 'IG', 'LI'].map((social) => (
                 <a
@@ -59,6 +61,7 @@ export default function Footer() {
                 </a>
               ))}
             </div>
+            */}
           </div>
 
           {/* Quick Links */}
@@ -111,15 +114,19 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-sm text-gray-400">
                 <Phone size={13} className="text-[#C9A04C] shrink-0" />
-                <span>+971 50 210 1784</span>
+                <a href="tel:+971502101784" className="hover:text-[#C9A04C] transition-colors">
+                  +971 50 210 1784
+                </a>
               </li>
               <li className="flex items-center gap-2.5 text-sm text-gray-400">
                 <Phone size={13} className="text-emerald-500 shrink-0" />
-                <span>+971 58 989 6644 (WhatsApp)</span>
+                <a href="https://wa.me/971589896644" target="_blank" rel="noopener noreferrer" className="hover:text-[#C9A04C] transition-colors">
+                  +971 58 989 6644 (WhatsApp)
+                </a>
               </li>
               <li className="flex items-center gap-2.5 text-sm text-gray-400">
                 <Mail size={13} className="text-[#C9A04C] shrink-0" />
-                <span>info@tashira.me</span>
+                <span>admin@tashiraev.com</span>
               </li>
               <li className="flex items-start gap-2.5 text-sm text-gray-400">
                 <MapPin size={13} className="text-[#C9A04C] shrink-0 mt-0.5" />

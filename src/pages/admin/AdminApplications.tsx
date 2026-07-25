@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import {
   Search, Eye, LogOut, Filter, RefreshCw, Building2,
   Download, Calendar, DollarSign, Users, TrendingUp, UserCircle, Edit3,
-  FileText, Receipt, Percent, FolderOpen,
+  FileText, Receipt, Percent, FolderOpen, MessageSquare,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -97,6 +97,10 @@ export default function AdminApplications() {
       <header className="bg-[#1A2332] text-white px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3"><h1 className="text-lg font-bold">TASHIRA Admin</h1></div>
         <div className="flex items-center gap-3">
+          <Link to="/admin/chat" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors relative">
+            <MessageSquare size={14} /> Chat Inbox
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1 rounded-full">NEW</span>
+          </Link>
           <Link to="/admin/invoices" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Receipt size={14} /> Customer Invoices
           </Link>
@@ -115,7 +119,7 @@ export default function AdminApplications() {
           <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <RefreshCw size={14} /> Refresh
           </button>
-          <button onClick={logout} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => { logout(); window.location.href = '/admin/login'; }} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <LogOut size={14} /> Logout
           </button>
         </div>

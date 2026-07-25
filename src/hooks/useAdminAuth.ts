@@ -1,18 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const ADMIN_AUTH_KEY = 'tashira_admin_auth';
 
 export function useAdminAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const auth = localStorage.getItem(ADMIN_AUTH_KEY);
-    if (auth === 'true') {
-      setIsAuthenticated(true);
-    }
-    setIsLoading(false);
-  }, []);
+  // Read localStorage synchronously in initial state (no async gap)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem(ADMIN_AUTH_KEY) === 'true';
+  });
+  const isLoading = false; // Sync read — no loading delay
 
   const login = (password: string): boolean => {
     // Admin password from env - in production this should be server-side

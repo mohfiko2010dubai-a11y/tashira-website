@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Check, Clock, Calendar } from 'lucide-react';
@@ -11,6 +12,15 @@ export default function Pricing() {
   const navigate = useNavigate();
 
   return (
+    <>
+      <Helmet>
+        <title>UAE Visa Prices 2026 | Dubai Visa Cost | Tashira</title>
+        <meta name="description" content="Check UAE visa prices 2026. Tourist visa, transit visa, GCC resident visa pricing. Regular & express processing. Transparent pricing, no hidden fees." />
+        <link rel="canonical" href="https://tashiraev.com/visa-prices" />
+        <meta property="og:title" content="UAE Visa Prices 2026 | Dubai Visa Cost | Tashira" />
+        <meta property="og:description" content="Check UAE visa prices. Tourist, transit, GCC resident visas. Transparent pricing." />
+        <meta property="og:url" content="https://tashiraev.com/visa-prices" />
+      </Helmet>
     <div className="min-h-screen">
       {/* Page Header */}
       <div
@@ -114,5 +124,6 @@ export default function Pricing() {
         </div>
       </div>
     </div>
+    </>
   );
 }
