@@ -267,16 +267,23 @@ export const chatRouter = createRouter({
           
           // Create application in database
           try {
+            const totalAmount = session.totalAmount || 170;
+            const exchangeRate = 3.6725;
+            const totalAmountAed = totalAmount * exchangeRate;
+            
             await db.insert(applications).values({
               referenceNumber: session.referenceNumber,
-              status: "documents_pending",
+              baseType: "single",
+              residenceType: "non-gcc",
               visaType: session.visaType || "30 Days",
-              processingType: session.processingType || "Regular",
+              processingType: (session.processingType || "Regular").toLowerCase(),
               totalApplicants: session.applicantCount || 1,
-              contactName: session.visitorName || "Chat User",
               contactEmail: session.visitorEmail || "chat@tashiraev.com",
               contactPhone: session.visitorPhone || "",
-              totalAmount: session.totalAmount || 170,
+              totalAmountAed: String(totalAmountAed),
+              totalAmountUsd: String(totalAmount),
+              exchangeRate: String(exchangeRate),
+              status: "documents_pending",
               paymentStatus: "pending",
               createdAt: new Date(),
               updatedAt: new Date(),

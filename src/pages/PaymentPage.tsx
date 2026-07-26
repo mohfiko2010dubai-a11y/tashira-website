@@ -216,7 +216,7 @@ export default function PaymentPage() {
     : (typeof app.totalAmountAed === 'string' ? parseFloat(app.totalAmountAed) / 3.67 : 0);
   
   const amount = dbAmount > 0 ? dbAmount : calculatedAmount;
-  const applicantName = app.contactName || 'Applicant';
+  const applicantName = app.contactEmail ? app.contactEmail.split('@')[0] : 'Applicant';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FAFAF7] to-white">
