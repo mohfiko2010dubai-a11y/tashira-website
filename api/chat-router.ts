@@ -67,6 +67,29 @@ const VISA_PRICES: Record<string, number> = {
 };
 
 // Step messages
+// Validation functions
+function validateName(name: string): boolean {
+  // At least 2 characters, letters, spaces, and Arabic characters only
+  return /^[\p{L}\s]{2,}$/u.test(name.trim());
+}
+
+function validateEmail(email: string): boolean {
+  // Proper email format
+  return /^[\w.-]+@[\w.-]+\.\w{2,}$/.test(email.trim());
+}
+
+function validatePhone(phone: string): boolean {
+  // International format: + followed by 7-15 digits
+  return /^\+?\d{7,15}$/.test(phone.replace(/\s/g, ''));
+}
+
+function validateDocuments(docs: { type: string; path: string }[]): { valid: boolean; missing: string[] } {
+  const required = ['passport', 'photo'];
+  const uploadedTypes = docs.map(d => d.type.toLowerCase());
+  const missing = required.filter(r => !uploadedTypes.some(u => u.includes(r)));
+  return { valid: missing.length === 0, missing };
+}
+
 function getStepMessage(step: number, lang: 'en' | 'ar' = 'en'): string {
   const messages: Record<number, { en: string; ar: string }> = {
     0: {
@@ -78,16 +101,28 @@ function getStepMessage(step: number, lang: 'en' | 'ar' = 'en'): string {
       ar: `✅ اختيار ممتاز!\n\nكام شخص عايز تأشيرة؟ (1, 2, 3...)`,
     },
     2: {
-      en: `📎 Now I need some documents.\n\nPlease upload:\n1. Passport copy (photo page)\n2. Passport photo (white background, no glasses)\n\nYou can upload multiple files.`,
-      ar: `📎 محتاج بعض المستندات.\n\nارفع لو سمحت:\n1. صورة الجواز\n2. صورة شخصية (خلفية بيضاء، من غير نظارة)\n\nتقدر ترفع أكتر من ملف.`,
+      en: `📎 Now I need some documents.\n\nPlease upload:\n1. 📄 Passport copy (photo page)\n2. 🖼️ Passport photo (white background, no glasses)\n\n⚠️ Both documents are required.`,
+      ar: `📎 محتاج بعض المستندات.\n\nارفع لو سمحت:\n1. 📄 صورة الجواز\n2. 🖼️ صورة شخصية (خلفية بيضاء، من غير نظارة)\n\n⚠️ المستندين مطلوبين.`,
     },
     3: {
       en: `✅ Documents received!\n\nProcessing Options:\n• Regular (3-4 days) - No extra cost\n• Express (24-36 hours) - +$40\n\nWhich processing type?`,
       ar: `✅ استلمت المستندات!\n\nخيارات المعالجة:\n• عادي (3-4 أيام) - بدون تكلفة إضافية\n• سريع (24-36 ساعة) - +$40\n\nإيه نوع المعالجة اللي عايزها؟`,
     },
     4: {
-      en: `📝 Almost done! Please provide:\n\n1. Your full name\n2. Email address\n3. Phone number`,
-      ar: `📝 خلاص! أبعتلي:\n\n1. الاسم الكامل\n2. الإيميل\n3. رقم التلفون`,
+      en: `📝 Please enter your **full name** (as it appears on your passport).`,
+      ar: `📝 اكتب **اسمك الكامل** (زي ما هو مكتوب في الجواز).`,
+    },
+    5: {
+      en: `📧 Now enter your **email address** (e.g., name@example.com).`,
+      ar: `📧 دلوقتي اكتب **الإيميل** (مثلاً: name@example.com).`,
+    },
+    6: {
+      en: `📱 Finally, enter your **phone number** with country code (e.g., +971501234567).`,
+      ar: `📱 أخيراً، اكتب **رقم التلفون** مع كود الدولة (مثلاً: +971501234567).`,
+    },
+    7: {
+      en: `⏳ Please wait while I prepare your application...`,
+      ar: `⏳ استنى شوية بجهز طلبك...`,
     },
   };
   return messages[step]?.[lang] || messages[step]?.en || "";
@@ -218,22 +253,31 @@ export const chatRouter = createRouter({
           
         case 1: // Number of applicants
           const count = extractApplicantCount(input.message);
-          if (count && count > 0) {
+          if (count && count > 0 && count <= 20) {
             session.applicantCount = count;
             session.applicantIndex = 1;
             session.step = 2;
             reply = getStepMessage(2, lang);
           } else {
             reply = lang === 'ar'
-              ? "❌ رقم غلط. اكتب عدد الأشخاص (1, 2, 3...)"
-              : "❌ Invalid number. Please enter how many applicants (1, 2, 3...)";
+              ? "❌ رقم غلط. اكتب عدد الأشخاص من 1 لـ 20"
+              : "❌ Invalid number. Please enter how many applicants (1-20)";
           }
           break;
           
         case 2: // Document upload (handled separately via upload endpoint)
-          reply = lang === 'ar'
-            ? "📎 ارسل المستندات من زر الـ 📎 تحت"
-            : "📎 Please upload your documents using the 📎 button below";
+          // Check if enough documents uploaded
+          const docCheck = validateDocuments(session.documents);
+          if (docCheck.valid) {
+            // Documents are sufficient, move to processing type
+            session.step = 3;
+            reply = getStepMessage(3, lang);
+          } else {
+            const missingList = docCheck.missing.map(m => m === 'passport' ? 'Passport copy' : 'Passport photo').join(', ');
+            reply = lang === 'ar'
+              ? `⚠️ لسة محتاج: ${missingList}\n\nارفع المستندات المطلوبة:`
+              : `⚠️ Still need: ${missingList}\n\nPlease upload the required documents:`;
+          }
           break;
           
         case 3: // Processing type
@@ -256,41 +300,68 @@ export const chatRouter = createRouter({
           }
           break;
           
-        case 4: // Contact info + create application
-          const contactInfo = extractContactInfo(input.message);
-          if (contactInfo.name) session.visitorName = contactInfo.name;
-          if (contactInfo.email) session.visitorEmail = contactInfo.email;
-          if (contactInfo.phone) session.visitorPhone = contactInfo.phone;
-          
-          // Generate reference number
-          session.referenceNumber = generateReferenceNumber();
-          
-          // Create application in database
-          try {
-            const totalAmount = session.totalAmount || 170;
-            const exchangeRate = 3.6725;
-            const totalAmountAed = totalAmount * exchangeRate;
-            
-            await db.insert(applications).values({
-              referenceNumber: session.referenceNumber,
-              baseType: "single",
-              residenceType: "non-gcc",
-              visaType: session.visaType || "30 Days",
-              processingType: (session.processingType || "Regular").toLowerCase(),
-              totalApplicants: session.applicantCount || 1,
-              contactEmail: session.visitorEmail || "chat@tashiraev.com",
-              contactPhone: session.visitorPhone || "",
-              totalAmountAed: String(totalAmountAed),
-              totalAmountUsd: String(totalAmount),
-              exchangeRate: String(exchangeRate),
-              status: "documents_pending",
-              paymentStatus: "pending",
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
-          } catch (err) {
-            console.error("[Chat] Failed to create application:", err);
+        case 4: // Ask for full name
+          const name = input.message.trim();
+          if (validateName(name)) {
+            session.visitorName = name;
+            session.step = 5;
+            reply = getStepMessage(5, lang);
+          } else {
+            reply = lang === 'ar'
+              ? "❌ الاسم غير صالح. اكتب اسمك الحقيقي (حروف فقط)."
+              : "❌ Invalid name. Please enter your real full name (letters only).";
           }
+          break;
+          
+        case 5: // Ask for email
+          const email = input.message.trim();
+          if (validateEmail(email)) {
+            session.visitorEmail = email;
+            session.step = 6;
+            reply = getStepMessage(6, lang);
+          } else {
+            reply = lang === 'ar'
+              ? "❌ الإيميل غير صالح. جرب تاني (مثلاً: name@example.com)"
+              : "❌ Invalid email. Please try again (e.g., name@example.com)";
+          }
+          break;
+          
+        case 6: // Ask for phone
+          const phone = input.message.trim();
+          if (validatePhone(phone)) {
+            session.visitorPhone = phone;
+            session.step = 7;
+            reply = getStepMessage(7, lang);
+            
+            // Create application in database
+            try {
+              const totalAmount = session.totalAmount || 170;
+              const exchangeRate = 3.6725;
+              const totalAmountAed = totalAmount * exchangeRate;
+              
+              // Generate reference number
+              session.referenceNumber = generateReferenceNumber();
+              
+              await db.insert(applications).values({
+                referenceNumber: session.referenceNumber,
+                baseType: "single",
+                residenceType: "non-gcc",
+                visaType: session.visaType || "30 Days",
+                processingType: (session.processingType || "Regular").toLowerCase(),
+                totalApplicants: session.applicantCount || 1,
+                contactEmail: session.visitorEmail,
+                contactPhone: session.visitorPhone,
+                totalAmountAed: String(totalAmountAed),
+                totalAmountUsd: String(totalAmount),
+                exchangeRate: String(exchangeRate),
+                status: "documents_pending",
+                paymentStatus: "pending",
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              });
+            } catch (err) {
+              console.error("[Chat] Failed to create application:", err);
+            }
           
           // Generate payment link - always create the link
           const refNum = session.referenceNumber || 'unknown';
@@ -362,11 +433,14 @@ export const chatRouter = createRouter({
           isRead: "unread",
         });
         
-        // Check if all documents uploaded
-        if (session.documents.length >= 2) {
+        // Check if all required documents are uploaded
+        const docCheck = validateDocuments(session.documents);
+        if (docCheck.valid) {
           session.step = 3;
           const lang = detectLanguage(session.visaType || "");
-          const reply = getStepMessage(3, lang);
+          const reply = lang === 'ar'
+            ? `✅ تمام! استلمت كل المستندات.\n\nخيارات المعالجة:\n• عادي (3-4 أيام)\n• سريع (24-36 ساعة) - +$40\n\nاختار نوع المعالجة:`
+            : `✅ All documents received!\n\nProcessing Options:\n• Regular (3-4 days)\n• Express (24-36 hours) - +$40\n\nChoose processing type:`;
           
           await db.insert(chatMessages).values({
             sessionId: input.sessionId,
@@ -377,7 +451,14 @@ export const chatRouter = createRouter({
           return { success: true, reply, step: 3 };
         }
         
-        return { success: true, message: "Document uploaded", step: session.step };
+        // Not all documents yet
+        const missingList = docCheck.missing.map(m => m === 'passport' ? 'Passport copy' : 'Passport photo').join(', ');
+        const lang = detectLanguage(session.visaType || "");
+        const reply = lang === 'ar'
+          ? `📎 تم الرفع. لسة محتاج: ${missingList}`
+          : `📎 Uploaded. Still need: ${missingList}`;
+        
+        return { success: true, message: reply, step: session.step };
       } catch (err) {
         console.error("[Chat Upload] Failed:", err);
         return { success: false, error: "Upload failed" };
