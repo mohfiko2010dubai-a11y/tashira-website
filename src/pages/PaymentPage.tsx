@@ -8,7 +8,7 @@ import {
   Shield, Clock, FileText, ArrowLeft
 } from 'lucide-react';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 function PaymentForm({ referenceNumber, amount, visaType, applicantName }: {
   referenceNumber: string;
@@ -23,6 +23,7 @@ function PaymentForm({ referenceNumber, amount, visaType, applicantName }: {
   const [success, setSuccess] = useState(false);
 
   const confirmPayment = trpc.payment.confirm.useMutation();
+  const createIntent = trpc.payment.createIntent.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,18 +33,24 @@ function PaymentForm({ referenceNumber, amount, visaType, applicantName }: {
     setError('');
 
     try {
-      // Create payment intent
-      const { clientSecret } = await fetch('/api/trpc/payment.createIntent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          json: {
-            referenceNumber,
-            amount,
-            currency: 'usd',
-          }
-        }),
-      }).then(r => r.json()).then(d => d.result.data.json);
+      // Convert amount from dollars to cents for Stripe
+      const amountInCents = Math.round(amount * 100);
+      
+      // Create payment intent via tRPC
+      const result = await createIntent.mutateAsync({
+        referenceNumber,
+        amount: amountInCents,
+        currency: 'usd',
+      });
+
+      if ('error' in result && result.error) {
+        throw new Error(result.error);
+      }
+
+      const clientSecret = result.clientSecret;
+      if (!clientSecret) {
+        throw new Error('Failed to initialize payment');
+      }
 
       // Confirm card payment
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
