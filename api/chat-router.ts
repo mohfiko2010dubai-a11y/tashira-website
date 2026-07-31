@@ -326,12 +326,11 @@ export const chatRouter = createRouter({
           }
           break;
           
-        case 6: // Ask for phone
+        case 6: { // Ask for phone - wrapped in block for scope
           const phone = input.message.trim();
           if (validatePhone(phone)) {
             session.visitorPhone = phone;
             session.step = 7;
-            reply = getStepMessage(7, lang);
             
             // Create application in database
             try {
@@ -362,24 +361,30 @@ export const chatRouter = createRouter({
             } catch (err) {
               console.error("[Chat] Failed to create application:", err);
             }
-          
-          // Generate payment link - always create the link
-          const refNum = session.referenceNumber || 'unknown';
-          const paymentLink = 'https://tashiraev.com/pay/' + refNum;
-          
-          reply = lang === 'ar'
-            ? `✅ تمام! طلبك اتسجل.\n\n📋 رقم الطلب: ${session.referenceNumber}\n💰 المبلغ: $${session.totalAmount}\n\nادفع من هنا:\n${paymentLink}\n\nلو عندك أي سؤال، فريقنا جاهز يساعدك على واتساب +971 58 989 6644`
-            : `✅ Done! Your application has been registered.\n\n📋 Reference: ${session.referenceNumber}\n💰 Amount: $${session.totalAmount}\n\nPay here:\n${paymentLink}\n\nIf you have any questions, our team is ready to help on WhatsApp +971 58 989 6644`;
-          
-          // Reset for next conversation
-          session.step = 0;
-          session.documents = [];
-          
-          // Send WhatsApp notification
-          await sendWhatsAppNotification(
-            `🚨 New Chat Application!\nRef: ${session.referenceNumber}\nName: ${session.visitorName}\nVisa: ${session.visaType}\nAmount: $${session.totalAmount}\nPay: ${paymentLink}`
-          );
+            
+            // Generate payment link
+            const refNum = session.referenceNumber || 'unknown';
+            const paymentLink = 'https://tashiraev.com/pay/' + refNum;
+            
+            reply = lang === 'ar'
+              ? `✅ تمام! طلبك اتسجل.\n\n📋 رقم الطلب: ${session.referenceNumber}\n💰 المبلغ: $${session.totalAmount}\n\nادفع من هنا:\n${paymentLink}\n\nلو عندك أي سؤال، فريقنا جاهز يساعدك على واتساب +971 58 989 6644`
+              : `✅ Done! Your application has been registered.\n\n📋 Reference: ${session.referenceNumber}\n💰 Amount: $${session.totalAmount}\n\nPay here:\n${paymentLink}\n\nIf you have any questions, our team is ready to help on WhatsApp +971 58 989 6644`;
+            
+            // Reset for next conversation
+            session.step = 0;
+            session.documents = [];
+            
+            // Send WhatsApp notification
+            await sendWhatsAppNotification(
+              `🚨 New Chat Application!\nRef: ${session.referenceNumber}\nName: ${session.visitorName}\nVisa: ${session.visaType}\nAmount: $${session.totalAmount}\nPay: ${paymentLink}`
+            );
+          } else {
+            reply = lang === 'ar'
+              ? "❌ رقم التلفون غير صالح. اكتب الرقم مع كود الدولة (مثلاً: +971501234567)"
+              : "❌ Invalid phone. Please enter with country code (e.g., +971501234567)";
+          }
           break;
+        }
           
         default:
           // Fallback to AI
