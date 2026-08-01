@@ -317,8 +317,22 @@ export default function ChatBot() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Detect document type from filename
+    const fileName = file.name.toLowerCase();
+    let docType = 'Document';
+    if (fileName.includes('passport') || fileName.includes('جواز')) {
+      docType = 'Passport copy';
+    } else if (fileName.includes('photo') || fileName.includes('صورة') || fileName.includes('pic')) {
+      docType = 'Passport photo';
+    } else {
+      // Ask user to specify - default based on what's missing
+      const hasPassport = uploadedDocs.some(d => d.toLowerCase().includes('passport'));
+      docType = hasPassport ? 'Passport photo' : 'Passport copy';
+    }
+    
     addUserMessage(`📎 Uploaded: ${file.name}`);
-    handleDocUpload();
+    handleDocUpload(docType);
     e.target.value = '';
   };
 
