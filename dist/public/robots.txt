@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /staff/
+Disallow: /dashboard/
+Disallow: /login
+
+Sitemap: https://tashiraev.com/sitemap.xml
+
+# Crawl rate
+Crawl-delay: 1
