@@ -37,7 +37,7 @@ export const wizardRouter = createRouter({
         baseType: input.applicantCount > 1 ? "family" : "single",
         residenceType: input.residenceStatus.toLowerCase().includes("gcc citizen with") ? "gcc-accompany" :
           input.residenceStatus.toLowerCase().includes("accompanying gcc") ? "non-gcc-accompany" :
-          input.residenceStatus.toLowerCase().includes("gcc") ? "gcc-resident" : "non-gcc",
+          input.residenceStatus.toLowerCase().startsWith("gcc") ? "gcc-resident" : "non-gcc",
         visaType: input.visaType,
         processingType: input.processingType.toLowerCase(),
         totalApplicants: input.applicantCount,
