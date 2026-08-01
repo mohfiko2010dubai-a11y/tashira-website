@@ -26,10 +26,11 @@ const server = http.createServer((req, res) => {
       }
       
       console.log('[Webhook] Deploy triggered at', new Date().toISOString());
+      console.log('[Webhook] Running in cwd:', require('process').cwd());
       
       exec(
-        'cd /var/www/tashira && git pull origin main && npm run build && pm2 restart tashira',
-        { timeout: 120000 },
+        'cd /var/www/tashira && git fetch origin main && git reset --hard origin/main && npm run build && pm2 restart tashira',
+        { timeout: 120000, cwd: '/var/www/tashira' },
         (error, stdout, stderr) => {
           if (error) {
             console.error('[Webhook] Error:', error);
