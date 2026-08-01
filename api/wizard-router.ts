@@ -24,10 +24,13 @@ export const wizardRouter = createRouter({
       totalAmount: z.number().min(0),
     }))
     .mutation(async ({ input }) => {
+      console.log("[Wizard] Received application:", input.referenceNumber);
       try {
         const db = getDb();
+        console.log("[Wizard] DB connected");
         const exchangeRate = 3.6725;
         const totalAed = input.totalAmount * exchangeRate;
+        console.log("[Wizard] Calculating AED:", totalAed);
 
         await db.insert(applications).values({
         referenceNumber: input.referenceNumber,
