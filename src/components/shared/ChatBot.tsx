@@ -111,6 +111,8 @@ export default function ChatBot() {
   const [sessionId] = useState(() => 'chat_' + Math.random().toString(36).slice(2));
   const [docStep, setDocStep] = useState(0); // 0=passport_copy, 1=passport_cover, 2=passport_photo
 
+  const submitMutation = trpc.wizard.submitApplication.useMutation();
+
   const [wizard, setWizard] = useState<Wizard>({
     step: 'welcome',
     whoTraveling: '',
@@ -417,12 +419,33 @@ export default function ChatBot() {
         if (msg.toLowerCase() === 'confirm') {
           const refNum = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
           const payLink = 'https://tashiraev.com/pay/' + refNum;
+
+          // Submit to backend
+          submitMutation.mutate({
+            referenceNumber: refNum,
+            fullName: w.fullName,
+            nationality: w.nationality,
+            passportNumber: w.passportNumber,
+            passportExpiry: w.passportExpiry,
+            profession: w.profession,
+            countryFrom: w.countryFrom,
+            arrivalDate: w.arrivalDate,
+            email: w.email,
+            phone: w.phone,
+            visaType: w.visaType,
+            processingType: w.processingType,
+            residenceStatus: w.residenceStatus,
+            whoTraveling: w.whoTraveling,
+            applicantCount: w.applicantCount,
+            totalAmount: w.totalAmount,
+          });
+
           advance({
             step: 'payment',
             referenceNumber: refNum,
             paymentLink: payLink,
           },
-            `✅ Application confirmed!\n\n` +
+            `✅ Application confirmed and saved!\n\n` +
             `📋 Reference: **${refNum}**\n` +
             `💰 Total: **$${w.totalAmount}**\n\n` +
             `**Pay Now:**\n${payLink}`);

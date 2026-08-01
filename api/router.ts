@@ -8,6 +8,7 @@ import { supplierRouter } from "./supplier-router";
 import { staffRouter } from "./staff-router";
 import { storageRouter } from "./storage-router";
 import { documentRouter } from "./document-router";
+import { wizardRouter } from "./wizard-router";
 import { createRouter } from "./middleware";
 
 export const appRouter = createRouter({
@@ -15,6 +16,7 @@ export const appRouter = createRouter({
   application: applicationRouter,
   payment: paymentRouter,
   chat: chatRouter,
+  wizard: wizardRouter,
   drive: driveRouter,
   invoice: invoiceRouter,
   supplier: supplierRouter,
