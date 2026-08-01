@@ -24,14 +24,17 @@ export const wizardRouter = createRouter({
       totalAmount: z.number().min(0),
     }))
     .mutation(async ({ input }) => {
-      const db = getDb();
-      const exchangeRate = 3.6725;
-      const totalAed = input.totalAmount * exchangeRate;
+      try {
+        const db = getDb();
+        const exchangeRate = 3.6725;
+        const totalAed = input.totalAmount * exchangeRate;
 
-      await db.insert(applications).values({
+        await db.insert(applications).values({
         referenceNumber: input.referenceNumber,
         baseType: input.applicantCount > 1 ? "multiple" : "single",
-        residenceType: input.residenceStatus.toLowerCase().includes("gcc") ? "gcc" : "non-gcc",
+        residenceType: input.residenceStatus.toLowerCase().includes("gcc citizen with") ? "gcc-accompany" :
+          input.residenceStatus.toLowerCase().includes("accompanying gcc") ? "non-gcc-accompany" :
+          input.residenceStatus.toLowerCase().includes("gcc") ? "gcc-resident" : "non-gcc",
         visaType: input.visaType,
         processingType: input.processingType.toLowerCase(),
         totalApplicants: input.applicantCount,
@@ -46,6 +49,10 @@ export const wizardRouter = createRouter({
         updatedAt: new Date(),
       });
 
-      return { success: true, referenceNumber: input.referenceNumber };
+        return { success: true, referenceNumber: input.referenceNumber };
+      } catch (error: any) {
+        console.error("[Wizard] Failed to save application:", error.message);
+        throw new Error(`Failed to save application: ${error.message}`);
+      }
     }),
 });
