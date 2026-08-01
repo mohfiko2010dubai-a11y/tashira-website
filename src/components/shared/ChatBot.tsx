@@ -40,7 +40,7 @@ const PROCESSING_OPTIONS = [
   { label: 'Express (24-36h)', labelAr: 'سريع (٢٤-٣٦ ساعة)', price: 40, emoji: '⚡' },
 ];
 
-const APPLICANT_COUNTS = [1, 2, 3, 4, 5];
+const APPLICANT_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
 // Linkify text - convert URLs to clickable links
 function LinkifyText({ text, isUser }: { text: string; isUser: boolean }) {
@@ -110,9 +110,9 @@ export default function ChatBot() {
       addBotMessage(
         '👋 Hi! Welcome to Tashira Visa Portal!\n\n' +
         'I\'m your visa assistant. Let me help you apply for a UAE visa.\n\n' +
-        'First, what\'s your name?'
+        'Please select your visa type below:'
       );
-      setWizard(w => ({ ...w, step: 'collect_name' }));
+      setWizard(w => ({ ...w, step: 'show_visa_menu' }));
     }
   }, [open]);
 
@@ -136,32 +136,61 @@ export default function ChatBot() {
     setLoading(true);
 
     switch (wizard.step) {
-      case 'collect_name':
+      case 'collect_name': {
+        // Validate name - letters only, at least 2 characters
+        if (!/[\p{L}\s]{2,}/u.test(msg.trim())) {
+          setTimeout(() => {
+            addBotMessage('❌ Please enter your real full name (letters only, at least 2 characters).');
+            setLoading(false);
+          }, 500);
+          break;
+        }
         setWizard(w => ({ ...w, name: msg, step: 'collect_email' }));
         setTimeout(() => {
-          addBotMessage(`Nice to meet you, ${msg}! ✨\n\nWhat's your email address?`);
+          addBotMessage(`Nice to meet you, ${msg}! ✨\n\nWhat's your email address? (e.g. name@example.com)`);
           setLoading(false);
         }, 500);
         break;
+      }
 
-      case 'collect_email':
+      case 'collect_email': {
+        // Validate email format
+        if (!/[\w.-]+@[\w.-]+\.\w{2,}/.test(msg.trim())) {
+          setTimeout(() => {
+            addBotMessage('❌ Invalid email. Please enter a valid email address (e.g. name@example.com)');
+            setLoading(false);
+          }, 500);
+          break;
+        }
         setWizard(w => ({ ...w, email: msg, step: 'collect_phone' }));
         setTimeout(() => {
-          addBotMessage('Great! 📧\n\nAnd your phone number? (with country code, e.g. +971...)');
+          addBotMessage('Great! 📧\n\nAnd your phone number? (with country code, e.g. +971501234567)');
           setLoading(false);
         }, 500);
         break;
+      }
 
-      case 'collect_phone':
-        setWizard(w => ({ ...w, phone: msg, step: 'show_visa_menu' }));
+      case 'collect_phone': {
+        // Validate phone - 7-15 digits, optional + prefix
+        if (!/^\+?\d{7,15}$/.test(msg.replace(/\s/g, ''))) {
+          setTimeout(() => {
+            addBotMessage('❌ Invalid phone number. Please enter with country code (e.g. +971501234567)');
+            setLoading(false);
+          }, 500);
+          break;
+        }
+        setWizard(w => ({ ...w, phone: msg, step: 'upload_docs' }));
         setTimeout(() => {
           addBotMessage(
-            'Perfect! 📱 Now let\'s choose your visa type:\n\n' +
-            VISA_OPTIONS.map(v => `${v.emoji} ${v.label} - $${v.price}`).join('\n')
+            'Perfect! 📱\n\nNow please upload your documents:\n\n' +
+            '📄 Passport copy (photo page)\n' +
+            '🖼️ Passport photo (white background)\n\n' +
+            'Click the 📎 button below to upload.'
           );
           setLoading(false);
         }, 500);
         break;
+      }
 
       default:
         setLoading(false);
@@ -214,8 +243,30 @@ export default function ChatBot() {
     }, 500);
   };
 
-  const handleDocUpload = () => {
-    addBotMessage('✅ Documents received!');
+  const [uploadedDocs, setUploadedDocs] = useState<string[]>([]);
+
+  const handleDocUpload = (docType: string) => {
+    setUploadedDocs(prev => [...prev, docType]);
+    addBotMessage(`✅ ${docType} uploaded!`);
+
+    // Check if we have both required documents
+    const hasPassport = uploadedDocs.some(d => d.toLowerCase().includes('passport')) || docType.toLowerCase().includes('passport');
+    const hasPhoto = uploadedDocs.some(d => d.toLowerCase().includes('photo')) || docType.toLowerCase().includes('photo');
+    
+    if (!hasPassport || !hasPhoto) {
+      const missing = [];
+      if (!hasPassport) missing.push('📄 Passport copy');
+      if (!hasPhoto) missing.push('🖼️ Passport photo');
+      
+      setTimeout(() => {
+        addBotMessage(`⚠️ Still needed:\n${missing.join('\n')}\n\nPlease upload the remaining document(s).`);
+        setLoading(false);
+      }, 500);
+      return;
+    }
+
+    // Both documents received - proceed
+    addBotMessage('✅ All documents received!');
 
     // Calculate total
     const visa = VISA_OPTIONS.find(v => v.label === wizard.visaType);
