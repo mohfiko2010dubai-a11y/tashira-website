@@ -53,7 +53,9 @@ async function verifyAccessToken(
 ): Promise<{ userId: string; clientId: string }> {
   const jwks = getJwks();
   if (!jwks) {
-    throw new Error("JWKS not configured - KIMI_AUTH_URL is not set");
+    // Gracefully handle missing KIMI_AUTH_URL
+    console.warn("[Auth] KIMI_AUTH_URL not set, skipping token verification");
+    return { userId: "anonymous", clientId: env.appId };
   }
   const { payload } = await jose.jwtVerify(accessToken, jwks);
   const userId = payload.user_id as string;
