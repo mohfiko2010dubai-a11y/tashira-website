@@ -421,34 +421,48 @@ export default function ChatBot() {
           const payLink = 'https://tashiraev.com/pay/' + refNum;
 
           // Submit to backend
-          submitMutation.mutate({
-            referenceNumber: refNum,
-            fullName: w.fullName,
-            nationality: w.nationality,
-            passportNumber: w.passportNumber,
-            passportExpiry: w.passportExpiry,
-            profession: w.profession,
-            countryFrom: w.countryFrom,
-            arrivalDate: w.arrivalDate,
-            email: w.email,
-            phone: w.phone,
-            visaType: w.visaType,
-            processingType: w.processingType,
-            residenceStatus: w.residenceStatus,
-            whoTraveling: w.whoTraveling,
-            applicantCount: w.applicantCount,
-            totalAmount: w.totalAmount,
-          });
-
-          advance({
-            step: 'payment',
-            referenceNumber: refNum,
-            paymentLink: payLink,
-          },
-            `✅ Application confirmed and saved!\n\n` +
-            `📋 Reference: **${refNum}**\n` +
-            `💰 Total: **$${w.totalAmount}**\n\n` +
-            `**Pay Now:**\n${payLink}`);
+          submitMutation.mutate(
+            {
+              referenceNumber: refNum,
+              fullName: w.fullName,
+              nationality: w.nationality,
+              passportNumber: w.passportNumber,
+              passportExpiry: w.passportExpiry,
+              profession: w.profession,
+              countryFrom: w.countryFrom,
+              arrivalDate: w.arrivalDate,
+              email: w.email,
+              phone: w.phone,
+              visaType: w.visaType,
+              processingType: w.processingType,
+              residenceStatus: w.residenceStatus,
+              whoTraveling: w.whoTraveling,
+              applicantCount: w.applicantCount,
+              totalAmount: w.totalAmount,
+            },
+            {
+              onSuccess: () => {
+                advance(
+                  {
+                    step: 'payment',
+                    referenceNumber: refNum,
+                    paymentLink: payLink,
+                  },
+                  `✅ Application confirmed and saved!\n\n` +
+                    `📋 Reference: **${refNum}**\n` +
+                    `💰 Total: **$${w.totalAmount}**\n\n` +
+                    `**Pay Now:**\n${payLink}`,
+                );
+              },
+              onError: (err) => {
+                addBotMessage(
+                  `❌ Failed to save application: ${err.message}\n\n` +
+                    `Please try again or contact support on WhatsApp +971 58 989 6644`,
+                );
+                setLoading(false);
+              },
+            },
+          );
         } else {
           addBotMessage('❌ Please type **CONFIRM** to proceed, or let me know if you need to change anything.');
           setLoading(false);
