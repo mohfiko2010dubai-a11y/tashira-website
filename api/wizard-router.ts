@@ -31,7 +31,7 @@ export const wizardRouter = createRouter({
 
         await db.insert(applications).values({
         referenceNumber: input.referenceNumber,
-        baseType: input.applicantCount > 1 ? "multiple" : "single",
+        baseType: input.applicantCount > 1 ? "family" : "single",
         residenceType: input.residenceStatus.toLowerCase().includes("gcc citizen with") ? "gcc-accompany" :
           input.residenceStatus.toLowerCase().includes("accompanying gcc") ? "non-gcc-accompany" :
           input.residenceStatus.toLowerCase().includes("gcc") ? "gcc-resident" : "non-gcc",
