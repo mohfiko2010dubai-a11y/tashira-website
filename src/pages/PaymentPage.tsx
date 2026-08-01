@@ -170,10 +170,17 @@ export default function PaymentPage() {
   const navigate = useNavigate();
 
   // Get application details
-  const { data: app, isLoading } = trpc.application.getByReference.useQuery(
+  const { data: app, isLoading, error } = trpc.application.getByReference.useQuery(
     { referenceNumber: referenceNumber! },
     { enabled: !!referenceNumber }
   );
+
+  // Debug: log any errors
+  useEffect(() => {
+    if (error) {
+      console.error("[PaymentPage] Error fetching application:", error);
+    }
+  }, [error]);
 
   if (isLoading) {
     return (
@@ -189,7 +196,11 @@ export default function PaymentPage() {
         <div className="text-center">
           <AlertCircle size={48} className="text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-[#1A2332] mb-2">Application Not Found</h2>
-          <p className="text-gray-500 mb-4">The reference number you entered is invalid.</p>
+          <p className="text-gray-500 mb-2">The reference number you entered is invalid.</p>
+          {error && (
+            <p className="text-red-400 text-xs mb-2 font-mono bg-red-50 p-2 rounded">{error.message}</p>
+          )}
+          <p className="text-gray-400 text-xs mb-4">Ref: {referenceNumber}</p>
           <button
             onClick={() => navigate('/')}
             className="px-6 py-2 bg-[#C9A04C] text-white rounded-lg hover:bg-[#DDBB7A] transition-colors"
