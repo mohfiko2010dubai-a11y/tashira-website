@@ -78,6 +78,7 @@ export default function ChatBot() {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant' | 'system'; content: string }>>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [docStep, setDocStep] = useState<'passport' | 'photo' | 'complete'>('passport');
   const [wizard, setWizard] = useState<WizardState>({
     step: 'welcome',
     name: '',
@@ -180,11 +181,10 @@ export default function ChatBot() {
           break;
         }
         setWizard(w => ({ ...w, phone: msg, step: 'upload_docs' }));
+        setDocStep('passport');
         setTimeout(() => {
           addBotMessage(
-            'Perfect! 📱\n\nNow please upload your documents:\n\n' +
-            '📄 Passport copy (photo page)\n' +
-            '🖼️ Passport photo (white background)\n\n' +
+            'Perfect! 📱\n\nStep 1 of 2: Please upload **Passport copy** (photo page of your passport).\n\n' +
             'Click the 📎 button below to upload.'
           );
           setLoading(false);
@@ -249,26 +249,29 @@ export default function ChatBot() {
     setUploadedDocs(prev => [...prev, docType]);
     addBotMessage(`✅ ${docType} uploaded!`);
 
-    // Check if we have both required documents
-    const hasPassport = uploadedDocs.some(d => d.toLowerCase().includes('passport')) || docType.toLowerCase().includes('passport');
-    const hasPhoto = uploadedDocs.some(d => d.toLowerCase().includes('photo')) || docType.toLowerCase().includes('photo');
-    
-    if (!hasPassport || !hasPhoto) {
-      const missing = [];
-      if (!hasPassport) missing.push('📄 Passport copy');
-      if (!hasPhoto) missing.push('🖼️ Passport photo');
-      
+    // Step-by-step document collection
+    if (docStep === 'passport') {
+      setDocStep('photo');
       setTimeout(() => {
-        addBotMessage(`⚠️ Still needed:\n${missing.join('\n')}\n\nPlease upload the remaining document(s).`);
+        addBotMessage(
+          '📸 Great! Now please upload **Passport photo**\n\n' +
+          'Requirements:\n' +
+          '• White background\n' +
+          '• Face clearly visible\n' +
+          '• No glasses or headwear\n\n' +
+          'Click the 📎 button below to upload.'
+        );
         setLoading(false);
       }, 500);
       return;
     }
+    
+    // Photo uploaded - all documents received
+    if (docStep === 'photo') {
+      setDocStep('complete');
+      addBotMessage('✅ All documents received!');
 
-    // Both documents received - proceed
-    addBotMessage('✅ All documents received!');
-
-    // Calculate total
+      // Calculate total
     const visa = VISA_OPTIONS.find(v => v.label === wizard.visaType);
     const proc = PROCESSING_OPTIONS.find(p => p.label === wizard.processingType);
     const basePrice = visa?.price || 170;
@@ -305,6 +308,7 @@ export default function ChatBot() {
 
       setLoading(false);
     }, 800);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
