@@ -78,6 +78,7 @@ interface Wizard {
   paymentLink: string;
   totalAmount: number;
   acceptedTerms: boolean;
+  applicationId?: number;
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────
@@ -112,6 +113,9 @@ export default function ChatBot() {
   const [docStep, setDocStep] = useState(0); // 0=passport_copy, 1=passport_cover, 2=passport_photo
 
   const submitMutation = trpc.wizard.submitApplication.useMutation();
+  const startMutation = trpc.wizard.startApplication.useMutation();
+  const updateMutation = trpc.wizard.updateApplication.useMutation();
+  const uploadDocMutation = trpc.wizard.uploadDocuments.useMutation();
 
   const [wizard, setWizard] = useState<Wizard>({
     step: 'welcome',
@@ -274,8 +278,36 @@ export default function ChatBot() {
       // ─── Full Name ────────────────────────────────────────────────────────
       case 'full_name': {
         if (validateName(msg)) {
-          advance({ fullName: msg, step: 'nationality' },
-            `✅ Hello, **${msg}**!\n\n**Nationality:**`);
+          const refNum = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+          // Start application in DB
+          startMutation.mutate(
+            {
+              referenceNumber: refNum,
+              whoTraveling: w.whoTraveling,
+              applicantCount: w.applicantCount,
+              residenceStatus: w.residenceStatus,
+              visaType: w.visaType,
+              processingType: w.processingType,
+              fullName: msg,
+              totalAmount: w.totalAmount,
+            },
+            {
+              onSuccess: (data) => {
+                advance({
+                  fullName: msg,
+                  referenceNumber: refNum,
+                  applicationId: data.applicationId,
+                  step: 'nationality',
+                },
+                  `✅ Hello, **${msg}**!\n\n**Nationality:**`);
+              },
+              onError: () => {
+                // Continue even if DB save fails
+                advance({ fullName: msg, step: 'nationality' },
+                  `✅ Hello, **${msg}**!\n\n**Nationality:**`);
+              },
+            },
+          );
         } else {
           addBotMessage('❌ Please enter your real full name (letters only, at least 2 characters).');
           setLoading(false);
@@ -286,6 +318,10 @@ export default function ChatBot() {
       // ─── Nationality ──────────────────────────────────────────────────────
       case 'nationality': {
         if (validateRequired(msg)) {
+          // Update in DB if we have applicationId
+          if (w.applicationId) {
+            updateMutation.mutate({ referenceNumber: w.referenceNumber, nationality: msg });
+          }
           advance({ nationality: msg, step: 'passport_number' },
             `✅ Nationality: **${msg}**\n\n**Passport Number:**`);
         } else {
@@ -298,6 +334,7 @@ export default function ChatBot() {
       // ─── Passport Number ──────────────────────────────────────────────────
       case 'passport_number': {
         if (validatePassportNumber(msg)) {
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, passportNumber: msg.toUpperCase() });
           advance({ passportNumber: msg.toUpperCase(), step: 'passport_expiry' },
             `✅ Passport: **${msg.toUpperCase()}**\n\n**Passport Expiry Date** (YYYY-MM-DD):`);
         } else {
@@ -310,6 +347,7 @@ export default function ChatBot() {
       // ─── Passport Expiry ──────────────────────────────────────────────────
       case 'passport_expiry': {
         if (validateDate(msg)) {
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, passportExpiry: msg });
           advance({ passportExpiry: msg, step: 'profession' },
             `✅ Expiry: **${msg}**\n\n**Profession/Occupation:**`);
         } else {
@@ -322,6 +360,7 @@ export default function ChatBot() {
       // ─── Profession ───────────────────────────────────────────────────────
       case 'profession': {
         if (validateRequired(msg)) {
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, profession: msg });
           advance({ profession: msg, step: 'country_from' },
             `✅ Profession: **${msg}**\n\n**Country Traveling From:**`);
         } else {
@@ -334,6 +373,7 @@ export default function ChatBot() {
       // ─── Country From ─────────────────────────────────────────────────────
       case 'country_from': {
         if (validateRequired(msg)) {
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, countryFrom: msg });
           advance({ countryFrom: msg, step: 'arrival_date' },
             `✅ From: **${msg}**\n\n**Expected Arrival Date** (YYYY-MM-DD):`);
         } else {
@@ -346,6 +386,7 @@ export default function ChatBot() {
       // ─── Arrival Date ─────────────────────────────────────────────────────
       case 'arrival_date': {
         if (validateDate(msg)) {
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, arrivalDate: msg });
           advance({ arrivalDate: msg, step: 'email' },
             `✅ Arrival: **${msg}**\n\n**Email Address:**`);
         } else {
@@ -358,6 +399,7 @@ export default function ChatBot() {
       // ─── Email ────────────────────────────────────────────────────────────
       case 'email': {
         if (validateEmail(msg)) {
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, email: msg });
           advance({ email: msg, step: 'phone' },
             `✅ Email: **${msg}**\n\n**Phone Number** (with country code, e.g. +971501234567):`);
         } else {
@@ -370,6 +412,7 @@ export default function ChatBot() {
       // ─── Phone ────────────────────────────────────────────────────────────
       case 'phone': {
         if (validatePhone(msg)) {
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, phone: msg });
           advance({ phone: msg, step: 'upload_passport_copy' },
             `✅ Phone: **${msg}**\n\n` +
             `📎 **Step 6: Document Uploads**\n\n` +
@@ -417,10 +460,10 @@ export default function ChatBot() {
       // ─── Terms ────────────────────────────────────────────────────────────
       case 'terms': {
         if (msg.toLowerCase() === 'confirm') {
-          const refNum = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+          const refNum = w.referenceNumber || `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
           const payLink = 'https://tashiraev.com/pay/' + refNum;
 
-          // Submit to backend
+          // Final submit to backend
           submitMutation.mutate(
             {
               referenceNumber: refNum,
@@ -484,7 +527,29 @@ export default function ChatBot() {
     addUserMessage(`📎 Uploaded: ${file.name}`);
     const w = wizard;
 
+    // Upload to backend if we have applicationId
+    const doUpload = (docType: "passport" | "photo") => {
+      if (w.applicationId) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = (reader.result as string)?.split(',')[1];
+          if (base64) {
+            uploadDocMutation.mutate({
+              applicationId: w.applicationId!,
+              documentType: docType,
+              fileName: file.name,
+              mimeType: file.type,
+              fileSize: file.size,
+              base64Data: base64,
+            });
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
     if (w.step === 'upload_passport_copy') {
+      doUpload('passport');
       addBotMessage('✅ **Passport Copy** received!');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Cover** (front cover of your passport).\n\nClick the 📎 button below.');
@@ -492,6 +557,7 @@ export default function ChatBot() {
         setDocStep(1);
       }, 600);
     } else if (w.step === 'upload_passport_cover') {
+      doUpload('passport');
       addBotMessage('✅ **Passport Cover** received!');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Photo** (white background, face clearly visible).\n\nClick the 📎 button below.');
@@ -499,6 +565,7 @@ export default function ChatBot() {
         setDocStep(2);
       }, 600);
     } else if (w.step === 'upload_passport_photo') {
+      doUpload('photo');
       addBotMessage('✅ **Passport Photo** received!\n\nAll documents uploaded successfully.');
       setTimeout(() => {
         setWizard(w => ({ ...w, step: 'review' }));
