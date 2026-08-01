@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 const SECRET = 'tashira-webhook-2025';
 const PORT = 3001;
-const HOST = '127.0.0.1'; // localhost only - not accessible from outside
+const HOST = '0.0.0.0'; // accessible from outside (GitHub can reach this)
 
 function verifySignature(body, signature) {
   const hmac = crypto.createHmac('sha256', SECRET);
