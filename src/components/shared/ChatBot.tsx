@@ -531,11 +531,11 @@ export default function ChatBot() {
     if (!file) return;
 
     addUserMessage(`📎 Uploaded: ${file.name}`);
-    const w = wizard;
 
     // Upload to backend immediately
     const doUpload = (docType: "passport" | "photo") => {
-      const appId = wizardRef.current.applicationId;
+      const currentWizard = wizardRef.current;
+      const appId = currentWizard.applicationId;
       if (!appId) {
         addBotMessage('⚠️ Document saved locally. Will upload when application is confirmed.');
         return;
@@ -580,42 +580,44 @@ export default function ChatBot() {
       reader.readAsDataURL(file);
     };
 
-    if (w.step === 'upload_passport_copy') {
+    const currentStep = wizardRef.current.step;
+
+    if (currentStep === 'upload_passport_copy') {
       doUpload('passport');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Cover** (front cover of your passport).\n\nClick the 📎 button below.');
-        setWizard(w => ({ ...w, step: 'upload_passport_cover' }));
+        setWizard(prev => ({ ...prev, step: 'upload_passport_cover' }));
         setDocStep(1);
       }, 1200);
-    } else if (w.step === 'upload_passport_cover') {
+    } else if (currentStep === 'upload_passport_cover') {
       doUpload('passport');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Photo** (white background, face clearly visible).\n\nClick the 📎 button below.');
-        setWizard(w => ({ ...w, step: 'upload_passport_photo' }));
+        setWizard(prev => ({ ...prev, step: 'upload_passport_photo' }));
         setDocStep(2);
       }, 1200);
-    } else if (w.step === 'upload_passport_photo') {
+    } else if (currentStep === 'upload_passport_photo') {
       doUpload('photo');
       setTimeout(() => {
         addBotMessage('✅ All documents received!\n\nReviewing your application...');
         setTimeout(() => {
-          const total = wizardRef.current.totalAmount;
+          const cur = wizardRef.current;
           addBotMessage(
             `📋 **Application Summary**\n\n` +
-            `**Travelers:** ${w.whoTraveling} (${w.applicantCount})\n` +
-            `**Residence:** ${w.residenceStatus}\n` +
-            `**Visa:** ${w.visaType}\n` +
-            `**Processing:** ${w.processingType}\n\n` +
-            `**Applicant ${w.currentApplicant}:**\n` +
-            `• Name: ${w.fullName}\n` +
-            `• Nationality: ${w.nationality}\n` +
-            `• Passport: ${w.passportNumber}\n` +
-            `• Email: ${w.email}\n` +
-            `• Phone: ${w.phone}\n\n` +
-            `**Total Amount: $${total}**\n\n` +
+            `**Travelers:** ${cur.whoTraveling} (${cur.applicantCount})\n` +
+            `**Residence:** ${cur.residenceStatus}\n` +
+            `**Visa:** ${cur.visaType}\n` +
+            `**Processing:** ${cur.processingType}\n\n` +
+            `**Applicant ${cur.currentApplicant}:**\n` +
+            `• Name: ${cur.fullName}\n` +
+            `• Nationality: ${cur.nationality}\n` +
+            `• Passport: ${cur.passportNumber}\n` +
+            `• Email: ${cur.email}\n` +
+            `• Phone: ${cur.phone}\n\n` +
+            `**Total Amount: $${cur.totalAmount}**\n\n` +
             `Type **CONFIRM** to proceed to payment.`
           );
-          setWizard(w => ({ ...w, step: 'terms' }));
+          setWizard(prev => ({ ...prev, step: 'terms' }));
           setLoading(false);
         }, 800);
       }, 1200);
