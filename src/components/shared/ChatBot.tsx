@@ -158,13 +158,15 @@ export default function ChatBot() {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  const addBotMessage = (content: string) =>
+  function addBotMessage(content: string) {
     setMessages(prev => [...prev, { role: 'assistant', content }]);
+  }
 
-  const addUserMessage = (content: string) =>
+  function addUserMessage(content: string) {
     setMessages(prev => [...prev, { role: 'user', content }]);
+  }
 
-  const advance = (updates: Partial<Wizard>, nextMessage?: string) => {
+  function advance(updates: Partial<Wizard>, nextMessage?: string) {
     setWizard(w => ({ ...w, ...updates }));
     if (nextMessage) {
       setLoading(true);
@@ -193,7 +195,7 @@ export default function ChatBot() {
 
   // ─── Handle User Input ────────────────────────────────────────────────────
 
-  const handleSend = () => {
+  function handleSend() {
     if (!input.trim() || loading) return;
     const msg = input.trim();
     setInput('');
@@ -202,7 +204,7 @@ export default function ChatBot() {
     processInput(msg);
   };
 
-  const processInput = (msg: string) => {
+  function processInput(msg: string) {
     const w = wizard;
 
     switch (w.step) {
@@ -526,7 +528,7 @@ export default function ChatBot() {
 
   // ─── Handle Document Upload ───────────────────────────────────────────────
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -574,7 +576,7 @@ export default function ChatBot() {
 
   // ─── Render Quick Actions ─────────────────────────────────────────────────
 
-  const renderQuickActions = () => {
+  function renderQuickActions() {
     switch (wizardRef.current.step) {
       case 'who_traveling':
         return (
