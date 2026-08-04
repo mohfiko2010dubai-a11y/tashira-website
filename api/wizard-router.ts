@@ -13,7 +13,7 @@ function mapResidenceType(status: string): string {
 }
 
 export const wizardRouter = createRouter({
-  // Start a new incomplete application (called on first step)
+  // Start a new submitted application (called on first step)
   startApplication: publicQuery
     .input(z.object({
       referenceNumber: z.string(),
@@ -53,7 +53,7 @@ export const wizardRouter = createRouter({
           totalAmountAed: String(totalAed),
           totalAmountUsd: String(input.totalAmount ?? 0),
           exchangeRate: String(exchangeRate),
-          status: "incomplete",
+          status: "submitted",
           paymentStatus: "pending",
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -71,7 +71,7 @@ export const wizardRouter = createRouter({
       }
     }),
 
-  // Update an existing incomplete application (called after each step)
+  // Update an existing submitted application (called after each step)
   updateApplication: publicQuery
     .input(z.object({
       referenceNumber: z.string(),
@@ -203,24 +203,24 @@ export const wizardRouter = createRouter({
       }
     }),
 
-  // List incomplete applications (for Chat Inbox tracking)
+  // List submitted applications (for Chat Inbox tracking)
   listIncomplete: publicQuery
     .query(async () => {
       try {
         const db = getDb();
         const results = await db.select()
           .from(applications)
-          .where(eq(applications.status, "incomplete"))
+          .where(eq(applications.status, "submitted"))
           .orderBy(desc(applications.createdAt));
 
         return results;
       } catch (error: any) {
-        console.error("[Wizard] Failed to list incomplete:", error.message);
-        throw new Error(`Failed to list incomplete applications: ${error.message}`);
+        console.error("[Wizard] Failed to list submitted:", error.message);
+        throw new Error(`Failed to list submitted applications: ${error.message}`);
       }
     }),
 
-  // List all applications with payment pending (incomplete + documents_pending)
+  // List all applications with payment pending (submitted + documents_pending)
   listPending: publicQuery
     .query(async () => {
       try {
@@ -228,7 +228,7 @@ export const wizardRouter = createRouter({
         const results = await db.select()
           .from(applications)
           .where(
-            sql`${applications.status} IN ('incomplete', 'documents_pending') OR ${applications.paymentStatus} = 'pending'`
+            sql`${applications.status} IN ('submitted', 'documents_pending') OR ${applications.paymentStatus} = 'pending'`
           )
           .orderBy(desc(applications.createdAt));
 
