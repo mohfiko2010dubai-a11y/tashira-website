@@ -203,7 +203,7 @@ export default function ChatBot() {
   };
 
   const processInput = (msg: string) => {
-    var w = wizard;
+    const w = wizard;
 
     switch (w.step) {
 
@@ -629,7 +629,7 @@ export default function ChatBot() {
   // ─── Render Quick Actions ─────────────────────────────────────────────────
 
   const renderQuickActions = () => {
-    var w = wizard;
+    const w = wizard;
 
     switch (w.step) {
       case 'who_traveling':
