@@ -25,6 +25,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    minify: false,
   },
   optimizeDeps: {
     include: ['react-router-dom', '@tanstack/react-query', '@trpc/client', '@trpc/react-query'],
