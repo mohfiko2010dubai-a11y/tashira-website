@@ -158,15 +158,13 @@ export default function ChatBot() {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  function addBotMessage(content: string) {
+  const addBotMessage = (content: string) =>
     setMessages(prev => [...prev, { role: 'assistant', content }]);
-  }
 
-  function addUserMessage(content: string) {
+  const addUserMessage = (content: string) =>
     setMessages(prev => [...prev, { role: 'user', content }]);
-  }
 
-  function advance(updates: Partial<Wizard>, nextMessage?: string) {
+  const advance = (updates: Partial<Wizard>, nextMessage?: string) => {
     setWizard(w => ({ ...w, ...updates }));
     if (nextMessage) {
       setLoading(true);
@@ -195,7 +193,7 @@ export default function ChatBot() {
 
   // ─── Handle User Input ────────────────────────────────────────────────────
 
-  function handleSend() {
+  const handleSend = () => {
     if (!input.trim() || loading) return;
     const msg = input.trim();
     setInput('');
@@ -204,8 +202,8 @@ export default function ChatBot() {
     processInput(msg);
   };
 
-  function processInput(msg: string) {
-    const w = wizard;
+  const processInput = (msg: string) => {
+    const w = wizardRef.current;
 
     switch (w.step) {
 
@@ -528,47 +526,101 @@ export default function ChatBot() {
 
   // ─── Handle Document Upload ───────────────────────────────────────────────
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     addUserMessage(`📎 Uploaded: ${file.name}`);
 
-    if (wizardRef.current.step === 'upload_passport_copy') {
-      addBotMessage('✅ **Passport Copy** received!');
+    // Upload to backend immediately
+    const doUpload = (docType: "passport" | "photo") => {
+      const currentWizard = wizardRef.current;
+      const appId = currentWizard.applicationId;
+      if (!appId) {
+        addBotMessage('⚠️ Document saved locally. Will upload when application is confirmed.');
+        return;
+      }
+
+      setLoading(true);
+      addBotMessage('⏳ Uploading document to server...');
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string)?.split(',')[1];
+        if (base64) {
+          uploadDocMutation.mutate(
+            {
+              applicationId: appId,
+              documentType: docType,
+              fileName: file.name,
+              mimeType: file.type,
+              fileSize: file.size,
+              base64Data: base64,
+            },
+            {
+              onSuccess: () => {
+                addBotMessage(`✅ **${file.name}** uploaded to server successfully!`);
+                setLoading(false);
+              },
+              onError: (err) => {
+                addBotMessage(`⚠️ Upload failed: ${err.message}. Document saved locally.`);
+                setLoading(false);
+              },
+            }
+          );
+        } else {
+          addBotMessage('⚠️ Could not process file. Please try again.');
+          setLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        addBotMessage('⚠️ Could not read file. Please try again.');
+        setLoading(false);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    const currentStep = wizardRef.current.step;
+
+    if (currentStep === 'upload_passport_copy') {
+      doUpload('passport');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Cover** (front cover of your passport).\n\nClick the 📎 button below.');
         setWizard(prev => ({ ...prev, step: 'upload_passport_cover' }));
         setDocStep(1);
-      }, 600);
-    } else if (wizardRef.current.step === 'upload_passport_cover') {
-      addBotMessage('✅ **Passport Cover** received!');
+      }, 1200);
+    } else if (currentStep === 'upload_passport_cover') {
+      doUpload('passport');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Photo** (white background, face clearly visible).\n\nClick the 📎 button below.');
         setWizard(prev => ({ ...prev, step: 'upload_passport_photo' }));
         setDocStep(2);
-      }, 600);
-    } else if (wizardRef.current.step === 'upload_passport_photo') {
-      addBotMessage('✅ **Passport Photo** received!\n\nAll documents uploaded successfully.');
+      }, 1200);
+    } else if (currentStep === 'upload_passport_photo') {
+      doUpload('photo');
       setTimeout(() => {
-        addBotMessage(
-          `📋 **Application Summary**\n\n` +
-          `**Travelers:** ${wizardRef.current.whoTraveling} (${wizardRef.current.applicantCount})\n` +
-          `**Residence:** ${wizardRef.current.residenceStatus}\n` +
-          `**Visa:** ${wizardRef.current.visaType}\n` +
-          `**Processing:** ${wizardRef.current.processingType}\n\n` +
-          `**Applicant ${wizardRef.current.currentApplicant}:**\n` +
-          `• Name: ${wizardRef.current.fullName}\n` +
-          `• Nationality: ${wizardRef.current.nationality}\n` +
-          `• Passport: ${wizardRef.current.passportNumber}\n` +
-          `• Email: ${wizardRef.current.email}\n` +
-          `• Phone: ${wizardRef.current.phone}\n\n` +
-          `**Total Amount: $${wizardRef.current.totalAmount}**\n\n` +
-          `Type **CONFIRM** to proceed to payment.`
-        );
-        setWizard(prev => ({ ...prev, step: 'terms' }));
-        setLoading(false);
-      }, 800);
+        addBotMessage('✅ All documents received!\n\nReviewing your application...');
+        setTimeout(() => {
+          const cur = wizardRef.current;
+          addBotMessage(
+            `📋 **Application Summary**\n\n` +
+            `**Travelers:** ${cur.whoTraveling} (${cur.applicantCount})\n` +
+            `**Residence:** ${cur.residenceStatus}\n` +
+            `**Visa:** ${cur.visaType}\n` +
+            `**Processing:** ${cur.processingType}\n\n` +
+            `**Applicant ${cur.currentApplicant}:**\n` +
+            `• Name: ${cur.fullName}\n` +
+            `• Nationality: ${cur.nationality}\n` +
+            `• Passport: ${cur.passportNumber}\n` +
+            `• Email: ${cur.email}\n` +
+            `• Phone: ${cur.phone}\n\n` +
+            `**Total Amount: $${cur.totalAmount}**\n\n` +
+            `Type **CONFIRM** to proceed to payment.`
+          );
+          setWizard(prev => ({ ...prev, step: 'terms' }));
+          setLoading(false);
+        }, 800);
+      }, 1200);
     }
 
     e.target.value = '';
@@ -576,8 +628,10 @@ export default function ChatBot() {
 
   // ─── Render Quick Actions ─────────────────────────────────────────────────
 
-  function renderQuickActions() {
-    switch (wizardRef.current.step) {
+  const renderQuickActions = () => {
+    const w = wizardRef.current;
+
+    switch (w.step) {
       case 'who_traveling':
         return (
           <div className="p-3 bg-gray-50 border-t border-gray-100 space-y-2">
