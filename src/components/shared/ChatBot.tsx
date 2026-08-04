@@ -111,6 +111,12 @@ export default function ChatBot() {
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => 'chat_' + Math.random().toString(36).slice(2));
   const [docStep, setDocStep] = useState(0); // 0=passport_copy, 1=passport_cover, 2=passport_photo
+  const wizardRef = useRef(wizard);
+
+  // Keep wizardRef in sync with wizard state
+  useEffect(() => {
+    wizardRef.current = wizard;
+  }, [wizard]);
 
   const submitMutation = trpc.wizard.submitApplication.useMutation();
   const startMutation = trpc.wizard.startApplication.useMutation();
@@ -527,52 +533,73 @@ export default function ChatBot() {
     addUserMessage(`📎 Uploaded: ${file.name}`);
     const w = wizard;
 
-    // Upload to backend if we have applicationId
+    // Upload to backend immediately
     const doUpload = (docType: "passport" | "photo") => {
-      if (w.applicationId) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = (reader.result as string)?.split(',')[1];
-          if (base64) {
-            uploadDocMutation.mutate({
-              applicationId: w.applicationId!,
+      const appId = wizardRef.current.applicationId;
+      if (!appId) {
+        addBotMessage('⚠️ Document saved locally. Will upload when application is confirmed.');
+        return;
+      }
+
+      setLoading(true);
+      addBotMessage('⏳ Uploading document to server...');
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string)?.split(',')[1];
+        if (base64) {
+          uploadDocMutation.mutate(
+            {
+              applicationId: appId,
               documentType: docType,
               fileName: file.name,
               mimeType: file.type,
               fileSize: file.size,
               base64Data: base64,
-            });
-          }
-        };
-        reader.readAsDataURL(file);
-      }
+            },
+            {
+              onSuccess: () => {
+                addBotMessage(`✅ **${file.name}** uploaded to server successfully!`);
+                setLoading(false);
+              },
+              onError: (err) => {
+                addBotMessage(`⚠️ Upload failed: ${err.message}. Document saved locally.`);
+                setLoading(false);
+              },
+            }
+          );
+        } else {
+          addBotMessage('⚠️ Could not process file. Please try again.');
+          setLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        addBotMessage('⚠️ Could not read file. Please try again.');
+        setLoading(false);
+      };
+      reader.readAsDataURL(file);
     };
 
     if (w.step === 'upload_passport_copy') {
       doUpload('passport');
-      addBotMessage('✅ **Passport Copy** received!');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Cover** (front cover of your passport).\n\nClick the 📎 button below.');
         setWizard(w => ({ ...w, step: 'upload_passport_cover' }));
         setDocStep(1);
-      }, 600);
+      }, 1200);
     } else if (w.step === 'upload_passport_cover') {
       doUpload('passport');
-      addBotMessage('✅ **Passport Cover** received!');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Photo** (white background, face clearly visible).\n\nClick the 📎 button below.');
         setWizard(w => ({ ...w, step: 'upload_passport_photo' }));
         setDocStep(2);
-      }, 600);
+      }, 1200);
     } else if (w.step === 'upload_passport_photo') {
       doUpload('photo');
-      addBotMessage('✅ **Passport Photo** received!\n\nAll documents uploaded successfully.');
       setTimeout(() => {
-        setWizard(w => ({ ...w, step: 'review' }));
-        // Trigger review
-        addBotMessage('Reviewing your application...');
+        addBotMessage('✅ All documents received!\n\nReviewing your application...');
         setTimeout(() => {
-          const total = w.totalAmount;
+          const total = wizardRef.current.totalAmount;
           addBotMessage(
             `📋 **Application Summary**\n\n` +
             `**Travelers:** ${w.whoTraveling} (${w.applicantCount})\n` +
@@ -591,7 +618,7 @@ export default function ChatBot() {
           setWizard(w => ({ ...w, step: 'terms' }));
           setLoading(false);
         }, 800);
-      }, 600);
+      }, 1200);
     }
 
     e.target.value = '';
