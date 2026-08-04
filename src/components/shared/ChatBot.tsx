@@ -531,39 +531,37 @@ export default function ChatBot() {
     if (!file) return;
 
     addUserMessage(`📎 Uploaded: ${file.name}`);
-    const w = wizard;
 
-    if (w.step === 'upload_passport_copy') {
+    if (wizardRef.current.step === 'upload_passport_copy') {
       addBotMessage('✅ **Passport Copy** received!');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Cover** (front cover of your passport).\n\nClick the 📎 button below.');
         setWizard(prev => ({ ...prev, step: 'upload_passport_cover' }));
         setDocStep(1);
       }, 600);
-    } else if (w.step === 'upload_passport_cover') {
+    } else if (wizardRef.current.step === 'upload_passport_cover') {
       addBotMessage('✅ **Passport Cover** received!');
       setTimeout(() => {
         addBotMessage('📎 Now upload **Passport Photo** (white background, face clearly visible).\n\nClick the 📎 button below.');
         setWizard(prev => ({ ...prev, step: 'upload_passport_photo' }));
         setDocStep(2);
       }, 600);
-    } else if (w.step === 'upload_passport_photo') {
+    } else if (wizardRef.current.step === 'upload_passport_photo') {
       addBotMessage('✅ **Passport Photo** received!\n\nAll documents uploaded successfully.');
       setTimeout(() => {
-        const total = w.totalAmount;
         addBotMessage(
           `📋 **Application Summary**\n\n` +
-          `**Travelers:** ${w.whoTraveling} (${w.applicantCount})\n` +
-          `**Residence:** ${w.residenceStatus}\n` +
-          `**Visa:** ${w.visaType}\n` +
-          `**Processing:** ${w.processingType}\n\n` +
-          `**Applicant ${w.currentApplicant}:**\n` +
-          `• Name: ${w.fullName}\n` +
-          `• Nationality: ${w.nationality}\n` +
-          `• Passport: ${w.passportNumber}\n` +
-          `• Email: ${w.email}\n` +
-          `• Phone: ${w.phone}\n\n` +
-          `**Total Amount: $${total}**\n\n` +
+          `**Travelers:** ${wizardRef.current.whoTraveling} (${wizardRef.current.applicantCount})\n` +
+          `**Residence:** ${wizardRef.current.residenceStatus}\n` +
+          `**Visa:** ${wizardRef.current.visaType}\n` +
+          `**Processing:** ${wizardRef.current.processingType}\n\n` +
+          `**Applicant ${wizardRef.current.currentApplicant}:**\n` +
+          `• Name: ${wizardRef.current.fullName}\n` +
+          `• Nationality: ${wizardRef.current.nationality}\n` +
+          `• Passport: ${wizardRef.current.passportNumber}\n` +
+          `• Email: ${wizardRef.current.email}\n` +
+          `• Phone: ${wizardRef.current.phone}\n\n` +
+          `**Total Amount: $${wizardRef.current.totalAmount}**\n\n` +
           `Type **CONFIRM** to proceed to payment.`
         );
         setWizard(prev => ({ ...prev, step: 'terms' }));
@@ -577,9 +575,7 @@ export default function ChatBot() {
   // ─── Render Quick Actions ─────────────────────────────────────────────────
 
   const renderQuickActions = () => {
-    const w = wizard;
-
-    switch (w.step) {
+    switch (wizardRef.current.step) {
       case 'who_traveling':
         return (
           <div className="p-3 bg-gray-50 border-t border-gray-100 space-y-2">
