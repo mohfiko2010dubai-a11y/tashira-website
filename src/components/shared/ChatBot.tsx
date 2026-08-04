@@ -294,11 +294,12 @@ export default function ChatBot() {
               totalAmount: w.totalAmount,
             },
             {
-              onSuccess: (data) => {
+              onSuccess: (result: any) => {
+                const appId = result?.applicationId || result?.data?.json?.applicationId;
                 advance({
                   fullName: msg,
                   referenceNumber: refNum,
-                  applicationId: data.applicationId,
+                  applicationId: appId,
                   step: 'nationality',
                 },
                   `✅ Hello, **${msg}**!\n\n**Nationality:**`);
