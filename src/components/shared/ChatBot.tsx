@@ -111,17 +111,6 @@ export default function ChatBot() {
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => 'chat_' + Math.random().toString(36).slice(2));
   const [docStep, setDocStep] = useState(0); // 0=passport_copy, 1=passport_cover, 2=passport_photo
-  const wizardRef = useRef(wizard);
-
-  // Keep wizardRef in sync with wizard state
-  useEffect(() => {
-    wizardRef.current = wizard;
-  }, [wizard]);
-
-  const submitMutation = trpc.wizard.submitApplication.useMutation();
-  const startMutation = trpc.wizard.startApplication.useMutation();
-  const updateMutation = trpc.wizard.updateApplication.useMutation();
-  const uploadDocMutation = trpc.wizard.uploadDocuments.useMutation();
 
   const [wizard, setWizard] = useState<Wizard>({
     step: 'welcome',
@@ -146,6 +135,13 @@ export default function ChatBot() {
     totalAmount: 0,
     acceptedTerms: false,
   });
+
+  const wizardRef = useRef(wizard);
+
+  // Keep wizardRef in sync with wizard state
+  useEffect(() => {
+    wizardRef.current = wizard;
+  }, [wizard]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
