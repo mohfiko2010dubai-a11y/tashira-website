@@ -1,75 +1,65 @@
-# React + TypeScript + Vite
+# TASHIRA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+TASHIRA is a full-stack platform for processing UAE visa applications. It provides public visa information, an application wizard, online Stripe payments, customer tracking, document uploads, chat assistance, invoicing, and internal admin and staff workflows.
 
-Currently, two official plugins are available:
+> Production access, database changes, document-storage operations, deployment, commits, and pushes require explicit authorization. Never assume repository configuration exactly matches production.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Technology stack
 
-## React Compiler
+- React 19, TypeScript, Vite, React Router, Tailwind CSS
+- Hono and tRPC
+- Drizzle ORM and MySQL
+- Stripe Elements and PaymentIntents
+- Server filesystem document storage
+- PM2 and Nginx in the intended production architecture
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Supabase-related code is legacy or inactive unless runtime verification proves otherwise.
 
-## Expanding the ESLint configuration
+## Repository structure
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+src/          Frontend application
+api/          Hono and tRPC backend
+db/           Drizzle schema and database material
+contracts/    Shared contracts
+public/       Static assets
+scripts/      Existing operational scripts
+docs/         Technical and operational documentation
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Local setup
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm ci
+npm run dev
 ```
-# GitHub Actions Deploy Test Sun Jul 26 05:44:15 CST 2026
-# Auto-deploy test Sat Aug  1 23:11:05 CST 2026
+
+Create local environment configuration from `.env.example`; never commit real values.
+
+## Required verification
+
+```bash
+npm run check
+npm run lint
+npm run test
+npm run build
+```
+
+## Documentation
+
+- [AI agent instructions](AGENTS.md)
+- [Architecture](ARCHITECTURE.md)
+- [Security](SECURITY.md)
+- [Development](DEVELOPMENT.md)
+- [Deployment](DEPLOYMENT.md)
+- [Project memory](PROJECT_MEMORY.md)
+- [Phase 1 technical report](docs/PHASE1_TECHNICAL_REPORT.md)
+- [Database](docs/DATABASE.md)
+- [API](docs/API.md)
+- [Chatbot](docs/CHATBOT.md)
+- [Stripe](docs/STRIPE.md)
+- [Storage](docs/STORAGE.md)
+- [Business rules](docs/BUSINESS_RULES.md)
+- [Known issues](docs/KNOWN_ISSUES.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Production audit plan](docs/PRODUCTION_AUDIT_PLAN.md)
