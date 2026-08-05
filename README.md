@@ -52,6 +52,7 @@ npm run build
 - [Security](SECURITY.md)
 - [Development](DEVELOPMENT.md)
 - [Deployment](DEPLOYMENT.md)
+- [Operations runbook](OPERATIONS.md)
 - [Project memory](PROJECT_MEMORY.md)
 - [Phase 1 technical report](docs/PHASE1_TECHNICAL_REPORT.md)
 - [Database](docs/DATABASE.md)

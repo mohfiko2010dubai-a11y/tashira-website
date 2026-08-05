@@ -4,6 +4,8 @@
 
 Static repository inspection found multiple deployment mechanisms. They may conflict, race, or apply different dependency and restart behavior. No deployment changes are authorized by this documentation task.
 
+For production topology, inspection commands, incident response, operational checklists, and rollback procedures, see [OPERATIONS.md](OPERATIONS.md).
+
 ### GitHub Actions
 
 `.github/workflows/deploy.yml` connects by SSH after pushes to `main` or `master`, updates the checkout, installs dependencies when needed, builds, and restarts PM2.
