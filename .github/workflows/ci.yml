@@ -1,0 +1,58 @@
+name: CI
+
+# This workflow verifies review changes only. It must never deploy, connect to
+# production, use production secrets, restart services, or modify databases.
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    # Production branches are intentionally excluded from this Phase 1 review
+    # workflow. Production deployment remains a separate concern.
+    branches-ignore:
+      - main
+      - master
+
+# Keep the default token read-only. No repository or production secrets are
+# referenced by this workflow.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Node.js 20 matches the repository Docker image and documented runtime.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      # Do not add continue-on-error or bypass existing failures. Current
+      # failures must be recorded and fixed incrementally in reviewed changes.
+      - name: Type-check
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
