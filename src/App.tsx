@@ -60,14 +60,14 @@ function AppContent() {
           <Route path="/dashboard" element={<AdminGuard><Dashboard /></AdminGuard>} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/applications" element={<AdminApplications />} />
-          <Route path="/admin/applications/:referenceNumber" element={<AdminApplicationDetail />} />
-          <Route path="/admin/suppliers" element={<AdminSuppliers />} />
-          <Route path="/admin/staff" element={<AdminStaff />} />
-          <Route path="/admin/invoices" element={<AdminInvoices />} />
-          <Route path="/admin/supplier-dashboard" element={<AdminSupplierDashboard />} />
-          <Route path="/admin/vat" element={<AdminVat />} />
-          <Route path="/admin/chat" element={<AdminChat />} />
+          <Route path="/admin/applications" element={<AdminGuard><AdminApplications /></AdminGuard>} />
+          <Route path="/admin/applications/:referenceNumber" element={<AdminGuard><AdminApplicationDetail /></AdminGuard>} />
+          <Route path="/admin/suppliers" element={<AdminGuard><AdminSuppliers /></AdminGuard>} />
+          <Route path="/admin/staff" element={<AdminGuard><AdminStaff /></AdminGuard>} />
+          <Route path="/admin/invoices" element={<AdminGuard><AdminInvoices /></AdminGuard>} />
+          <Route path="/admin/supplier-dashboard" element={<AdminGuard><AdminSupplierDashboard /></AdminGuard>} />
+          <Route path="/admin/vat" element={<AdminGuard><AdminVat /></AdminGuard>} />
+          <Route path="/admin/chat" element={<AdminGuard><AdminChat /></AdminGuard>} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />

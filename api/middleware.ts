@@ -23,20 +23,16 @@ const requireAuth = t.middleware(async (opts) => {
   return next({ ctx: { ...ctx, user: ctx.user } });
 });
 
-function requireRole(role: string) {
-  return t.middleware(async (opts) => {
-    const { ctx, next } = opts;
+const requireAdmin = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.isAdmin && ctx.user?.role !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: ErrorMessages.insufficientRole,
+    });
+  }
 
-    if (!ctx.user || ctx.user.role !== role) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: ErrorMessages.insufficientRole,
-      });
-    }
-
-    return next({ ctx: { ...ctx, user: ctx.user } });
-  });
-}
+  return next({ ctx });
+});
 
 export const authedQuery = t.procedure.use(requireAuth);
-export const adminQuery = authedQuery.use(requireRole("admin"));
+export const adminQuery = t.procedure.use(requireAdmin);

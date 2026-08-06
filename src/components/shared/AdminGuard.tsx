@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Loader2 } from 'lucide-react';
 
 interface AdminGuardProps {
@@ -8,7 +8,7 @@ interface AdminGuardProps {
 }
 
 export default function AdminGuard({ children }: AdminGuardProps) {
-  const { user, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAdminAuth();
 
   if (isLoading) {
     return (
@@ -18,10 +18,8 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     );
   }
 
-  // For now, allow any logged-in user to access dashboard
-  // In production, check for admin role
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" replace />;
   }
 
   return <>{children}</>;
