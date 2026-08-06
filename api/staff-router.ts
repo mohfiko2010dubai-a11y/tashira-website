@@ -5,21 +5,7 @@ import { staffUsers } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { createStaffSession, deleteStaffSession, getStaffSession } from "./lib/staff-session";
 import { auditLog } from "./lib/audit-log";
-
-// Simple password hashing using Web Crypto API (no bcrypt dependency needed)
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + "tashira-staff-salt-2025");
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const computed = await hashPassword(password);
-  return computed === hash;
-}
+import { hashPassword, verifyPassword } from "./lib/password";
 
 export const staffRouter = createRouter({
   // Staff login - returns token
@@ -43,10 +29,15 @@ export const staffRouter = createRouter({
         throw new Error("Invalid username or password");
       }
 
-      const valid = await verifyPassword(input.password, staff.passwordHash);
-      if (!valid) {
+      const passwordResult = await verifyPassword(input.password, staff.passwordHash);
+      if (!passwordResult.valid) {
         auditLog("staff.login", "failure", "anonymous");
         throw new Error("Invalid username or password");
+      }
+      if (passwordResult.needsUpgrade) {
+        await db.update(staffUsers)
+          .set({ passwordHash: await hashPassword(input.password) })
+          .where(eq(staffUsers.id, staff.id));
       }
 
       // Create session
