@@ -3,6 +3,7 @@ import { createRouter, staffOrAdminQuery, uploadQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { documents } from "@db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { auditLog } from "./lib/audit-log";
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -111,7 +112,7 @@ export const documentRouter = createRouter({
   // Delete document record + storage file
   delete: staffOrAdminQuery
     .input(z.object({ id: z.number().positive() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = getDb();
 
       // Get document to find storage path
@@ -125,6 +126,7 @@ export const documentRouter = createRouter({
 
       // Delete from database
       await db.delete(documents).where(eq(documents.id, input.id));
+      auditLog("document.delete", "success", ctx.isAdmin ? "admin" : "staff");
 
       return {
         success: true,

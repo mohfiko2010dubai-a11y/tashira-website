@@ -5,6 +5,7 @@ import { applications, payments, invoices } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { saveInvoiceToDisk } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
+import { auditLog } from "./lib/audit-log";
 
 // Stripe secret key from env
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
@@ -58,8 +59,10 @@ export const paymentRouter = createRouter({
           }).where(eq(applications.id, app.id));
         }
 
+        auditLog("payment.intent_create", "success", "customer");
         return { clientSecret: paymentIntent.client_secret };
       } catch (err: unknown) {
+        auditLog("payment.intent_create", "failure", "customer");
         const msg = err instanceof Error ? err.message : "Payment error";
         return { error: msg };
       }
@@ -84,6 +87,7 @@ export const paymentRouter = createRouter({
       await db.update(payments).set({
         status: "succeeded",
       }).where(eq(payments.stripePaymentIntentId, input.paymentIntentId));
+      auditLog("payment.confirm", "success", "customer");
 
       // Generate invoice
       const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);

@@ -4,6 +4,7 @@ import { getDb } from "./queries/connection";
 import { staffUsers } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 import { createStaffSession, deleteStaffSession, getStaffSession } from "./lib/staff-session";
+import { auditLog } from "./lib/audit-log";
 
 // Simple password hashing using Web Crypto API (no bcrypt dependency needed)
 async function hashPassword(password: string): Promise<string> {
@@ -38,16 +39,19 @@ export const staffRouter = createRouter({
         .limit(1);
 
       if (!staff || staff.isActive !== "active") {
+        auditLog("staff.login", "failure", "anonymous");
         throw new Error("Invalid username or password");
       }
 
       const valid = await verifyPassword(input.password, staff.passwordHash);
       if (!valid) {
+        auditLog("staff.login", "failure", "anonymous");
         throw new Error("Invalid username or password");
       }
 
       // Create session
       const token = createStaffSession(staff.id);
+      auditLog("staff.login", "success", "staff");
 
       return {
         token,
@@ -95,7 +99,9 @@ export const staffRouter = createRouter({
   logout: publicQuery
     .input(z.object({ token: z.string() }))
     .mutation(({ input }) => {
+      const hadSession = getStaffSession(input.token) !== null;
       deleteStaffSession(input.token);
+      auditLog("staff.logout", "success", hadSession ? "staff" : "anonymous");
       return { success: true };
     }),
 

@@ -4,6 +4,7 @@ import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
+import { auditLog } from "./lib/audit-log";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
@@ -154,6 +155,7 @@ export const applicationRouter = createRouter({
     .mutation(async ({ input }) => {
       const db = getDb();
       await db.update(applications).set({ status: input.status }).where(eq(applications.id, input.id));
+      auditLog("application.status_change", "success", "admin");
       return { success: true };
     }),
 

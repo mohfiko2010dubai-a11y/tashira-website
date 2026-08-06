@@ -6,6 +6,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
 import { storageUpload } from "./lib/local-storage";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
+import { auditLog } from "./lib/audit-log";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -292,9 +293,11 @@ export const wizardRouter = createRouter({
           uploadStatus: "uploaded",
           uploadedBy: "chatbot-wizard",
         });
+        auditLog("document.upload", "success", "customer");
 
         return { success: true, storagePath, storedFileName: storedName };
       } catch (error: unknown) {
+        auditLog("document.upload", "failure", "customer");
         const message = getErrorMessage(error);
         console.error("[Wizard] Failed to upload document:", message);
         throw new Error(`Failed to upload document: ${message}`);

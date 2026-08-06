@@ -11,6 +11,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { getErrorMessage } from "./lib/errors";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
+import { auditLog } from "./lib/audit-log";
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
@@ -159,6 +160,7 @@ export const storageRouter = createRouter({
         }
 
         await storageUpload(storagePath, fileBuffer, input.mimeType);
+        auditLog("document.upload", "success", "customer");
 
         return {
           success: true,
@@ -167,6 +169,7 @@ export const storageRouter = createRouter({
           bucket: STORAGE_BUCKET,
         };
       } catch (err: unknown) {
+        auditLog("document.upload", "failure", "customer");
         if (err instanceof TRPCError) throw err;
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: getErrorMessage(err) });
       }

@@ -10,6 +10,7 @@ import {
   verifyAdminPassword,
 } from "./lib/admin-session";
 import { TRPCError } from "@trpc/server";
+import { auditLog } from "./lib/audit-log";
 
 export const authRouter = createRouter({
   adminLogin: loginQuery
@@ -17,18 +18,22 @@ export const authRouter = createRouter({
     .mutation(({ input, ctx }) => {
       try {
         if (!verifyAdminPassword(input.password)) {
+          auditLog("admin.login", "failure", "anonymous");
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
         }
         ctx.resHeaders.append("set-cookie", createAdminSessionCookie(ctx.req.headers));
+        auditLog("admin.login", "success", "admin");
         return { success: true };
       } catch (error) {
         if (error instanceof TRPCError) throw error;
+        auditLog("admin.login", "failure", "anonymous");
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Admin authentication is not configured" });
       }
     }),
   adminMe: publicQuery.query(({ ctx }) => ({ authenticated: ctx.isAdmin || ctx.user?.role === "admin" })),
   adminLogout: publicQuery.mutation(({ ctx }) => {
     ctx.resHeaders.append("set-cookie", clearAdminSessionCookie(ctx.req.headers));
+    auditLog("admin.logout", "success", ctx.isAdmin ? "admin" : "anonymous");
     return { success: true };
   }),
   me: authedQuery.query((opts) => opts.ctx.user),
