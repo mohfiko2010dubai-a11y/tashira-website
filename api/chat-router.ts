@@ -211,7 +211,7 @@ export const chatRouter = createRouter({
       
       // Process based on current step
       switch (session.step) {
-        case 0: // Select visa type
+        case 0: { // Select visa type
           const visaType = extractVisaType(input.message);
           if (visaType) {
             session.visaType = visaType;
@@ -223,8 +223,9 @@ export const chatRouter = createRouter({
               : "❌ I didn't understand. Please choose: 14 days, 30 days, 60 days, 90 days, or 96 hours transit";
           }
           break;
+        }
           
-        case 1: // Number of applicants
+        case 1: { // Number of applicants
           const count = extractApplicantCount(input.message);
           if (count && count > 0 && count <= 20) {
             session.applicantCount = count;
@@ -237,8 +238,9 @@ export const chatRouter = createRouter({
               : "❌ Invalid number. Please enter how many applicants (1-20)";
           }
           break;
+        }
           
-        case 2: // Document upload (handled separately via upload endpoint)
+        case 2: { // Document upload (handled separately via upload endpoint)
           // Check if enough documents uploaded
           const docCheck = validateDocuments(session.documents);
           if (docCheck.valid) {
@@ -252,8 +254,9 @@ export const chatRouter = createRouter({
               : `⚠️ Still need: ${missingList}\n\nPlease upload the required documents:`;
           }
           break;
+        }
           
-        case 3: // Processing type
+        case 3: { // Processing type
           const processingType = extractProcessingType(input.message);
           if (processingType) {
             session.processingType = processingType;
@@ -272,8 +275,9 @@ export const chatRouter = createRouter({
               : "❌ Please choose: 'Regular' or 'Express'";
           }
           break;
+        }
           
-        case 4: // Ask for full name
+        case 4: { // Ask for full name
           const name = input.message.trim();
           if (validateName(name)) {
             session.visitorName = name;
@@ -285,8 +289,9 @@ export const chatRouter = createRouter({
               : "❌ Invalid name. Please enter your real full name (letters only).";
           }
           break;
+        }
           
-        case 5: // Ask for email
+        case 5: { // Ask for email
           const email = input.message.trim();
           if (validateEmail(email)) {
             session.visitorEmail = email;
@@ -298,6 +303,7 @@ export const chatRouter = createRouter({
               : "❌ Invalid email. Please try again (e.g., name@example.com)";
           }
           break;
+        }
           
         case 6: { // Ask for phone - wrapped in block for scope
           const phone = input.message.trim();
@@ -359,10 +365,11 @@ export const chatRouter = createRouter({
           break;
         }
           
-        default:
+        default: {
           // Fallback to AI
           const aiReply = await getAIResponse(input.message);
           reply = aiReply;
+        }
       }
       
       // Store bot response
