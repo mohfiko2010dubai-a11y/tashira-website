@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Test foundation.
+CI verification.
 
 ## Completed commits
 
@@ -10,7 +10,7 @@ Test foundation.
 
 ## Current CI status
 
-TypeScript checking and lint now succeed. The review-branch CI is expected to advance to tests on the next push.
+TypeScript checking, lint, 10 API utility tests, and the production build succeed locally.
 
 ## Errors fixed by category
 
@@ -26,6 +26,7 @@ TypeScript checking and lint now succeed. The review-branch CI is expected to ad
 
 - None at the TypeScript compiler level.
 - Lint: no errors or warnings remain (down from 149 errors and 4 warnings).
+- Tests: the initial Vitest failure was caused by the absence of test files, not a hidden or bypassed test failure.
 
 ## Blocked decisions
 
@@ -41,6 +42,8 @@ None yet; the repository is entering lint stabilization.
 - `npm ci` — succeeded using the committed lockfile.
 - `npm run check` — succeeds.
 - `npm run lint` — succeeds.
+- `npm run test` — succeeds with 10 tests across 3 files; the initial run correctly failed because no test files existed.
+- `npm run build` — succeeds; the generated `dist/boot.js` output was not retained as a source change.
 - `npm run check -- --force` — used during local reconciliation to bypass stale incremental build metadata.
 
 ## Risks and follow-up work
