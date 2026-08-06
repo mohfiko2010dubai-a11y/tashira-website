@@ -62,7 +62,7 @@ export const documentRouter = createRouter({
       return doc || null;
     }),
 
-  // Create document record (after successful upload to Supabase)
+  // Create document metadata after a successful storage upload.
   create: publicQuery
     .input(z.object({
       applicationId: z.number().positive(),

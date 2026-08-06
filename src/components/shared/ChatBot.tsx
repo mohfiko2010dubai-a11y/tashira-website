@@ -542,7 +542,7 @@ export default function ChatBot() {
       const currentWizard = wizardRef.current;
       const appId = currentWizard.applicationId;
       if (!appId) {
-        addBotMessage('⚠️ Document saved locally. Will upload when application is confirmed.');
+        addBotMessage('⚠️ The application was not confirmed, so this document was not uploaded. Please restart the application and try again.');
         return;
       }
 
@@ -569,7 +569,7 @@ export default function ChatBot() {
                 setLoading(false);
               },
               onError: (err) => {
-                addBotMessage(`⚠️ Upload failed: ${err.message}. Document saved locally.`);
+                addBotMessage(`⚠️ Upload failed: ${err.message}. Please select the file and try again.`);
                 setLoading(false);
               },
             }

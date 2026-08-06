@@ -60,7 +60,7 @@ export function useDocumentUpload() {
             return updated;
           });
 
-          // Upload to Supabase
+          // Upload to the active server-side storage provider.
           const result = await storageUpload.mutateAsync({
             applicationId,
             applicantId: applicantIds[pf.applicantIndex] || undefined,

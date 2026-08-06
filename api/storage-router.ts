@@ -67,7 +67,7 @@ export const storageRouter = createRouter({
       }
     }),
 
-  // Upload document to Supabase Storage
+  // Upload document to the active server-side storage provider.
   upload: publicQuery
     .input(z.object({
       applicationId: z.number().positive(),
@@ -119,7 +119,7 @@ export const storageRouter = createRouter({
       }
     }),
 
-  // Delete document from Supabase
+  // Delete document from the active server-side storage provider.
   delete: publicQuery
     .input(z.object({ path: z.string().min(1) }))
     .mutation(async ({ input }) => {

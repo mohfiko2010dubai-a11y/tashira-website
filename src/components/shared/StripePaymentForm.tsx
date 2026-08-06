@@ -244,7 +244,7 @@ export function PaymentSuccessModal({
           return updated;
         });
 
-        // Upload to Supabase
+        // Upload to the active server-side storage provider.
         const result = await storageUpload.mutateAsync({
           applicationId,
           documentType: pf.documentType,
@@ -418,14 +418,14 @@ export function PaymentSuccessModal({
       {uploadState === "partial" && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
           <p className="text-sm text-amber-700">
-            Some uploads failed. You can retry from your application tracking page.
+            Some uploads failed. Keep this reference number and contact support before closing this window.
           </p>
         </div>
       )}
       {uploadState === "failed" && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
           <p className="text-sm text-red-700">
-            Upload failed. Please retry from your application tracking page or contact support.
+            Upload failed. Keep this reference number and contact support before closing this window.
           </p>
         </div>
       )}
