@@ -25,7 +25,7 @@ TypeScript checking now succeeds. The review-branch CI is expected to advance to
 ## Remaining errors
 
 - None at the TypeScript compiler level.
-- Lint: 18 errors and 4 warnings remain after eliminating explicit `any` usage (down from 149 errors).
+- Lint: 10 errors and 1 warning remain after React state/effect stabilization (down from 149 errors).
 
 ## Blocked decisions
 

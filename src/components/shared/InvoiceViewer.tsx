@@ -29,12 +29,7 @@ export default function InvoiceViewer({
   stripePaymentIntentId,
   onClose,
 }: InvoiceViewerProps) {
-  const [pdfUrl, setPdfUrl] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  useEffect(() => {
-    // Generate PDF in browser
+  const [pdfUrl] = useState(() => {
     const doc = generateInvoicePDF({
       invoiceNumber,
       referenceNumber,
@@ -50,14 +45,15 @@ export default function InvoiceViewer({
     });
 
     const blob = doc.output('blob');
-    const url = URL.createObjectURL(blob);
-    setPdfUrl(url);
-    setLoading(false);
+    return URL.createObjectURL(blob);
+  });
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  useEffect(() => {
     return () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(pdfUrl);
     };
-  }, [invoiceNumber]);
+  }, [pdfUrl]);
 
   const handleDownload = () => {
     if (!pdfUrl) return;
@@ -100,18 +96,12 @@ export default function InvoiceViewer({
 
         {/* PDF Viewer */}
         <div className="flex-1 bg-gray-50 overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              Generating PDF...
-            </div>
-          ) : (
-            <iframe
-              ref={iframeRef}
-              src={pdfUrl}
-              className="w-full h-full"
-              title="Invoice PDF"
-            />
-          )}
+          <iframe
+            ref={iframeRef}
+            src={pdfUrl}
+            className="w-full h-full"
+            title="Invoice PDF"
+          />
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, Check } from 'lucide-react';
 
-export interface Language {
+interface Language {
   code: string;
   name: string;
   nativeName: string;
@@ -10,7 +10,7 @@ export interface Language {
   dir: 'ltr' | 'rtl';
 }
 
-export const languages: Language[] = [
+const languages: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧', dir: 'ltr' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', dir: 'rtl' },
   { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', dir: 'ltr' },
@@ -62,8 +62,8 @@ export default function LanguageSelector() {
 
   const handleLanguageChange = (lang: Language) => {
     i18n.changeLanguage(lang.code);
-    document.documentElement.dir = lang.dir;
-    document.documentElement.lang = lang.code;
+    document.documentElement.setAttribute('dir', lang.dir);
+    document.documentElement.setAttribute('lang', lang.code);
     localStorage.setItem('i18nextLng', lang.code);
     setOpen(false);
     window.location.reload();

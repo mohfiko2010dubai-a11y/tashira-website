@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { trpc } from "@/providers/trpc";
 import { X, Download, FileText, Image, Loader2 } from "lucide-react";
 
@@ -16,27 +15,14 @@ export default function DocumentPreviewModal({
   storagePath,
   onClose,
 }: DocumentPreviewModalProps) {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
   const { data: urlData, isLoading } = trpc.storage.getSignedUrl.useQuery(
     { path: storagePath },
     { enabled: !!storagePath },
   );
 
-  useEffect(() => {
-    if (!isLoading) {
-      if (urlData?.signedUrl) {
-        setSignedUrl(urlData.signedUrl);
-        setError("");
-      } else {
-        setError("Failed to generate preview URL");
-        setSignedUrl(null);
-      }
-      setLoading(false);
-    }
-  }, [urlData, isLoading]);
+  const signedUrl = urlData?.signedUrl ?? null;
+  const loading = isLoading;
+  const error = !isLoading && !signedUrl ? "Failed to generate preview URL" : "";
 
   const isPdf = mimeType === "application/pdf";
   const isImage = mimeType.startsWith("image/");

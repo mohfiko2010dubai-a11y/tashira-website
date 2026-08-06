@@ -21,7 +21,7 @@ export default function AdminChat() {
     { enabled: !!selectedSession, refetchInterval: 5000 }
   );
 
-  const markAsRead = trpc.chat.markAsRead.useMutation({
+  const { mutate: markAsRead } = trpc.chat.markAsRead.useMutation({
     onSuccess: () => refetch(),
   });
 
@@ -37,9 +37,9 @@ export default function AdminChat() {
 
   useEffect(() => {
     if (selectedSession) {
-      markAsRead.mutate({ sessionId: selectedSession });
+      markAsRead({ sessionId: selectedSession });
     }
-  }, [selectedSession]);
+  }, [selectedSession, markAsRead]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

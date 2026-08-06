@@ -102,6 +102,10 @@ function validateRequired(val: string): boolean {
   return val.trim().length >= 2;
 }
 
+function generateReferenceNumber(): string {
+  return `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ChatBot() {
@@ -175,8 +179,10 @@ export default function ChatBot() {
 
   // ─── Welcome ──────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (open && messages.length === 0) {
+  const handleToggle = () => {
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (nextOpen && messages.length === 0) {
       addBotMessage(
         '👋 Welcome to **TASHIRA Visa Portal**!\n\n' +
         'I am your professional visa assistant. I will guide you through your UAE visa application step by step.\n\n' +
@@ -187,7 +193,7 @@ export default function ChatBot() {
         setWizard(w => ({ ...w, step: 'who_traveling' }));
       }, 800);
     }
-  }, [open]);
+  };
 
   // ─── Handle User Input ────────────────────────────────────────────────────
 
@@ -282,7 +288,7 @@ export default function ChatBot() {
       // ─── Full Name ────────────────────────────────────────────────────────
       case 'full_name': {
         if (validateName(msg)) {
-          const refNum = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+          const refNum = generateReferenceNumber();
           // Start application in DB
           startMutation.mutate(
             {
@@ -465,7 +471,7 @@ export default function ChatBot() {
       // ─── Terms ────────────────────────────────────────────────────────────
       case 'terms': {
         if (msg.toLowerCase() === 'confirm') {
-          const refNum = w.referenceNumber || `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+          const refNum = w.referenceNumber || generateReferenceNumber();
           const payLink = 'https://tashiraev.com/pay/' + refNum;
 
           // Final submit to backend
@@ -744,7 +750,7 @@ export default function ChatBot() {
   return (
     <>
       {/* Chat Toggle */}
-      <button onClick={() => setOpen(!open)}
+      <button onClick={handleToggle}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
         {open ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
