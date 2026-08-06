@@ -109,7 +109,6 @@ export default function ChatBot() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sessionId] = useState(() => 'chat_' + Math.random().toString(36).slice(2));
   const [docStep, setDocStep] = useState(0); // 0=passport_copy, 1=passport_cover, 2=passport_photo
 
   const [wizard, setWizard] = useState<Wizard>({
@@ -146,7 +145,10 @@ export default function ChatBot() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const sendMessage = trpc.chat.sendMessage.useMutation();
+  const startMutation = trpc.wizard.startApplication.useMutation();
+  const updateMutation = trpc.wizard.updateApplication.useMutation();
+  const submitMutation = trpc.wizard.submitApplication.useMutation();
+  const uploadDocMutation = trpc.wizard.uploadDocuments.useMutation();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -294,8 +296,8 @@ export default function ChatBot() {
               totalAmount: w.totalAmount,
             },
             {
-              onSuccess: (result: any) => {
-                const appId = result?.applicationId || result?.data?.json?.applicationId;
+              onSuccess: (result) => {
+                const appId = result.applicationId;
                 advance({
                   fullName: msg,
                   referenceNumber: refNum,
