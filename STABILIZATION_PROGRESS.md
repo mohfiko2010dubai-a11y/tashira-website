@@ -2,7 +2,7 @@
 
 ## Current phase
 
-CI verification.
+Phase 3 production-readiness audit completed; launch blockers are documented in `PROJECT_READINESS_REPORT.md`.
 
 ## Completed commits
 
@@ -10,7 +10,7 @@ CI verification.
 
 ## Current CI status
 
-TypeScript checking, lint, 10 API utility tests, and the production build succeed locally.
+TypeScript checking, lint, 14 tests, and the production build succeed locally. Phase 3 review-branch commits are being verified by CI.
 
 ## Errors fixed by category
 
@@ -26,7 +26,7 @@ TypeScript checking, lint, 10 API utility tests, and the production build succee
 
 - None at the TypeScript compiler level.
 - Lint: no errors or warnings remain (down from 149 errors and 4 warnings).
-- Tests: the initial Vitest failure was caused by the absence of test files, not a hidden or bypassed test failure.
+- Tests: 14 tests pass across 4 files, including canonical filesystem-path and traversal coverage.
 
 ## Blocked decisions
 
@@ -35,14 +35,16 @@ TypeScript checking, lint, 10 API utility tests, and the production build succee
 
 ## Tests added
 
-None yet; the repository is entering lint stabilization.
+- Error normalization, cookies, and HTTP-client behavior.
+- Canonical local document write/read/delete path behavior.
+- Rejection of filesystem paths outside the configured storage root.
 
 ## Commands run
 
 - `npm ci` — succeeded using the committed lockfile.
 - `npm run check` — succeeds.
 - `npm run lint` — succeeds.
-- `npm run test` — succeeds with 10 tests across 3 files; the initial run correctly failed because no test files existed.
+- `npm run test` — succeeds with 14 tests across 4 files; the initial run correctly failed because no test files existed.
 - `npm run build` — succeeds; the generated `dist/boot.js` output was not retained as a source change.
 - `npm run check -- --force` — used during local reconciliation to bypass stale incremental build metadata.
 
@@ -50,3 +52,4 @@ None yet; the repository is entering lint stabilization.
 
 - TypeScript build-mode metadata under `node_modules/.tmp` can suppress repeated local diagnostics; forced checks are used while stabilizing.
 - No production system, data, deployment configuration, or secrets have been accessed.
+- Critical authorization, payment verification, and document-ownership work remains blocked on approved architecture decisions; see `PROJECT_READINESS_REPORT.md`.
