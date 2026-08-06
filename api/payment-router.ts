@@ -2,13 +2,11 @@ import { z } from "zod";
 import { createRouter, paymentQuery, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, payments, invoices } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { saveInvoiceToDisk } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
 import { auditLog } from "./lib/audit-log";
-
-// Stripe secret key from env
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
+import { createStripeTestIntent, retrieveStripeTestIntent, verifyStripeIntent } from "./lib/stripe";
 
 export const paymentRouter = createRouter({
   // Create payment intent
@@ -20,44 +18,38 @@ export const paymentRouter = createRouter({
     }))
     .mutation(async ({ input }) => {
       try {
-        const response = await fetch("https://api.stripe.com/v1/payment_intents", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            amount: String(input.amount),
-            currency: input.currency,
-            "automatic_payment_methods[enabled]": "true",
-            "metadata[referenceNumber]": input.referenceNumber,
-          }),
-        });
-
-        if (!response.ok) {
-          const errData = await response.json() as { error?: { message?: string } };
-          throw new Error(errData.error?.message || "Stripe error");
-        }
-
-        const paymentIntent = await response.json() as { id: string; client_secret: string };
-        
-        // Store in DB
         const db = getDb();
         const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
-        
-        if (app) {
+        if (!app) throw new Error("Application not found");
+        if (app.paymentStatus === "paid") throw new Error("Application is already paid");
+
+        const serverAmountUsd = Number(app.totalAmountUsd);
+        if (!Number.isFinite(serverAmountUsd) || serverAmountUsd <= 0) {
+          throw new Error("Application amount is invalid");
+        }
+        const amountCents = Math.round(serverAmountUsd * 100);
+        const paymentIntent = await createStripeTestIntent({
+          amountCents,
+          referenceNumber: app.referenceNumber,
+          idempotencyKey: `tashira-application-${app.id}`,
+        });
+        if (!paymentIntent.client_secret) throw new Error("Stripe did not return a client secret");
+
+        const [existingPayment] = await db.select({ id: payments.id }).from(payments)
+          .where(eq(payments.stripePaymentIntentId, paymentIntent.id)).limit(1);
+        if (!existingPayment) {
           await db.insert(payments).values({
             applicationId: app.id,
             stripePaymentIntentId: paymentIntent.id,
-            amount: String(input.amount / 100),
-            currency: input.currency,
+            amount: serverAmountUsd.toFixed(2),
+            currency: "usd",
             status: "pending",
           });
-          
-          await db.update(applications).set({
-            stripePaymentIntentId: paymentIntent.id,
-          }).where(eq(applications.id, app.id));
         }
+        await db.update(applications).set({
+          stripePaymentIntentId: paymentIntent.id,
+          stripeAmountUsd: serverAmountUsd.toFixed(2),
+        }).where(eq(applications.id, app.id));
 
         auditLog("payment.intent_create", "success", "customer");
         return { clientSecret: paymentIntent.client_secret };
@@ -75,41 +67,52 @@ export const paymentRouter = createRouter({
       paymentIntentId: z.string(),
     }))
     .mutation(async ({ input }) => {
-      const db = getDb();
-      
-      // Update application payment status
-      await db.update(applications).set({
-        paymentStatus: "paid",
-        status: "payment_received",
-      }).where(eq(applications.referenceNumber, input.referenceNumber));
+      try {
+        const db = getDb();
+        const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+        if (!app) throw new Error("Application not found");
 
-      // Update payment status
-      await db.update(payments).set({
-        status: "succeeded",
-      }).where(eq(payments.stripePaymentIntentId, input.paymentIntentId));
-      auditLog("payment.confirm", "success", "customer");
+        const [payment] = await db.select().from(payments).where(and(
+          eq(payments.stripePaymentIntentId, input.paymentIntentId),
+          eq(payments.applicationId, app.id),
+        )).limit(1);
+        if (!payment) throw new Error("Payment does not belong to this application");
 
-      // Generate invoice
-      const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
-      const [payment] = await db.select().from(payments).where(eq(payments.stripePaymentIntentId, input.paymentIntentId)).limit(1);
+        const expectedAmountCents = Math.round(Number(app.totalAmountUsd) * 100);
+        const stripeIntent = await retrieveStripeTestIntent(input.paymentIntentId);
+        if (!verifyStripeIntent({
+          intent: stripeIntent,
+          paymentIntentId: input.paymentIntentId,
+          referenceNumber: input.referenceNumber,
+          expectedAmountCents,
+        })) {
+          throw new Error("Stripe payment verification failed");
+        }
+
+        if (app.paymentStatus !== "paid") {
+          await db.update(applications).set({
+            paymentStatus: "paid",
+            status: "payment_received",
+          }).where(eq(applications.id, app.id));
+          await db.update(payments).set({ status: "succeeded" }).where(eq(payments.id, payment.id));
+        }
+        auditLog("payment.confirm", "success", "customer");
       
-      if (app && payment) {
         const invoiceNumber = `INV-${input.referenceNumber}`;
         
         // Insert invoice record - ensure paymentId is valid number
         const paymentIdNum = typeof payment.id === 'bigint' ? Number(payment.id) : payment.id;
         const appIdNum = typeof app.id === 'bigint' ? Number(app.id) : app.id;
         
-        try {
+        const [existingInvoice] = await db.select({ id: invoices.id }).from(invoices)
+          .where(eq(invoices.applicationId, app.id)).limit(1);
+        if (!existingInvoice) {
           await db.insert(invoices).values({
             invoiceNumber,
             applicationId: appIdNum,
             paymentId: paymentIdNum,
             amount: payment.amount,
           });
-        } catch (invoiceErr: unknown) {
-          console.error("[Invoice Insert Error]", getErrorMessage(invoiceErr));
-          // Don't fail payment if invoice insert fails
         }
 
         // Auto-generate PDF server-side
@@ -152,9 +155,10 @@ export const paymentRouter = createRouter({
           processingType: app.processingType,
           stripePaymentIntentId: input.paymentIntentId,
         };
+      } catch (error) {
+        auditLog("payment.confirm", "failure", "customer");
+        throw error;
       }
-
-      return { success: true };
     }),
 
   // Get invoice by reference
