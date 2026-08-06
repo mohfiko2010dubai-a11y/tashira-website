@@ -10,7 +10,7 @@ import {
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
-function PaymentForm({ referenceNumber, amount, visaType, applicantName }: {
+function PaymentForm({ referenceNumber, amount, applicantName }: {
   referenceNumber: string;
   amount: number;
   visaType: string;

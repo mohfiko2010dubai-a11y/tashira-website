@@ -18,8 +18,6 @@ const ALLOWED_MIME_TYPES = [
   "image/png",
 ];
 
-const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"];
-
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB per file
 
 // Sanitize filename: remove path traversal, special chars

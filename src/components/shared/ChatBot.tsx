@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/providers/trpc';
-import { MessageCircle, X, Send, Bot, User, Paperclip, Lock, ArrowRight } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Paperclip, Lock } from 'lucide-react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

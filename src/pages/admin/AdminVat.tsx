@@ -4,7 +4,7 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
 import * as XLSX from 'xlsx';
 import {
-  ArrowLeft, Search, Download, Calendar, LogOut, Percent,
+  ArrowLeft, Download, Calendar, LogOut, Percent,
   DollarSign, TrendingUp, TrendingDown, Receipt, Building2,
 } from 'lucide-react';
 
@@ -13,7 +13,7 @@ export default function AdminVat() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const { data: applications, isLoading } = trpc.application.list.useQuery({
+  const { data: applications } = trpc.application.list.useQuery({
     status: undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,

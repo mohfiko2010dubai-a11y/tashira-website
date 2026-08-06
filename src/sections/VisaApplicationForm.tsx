@@ -7,6 +7,7 @@ import { trpc } from '@/providers/trpc';
 import TrackApplication from './TrackApplication';
 import FormDecorations from '@/components/shared/FormDecorations';
 import StripePaymentForm, { PaymentSuccessModal } from '@/components/shared/StripePaymentForm';
+import type { PendingFile } from '@/hooks/useDocumentUpload';
 
 type BaseType = 'single' | 'family';
 type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';

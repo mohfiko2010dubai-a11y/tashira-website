@@ -11,7 +11,6 @@ interface DocumentPreviewModalProps {
 }
 
 export default function DocumentPreviewModal({
-  documentId,
   fileName,
   mimeType,
   storagePath,

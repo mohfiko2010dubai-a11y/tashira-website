@@ -3,7 +3,7 @@ import { trpc } from "@/providers/trpc";
 import DocumentPreviewModal from "./DocumentPreviewModal";
 import {
   FileText, Image, Search, Download, Trash2, RefreshCw,
-  Eye, Upload, AlertCircle, CheckCircle, X, FileWarning,
+  Eye, AlertCircle, CheckCircle, X, FileWarning,
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {

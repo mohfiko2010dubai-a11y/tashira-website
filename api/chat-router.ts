@@ -154,33 +154,6 @@ function extractProcessingType(text: string): string | null {
   return null;
 }
 
-function extractContactInfo(text: string): { name?: string; email?: string; phone?: string } {
-  const lines = text.split(/\n|,|\//).map(l => l.trim()).filter(Boolean);
-  const result: { name?: string; email?: string; phone?: string } = {};
-  
-  for (const line of lines) {
-    // Email
-    const emailMatch = line.match(/[\w.-]+@[\w.-]+\.\w+/);
-    if (emailMatch && !result.email) result.email = emailMatch[0];
-    
-    // Phone
-    const phoneMatch = line.match(/\+?\d[\d\s-]{7,}/);
-    if (phoneMatch && !result.phone) result.phone = phoneMatch[0].replace(/\s/g, '');
-    
-    // Name (first non-email, non-phone line with letters)
-    if (!result.name && !emailMatch && !phoneMatch && /[a-zA-Z]{3,}/.test(line)) {
-      result.name = line;
-    }
-  }
-  
-  // If single line with name-like content
-  if (!result.name && lines.length === 1 && !result.email && !result.phone) {
-    result.name = lines[0];
-  }
-  
-  return result;
-}
-
 function generateReferenceNumber(): string {
   return "TSH-" + Math.floor(100000 + Math.random() * 900000);
 }

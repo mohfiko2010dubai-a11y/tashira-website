@@ -6,7 +6,7 @@ import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
 import * as XLSX from 'xlsx';
 import {
   ArrowLeft, Search, Download, Calendar, LogOut, Receipt,
-  DollarSign, TrendingUp, Filter,
+  DollarSign, TrendingUp,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {

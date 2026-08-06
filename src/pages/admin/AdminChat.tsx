@@ -2,30 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { trpc } from '@/providers/trpc';
 import {
   MessageSquare, Send, RefreshCw, Circle, CheckCircle,
-  Phone, Mail, User, Clock, Search
+  Phone, Mail, Clock
 } from 'lucide-react';
-
-interface ChatSession {
-  sessionId: string;
-  lastMessage: string;
-  lastContent: string;
-  visitorName: string | null;
-  visitorEmail: string | null;
-  visitorPhone: string | null;
-  unreadCount: number;
-}
-
-interface ChatMessage {
-  id: number;
-  sessionId: string;
-  role: "user" | "assistant" | "admin";
-  content: string;
-  visitorName: string | null;
-  visitorEmail: string | null;
-  visitorPhone: string | null;
-  isRead: "read" | "unread";
-  createdAt: Date;
-}
 
 export default function AdminChat() {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Save, Building2, Calculator, FileText } from 'lucide-react';
 import { trpc } from '@/providers/trpc';
 

@@ -3,8 +3,6 @@
 
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
-
 const STORAGE_ROOT = process.env.STORAGE_ROOT || "/var/www/tashira/storage/documents";
 
 // Ensure storage directory exists

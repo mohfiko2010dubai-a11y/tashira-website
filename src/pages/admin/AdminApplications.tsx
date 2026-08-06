@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import {
   Search, Eye, LogOut, Filter, RefreshCw, Building2,
   Download, Calendar, DollarSign, Users, TrendingUp, UserCircle, Edit3,
-  FileText, Receipt, Percent, FolderOpen, MessageSquare,
+  Receipt, Percent, FolderOpen, MessageSquare,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {

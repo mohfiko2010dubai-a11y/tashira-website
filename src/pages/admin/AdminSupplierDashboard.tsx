@@ -4,8 +4,8 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
 import * as XLSX from 'xlsx';
 import {
-  ArrowLeft, Search, Download, Calendar, LogOut, Building2,
-  DollarSign, Receipt, FileText, TrendingUp, Filter,
+  ArrowLeft, Search, Download, Calendar, LogOut,
+  DollarSign, Receipt, FileText, TrendingUp,
 } from 'lucide-react';
 
 const VAT_LABELS: Record<string, string> = {
@@ -45,7 +45,6 @@ export default function AdminSupplierDashboard() {
   // Summary
   const totalCostAed = supplierBills.reduce((sum: number, app: any) => sum + Number((app as any).supplierCostAed || 0), 0);
   const totalVatAed = supplierBills.reduce((sum: number, app: any) => sum + Number((app as any).supplierVatAmount || 0), 0);
-  const totalWithVatAed = supplierBills.reduce((sum: number, app: any) => sum + Number((app as any).supplierTotalAed || (app as any).supplierCostAed || 0), 0);
   const pendingCount = supplierBills.filter((app: any) => (app as any).supplierPaid === 'pending').length;
 
   const handleExportExcel = () => {
@@ -151,7 +150,6 @@ export default function AdminSupplierDashboard() {
                   {supplierBills.map((app: any) => {
                     const a = app as any;
                     const costAed = Number(a.supplierCostAed || 0);
-                    const vatAed = Number(a.supplierVatAmount || 0);
                     const totalAed = Number(a.supplierTotalAed || costAed);
                     const vatLabel = VAT_LABELS[a.supplierVatStatus || ''] || '-';
                     const isPaid = a.supplierPaid === 'paid';

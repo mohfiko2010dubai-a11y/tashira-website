@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc";
 import {
-  ArrowLeft, Receipt, Building2, RefreshCw, FileText,
-  Users, DollarSign, ClipboardList, Clock, StickyNote, FolderOpen,
+  ArrowLeft, Receipt, Building2, RefreshCw,
+  Users, DollarSign, ClipboardList, StickyNote, FolderOpen,
 } from "lucide-react";
 import { ViewInvoiceButton, DownloadInvoiceButton } from "@/components/shared/InvoiceButton";
 import { generateInvoicePDF } from "@/components/shared/InvoiceGenerator";
