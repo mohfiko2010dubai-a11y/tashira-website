@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { adminQuery, createRouter, publicQuery } from "./middleware";
+import { adminQuery, chatQuery, createRouter, publicQuery, uploadQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { chatMessages, applications } from "@db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -177,7 +177,7 @@ async function sendWhatsAppNotification(message: string) {
 
 export const chatRouter = createRouter({
   // Send message and get response
-  sendMessage: publicQuery
+  sendMessage: chatQuery
     .input(z.object({
       sessionId: z.string().min(1),
       message: z.string().min(1),
@@ -386,7 +386,7 @@ export const chatRouter = createRouter({
     }),
 
   // Upload document via chat
-  uploadDocument: publicQuery
+  uploadDocument: uploadQuery
     .input(z.object({
       sessionId: z.string().min(1),
       documentType: z.string(),

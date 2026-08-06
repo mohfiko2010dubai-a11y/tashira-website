@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { adminQuery, createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, loginQuery, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { staffUsers } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -22,7 +22,7 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 
 export const staffRouter = createRouter({
   // Staff login - returns token
-  login: publicQuery
+  login: loginQuery
     .input(
       z.object({
         username: z.string().min(1),

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { adminQuery, createRouter, publicQuery } from "./middleware";
+import { adminQuery, applicationSubmissionQuery, chatQuery, createRouter, publicQuery, uploadQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, documents } from "@db/schema";
 import { eq, desc, sql } from "drizzle-orm";
@@ -24,7 +24,7 @@ function mapProcessingType(processingType?: string): ProcessingType {
 
 export const wizardRouter = createRouter({
   // Start a new submitted application (called on first step)
-  startApplication: publicQuery
+  startApplication: applicationSubmissionQuery
     .input(z.object({
       referenceNumber: z.string(),
       whoTraveling: z.string().optional(),
@@ -82,7 +82,7 @@ export const wizardRouter = createRouter({
     }),
 
   // Update an existing submitted application (called after each step)
-  updateApplication: publicQuery
+  updateApplication: chatQuery
     .input(z.object({
       referenceNumber: z.string(),
       whoTraveling: z.string().optional(),
@@ -140,7 +140,7 @@ export const wizardRouter = createRouter({
     }),
 
   // Submit complete application (called on CONFIRM)
-  submitApplication: publicQuery
+  submitApplication: applicationSubmissionQuery
     .input(z.object({
       referenceNumber: z.string(),
       fullName: z.string().min(1),
@@ -254,7 +254,7 @@ export const wizardRouter = createRouter({
     }),
 
   // Upload documents for a wizard application
-  uploadDocuments: publicQuery
+  uploadDocuments: uploadQuery
     .input(z.object({
       applicationId: z.number().positive(),
       documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),

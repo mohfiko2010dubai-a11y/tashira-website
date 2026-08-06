@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, uploadQuery } from "./middleware";
 import type { JWTInput } from "google-auth-library";
 import { getErrorMessage } from "./lib/errors";
 
@@ -32,7 +32,7 @@ async function getDriveClient() {
 
 export const driveRouter = createRouter({
   // Upload base64 file to Google Drive
-  upload: publicQuery
+  upload: uploadQuery
     .input(z.object({
       fileName: z.string(),
       mimeType: z.string(),
@@ -86,7 +86,7 @@ export const driveRouter = createRouter({
     }),
 
   // List files in the drive folder
-  listFiles: publicQuery
+  listFiles: adminQuery
     .query(async () => {
       try {
         const { drive, folderId } = await getDriveClient();

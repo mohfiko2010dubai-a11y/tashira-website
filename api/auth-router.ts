@@ -2,7 +2,7 @@ import * as cookie from "cookie";
 import { Session } from "@contracts/constants";
 import { getSessionCookieOptions } from "./lib/cookies";
 import { createRouter, authedQuery } from "./middleware";
-import { publicQuery } from "./middleware";
+import { loginQuery, publicQuery } from "./middleware";
 import { z } from "zod";
 import {
   clearAdminSessionCookie,
@@ -12,7 +12,7 @@ import {
 import { TRPCError } from "@trpc/server";
 
 export const authRouter = createRouter({
-  adminLogin: publicQuery
+  adminLogin: loginQuery
     .input(z.object({ password: z.string().min(1).max(500) }))
     .mutation(({ input, ctx }) => {
       try {

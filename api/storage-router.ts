@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery, staffOrAdminQuery } from "./middleware";
+import { createRouter, staffOrAdminQuery, uploadQuery } from "./middleware";
 import {
   storageUpload,
   storageDelete,
@@ -39,7 +39,7 @@ export const storageRouter = createRouter({
     }),
 
   // Upload document to the active server-side storage provider.
-  upload: publicQuery
+  upload: uploadQuery
     .input(z.object({
       applicationId: z.number().positive(),
       applicantId: z.number().optional(),

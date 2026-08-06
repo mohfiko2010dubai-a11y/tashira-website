@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { adminQuery, createRouter, publicQuery, staffOrAdminQuery } from "./middleware";
+import { adminQuery, applicationSubmissionQuery, createRouter, publicQuery, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
@@ -10,7 +10,7 @@ const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as 
 const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
 
 export const applicationRouter = createRouter({
-  create: publicQuery
+  create: applicationSubmissionQuery
     .input(z.object({
       referenceNumber: z.string().min(1),
       baseType: z.enum(["single", "family"]),

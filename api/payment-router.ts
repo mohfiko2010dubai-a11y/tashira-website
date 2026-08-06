@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { createRouter, paymentQuery, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, payments, invoices } from "@db/schema";
 import { eq } from "drizzle-orm";
@@ -11,7 +11,7 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 
 export const paymentRouter = createRouter({
   // Create payment intent
-  createIntent: publicQuery
+  createIntent: paymentQuery
     .input(z.object({
       amount: z.number(), // in cents
       currency: z.string().default("usd"),
@@ -66,7 +66,7 @@ export const paymentRouter = createRouter({
     }),
 
   // Confirm payment success
-  confirm: publicQuery
+  confirm: paymentQuery
     .input(z.object({
       referenceNumber: z.string(),
       paymentIntentId: z.string(),
