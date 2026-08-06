@@ -5,6 +5,7 @@ import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
+import { getErrorMessage } from "./lib/errors";
 
 // Resolve absolute invoices directory
 const INVOICES_DIR = path.resolve(process.cwd(), "dist/public/invoices");
@@ -45,9 +46,10 @@ export const invoiceRouter = createRouter({
           pdfUrl: publicUrl,
           absolutePath,
         };
-      } catch (err: any) {
-        console.error("[Invoice Save Error]", err.message);
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error("[Invoice Save Error]", message);
+        return { success: false, error: message };
       }
     }),
 
@@ -92,9 +94,10 @@ export const invoiceRouter = createRouter({
           referenceNumber: input.referenceNumber,
           stripePaymentIntentId: app.stripePaymentIntentId,
         };
-      } catch (err: any) {
-        console.error("[Invoice Regenerate Error]", err.message);
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error("[Invoice Regenerate Error]", message);
+        return { success: false, error: message };
       }
     }),
 });

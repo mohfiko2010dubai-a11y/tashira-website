@@ -4,6 +4,7 @@ import { getDb } from "./queries/connection";
 import { applications, payments, invoices } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { saveInvoiceToDisk } from "./lib/invoice-pdf";
+import { getErrorMessage } from "./lib/errors";
 
 // Stripe secret key from env
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
@@ -102,8 +103,8 @@ export const paymentRouter = createRouter({
             paymentId: paymentIdNum,
             amount: payment.amount,
           });
-        } catch (invoiceErr: any) {
-          console.error("[Invoice Insert Error]", invoiceErr.message);
+        } catch (invoiceErr: unknown) {
+          console.error("[Invoice Insert Error]", getErrorMessage(invoiceErr));
           // Don't fail payment if invoice insert fails
         }
 
@@ -131,8 +132,8 @@ export const paymentRouter = createRouter({
           }).where(eq(applications.id, app.id));
 
           console.log(`[Invoice] Generated: ${pdfPath}`);
-        } catch (pdfErr: any) {
-          console.error("[Invoice Auto-Gen Error]", pdfErr.message);
+        } catch (pdfErr: unknown) {
+          console.error("[Invoice Auto-Gen Error]", getErrorMessage(pdfErr));
           // Don't fail payment if invoice generation fails
         }
         

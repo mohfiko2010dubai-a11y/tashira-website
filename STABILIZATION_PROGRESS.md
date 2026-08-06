@@ -25,6 +25,7 @@ TypeScript checking now succeeds. The review-branch CI is expected to advance to
 ## Remaining errors
 
 - None at the TypeScript compiler level.
+- Lint: 130 errors remain after the first error-typing group (down from 149).
 
 ## Blocked decisions
 
@@ -39,6 +40,7 @@ None yet; the repository is entering lint stabilization.
 
 - `npm ci` — succeeded using the committed lockfile.
 - `npm run check` — succeeds.
+- `npm run lint` — currently fails on pre-existing explicit `any` and React rule violations; stabilization is in progress.
 - `npm run check -- --force` — used during local reconciliation to bypass stale incremental build metadata.
 
 ## Risks and follow-up work

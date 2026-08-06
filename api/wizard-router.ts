@@ -3,6 +3,7 @@ import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, documents } from "@db/schema";
 import { eq, desc, sql } from "drizzle-orm";
+import { getErrorMessage } from "./lib/errors";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -71,9 +72,10 @@ export const wizardRouter = createRouter({
           .limit(1);
 
         return { success: true, referenceNumber: input.referenceNumber, applicationId: inserted?.id };
-      } catch (error: any) {
-        console.error("[Wizard] Failed to start application:", error.message);
-        throw new Error(`Failed to start application: ${error.message}`);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error("[Wizard] Failed to start application:", message);
+        throw new Error(`Failed to start application: ${message}`);
       }
     }),
 
@@ -128,9 +130,10 @@ export const wizardRouter = createRouter({
           .limit(1);
 
         return { success: true, referenceNumber: input.referenceNumber, applicationId: updated?.id };
-      } catch (error: any) {
-        console.error("[Wizard] Failed to update application:", error.message);
-        throw new Error(`Failed to update application: ${error.message}`);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error("[Wizard] Failed to update application:", message);
+        throw new Error(`Failed to update application: ${message}`);
       }
     }),
 
@@ -185,9 +188,10 @@ export const wizardRouter = createRouter({
           .limit(1);
 
         return { success: true, referenceNumber: input.referenceNumber, applicationId: updated?.id };
-      } catch (error: any) {
-        console.error("[Wizard] Failed to submit application:", error.message);
-        throw new Error(`Failed to save application: ${error.message}`);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error("[Wizard] Failed to submit application:", message);
+        throw new Error(`Failed to save application: ${message}`);
       }
     }),
 
@@ -202,9 +206,10 @@ export const wizardRouter = createRouter({
           .orderBy(desc(applications.createdAt));
 
         return results;
-      } catch (error: any) {
-        console.error("[Wizard] Failed to list submitted:", error.message);
-        throw new Error(`Failed to list submitted applications: ${error.message}`);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error("[Wizard] Failed to list submitted:", message);
+        throw new Error(`Failed to list submitted applications: ${message}`);
       }
     }),
 
@@ -221,9 +226,10 @@ export const wizardRouter = createRouter({
           .orderBy(desc(applications.createdAt));
 
         return results;
-      } catch (error: any) {
-        console.error("[Wizard] Failed to list pending:", error.message);
-        throw new Error(`Failed to list pending applications: ${error.message}`);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error("[Wizard] Failed to list pending:", message);
+        throw new Error(`Failed to list pending applications: ${message}`);
       }
     }),
 
@@ -238,9 +244,10 @@ export const wizardRouter = createRouter({
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
         return app || null;
-      } catch (error: any) {
-        console.error("[Wizard] Failed to get application:", error.message);
-        throw new Error(`Failed to get application: ${error.message}`);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error("[Wizard] Failed to get application:", message);
+        throw new Error(`Failed to get application: ${message}`);
       }
     }),
 
@@ -287,9 +294,10 @@ export const wizardRouter = createRouter({
         });
 
         return { success: true, storagePath, storedFileName: storedName };
-      } catch (error: any) {
-        console.error("[Wizard] Failed to upload document:", error.message);
-        throw new Error(`Failed to upload document: ${error.message}`);
+      } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        console.error("[Wizard] Failed to upload document:", message);
+        throw new Error(`Failed to upload document: ${message}`);
       }
     }),
 });

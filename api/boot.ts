@@ -13,6 +13,7 @@ import { getDb } from "./queries/connection";
 import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
+import { getErrorMessage } from "./lib/errors";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -121,8 +122,8 @@ async function getOrGeneratePdf(invoiceNumber: string) {
 
     console.log(`[Invoice] Regenerated and saved: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);
     return { absolutePath, fileName, regenerated: true };
-  } catch (err: any) {
-    console.error(`[Invoice] Regeneration failed: ${err.message}`);
+  } catch (err: unknown) {
+    console.error(`[Invoice] Regeneration failed: ${getErrorMessage(err)}`);
     return null;
   }
 }
@@ -142,8 +143,8 @@ app.get("/invoices/:invoiceNumber/view", async (c) => {
     c.header("Content-Disposition", `inline; filename="${result.fileName}"`);
     console.log(`[Invoice] Serving VIEW: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
     return c.body(pdfBuffer);
-  } catch (err: any) {
-    console.error(`[Invoice] Read error: ${err.message}`);
+  } catch (err: unknown) {
+    console.error(`[Invoice] Read error: ${getErrorMessage(err)}`);
     return c.json({ error: "Failed to read PDF" }, 500);
   }
 });
@@ -164,8 +165,8 @@ app.get("/invoices/:invoiceNumber/download", async (c) => {
     c.header("Content-Length", String(pdfBuffer.length));
     console.log(`[Invoice] Serving DOWNLOAD: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
     return c.body(pdfBuffer);
-  } catch (err: any) {
-    console.error(`[Invoice] Read error: ${err.message}`);
+  } catch (err: unknown) {
+    console.error(`[Invoice] Read error: ${getErrorMessage(err)}`);
     return c.json({ error: "Failed to read PDF" }, 500);
   }
 });
@@ -209,12 +210,13 @@ app.use("/api/trpc/*", async (c) => {
       router: appRouter,
       createContext,
     });
-  } catch (err: any) {
-    console.error("[tRPC] Unhandled error in fetchRequestHandler:", err?.message || err);
+  } catch (err: unknown) {
+    const message = getErrorMessage(err);
+    console.error("[tRPC] Unhandled error in fetchRequestHandler:", message);
     return c.json(
       {
         error: "Internal Server Error",
-        message: env.isProduction ? "Something went wrong" : err?.message,
+        message: env.isProduction ? "Something went wrong" : message,
       },
       500,
     );

@@ -9,6 +9,7 @@ import {
   isStorageConfigured,
 } from "./lib/local-storage";
 import { TRPCError } from "@trpc/server";
+import { getErrorMessage } from "./lib/errors";
 
 // Validate file type
 const ALLOWED_MIME_TYPES = [
@@ -56,11 +57,12 @@ export const storageRouter = createRouter({
         const { signedUrl } = await storageCreateSignedUrl(input.path);
 
         return { signedUrl, expiresIn: SIGNED_URL_EXPIRY };
-      } catch (err: any) {
-        console.error("[Storage] getSignedUrl error:", err.message);
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error("[Storage] getSignedUrl error:", message);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: err.message || "Failed to generate signed URL",
+          message,
         });
       }
     }),
@@ -109,10 +111,11 @@ export const storageRouter = createRouter({
           storedFileName: storedName,
           bucket: STORAGE_BUCKET,
         };
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (err instanceof TRPCError) throw err;
-        console.error("[Storage] upload error:", err.message);
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message });
+        const message = getErrorMessage(err);
+        console.error("[Storage] upload error:", message);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
       }
     }),
 
@@ -131,9 +134,9 @@ export const storageRouter = createRouter({
         await storageDelete(input.path);
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (err instanceof TRPCError) throw err;
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: getErrorMessage(err) });
       }
     }),
 
@@ -184,9 +187,9 @@ export const storageRouter = createRouter({
           storedFileName: storedName,
           bucket: STORAGE_BUCKET,
         };
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (err instanceof TRPCError) throw err;
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: getErrorMessage(err) });
       }
     }),
 });
