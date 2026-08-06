@@ -26,7 +26,6 @@ const statusColors: Record<string, string> = {
 
 export default function AdminApplications() {
   const { logout } = useAdminAuth();
-  const utils = trpc.useUtils();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');

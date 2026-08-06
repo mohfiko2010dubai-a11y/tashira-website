@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { trpc } from '@/providers/trpc';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { UserCircle, LogIn, Eye, EyeOff } from 'lucide-react';
@@ -10,7 +9,6 @@ export default function StaffLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { login } = useStaffAuth();
-  const navigate = useNavigate();
 
   const loginMutation = trpc.staff.login.useMutation({
     onSuccess: (data) => {

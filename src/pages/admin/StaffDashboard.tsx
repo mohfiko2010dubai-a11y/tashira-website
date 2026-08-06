@@ -80,7 +80,7 @@ export default function StaffDashboard() {
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">Total Revenue</p></div>
             <p className="text-2xl font-bold text-emerald-600">
-              ${filtered.reduce((sum: number, app: any) => sum + Number(app.totalAmount || 0), 0).toFixed(2)}
+              ${filtered.reduce((sum: number, app: any) => sum + Number(app.totalAmountUsd || 0), 0).toFixed(2)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
@@ -142,7 +142,8 @@ export default function StaffDashboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filtered.map((app: any) => {
-                    const revenue = Number(app.totalAmount || 0);
+                    const revenue = Number(app.totalAmountUsd || 0);
+                    const exchangeRate = Number(app.exchangeRate || 3.6725);
                     return (
                       <tr key={app.id} className="hover:bg-gray-50/50">
                         <td className="px-3 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}</td>

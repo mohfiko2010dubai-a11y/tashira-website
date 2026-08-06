@@ -219,7 +219,7 @@ export default function PaymentPage() {
   };
   const expressFee = app.processingType === 'express' ? 40 : 0;
   const basePrice = visaPrices[app.visaType || ''] || 170;
-  const count = app.totalApplicants || 1;
+  const count = app.applicants.length || 1;
   const calculatedAmount = (basePrice + expressFee) * count;
   
   const dbAmount = typeof app.totalAmountUsd === 'string' 
@@ -272,7 +272,7 @@ export default function PaymentPage() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Applicants</span>
-              <span className="font-medium">{app.totalApplicants || 1}</span>
+              <span className="font-medium">{app.applicants.length || 1}</span>
             </div>
             <div className="border-t border-gray-100 pt-3 flex justify-between">
               <span className="font-semibold text-[#1A2332]">Total</span>

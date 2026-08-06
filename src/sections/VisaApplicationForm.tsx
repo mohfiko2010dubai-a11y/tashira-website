@@ -86,8 +86,8 @@ export default function VisaApplicationForm() {
   const isAr = i18n.language === 'ar';
   const [dragOver, setDragOver] = useState<string | null>(null);
 
-  const [baseType, setBaseType] = useState<BaseType>('family');
-  const [residenceType, setResidenceType] = useState<ResidenceType>('gcc-resident');
+  const [baseType, setBaseType] = useState<BaseType | null>('family');
+  const [residenceType, setResidenceType] = useState<ResidenceType | null>('gcc-resident');
   const [numApplicants, setNumApplicants] = useState(2);
   const [currentApplicantIdx, setCurrentApplicantIdx] = useState(0);
 

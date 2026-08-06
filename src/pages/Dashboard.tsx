@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { trpc } from '@/providers/trpc';
-import { FileCheck, DollarSign, Search, Filter, Eye, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { FileCheck, DollarSign, Search, Filter, Eye, CheckCircle, XCircle, Users } from 'lucide-react';
 
 export default function Dashboard() {
   const [search, setSearch] = useState('');
@@ -31,16 +31,16 @@ export default function Dashboard() {
   const statusColors: Record<string, string> = {
     submitted: 'bg-blue-100 text-blue-700',
     under_review: 'bg-yellow-100 text-yellow-700',
-    approved: 'bg-emerald-100 text-emerald-700',
-    issued: 'bg-purple-100 text-purple-700',
+    visa_processing: 'bg-emerald-100 text-emerald-700',
+    visa_received: 'bg-purple-100 text-purple-700',
     rejected: 'bg-red-100 text-red-700',
   };
 
   const statusLabels: Record<string, string> = {
     submitted: 'Submitted',
     under_review: 'Under Review',
-    approved: 'Approved',
-    issued: 'Issued',
+    visa_processing: 'Visa Processing',
+    visa_received: 'Visa Received',
     rejected: 'Rejected',
   };
 
@@ -74,22 +74,22 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600 mt-1">{analytics?.pendingApplications || 0}</p>
+                <p className="text-sm text-gray-500">Paid</p>
+                <p className="text-2xl font-bold text-yellow-600 mt-1">{analytics?.paidApplications || 0}</p>
               </div>
               <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Clock size={20} className="text-yellow-600" />
+                <CheckCircle size={20} className="text-yellow-600" />
               </div>
             </div>
           </div>
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Approved</p>
-                <p className="text-2xl font-bold text-emerald-600 mt-1">{analytics?.approvedApplications || 0}</p>
+                <p className="text-sm text-gray-500">Family Applications</p>
+                <p className="text-2xl font-bold text-emerald-600 mt-1">{analytics?.familyCount || 0}</p>
               </div>
               <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <CheckCircle size={20} className="text-emerald-600" />
+                <Users size={20} className="text-emerald-600" />
               </div>
             </div>
           </div>
@@ -97,7 +97,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Revenue</p>
-                <p className="text-2xl font-bold text-[#C9A04C] mt-1">${analytics?.totalRevenue?.toFixed(2) || '0.00'}</p>
+                <p className="text-2xl font-bold text-[#C9A04C] mt-1">${analytics?.totalRevenueUsd?.toFixed(2) || '0.00'}</p>
               </div>
               <div className="w-10 h-10 bg-[#C9A04C]/10 rounded-lg flex items-center justify-center">
                 <DollarSign size={20} className="text-[#C9A04C]" />
@@ -128,8 +128,8 @@ export default function Dashboard() {
               <option value="all">All Statuses</option>
               <option value="submitted">Submitted</option>
               <option value="under_review">Under Review</option>
-              <option value="approved">Approved</option>
-              <option value="issued">Issued</option>
+              <option value="visa_processing">Visa Processing</option>
+              <option value="visa_received">Visa Received</option>
               <option value="rejected">Rejected</option>
             </select>
           </div>
@@ -158,7 +158,7 @@ export default function Dashboard() {
                     <td className="px-4 py-3 capitalize">{app.baseType} / {app.residenceType}</td>
                     <td className="px-4 py-3">{app.visaType}</td>
                     <td className="px-4 py-3 text-gray-500">{app.contactEmail}</td>
-                    <td className="px-4 py-3 font-medium">${app.totalAmount}</td>
+                    <td className="px-4 py-3 font-medium">${app.totalAmountUsd}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[app.status] || 'bg-gray-100 text-gray-600'}`}>
                         {statusLabels[app.status] || app.status}
@@ -178,16 +178,16 @@ export default function Dashboard() {
                         )}
                         {app.status === 'under_review' && (
                           <button
-                            onClick={() => updateStatus.mutate({ id: app.id, status: 'approved' })}
+                            onClick={() => updateStatus.mutate({ id: app.id, status: 'visa_processing' })}
                             className="p-1 hover:bg-emerald-100 rounded transition-colors"
                             title="Approve"
                           >
                             <CheckCircle size={14} className="text-emerald-600" />
                           </button>
                         )}
-                        {app.status === 'approved' && (
+                        {app.status === 'visa_processing' && (
                           <button
-                            onClick={() => updateStatus.mutate({ id: app.id, status: 'issued' })}
+                            onClick={() => updateStatus.mutate({ id: app.id, status: 'visa_received' })}
                             className="p-1 hover:bg-purple-100 rounded transition-colors"
                             title="Issue Visa"
                           >

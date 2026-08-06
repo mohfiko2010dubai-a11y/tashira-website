@@ -19,13 +19,12 @@ The review-branch CI is expected to fail during TypeScript checking until the re
 - Document/storage query, mutation, signed-URL, and numeric file-size types: 5 diagnostics.
 - Legacy storage REST response narrowing and static-path module shadowing: 4 diagnostics.
 - Canonical USD payment, invoice, and PDF field reconciliation: 8 diagnostics.
+- Admin analytics, application status, applicant-count, and form-state consumers: 14 diagnostics.
 
 ## Remaining errors
 
 - Database and Drizzle insert/query contracts.
-- Payment and invoice amount/currency contracts.
-- Dashboard analytics and application status consumers.
-- Form state nullability.
+- Normalized Drizzle insert contracts in the wizard and legacy chat application flow.
 
 ## Blocked decisions
 
