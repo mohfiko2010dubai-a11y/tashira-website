@@ -27,7 +27,7 @@ const statusColors: Record<string, string> = {
 export default function AdminApplications() {
   const { logout } = useAdminAuth();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'' | 'submitted' | 'payment_received' | 'documents_pending' | 'documents_received' | 'under_review' | 'visa_processing' | 'visa_received' | 'completed' | 'rejected' | 'cancelled'>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [costModalApp, setCostModalApp] = useState<number | null>(null);
@@ -163,7 +163,7 @@ export default function AdminApplications() {
             </div>
             <div className="relative min-w-[140px]">
               <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white w-full">
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)} className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white w-full">
                 <option value="">All Statuses</option>
                 <option value="submitted">Submitted</option><option value="payment_received">Payment Received</option>
                 <option value="documents_pending">Docs Pending</option><option value="documents_received">Docs Received</option>

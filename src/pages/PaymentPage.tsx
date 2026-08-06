@@ -76,8 +76,8 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
         });
         setSuccess(true);
       }
-    } catch (err: any) {
-      setError(err.message || 'Payment failed. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }

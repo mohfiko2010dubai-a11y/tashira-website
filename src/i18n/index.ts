@@ -44,7 +44,7 @@ const arResources = {
 };
 
 // All languages use English fallback for missing keys
-const resources: Record<string, any> = {
+const resources: Record<string, typeof enResources | typeof arResources> = {
   en: enResources,
   ar: arResources,
   // All other languages fallback to English

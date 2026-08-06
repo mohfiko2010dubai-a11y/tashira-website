@@ -99,8 +99,8 @@ export function useDocumentUpload() {
           });
 
           uploaded++;
-        } catch (err: any) {
-          console.error(`[Upload] Failed for ${pf.file.name}:`, err.message);
+        } catch (err: unknown) {
+          console.error(`[Upload] Failed for ${pf.file.name}:`, err instanceof Error ? err.message : 'Upload failed');
 
           setUploadProgress((prev) => {
             const updated = [...prev];
