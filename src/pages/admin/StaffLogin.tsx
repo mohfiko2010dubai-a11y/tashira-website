@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { UserCircle, LogIn, Eye, EyeOff } from 'lucide-react';
 

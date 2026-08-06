@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { FileCheck, DollarSign, Search, Filter, Eye, CheckCircle, XCircle, Users } from 'lucide-react';
 
 export default function Dashboard() {

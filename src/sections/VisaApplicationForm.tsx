@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { UploadCloud, X, CheckCircle, User, Users, Globe, Building2, Crown, UsersRound, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { allCountries, allCountriesAr } from '@/data/countries';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import TrackApplication from './TrackApplication';
 import FormDecorations from '@/components/shared/FormDecorations';
 import StripePaymentForm, { PaymentSuccessModal } from '@/components/shared/StripePaymentForm';

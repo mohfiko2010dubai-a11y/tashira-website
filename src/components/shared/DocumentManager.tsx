@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 import DocumentPreviewModal from "./DocumentPreviewModal";
 import type { DocumentListItem } from "@/types/trpc";
 import type { LucideIcon } from "lucide-react";

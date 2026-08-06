@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 
 export interface PendingFile {
   file: File;

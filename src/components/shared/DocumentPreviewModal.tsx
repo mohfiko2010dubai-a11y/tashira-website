@@ -1,4 +1,4 @@
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 import { X, Download, FileText, Image, Loader2 } from "lucide-react";
 
 interface DocumentPreviewModalProps {

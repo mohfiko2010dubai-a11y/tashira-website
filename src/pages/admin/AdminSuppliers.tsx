@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import type { SupplierListItem } from '@/types/trpc';
 import { ArrowLeft, Plus, Edit2, Trash2, LogOut, X, Save, Building2 } from 'lucide-react';
 

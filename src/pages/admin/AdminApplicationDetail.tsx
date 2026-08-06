@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 import {
   ArrowLeft, Receipt, Building2, RefreshCw,
   Users, DollarSign, ClipboardList, StickyNote, FolderOpen,

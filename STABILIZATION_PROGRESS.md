@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Lint stabilization.
+Test foundation.
 
 ## Completed commits
 
@@ -10,7 +10,7 @@ Lint stabilization.
 
 ## Current CI status
 
-TypeScript checking now succeeds. The review-branch CI is expected to advance to lint on the next push.
+TypeScript checking and lint now succeed. The review-branch CI is expected to advance to tests on the next push.
 
 ## Errors fixed by category
 
@@ -25,7 +25,7 @@ TypeScript checking now succeeds. The review-branch CI is expected to advance to
 ## Remaining errors
 
 - None at the TypeScript compiler level.
-- Lint: 10 errors and 1 warning remain after React state/effect stabilization (down from 149 errors).
+- Lint: no errors or warnings remain (down from 149 errors and 4 warnings).
 
 ## Blocked decisions
 
@@ -40,7 +40,7 @@ None yet; the repository is entering lint stabilization.
 
 - `npm ci` — succeeded using the committed lockfile.
 - `npm run check` — succeeds.
-- `npm run lint` — currently fails on pre-existing explicit `any` and React rule violations; stabilization is in progress.
+- `npm run lint` — succeeds.
 - `npm run check -- --force` — used during local reconciliation to bypass stale incremental build metadata.
 
 ## Risks and follow-up work

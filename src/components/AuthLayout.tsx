@@ -17,8 +17,8 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar-context";
 import { LOGIN_PATH } from "@/const";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";

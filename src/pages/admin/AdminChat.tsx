@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import {
   MessageSquare, Send, RefreshCw, Circle, CheckCircle,
   Phone, Mail, Clock

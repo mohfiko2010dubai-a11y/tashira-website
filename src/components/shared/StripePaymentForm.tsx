@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle, Loader2 } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';

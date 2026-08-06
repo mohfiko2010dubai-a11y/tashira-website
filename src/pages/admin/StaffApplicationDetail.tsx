@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { ArrowLeft, Receipt, FileText } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';

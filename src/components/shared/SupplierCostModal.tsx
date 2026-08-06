@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Save, Building2, Calculator, FileText } from 'lucide-react';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 
 interface SupplierCostModalProps {
   applicationId: number;

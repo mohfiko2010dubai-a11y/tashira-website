@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 
 const STAFF_AUTH_KEY = 'tashira_staff_auth';
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
 import {
   Search, Eye, LogOut, RefreshCw, Calendar, DollarSign,
