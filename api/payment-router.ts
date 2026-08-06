@@ -100,7 +100,7 @@ export const paymentRouter = createRouter({
             invoiceNumber,
             applicationId: appIdNum,
             paymentId: paymentIdNum,
-            amount: app.totalAmount,
+            amount: payment.amount,
           });
         } catch (invoiceErr: any) {
           console.error("[Invoice Insert Error]", invoiceErr.message);
@@ -119,7 +119,7 @@ export const paymentRouter = createRouter({
             visaType: app.visaType,
             processingType: app.processingType,
             arrivalDate: app.arrivalDate || undefined,
-            totalAmount: Number(app.totalAmount),
+            totalAmount: Number(payment.amount),
             stripePaymentIntentId: input.paymentIntentId,
           });
 
@@ -140,7 +140,7 @@ export const paymentRouter = createRouter({
           success: true, 
           invoiceNumber,
           referenceNumber: input.referenceNumber,
-          totalAmount: Number(app.totalAmount),
+          totalAmount: Number(payment.amount),
           customerEmail: app.contactEmail,
           customerPhone: app.contactPhone,
           visaType: app.visaType,

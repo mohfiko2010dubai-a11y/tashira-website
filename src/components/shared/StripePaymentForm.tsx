@@ -54,6 +54,7 @@ function PaymentFormInner({
   onSuccess,
   onClose,
 }: PaymentFormInnerProps) {
+  const currency = 'USD';
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);

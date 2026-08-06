@@ -103,7 +103,7 @@ async function getOrGeneratePdf(invoiceNumber: string) {
       visaType: appRow.visaType || "",
       processingType: appRow.processingType || "",
       arrivalDate: appRow.arrivalDate || undefined,
-      totalAmount: Number(appRow.totalAmount) || 0,
+      totalAmount: Number(appRow.totalAmountUsd || appRow.stripeAmountUsd || 0),
       stripePaymentIntentId: appRow.stripePaymentIntentId || undefined,
     };
 

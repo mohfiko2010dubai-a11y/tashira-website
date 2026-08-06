@@ -84,7 +84,7 @@ export const invoiceRouter = createRouter({
         return {
           success: true,
           invoiceNumber: app.invoiceNumber || `INV-${input.referenceNumber}`,
-          totalAmount: Number(app.totalAmount),
+          totalAmount: Number(app.totalAmountUsd || app.stripeAmountUsd || 0),
           customerEmail: app.contactEmail,
           customerPhone: app.contactPhone,
           visaType: app.visaType,

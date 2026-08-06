@@ -45,7 +45,7 @@ export default function InvoiceViewer({
       visaType,
       processingType,
       arrivalDate,
-      totalAmount,
+      totalAmountUsd: totalAmount,
       stripePaymentIntentId,
     });
 

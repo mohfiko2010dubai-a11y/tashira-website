@@ -18,6 +18,7 @@ The review-branch CI is expected to fail during TypeScript checking until the re
 - Chatbot mutation identifiers and inferred mutation callback types: 15 diagnostics.
 - Document/storage query, mutation, signed-URL, and numeric file-size types: 5 diagnostics.
 - Legacy storage REST response narrowing and static-path module shadowing: 4 diagnostics.
+- Canonical USD payment, invoice, and PDF field reconciliation: 8 diagnostics.
 
 ## Remaining errors
 
