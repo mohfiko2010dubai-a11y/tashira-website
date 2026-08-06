@@ -5,6 +5,7 @@ import { applications, documents } from "@db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
 import { storageUpload } from "./lib/local-storage";
+import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -268,10 +269,12 @@ export const wizardRouter = createRouter({
 
         // Decode base64
         const fileBuffer = Buffer.from(input.base64Data, "base64");
+        const validationError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
+        if (validationError) throw new Error(validationError);
 
         // Create stored filename
         const timestamp = Date.now();
-        const storedName = `${timestamp}-${input.fileName}`;
+        const storedName = `${timestamp}-${sanitizeDocumentFileName(input.fileName)}`;
         const storagePath = `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
         // Persist at the same canonical path recorded in MySQL and served by /storage/*.

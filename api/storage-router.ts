@@ -10,36 +10,7 @@ import {
 } from "./lib/local-storage";
 import { TRPCError } from "@trpc/server";
 import { getErrorMessage } from "./lib/errors";
-
-// Validate file type
-const ALLOWED_MIME_TYPES = [
-  "application/pdf",
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-];
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB per file
-
-// Sanitize filename: remove path traversal, special chars
-function sanitizeFileName(name: string): string {
-  // Remove path traversal attempts
-  const noPath = name.replace(/\\/g, "/").split("/").pop() || "file";
-  // Remove non-alphanumeric except dots, hyphens, underscores, spaces
-  const clean = noPath.replace(/[^a-zA-Z0-9._\- ]/g, "");
-  // Limit length
-  return clean.slice(0, 200) || "file";
-}
-
-function validateFile(mimeType: string, size: number): { valid: boolean; error?: string } {
-  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
-    return { valid: false, error: `File type not allowed. Allowed: PDF, JPG, JPEG, PNG` };
-  }
-  if (size > MAX_FILE_SIZE) {
-    return { valid: false, error: `File size exceeds 100MB limit` };
-  }
-  return { valid: true };
-}
+import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
@@ -89,18 +60,22 @@ export const storageRouter = createRouter({
         }
 
         // Validate file
-        const validation = validateFile(input.mimeType, input.fileSize);
-        if (!validation.valid) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: validation.error });
+        const validationError = validateDocumentFile(input.mimeType, input.fileSize);
+        if (validationError) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: validationError });
         }
 
-        const sanitizedName = sanitizeFileName(input.fileName);
+        const sanitizedName = sanitizeDocumentFileName(input.fileName);
         const timestamp = Date.now();
         const storedName = `${timestamp}-${sanitizedName}`;
         const storagePath = `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
         // Decode base64 to Buffer
         const fileBuffer = Buffer.from(input.base64Data, "base64");
+        const decodedSizeError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
+        if (decodedSizeError) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: decodedSizeError });
+        }
 
         // Upload via REST API
         await storageUpload(storagePath, fileBuffer, input.mimeType);
@@ -163,21 +138,25 @@ export const storageRouter = createRouter({
         }
 
         // Validate new file
-        const validation = validateFile(input.mimeType, input.fileSize);
-        if (!validation.valid) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: validation.error });
+        const validationError = validateDocumentFile(input.mimeType, input.fileSize);
+        if (validationError) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: validationError });
         }
 
         // Delete old file
         await storageDelete(input.oldPath);
 
         // Upload new file
-        const sanitizedName = sanitizeFileName(input.fileName);
+        const sanitizedName = sanitizeDocumentFileName(input.fileName);
         const timestamp = Date.now();
         const storedName = `${timestamp}-${sanitizedName}`;
         const storagePath = `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
         const fileBuffer = Buffer.from(input.base64Data, "base64");
+        const decodedSizeError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
+        if (decodedSizeError) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: decodedSizeError });
+        }
 
         await storageUpload(storagePath, fileBuffer, input.mimeType);
 
