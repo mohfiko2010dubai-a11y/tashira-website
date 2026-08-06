@@ -1,16 +1,16 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
 import { suppliers } from "@db/schema";
 import { eq } from "drizzle-orm";
 
 export const supplierRouter = createRouter({
-  list: publicQuery.query(async () => {
+  list: adminQuery.query(async () => {
     const db = getDb();
     return db.select().from(suppliers).orderBy(suppliers.name);
   }),
 
-  get: publicQuery
+  get: adminQuery
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = getDb();
@@ -18,7 +18,7 @@ export const supplierRouter = createRouter({
       return s || null;
     }),
 
-  create: publicQuery
+  create: adminQuery
     .input(z.object({
       name: z.string().min(1),
       contactPerson: z.string().optional(),
@@ -38,7 +38,7 @@ export const supplierRouter = createRouter({
       return { id: Number(result.insertId), success: true };
     }),
 
-  update: publicQuery
+  update: adminQuery
     .input(z.object({
       id: z.number(),
       name: z.string().min(1),
@@ -62,7 +62,7 @@ export const supplierRouter = createRouter({
       return { success: true };
     }),
 
-  delete: publicQuery
+  delete: adminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = getDb();

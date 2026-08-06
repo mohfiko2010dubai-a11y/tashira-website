@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { staffUsers } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
+import { createStaffSession, deleteStaffSession, getStaffSession } from "./lib/staff-session";
 
 // Simple password hashing using Web Crypto API (no bcrypt dependency needed)
 async function hashPassword(password: string): Promise<string> {
@@ -17,26 +18,6 @@ async function hashPassword(password: string): Promise<string> {
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
   const computed = await hashPassword(password);
   return computed === hash;
-}
-
-// In-memory session store (resets on server restart - acceptable for MVP)
-const staffSessions = new Map<string, { staffId: number; expiresAt: number }>();
-
-function generateToken(): string {
-  const arr = new Uint8Array(32);
-  crypto.getRandomValues(arr);
-  return Array.from(arr)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function cleanExpiredSessions() {
-  const now = Date.now();
-  for (const [token, session] of staffSessions.entries()) {
-    if (session.expiresAt < now) {
-      staffSessions.delete(token);
-    }
-  }
 }
 
 export const staffRouter = createRouter({
@@ -66,12 +47,7 @@ export const staffRouter = createRouter({
       }
 
       // Create session
-      cleanExpiredSessions();
-      const token = generateToken();
-      staffSessions.set(token, {
-        staffId: staff.id,
-        expiresAt: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
-      });
+      const token = createStaffSession(staff.id);
 
       return {
         token,
@@ -89,9 +65,8 @@ export const staffRouter = createRouter({
   verify: publicQuery
     .input(z.object({ token: z.string() }))
     .query(async ({ input }) => {
-      cleanExpiredSessions();
-      const session = staffSessions.get(input.token);
-      if (!session || session.expiresAt < Date.now()) {
+      const session = getStaffSession(input.token);
+      if (!session) {
         return null;
       }
 
@@ -103,7 +78,7 @@ export const staffRouter = createRouter({
         .limit(1);
 
       if (!staff || staff.isActive !== "active") {
-        staffSessions.delete(input.token);
+        deleteStaffSession(input.token);
         return null;
       }
 
@@ -120,12 +95,12 @@ export const staffRouter = createRouter({
   logout: publicQuery
     .input(z.object({ token: z.string() }))
     .mutation(({ input }) => {
-      staffSessions.delete(input.token);
+      deleteStaffSession(input.token);
       return { success: true };
     }),
 
   // Admin-only: list all staff
-  list: publicQuery.query(async () => {
+  list: adminQuery.query(async () => {
     const db = getDb();
     return db
       .select({
@@ -143,7 +118,7 @@ export const staffRouter = createRouter({
   }),
 
   // Admin-only: create staff user
-  create: publicQuery
+  create: adminQuery
     .input(
       z.object({
         username: z.string().min(3).max(100),
@@ -169,7 +144,7 @@ export const staffRouter = createRouter({
     }),
 
   // Admin-only: update staff user
-  update: publicQuery
+  update: adminQuery
     .input(
       z.object({
         id: z.number(),
@@ -199,7 +174,7 @@ export const staffRouter = createRouter({
     }),
 
   // Admin-only: delete staff user
-  delete: publicQuery
+  delete: adminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = getDb();

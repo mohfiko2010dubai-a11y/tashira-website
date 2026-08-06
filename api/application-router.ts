@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, publicQuery, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
@@ -105,7 +105,7 @@ export const applicationRouter = createRouter({
       return { ...app, applicants: applicantList, supplier };
     }),
 
-  list: publicQuery
+  list: staffOrAdminQuery
     .input(z.object({
       search: z.string().optional(),
       status: z.enum(STATUS_ENUM).optional(),
@@ -149,7 +149,7 @@ export const applicationRouter = createRouter({
       return result;
     }),
 
-  updateStatus: publicQuery
+  updateStatus: adminQuery
     .input(z.object({ id: z.number(), status: z.enum(STATUS_ENUM) }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -158,7 +158,7 @@ export const applicationRouter = createRouter({
     }),
 
   // Full supplier assignment with VAT details
-  assignSupplier: publicQuery
+  assignSupplier: adminQuery
     .input(z.object({
       id: z.number(),
       supplierId: z.number(),
@@ -190,7 +190,7 @@ export const applicationRouter = createRouter({
       }
     }),
 
-  analytics: publicQuery.query(async () => {
+  analytics: adminQuery.query(async () => {
     const db = getDb();
     const [total] = await db.select({ count: sql<number>`count(*)` }).from(applications);
     const [paid] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.paymentStatus, "paid"));

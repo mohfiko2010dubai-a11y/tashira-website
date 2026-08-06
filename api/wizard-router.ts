@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, documents } from "@db/schema";
 import { eq, desc, sql } from "drizzle-orm";
@@ -198,7 +198,7 @@ export const wizardRouter = createRouter({
     }),
 
   // List submitted applications (for Chat Inbox tracking)
-  listIncomplete: publicQuery
+  listIncomplete: adminQuery
     .query(async () => {
       try {
         const db = getDb();
@@ -216,7 +216,7 @@ export const wizardRouter = createRouter({
     }),
 
   // List all applications with payment pending (submitted + documents_pending)
-  listPending: publicQuery
+  listPending: adminQuery
     .query(async () => {
       try {
         const db = getDb();

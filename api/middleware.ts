@@ -34,5 +34,16 @@ const requireAdmin = t.middleware(async ({ ctx, next }) => {
   return next({ ctx });
 });
 
+const requireStaffOrAdmin = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.staffId && !ctx.isAdmin && ctx.user?.role !== "admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: ErrorMessages.insufficientRole,
+    });
+  }
+  return next({ ctx });
+});
+
 export const authedQuery = t.procedure.use(requireAuth);
 export const adminQuery = t.procedure.use(requireAdmin);
+export const staffOrAdminQuery = t.procedure.use(requireStaffOrAdmin);

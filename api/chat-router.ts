@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { chatMessages, applications } from "@db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -462,7 +462,7 @@ export const chatRouter = createRouter({
     }),
 
   // Admin: List all sessions
-  listSessions: publicQuery
+  listSessions: adminQuery
     .input(z.object({
       status: z.enum(["all", "unread", "read"]).optional().default("all"),
       limit: z.number().optional().default(50),
@@ -489,7 +489,7 @@ export const chatRouter = createRouter({
     }),
 
   // Admin: Get conversation
-  getConversation: publicQuery
+  getConversation: adminQuery
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ input }) => {
       const db = getDb();
@@ -500,7 +500,7 @@ export const chatRouter = createRouter({
     }),
 
   // Admin: Reply
-  adminReply: publicQuery
+  adminReply: adminQuery
     .input(z.object({
       sessionId: z.string().min(1),
       content: z.string().min(1),
@@ -517,7 +517,7 @@ export const chatRouter = createRouter({
     }),
 
   // Admin: Mark as read
-  markAsRead: publicQuery
+  markAsRead: adminQuery
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ input }) => {
       const db = getDb();

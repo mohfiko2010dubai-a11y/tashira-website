@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { createRouter, publicQuery, staffOrAdminQuery } from "./middleware";
 import {
   storageUpload,
   storageDelete,
@@ -14,7 +14,7 @@ import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-u
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
-  getSignedUrl: publicQuery
+  getSignedUrl: staffOrAdminQuery
     .input(z.object({ path: z.string().min(1) }))
     .query(async ({ input }) => {
       try {
@@ -95,7 +95,7 @@ export const storageRouter = createRouter({
     }),
 
   // Delete document from the active server-side storage provider.
-  delete: publicQuery
+  delete: staffOrAdminQuery
     .input(z.object({ path: z.string().min(1) }))
     .mutation(async ({ input }) => {
       try {
@@ -116,7 +116,7 @@ export const storageRouter = createRouter({
     }),
 
   // Replace document (delete old + upload new)
-  replace: publicQuery
+  replace: staffOrAdminQuery
     .input(z.object({
       oldPath: z.string().min(1),
       applicationId: z.number().positive(),

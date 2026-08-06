@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { createRouter, publicQuery, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { documents } from "@db/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -13,7 +13,7 @@ const UPLOAD_STATUSES = ["pending", "uploaded", "failed", "replaced"] as const;
 
 export const documentRouter = createRouter({
   // List documents by application
-  listByApplication: publicQuery
+  listByApplication: staffOrAdminQuery
     .input(z.object({
       applicationId: z.number().positive(),
       search: z.string().optional(),
@@ -52,7 +52,7 @@ export const documentRouter = createRouter({
     }),
 
   // Get single document
-  getById: publicQuery
+  getById: staffOrAdminQuery
     .input(z.object({ id: z.number().positive() }))
     .query(async ({ input }) => {
       const db = getDb();
@@ -95,7 +95,7 @@ export const documentRouter = createRouter({
     }),
 
   // Update upload status
-  updateStatus: publicQuery
+  updateStatus: staffOrAdminQuery
     .input(z.object({
       id: z.number().positive(),
       uploadStatus: z.enum(UPLOAD_STATUSES),
@@ -109,7 +109,7 @@ export const documentRouter = createRouter({
     }),
 
   // Delete document record + storage file
-  delete: publicQuery
+  delete: staffOrAdminQuery
     .input(z.object({ id: z.number().positive() }))
     .mutation(async ({ input }) => {
       const db = getDb();
@@ -133,7 +133,7 @@ export const documentRouter = createRouter({
     }),
 
   // Count documents by application
-  countByApplication: publicQuery
+  countByApplication: staffOrAdminQuery
     .input(z.object({ applicationId: z.number().positive() }))
     .query(async ({ input }) => {
       const db = getDb();

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
@@ -68,7 +68,7 @@ export const invoiceRouter = createRouter({
     }),
 
   // Regenerate invoice data for admin
-  regenerate: publicQuery
+  regenerate: adminQuery
     .input(z.object({
       referenceNumber: z.string(),
     }))

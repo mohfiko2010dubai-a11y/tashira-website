@@ -19,6 +19,10 @@ export const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
+      headers() {
+        const staffToken = globalThis.localStorage?.getItem("tashira_staff_auth");
+        return staffToken ? { "x-staff-token": staffToken } : {};
+      },
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),
