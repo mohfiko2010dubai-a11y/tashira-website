@@ -35,11 +35,11 @@ export default function StaffDashboard() {
     limit: 500,
   });
 
-  const sorted = [...(applications || [])].sort((a: any, b: any) => {
+  const sorted = [...(applications || [])].sort((a, b) => {
     return (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0);
   });
 
-  const filtered = sorted.filter((app: any) => {
+  const filtered = sorted.filter((app) => {
     const q = search.toLowerCase();
     return (
       app.referenceNumber.toLowerCase().includes(q) ||
@@ -80,19 +80,19 @@ export default function StaffDashboard() {
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">Total Revenue</p></div>
             <p className="text-2xl font-bold text-emerald-600">
-              ${filtered.reduce((sum: number, app: any) => sum + Number(app.totalAmountUsd || 0), 0).toFixed(2)}
+              ${filtered.reduce((sum, app) => sum + Number(app.totalAmountUsd || 0), 0).toFixed(2)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><FileText size={14} className="text-blue-500" /><p className="text-xs text-gray-500">Paid</p></div>
             <p className="text-2xl font-bold text-blue-600">
-              {filtered.filter((app: any) => app.paymentStatus === 'paid').length}
+              {filtered.filter((app) => app.paymentStatus === 'paid').length}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-purple-500" /><p className="text-xs text-gray-500">Pending</p></div>
             <p className="text-2xl font-bold text-purple-600">
-              {filtered.filter((app: any) => app.paymentStatus === 'pending').length}
+              {filtered.filter((app) => app.paymentStatus === 'pending').length}
             </p>
           </div>
         </div>
@@ -141,7 +141,7 @@ export default function StaffDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((app: any) => {
+                  {filtered.map((app) => {
                     const revenue = Number(app.totalAmountUsd || 0);
                     const exchangeRate = Number(app.exchangeRate || 3.6725);
                     return (

@@ -4,6 +4,7 @@ import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
 import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
 import SupplierCostModal from '@/components/shared/SupplierCostModal';
+import type { ApplicationWithLegacyAmount } from '@/types/trpc';
 import * as XLSX from 'xlsx';
 import {
   Search, Eye, LogOut, Filter, RefreshCw, Building2,
@@ -41,11 +42,11 @@ export default function AdminApplications() {
 
   const { data: analytics } = trpc.application.analytics.useQuery();
 
-  const sorted = [...(applications || [])].sort((a: any, b: any) => {
+  const sorted = [...(applications || [])].sort((a, b) => {
     return (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0);
   });
 
-  const filtered = sorted.filter((app: any) => {
+  const filtered = sorted.filter((app) => {
     const q = search.toLowerCase();
     return (
       app.referenceNumber.toLowerCase().includes(q) ||
@@ -55,8 +56,8 @@ export default function AdminApplications() {
   });
 
   const handleExportExcel = () => {
-    const data = filtered.map((app: any) => {
-      const a = app as any;
+    const data = filtered.map((app) => {
+      const a: ApplicationWithLegacyAmount = app;
       const exchangeRate = Number(a.exchangeRate || 3.6725);
       const totalAed = Number(a.totalAmountAed || a.totalAmount || 0);
       const totalUsd = Number(a.totalAmountUsd || a.stripeAmountUsd || totalAed / exchangeRate);
@@ -210,8 +211,8 @@ export default function AdminApplications() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((app: any) => {
-                    const a = app as any;
+                  {filtered.map((app) => {
+                    const a: ApplicationWithLegacyAmount = app;
                     const exchangeRate = Number(a.exchangeRate || 3.6725);
                     const totalAed = Number(a.totalAmountAed || a.totalAmount || 0);
                     const totalUsd = Number(a.totalAmountUsd || a.stripeAmountUsd || totalAed / exchangeRate);
