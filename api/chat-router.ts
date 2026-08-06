@@ -312,17 +312,17 @@ export const chatRouter = createRouter({
               const totalAmountAed = totalAmount * exchangeRate;
               
               // Generate reference number
-              session.referenceNumber = generateReferenceNumber();
+              const referenceNumber = generateReferenceNumber();
+              session.referenceNumber = referenceNumber;
               
               await db.insert(applications).values({
-                referenceNumber: session.referenceNumber,
+                referenceNumber,
                 baseType: "single",
                 residenceType: "non-gcc",
                 visaType: session.visaType || "30 Days",
-                processingType: (session.processingType || "Regular").toLowerCase(),
-                totalApplicants: session.applicantCount || 1,
-                contactEmail: session.visitorEmail,
-                contactPhone: session.visitorPhone,
+                processingType: session.processingType?.toLowerCase() === "express" ? "express" : "regular",
+                contactEmail: session.visitorEmail || "",
+                contactPhone: session.visitorPhone || "",
                 totalAmountAed: String(totalAmountAed),
                 totalAmountUsd: String(totalAmount),
                 exchangeRate: String(exchangeRate),

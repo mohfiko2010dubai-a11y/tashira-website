@@ -2,7 +2,7 @@
 
 ## Current phase
 
-TypeScript contract reconciliation.
+Lint stabilization.
 
 ## Completed commits
 
@@ -10,7 +10,7 @@ TypeScript contract reconciliation.
 
 ## Current CI status
 
-The review-branch CI is expected to fail during TypeScript checking until the remaining contract groups are reconciled.
+TypeScript checking now succeeds. The review-branch CI is expected to advance to lint on the next push.
 
 ## Errors fixed by category
 
@@ -20,11 +20,11 @@ The review-branch CI is expected to fail during TypeScript checking until the re
 - Legacy storage REST response narrowing and static-path module shadowing: 4 diagnostics.
 - Canonical USD payment, invoice, and PDF field reconciliation: 8 diagnostics.
 - Admin analytics, application status, applicant-count, and form-state consumers: 14 diagnostics.
+- Wizard/chat enum and normalized application-column reconciliation: 4 diagnostics.
 
 ## Remaining errors
 
-- Database and Drizzle insert/query contracts.
-- Normalized Drizzle insert contracts in the wizard and legacy chat application flow.
+- None at the TypeScript compiler level.
 
 ## Blocked decisions
 
@@ -33,12 +33,12 @@ The review-branch CI is expected to fail during TypeScript checking until the re
 
 ## Tests added
 
-None yet; the repository is still in TypeScript contract reconciliation.
+None yet; the repository is entering lint stabilization.
 
 ## Commands run
 
 - `npm ci` — succeeded using the committed lockfile.
-- `npm run check` — currently fails on the remaining contract groups.
+- `npm run check` — succeeds.
 - `npm run check -- --force` — used during local reconciliation to bypass stale incremental build metadata.
 
 ## Risks and follow-up work

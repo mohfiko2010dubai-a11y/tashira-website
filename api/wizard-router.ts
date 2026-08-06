@@ -4,12 +4,19 @@ import { getDb } from "./queries/connection";
 import { applications, documents } from "@db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 
-function mapResidenceType(status: string): string {
+type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
+type ProcessingType = "regular" | "express";
+
+function mapResidenceType(status: string): ResidenceType {
   const s = status.toLowerCase();
   if (s.includes("gcc citizen with")) return "gcc-accompany";
   if (s.includes("accompanying gcc")) return "non-gcc-accompany";
   if (s.startsWith("gcc")) return "gcc-resident";
   return "non-gcc";
+}
+
+function mapProcessingType(processingType?: string): ProcessingType {
+  return processingType?.toLowerCase() === "express" ? "express" : "regular";
 }
 
 export const wizardRouter = createRouter({
@@ -46,8 +53,7 @@ export const wizardRouter = createRouter({
           baseType: (input.applicantCount ?? 1) > 1 ? "family" : "single",
           residenceType: input.residenceStatus ? mapResidenceType(input.residenceStatus) : "non-gcc",
           visaType: input.visaType || "",
-          processingType: input.processingType?.toLowerCase() || "",
-          totalApplicants: input.applicantCount ?? 1,
+          processingType: mapProcessingType(input.processingType),
           contactEmail: input.email || "",
           contactPhone: input.phone || "",
           totalAmountAed: String(totalAed),
@@ -96,27 +102,17 @@ export const wizardRouter = createRouter({
       try {
         const db = getDb();
 
-        const updateData: any = {
+        const updateData: Partial<typeof applications.$inferInsert> = {
           updatedAt: new Date(),
         };
 
         if (input.whoTraveling !== undefined) updateData.baseType = input.applicantCount && input.applicantCount > 1 ? "family" : "single";
         if (input.residenceStatus !== undefined) updateData.residenceType = mapResidenceType(input.residenceStatus);
         if (input.visaType !== undefined) updateData.visaType = input.visaType;
-        if (input.processingType !== undefined) updateData.processingType = input.processingType.toLowerCase();
-        if (input.fullName !== undefined) {
-          updateData.fullName = input.fullName;
-          updateData.applicantName = input.fullName;
-        }
-        if (input.nationality !== undefined) updateData.nationality = input.nationality;
-        if (input.passportNumber !== undefined) updateData.passportNumber = input.passportNumber;
-        if (input.passportExpiry !== undefined) updateData.passportExpiry = input.passportExpiry;
-        if (input.profession !== undefined) updateData.profession = input.profession;
-        if (input.countryFrom !== undefined) updateData.countryFrom = input.countryFrom;
+        if (input.processingType !== undefined) updateData.processingType = mapProcessingType(input.processingType);
         if (input.arrivalDate !== undefined) updateData.arrivalDate = input.arrivalDate;
         if (input.email !== undefined) updateData.contactEmail = input.email;
         if (input.phone !== undefined) updateData.contactPhone = input.phone;
-        if (input.applicantCount !== undefined) updateData.totalApplicants = input.applicantCount;
         if (input.totalAmount !== undefined) {
           updateData.totalAmountUsd = String(input.totalAmount);
           updateData.totalAmountAed = String(input.totalAmount * 3.6725);
@@ -170,15 +166,7 @@ export const wizardRouter = createRouter({
             baseType: input.applicantCount > 1 ? "family" : "single",
             residenceType: mapResidenceType(input.residenceStatus),
             visaType: input.visaType,
-            processingType: input.processingType.toLowerCase(),
-            totalApplicants: input.applicantCount,
-            fullName: input.fullName,
-            applicantName: input.fullName,
-            nationality: input.nationality,
-            passportNumber: input.passportNumber,
-            passportExpiry: input.passportExpiry,
-            profession: input.profession,
-            countryFrom: input.countryFrom,
+            processingType: mapProcessingType(input.processingType),
             arrivalDate: input.arrivalDate,
             contactEmail: input.email,
             contactPhone: input.phone,
