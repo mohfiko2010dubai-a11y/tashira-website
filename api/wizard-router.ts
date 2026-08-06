@@ -292,7 +292,7 @@ export const wizardRouter = createRouter({
           originalFileName: input.fileName,
           storedFileName: storedName,
           mimeType: input.mimeType,
-          fileSize: BigInt(input.fileSize),
+          fileSize: input.fileSize,
           storagePath: storagePath,
           uploadStatus: "uploaded",
           uploadedBy: "chatbot-wizard",

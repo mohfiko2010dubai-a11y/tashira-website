@@ -16,6 +16,7 @@ The review-branch CI is expected to fail during TypeScript checking until the re
 
 - Safe unused TypeScript cleanup: 29 diagnostics.
 - Chatbot mutation identifiers and inferred mutation callback types: 15 diagnostics.
+- Document/storage query, mutation, signed-URL, and numeric file-size types: 5 diagnostics.
 
 ## Remaining errors
 

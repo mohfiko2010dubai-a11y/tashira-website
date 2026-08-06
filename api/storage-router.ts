@@ -53,7 +53,7 @@ export const storageRouter = createRouter({
           });
         }
 
-        const { signedUrl } = await storageCreateSignedUrl(input.path, SIGNED_URL_EXPIRY);
+        const { signedUrl } = await storageCreateSignedUrl(input.path);
 
         return { signedUrl, expiresIn: SIGNED_URL_EXPIRY };
       } catch (err: any) {

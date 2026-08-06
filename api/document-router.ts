@@ -24,23 +24,19 @@ export const documentRouter = createRouter({
     .query(async ({ input }) => {
       const db = getDb();
 
-      let query = db.select().from(documents)
-        .where(eq(documents.applicationId, input.applicationId));
+      const conditions = [eq(documents.applicationId, input.applicationId)];
 
       // Apply document type filter
       if (input.documentType) {
-        query = query.where(
-          and(
-            eq(documents.applicationId, input.applicationId),
-            eq(documents.documentType, input.documentType),
-          ),
-        ) as any;
+        conditions.push(eq(documents.documentType, input.documentType));
       }
 
       // Apply sorting
       const orderFn = input.sortOrder === "asc" ? sql`${documents.createdAt} ASC` : sql`${documents.createdAt} DESC`;
 
-      const results = await query.orderBy(orderFn);
+      const results = await db.select().from(documents)
+        .where(and(...conditions))
+        .orderBy(orderFn);
 
       // Apply search filter in-memory (filename search)
       let filtered = results;
@@ -89,7 +85,7 @@ export const documentRouter = createRouter({
         originalFileName: input.originalFileName,
         storedFileName: input.storedFileName,
         mimeType: input.mimeType,
-        fileSize: BigInt(input.fileSize),
+        fileSize: input.fileSize,
         storagePath: input.storagePath,
         uploadStatus: input.uploadStatus,
         uploadedBy: input.uploadedBy || null,
