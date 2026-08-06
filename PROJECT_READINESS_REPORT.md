@@ -1,5 +1,7 @@
 # TASHIRA Production Readiness Report
 
+> Phase 4 security hardening supersedes the security findings and scores in this earlier report. See `PRODUCTION_SECURITY_REPORT.md` for the current assessment.
+
 ## Executive summary
 
 **Overall readiness: 32%**
