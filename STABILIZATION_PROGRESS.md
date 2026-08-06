@@ -25,7 +25,7 @@ TypeScript checking now succeeds. The review-branch CI is expected to advance to
 ## Remaining errors
 
 - None at the TypeScript compiler level.
-- Lint: 130 errors remain after the first error-typing group (down from 149).
+- Lint: 109 errors remain after API/database typing groups (down from 149).
 
 ## Blocked decisions
 

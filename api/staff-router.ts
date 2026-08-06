@@ -183,7 +183,7 @@ export const staffRouter = createRouter({
     )
     .mutation(async ({ input }) => {
       const db = getDb();
-      const update: any = {
+      const update: Partial<typeof staffUsers.$inferInsert> = {
         username: input.username,
         name: input.name,
         email: input.email || null,

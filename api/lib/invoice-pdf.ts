@@ -120,7 +120,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     alternateRowStyles: { fillColor: "#FAFAF7" },
   });
 
-  const finalY = (doc as any).lastAutoTable?.finalY || 150;
+  const finalY = (doc as typeof doc & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 150;
   // Note: lastAutoTable is added by jspdf-autotable plugin
 
   // === PAYMENT INFO ===

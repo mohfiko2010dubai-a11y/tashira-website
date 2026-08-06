@@ -3,6 +3,7 @@ import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
+import { getErrorMessage } from "./lib/errors";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
@@ -39,7 +40,7 @@ export const applicationRouter = createRouter({
     .mutation(async ({ input }) => {
       try {
         const db = getDb();
-        const values: any = {
+        const values: typeof applications.$inferInsert = {
           referenceNumber: input.referenceNumber,
           baseType: input.baseType,
           residenceType: input.residenceType,
@@ -75,9 +76,10 @@ export const applicationRouter = createRouter({
           });
         }
         return { id: appId, referenceNumber: input.referenceNumber };
-      } catch (err: any) {
-        console.error('[API ERROR]', err.message);
-        throw new Error(`Database error: ${err.message}`);
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error('[API ERROR]', message);
+        throw new Error(`Database error: ${message}`);
       }
     }),
 
@@ -92,9 +94,9 @@ export const applicationRouter = createRouter({
         .where(eq(applicants.applicationId, app.id));
       let supplier = null;
       try {
-        if ((app as any).supplierId) {
+        if (app.supplierId) {
           const [s] = await db.select().from(suppliers)
-            .where(eq(suppliers.id, (app as any).supplierId)).limit(1);
+            .where(eq(suppliers.id, app.supplierId)).limit(1);
           supplier = s || null;
         }
       } catch {
@@ -106,7 +108,7 @@ export const applicationRouter = createRouter({
   list: publicQuery
     .input(z.object({
       search: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(STATUS_ENUM).optional(),
       dateFrom: z.string().optional(),
       dateTo: z.string().optional(),
       limit: z.number().min(1).max(500).default(100),
@@ -117,25 +119,25 @@ export const applicationRouter = createRouter({
       const limit = input?.limit || 100;
       const offset = input?.offset || 0;
 
-      let query = db.select().from(applications);
       const conditions = [];
 
-      if (input?.status) conditions.push(eq(applications.status, input.status as any));
+      if (input?.status) conditions.push(eq(applications.status, input.status));
       if (input?.dateFrom) conditions.push(gte(applications.createdAt, new Date(input.dateFrom)));
       if (input?.dateTo) conditions.push(lte(applications.createdAt, new Date(input.dateTo + 'T23:59:59')));
 
-      if (conditions.length > 0) query = query.where(and(...conditions)) as any;
-
-      const allApps = await query.orderBy(desc(applications.createdAt)).limit(limit).offset(offset);
+      const query = db.select().from(applications);
+      const allApps = conditions.length > 0
+        ? await query.where(and(...conditions)).orderBy(desc(applications.createdAt)).limit(limit).offset(offset)
+        : await query.orderBy(desc(applications.createdAt)).limit(limit).offset(offset);
 
       const result = await Promise.all(allApps.map(async (app) => {
         const applicantList = await db.select().from(applicants)
           .where(eq(applicants.applicationId, app.id));
         let supplier = null;
         try {
-          if ((app as any).supplierId) {
+          if (app.supplierId) {
             const [s] = await db.select().from(suppliers)
-              .where(eq(suppliers.id, (app as any).supplierId)).limit(1);
+              .where(eq(suppliers.id, app.supplierId)).limit(1);
             supplier = s || null;
           }
         } catch {
@@ -171,7 +173,7 @@ export const applicationRouter = createRouter({
     .mutation(async ({ input }) => {
       const db = getDb();
       try {
-        const update: any = { supplierId: input.supplierId };
+        const update: Partial<typeof applications.$inferInsert> = { supplierId: input.supplierId };
         if (input.supplierCostAed !== undefined) update.supplierCostAed = String(input.supplierCostAed);
         if (input.supplierVatStatus) update.supplierVatStatus = input.supplierVatStatus;
         if (input.supplierPlaceOfSupply) update.supplierPlaceOfSupply = input.supplierPlaceOfSupply;
@@ -181,9 +183,10 @@ export const applicationRouter = createRouter({
         if (input.supplierNotes) update.supplierNotes = input.supplierNotes;
         await db.update(applications).set(update).where(eq(applications.id, input.id));
         return { success: true };
-      } catch (err: any) {
-        console.error('[API] assignSupplier failed:', err.message);
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error('[API] assignSupplier failed:', message);
+        return { success: false, error: message };
       }
     }),
 

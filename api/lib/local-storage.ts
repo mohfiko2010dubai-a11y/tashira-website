@@ -18,6 +18,7 @@ export async function storageUpload(
   fileBuffer: Buffer,
   _mimeType: string,
 ): Promise<{ path: string }> {
+  void _mimeType;
   const fullPath = path.join(STORAGE_ROOT, filePath);
   const dir = path.dirname(fullPath);
 

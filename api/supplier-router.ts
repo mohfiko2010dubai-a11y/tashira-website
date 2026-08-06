@@ -50,7 +50,7 @@ export const supplierRouter = createRouter({
     }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const update: any = {
+      const update: Partial<typeof suppliers.$inferInsert> = {
         name: input.name,
         contactPerson: input.contactPerson || null,
         email: input.email || null,

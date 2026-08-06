@@ -38,7 +38,7 @@ async function exchangeAuthCode(
 }
 
 // Lazy init JWKS to avoid crash when env.kimiAuthUrl is not set
-let jwksInstance: any = null;
+let jwksInstance: ReturnType<typeof jose.createRemoteJWKSet> | null = null;
 function getJwks() {
   if (!jwksInstance && env.kimiAuthUrl) {
     jwksInstance = jose.createRemoteJWKSet(
