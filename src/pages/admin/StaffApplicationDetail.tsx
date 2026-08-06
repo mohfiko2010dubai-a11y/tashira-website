@@ -4,6 +4,7 @@ import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { ArrowLeft, Receipt, FileText } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';
 import { generateInvoicePDF } from '@/components/shared/InvoiceGenerator';
+import type { ApplicationWithLegacyAmount } from '@/types/trpc';
 
 const statusColors: Record<string, string> = {
   submitted: 'bg-gray-100 text-gray-700',
@@ -49,7 +50,7 @@ export default function StaffApplicationDetail() {
   }
 
   const mainApplicant = app.applicants?.[0];
-  const a = app as any;
+  const a: ApplicationWithLegacyAmount = app;
   const exchangeRate = Number(a.exchangeRate || 3.6725);
   const totalUsd = Number(a.totalAmountUsd || a.totalAmount || 0);
   const totalAed = Number(a.totalAmountAed || totalUsd * exchangeRate);
@@ -276,7 +277,7 @@ export default function StaffApplicationDetail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {(app.applicants || []).map((ap: any, i: number) => (
+                  {(app.applicants || []).map((ap, i) => (
                     <tr key={ap.id} className="hover:bg-gray-50/50">
                       <td className="px-3 py-2 text-gray-400">{i + 1}</td>
                       <td className="px-3 py-2 font-medium">{ap.fullName}</td>

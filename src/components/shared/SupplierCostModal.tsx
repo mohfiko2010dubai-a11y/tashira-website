@@ -29,8 +29,8 @@ export default function SupplierCostModal({ applicationId, currentSupplierId, on
 
   const [supplierId, setSupplierId] = useState(currentSupplierId ? String(currentSupplierId) : '');
   const [costAed, setCostAed] = useState('');
-  const [vatStatus, setVatStatus] = useState('standard');
-  const [placeOfSupply, setPlaceOfSupply] = useState('within_uae');
+  const [vatStatus, setVatStatus] = useState<'standard' | 'zero_rated' | 'exempt' | 'out_of_scope'>('standard');
+  const [placeOfSupply, setPlaceOfSupply] = useState<'within_uae' | 'outside_uae'>('within_uae');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -55,8 +55,8 @@ export default function SupplierCostModal({ applicationId, currentSupplierId, on
       id: applicationId,
       supplierId: parseInt(supplierId),
       supplierCostAed: cost,
-      supplierVatStatus: vatStatus as any,
-      supplierPlaceOfSupply: placeOfSupply as any,
+      supplierVatStatus: vatStatus,
+      supplierPlaceOfSupply: placeOfSupply,
       supplierVatAmount: vatAmount,
       supplierTotalAed: totalWithVat,
       supplierInvoiceNumber: invoiceNumber || undefined,
@@ -114,7 +114,7 @@ export default function SupplierCostModal({ applicationId, currentSupplierId, on
             <label className="block text-sm font-medium text-gray-700 mb-1.5">VAT Status</label>
             <select
               value={vatStatus}
-              onChange={e => setVatStatus(e.target.value)}
+              onChange={e => setVatStatus(e.target.value as typeof vatStatus)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:ring-1 focus:ring-[#C9A04C] focus:outline-none bg-white"
             >
               {Object.entries(VAT_LABELS).map(([key, label]) => (
@@ -128,7 +128,7 @@ export default function SupplierCostModal({ applicationId, currentSupplierId, on
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Place of Supply</label>
             <select
               value={placeOfSupply}
-              onChange={e => setPlaceOfSupply(e.target.value)}
+              onChange={e => setPlaceOfSupply(e.target.value as typeof placeOfSupply)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:ring-1 focus:ring-[#C9A04C] focus:outline-none bg-white"
             >
               <option value="within_uae">Within UAE</option>

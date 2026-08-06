@@ -25,7 +25,7 @@ TypeScript checking now succeeds. The review-branch CI is expected to advance to
 ## Remaining errors
 
 - None at the TypeScript compiler level.
-- Lint: 40 errors remain after the admin finance/report typing group (down from 149).
+- Lint: 28 errors remain after document, supplier-cost, and application-detail typing (down from 149).
 
 ## Blocked decisions
 
