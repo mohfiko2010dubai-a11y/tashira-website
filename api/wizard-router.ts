@@ -4,6 +4,7 @@ import { getDb } from "./queries/connection";
 import { applications, documents } from "@db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
+import { storageUpload } from "./lib/local-storage";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -273,12 +274,8 @@ export const wizardRouter = createRouter({
         const storedName = `${timestamp}-${input.fileName}`;
         const storagePath = `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
-        // Save file locally (since Supabase is configured for local)
-        const fs = await import("fs");
-        const path = await import("path");
-        const uploadDir = path.join(process.cwd(), "storage", "documents", String(input.applicationId));
-        fs.mkdirSync(uploadDir, { recursive: true });
-        fs.writeFileSync(path.join(uploadDir, storedName), fileBuffer);
+        // Persist at the same canonical path recorded in MySQL and served by /storage/*.
+        await storageUpload(storagePath, fileBuffer, input.mimeType);
 
         // Insert into documents table
         await db.insert(documents).values({

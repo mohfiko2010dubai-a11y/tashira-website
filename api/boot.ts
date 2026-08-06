@@ -14,6 +14,7 @@ import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
+import { resolveStoragePath } from "./lib/local-storage";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -172,13 +173,12 @@ app.get("/invoices/:invoiceNumber/download", async (c) => {
 });
 
 // ===== LOCAL FILE STORAGE ROUTES =====
-const STORAGE_ROOT = "/var/www/tashira/storage/documents";
 app.get("/storage/*", async (c) => {
   const filePath = c.req.path.replace("/storage/", "");
-  const fullPath = path.join(STORAGE_ROOT, filePath);
-
-  // Security: prevent path traversal
-  if (!fullPath.startsWith(STORAGE_ROOT)) {
+  let fullPath: string;
+  try {
+    fullPath = resolveStoragePath(filePath);
+  } catch {
     return c.json({ error: "Invalid path" }, 400);
   }
 

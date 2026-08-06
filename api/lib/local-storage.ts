@@ -3,11 +3,28 @@
 
 import fs from "fs";
 import path from "path";
-const STORAGE_ROOT = process.env.STORAGE_ROOT || "/var/www/tashira/storage/documents";
 
-// Ensure storage directory exists
-if (!fs.existsSync(STORAGE_ROOT)) {
-  fs.mkdirSync(STORAGE_ROOT, { recursive: true });
+const DEFAULT_STORAGE_ROOT = "/var/www/tashira/storage/documents";
+
+export function getStorageRoot(): string {
+  return path.resolve(process.env.STORAGE_ROOT || DEFAULT_STORAGE_ROOT);
+}
+
+export function resolveStoragePath(filePath: string): string {
+  const storageRoot = getStorageRoot();
+  const fullPath = path.resolve(storageRoot, filePath);
+  const relativePath = path.relative(storageRoot, fullPath);
+
+  if (
+    relativePath === "" ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new Error("Invalid storage path");
+  }
+
+  return fullPath;
 }
 
 /**
@@ -19,7 +36,7 @@ export async function storageUpload(
   _mimeType: string,
 ): Promise<{ path: string }> {
   void _mimeType;
-  const fullPath = path.join(STORAGE_ROOT, filePath);
+  const fullPath = resolveStoragePath(filePath);
   const dir = path.dirname(fullPath);
 
   if (!fs.existsSync(dir)) {
@@ -35,7 +52,7 @@ export async function storageUpload(
  * Delete a file from local storage
  */
 export async function storageDelete(filePath: string): Promise<void> {
-  const fullPath = path.join(STORAGE_ROOT, filePath);
+  const fullPath = resolveStoragePath(filePath);
   if (fs.existsSync(fullPath)) {
     fs.unlinkSync(fullPath);
   }

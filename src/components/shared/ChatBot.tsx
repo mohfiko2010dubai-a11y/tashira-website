@@ -538,7 +538,7 @@ export default function ChatBot() {
     addUserMessage(`📎 Uploaded: ${file.name}`);
 
     // Upload to backend immediately
-    const doUpload = (docType: "passport" | "photo") => {
+    const doUpload = (docType: "passport" | "photo", afterUpload: () => void) => {
       const currentWizard = wizardRef.current;
       const appId = currentWizard.applicationId;
       if (!appId) {
@@ -564,6 +564,7 @@ export default function ChatBot() {
             },
             {
               onSuccess: () => {
+                afterUpload();
                 addBotMessage(`✅ **${file.name}** uploaded to server successfully!`);
                 setLoading(false);
               },
@@ -588,22 +589,19 @@ export default function ChatBot() {
     const currentStep = wizardRef.current.step;
 
     if (currentStep === 'upload_passport_copy') {
-      doUpload('passport');
-      setTimeout(() => {
+      doUpload('passport', () => {
         addBotMessage('📎 Now upload **Passport Cover** (front cover of your passport).\n\nClick the 📎 button below.');
         setWizard(prev => ({ ...prev, step: 'upload_passport_cover' }));
         setDocStep(1);
-      }, 1200);
+      });
     } else if (currentStep === 'upload_passport_cover') {
-      doUpload('passport');
-      setTimeout(() => {
+      doUpload('passport', () => {
         addBotMessage('📎 Now upload **Passport Photo** (white background, face clearly visible).\n\nClick the 📎 button below.');
         setWizard(prev => ({ ...prev, step: 'upload_passport_photo' }));
         setDocStep(2);
-      }, 1200);
+      });
     } else if (currentStep === 'upload_passport_photo') {
-      doUpload('photo');
-      setTimeout(() => {
+      doUpload('photo', () => {
         addBotMessage('✅ All documents received!\n\nReviewing your application...');
         setTimeout(() => {
           const cur = wizardRef.current;
@@ -625,7 +623,7 @@ export default function ChatBot() {
           setWizard(prev => ({ ...prev, step: 'terms' }));
           setLoading(false);
         }, 800);
-      }, 1200);
+      });
     }
 
     e.target.value = '';
