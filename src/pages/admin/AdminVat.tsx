@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
 import * as XLSX from 'xlsx';
+import type { ApplicationWithLegacyAmount } from '@/types/trpc';
 import {
   ArrowLeft, Download, Calendar, LogOut, Percent,
   DollarSign, TrendingUp, TrendingDown, Receipt, Building2,
@@ -21,27 +22,29 @@ export default function AdminVat() {
   });
 
   // Calculate VAT data
-  const customerInvoices = (applications || []).filter((app: any) => app.paymentStatus === 'paid');
-  const supplierBills = (applications || []).filter((app: any) => (app as any).supplierId || app.supplier);
+  const customerInvoices = (applications || []).filter((app) => app.paymentStatus === 'paid');
+  const supplierBills = (applications || []).filter((app) => app.supplierId || app.supplier);
 
   // VAT on sales (from customers) - always 5%
-  const vatOnSales = customerInvoices.reduce((sum: number, app: any) => {
-    const aed = Number((app as any).totalAmountAed || app.totalAmount || 0);
+  const vatOnSales = customerInvoices.reduce((sum, app) => {
+    const a: ApplicationWithLegacyAmount = app;
+    const aed = Number(a.totalAmountAed || a.totalAmount || 0);
     const vat = aed - (aed / 1.05);
     return sum + vat;
   }, 0);
 
-  const totalSalesAed = customerInvoices.reduce((sum: number, app: any) => {
-    return sum + Number((app as any).totalAmountAed || app.totalAmount || 0);
+  const totalSalesAed = customerInvoices.reduce((sum, app) => {
+    const a: ApplicationWithLegacyAmount = app;
+    return sum + Number(a.totalAmountAed || a.totalAmount || 0);
   }, 0);
 
   // VAT on purchases (from suppliers)
-  const vatOnPurchases = supplierBills.reduce((sum: number, app: any) => {
-    return sum + Number((app as any).supplierVatAmount || 0);
+  const vatOnPurchases = supplierBills.reduce((sum, app) => {
+    return sum + Number(app.supplierVatAmount || 0);
   }, 0);
 
-  const totalPurchasesAed = supplierBills.reduce((sum: number, app: any) => {
-    return sum + Number((app as any).supplierTotalAed || (app as any).supplierCostAed || 0);
+  const totalPurchasesAed = supplierBills.reduce((sum, app) => {
+    return sum + Number(app.supplierTotalAed || app.supplierCostAed || 0);
   }, 0);
 
   // Net VAT
@@ -59,9 +62,9 @@ export default function AdminVat() {
     ];
 
     // Detailed breakdown
-    const details = customerInvoices.map((app: any) => {
-      const a = app as any;
-      const aed = Number(a.totalAmountAed || app.totalAmount || 0);
+    const details = customerInvoices.map((app) => {
+      const a: ApplicationWithLegacyAmount = app;
+      const aed = Number(a.totalAmountAed || a.totalAmount || 0);
       const subtotal = aed / 1.05;
       const vat = aed - subtotal;
       return {
@@ -75,8 +78,8 @@ export default function AdminVat() {
       };
     });
 
-    const supplierDetails = supplierBills.map((app: any) => {
-      const a = app as any;
+    const supplierDetails = supplierBills.map((app) => {
+      const a: ApplicationWithLegacyAmount = app;
       const cost = Number(a.supplierCostAed || 0);
       const vat = Number(a.supplierVatAmount || 0);
       const total = Number(a.supplierTotalAed || cost);
@@ -212,9 +215,9 @@ export default function AdminVat() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {customerInvoices.map((app: any) => {
-                  const a = app as any;
-                  const aed = Number(a.totalAmountAed || app.totalAmount || 0);
+                {customerInvoices.map((app) => {
+                  const a: ApplicationWithLegacyAmount = app;
+                  const aed = Number(a.totalAmountAed || a.totalAmount || 0);
                   const subtotal = aed / 1.05;
                   const vat = aed - subtotal;
                   return (
@@ -268,8 +271,8 @@ export default function AdminVat() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {supplierBills.map((app: any) => {
-                  const a = app as any;
+                {supplierBills.map((app) => {
+                  const a: ApplicationWithLegacyAmount = app;
                   const cost = Number(a.supplierCostAed || 0);
                   const vat = Number(a.supplierVatAmount || 0);
                   const total = Number(a.supplierTotalAed || cost + vat);

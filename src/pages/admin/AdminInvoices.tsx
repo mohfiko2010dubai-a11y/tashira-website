@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
 import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
+import type { ApplicationWithLegacyAmount } from '@/types/trpc';
 import * as XLSX from 'xlsx';
 import {
   ArrowLeft, Search, Download, Calendar, LogOut, Receipt,
@@ -30,7 +31,7 @@ export default function AdminInvoices() {
   });
 
   // Filter only paid applications (these are the invoices)
-  const invoices = (applications || []).filter((app: any) => {
+  const invoices = (applications || []).filter((app) => {
     const q = search.toLowerCase();
     const matchesSearch = app.referenceNumber.toLowerCase().includes(q) ||
       app.contactEmail.toLowerCase().includes(q) ||
@@ -40,23 +41,25 @@ export default function AdminInvoices() {
   });
 
   // Summary
-  const totalUsd = invoices.reduce((sum: number, app: any) => {
-    const a = app as any;
+  const totalUsd = invoices.reduce((sum, app) => {
+    const a: ApplicationWithLegacyAmount = app;
     const exRate = Number(a.exchangeRate || 3.6725);
     const aed = Number(a.totalAmountAed || a.totalAmount || 0);
     return sum + (Number(a.totalAmountUsd) || aed / exRate);
   }, 0);
-  const totalAed = invoices.reduce((sum: number, app: any) => {
-    return sum + Number((app as any).totalAmountAed || app.totalAmount || 0);
+  const totalAed = invoices.reduce((sum, app) => {
+    const a: ApplicationWithLegacyAmount = app;
+    return sum + Number(a.totalAmountAed || a.totalAmount || 0);
   }, 0);
-  const totalVat = invoices.reduce((sum: number, app: any) => {
-    const aed = Number((app as any).totalAmountAed || app.totalAmount || 0);
+  const totalVat = invoices.reduce((sum, app) => {
+    const a: ApplicationWithLegacyAmount = app;
+    const aed = Number(a.totalAmountAed || a.totalAmount || 0);
     return sum + (aed - (aed / 1.05));
   }, 0);
 
   const handleExportExcel = () => {
-    const data = invoices.map((app: any) => {
-      const a = app as any;
+    const data = invoices.map((app) => {
+      const a: ApplicationWithLegacyAmount = app;
       const exRate = Number(a.exchangeRate || 3.6725);
       const aed = Number(a.totalAmountAed || a.totalAmount || 0);
       const usd = Number(a.totalAmountUsd) || aed / exRate;
@@ -166,8 +169,8 @@ export default function AdminInvoices() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {invoices.map((app: any) => {
-                    const a = app as any;
+                  {invoices.map((app) => {
+                    const a: ApplicationWithLegacyAmount = app;
                     const exRate = Number(a.exchangeRate || 3.6725);
                     const aed = Number(a.totalAmountAed || a.totalAmount || 0);
                     const usd = Number(a.totalAmountUsd) || aed / exRate;

@@ -6,4 +6,5 @@ type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type ApplicationListItem = RouterOutputs['application']['list'][number];
 export type ApplicationWithLegacyAmount = ApplicationListItem & {
   totalAmount?: string | null;
+  supplierName?: string | null;
 };

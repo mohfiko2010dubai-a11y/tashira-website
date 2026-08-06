@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { trpc } from '@/providers/trpc';
 import * as XLSX from 'xlsx';
+import type { ApplicationWithLegacyAmount } from '@/types/trpc';
 import {
   ArrowLeft, Search, Download, Calendar, LogOut,
   DollarSign, Receipt, FileText, TrendingUp,
@@ -32,8 +33,8 @@ export default function AdminSupplierDashboard() {
   const { data: suppliersList } = trpc.supplier.list.useQuery();
 
   // Filter applications with supplier costs
-  const supplierBills = (applications || []).filter((app: any) => {
-    const a = app as any;
+  const supplierBills = (applications || []).filter((app) => {
+    const a: ApplicationWithLegacyAmount = app;
     const hasSupplier = a.supplierId || app.supplier;
     const q = search.toLowerCase();
     const matchesSearch = app.referenceNumber.toLowerCase().includes(q) ||
@@ -43,13 +44,13 @@ export default function AdminSupplierDashboard() {
   });
 
   // Summary
-  const totalCostAed = supplierBills.reduce((sum: number, app: any) => sum + Number((app as any).supplierCostAed || 0), 0);
-  const totalVatAed = supplierBills.reduce((sum: number, app: any) => sum + Number((app as any).supplierVatAmount || 0), 0);
-  const pendingCount = supplierBills.filter((app: any) => (app as any).supplierPaid === 'pending').length;
+  const totalCostAed = supplierBills.reduce((sum, app) => sum + Number(app.supplierCostAed || 0), 0);
+  const totalVatAed = supplierBills.reduce((sum, app) => sum + Number(app.supplierVatAmount || 0), 0);
+  const pendingCount = supplierBills.filter((app) => app.supplierPaid === 'pending').length;
 
   const handleExportExcel = () => {
-    const data = supplierBills.map((app: any) => {
-      const a = app as any;
+    const data = supplierBills.map((app) => {
+      const a: ApplicationWithLegacyAmount = app;
       return {
         'Ref #': app.referenceNumber,
         'Date': app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-',
@@ -147,8 +148,8 @@ export default function AdminSupplierDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {supplierBills.map((app: any) => {
-                    const a = app as any;
+                  {supplierBills.map((app) => {
+                    const a: ApplicationWithLegacyAmount = app;
                     const costAed = Number(a.supplierCostAed || 0);
                     const totalAed = Number(a.supplierTotalAed || costAed);
                     const vatLabel = VAT_LABELS[a.supplierVatStatus || ''] || '-';
