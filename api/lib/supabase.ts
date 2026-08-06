@@ -9,6 +9,10 @@ export const SIGNED_URL_EXPIRY = 600; // 10 minutes in seconds
 
 const STORAGE_API = `${SUPABASE_URL}/storage/v1`;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function authHeaders(contentType?: string): Record<string, string> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${SERVICE_KEY}`,
@@ -38,8 +42,9 @@ export async function storageUpload(
     throw new Error(`Storage upload failed (${res.status}): ${text}`);
   }
 
-  const data = await res.json();
-  return { path: data.Key || path };
+  const data: unknown = await res.json();
+  const uploadedPath = isRecord(data) && typeof data.Key === "string" ? data.Key : path;
+  return { path: uploadedPath };
 }
 
 /**
@@ -78,9 +83,15 @@ export async function storageCreateSignedUrl(
     throw new Error(`Storage signed URL failed (${res.status}): ${text}`);
   }
 
-  const data = await res.json();
+  const data: unknown = await res.json();
   // signedURL is a relative path like "/object/sign/bucket/path?token=..."
-  const signedPath = data.signedURL || data.signedUrl;
+  const signedPath = isRecord(data)
+    ? typeof data.signedURL === "string"
+      ? data.signedURL
+      : typeof data.signedUrl === "string"
+        ? data.signedUrl
+        : undefined
+    : undefined;
   if (!signedPath) {
     throw new Error("No signed URL returned from Supabase");
   }

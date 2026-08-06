@@ -11,19 +11,19 @@ export function serveStaticFiles(app: App) {
 
   // Serve static files for non-API, non-storage routes only
   app.use("*", async (c, next) => {
-    const path = c.req.path;
+    const requestPath = c.req.path;
     // Never serve static files for API or storage routes
-    if (path.startsWith("/api/") || path.startsWith("/storage/") || path.startsWith("/invoices/")) {
+    if (requestPath.startsWith("/api/") || requestPath.startsWith("/storage/") || requestPath.startsWith("/invoices/")) {
       return await next();
     }
     return serveStatic({ root: distPath })(c, next);
   });
 
   app.notFound((c) => {
-    const path = c.req.path;
+    const requestPath = c.req.path;
     // API routes always return JSON, never HTML
-    if (path.startsWith("/api/")) {
-      return c.json({ error: "Not Found", path }, 404);
+    if (requestPath.startsWith("/api/")) {
+      return c.json({ error: "Not Found", path: requestPath }, 404);
     }
     const accept = c.req.header("accept") ?? "";
     if (!accept.includes("text/html")) {
