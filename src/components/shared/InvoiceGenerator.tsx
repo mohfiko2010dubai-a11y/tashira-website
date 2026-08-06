@@ -149,7 +149,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     },
   });
 
-  const finalY = (doc as any).lastAutoTable?.finalY || 150;
+  const finalY = (doc as typeof doc & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 150;
 
   // === TOTAL AMOUNT (USD) - AT BOTTOM ===
   doc.setFillColor(darkColor);

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { UploadCloud, X, CheckCircle, User, Users, Globe, Building2, Crown, UsersRound, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
@@ -105,7 +105,7 @@ export default function VisaApplicationForm() {
   const isFamily = baseType === 'family';
   const isAccompany = residenceType === 'gcc-accompany' || residenceType === 'non-gcc-accompany';
 
-  const updateApplicant = (idx: number, field: keyof ApplicantData, value: any) => {
+  const updateApplicant = <K extends keyof ApplicantData>(idx: number, field: K, value: ApplicantData[K]) => {
     setApplicants((prev) => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], [field]: value };
@@ -243,8 +243,15 @@ export default function VisaApplicationForm() {
   const [paymentInvoiceNumber, setPaymentInvoiceNumber] = useState('');
   const [applicationId, setApplicationId] = useState<number | null>(null);
   const allScreeningYes = true; // screening questions removed, form always visible
+  const selectedVisaOption = visaOptions.find((v) => v.value === visaType);
+  const calculateTotal = () => {
+    const visaPrice = selectedVisaOption?.price || 0;
+    const baseTotal = visaPrice * applicants.length;
+    const expressFee = processingType === 'express' ? 40 * applicants.length : 0;
+    return baseTotal + expressFee;
+  };
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!termsAccepted || !allScreeningYes) return;
     setLoading(true);
@@ -278,17 +285,9 @@ export default function VisaApplicationForm() {
         sponsorRelation: a.sponsorRelation,
       })),
     });
-  }, [termsAccepted, baseType, residenceType, visaType, processingType, email, phone, arrivalDate, applicants, isAr, submitApplication]);
-
-  const selectedVisaOption = visaOptions.find((v) => v.value === visaType);
-  const app = applicants[currentApplicantIdx];
-
-  const calculateTotal = () => {
-    const visaPrice = selectedVisaOption?.price || 0;
-    const baseTotal = visaPrice * applicants.length;
-    const expressFee = processingType === 'express' ? 40 * applicants.length : 0;
-    return baseTotal + expressFee;
   };
+
+  const app = applicants[currentApplicantIdx];
 
   const renderDropZone = (idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id', file: UploadedFile | null, label: string) => (
     <div className="space-y-1">

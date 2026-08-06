@@ -6,10 +6,16 @@ import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle, Loader2
 import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
 
+declare global {
+  interface Window {
+    gtag?: (command: string, eventName: string, params: Record<string, unknown>) => void;
+  }
+}
+
 // Google Ads Conversion Tracking
 function trackConversion(eventName: string, value?: number, currency?: string) {
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', eventName, {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', eventName, {
       send_to: 'AW-XXXXXXXXXX', // Replace with your Google Ads Conversion ID
       value: value || 0,
       currency: currency || 'USD',
@@ -106,8 +112,8 @@ function PaymentFormInner({
         trackConversion('purchase', amount, currency);
         onSuccess(`INV-${referenceNumber}`);
       }
-    } catch (err: any) {
-      setError(err.message || 'Payment failed. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -275,9 +281,10 @@ export function PaymentSuccessModal({
         });
 
         uploaded++;
-      } catch (err: any) {
-        console.error(`[Upload] Failed for ${pf.file.name}:`, err.message);
-        setUploadError(err.message || "Upload failed. Please try again.");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Upload failed. Please try again.";
+        console.error(`[Upload] Failed for ${pf.file.name}:`, message);
+        setUploadError(message);
         setProgress((prev) => {
           const updated = [...prev];
           updated[i] = { fileName: pf.file.name, status: "failed", progress: 0 };

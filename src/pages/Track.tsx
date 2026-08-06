@@ -54,7 +54,7 @@ export default function Track() {
     }
   };
 
-  const getStatusIndex = (status: string) => statusSteps.indexOf(status as any);
+  const getStatusIndex = (status: string) => statusSteps.findIndex((step) => step === status);
 
   return (
     <>
