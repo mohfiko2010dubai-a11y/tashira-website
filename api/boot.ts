@@ -14,7 +14,7 @@ import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
-import { resolveStoragePath } from "./lib/local-storage";
+import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -175,6 +175,9 @@ app.get("/invoices/:invoiceNumber/download", async (c) => {
 // ===== LOCAL FILE STORAGE ROUTES =====
 app.get("/storage/*", async (c) => {
   const filePath = c.req.path.replace("/storage/", "");
+  if (!verifyStorageSignedUrl(filePath, c.req.query("expires") || "", c.req.query("signature") || "")) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
   let fullPath: string;
   try {
     fullPath = resolveStoragePath(filePath);

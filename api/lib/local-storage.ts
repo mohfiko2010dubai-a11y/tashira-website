@@ -3,6 +3,7 @@
 
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const DEFAULT_STORAGE_ROOT = "/var/www/tashira/storage/documents";
 
@@ -62,7 +63,35 @@ export async function storageDelete(filePath: string): Promise<void> {
  * Create a local URL for a file (no expiry — direct access)
  */
 export async function storageCreateSignedUrl(filePath: string): Promise<{ signedUrl: string }> {
-  return { signedUrl: `/storage/${filePath}` };
+  resolveStoragePath(filePath);
+  const expires = Math.floor(Date.now() / 1000) + SIGNED_URL_EXPIRY;
+  const signature = signStorageUrl(filePath, expires);
+  const encodedPath = filePath.split("/").map(encodeURIComponent).join("/");
+  return { signedUrl: `/storage/${encodedPath}?expires=${expires}&signature=${signature}` };
+}
+
+function signStorageUrl(filePath: string, expires: number): string {
+  const secret = process.env.STORAGE_URL_SECRET || "";
+  if (secret.length < 32) throw new Error("STORAGE_URL_SECRET must be at least 32 characters");
+  return crypto.createHmac("sha256", secret).update(`${filePath}\n${expires}`).digest("base64url");
+}
+
+export function verifyStorageSignedUrl(filePath: string, expiresValue: string, signature: string): boolean {
+  if (!/^\d+$/.test(expiresValue) || !signature) return false;
+  const expires = Number(expiresValue);
+  if (expires <= Math.floor(Date.now() / 1000)) return false;
+
+  let expected: string;
+  try {
+    resolveStoragePath(filePath);
+    expected = signStorageUrl(filePath, expires);
+  } catch {
+    return false;
+  }
+
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
 /**
@@ -73,4 +102,4 @@ export function isStorageConfigured(): boolean {
 }
 
 export const STORAGE_BUCKET = "local";
-export const SIGNED_URL_EXPIRY = 86400; // 24 hours
+export const SIGNED_URL_EXPIRY = 15 * 60;

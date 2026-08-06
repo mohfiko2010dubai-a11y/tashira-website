@@ -8,6 +8,7 @@ import {
   storageCreateSignedUrl,
   storageDelete,
   storageUpload,
+  verifyStorageSignedUrl,
 } from "./local-storage";
 
 let temporaryRoot: string;
@@ -17,11 +18,13 @@ beforeEach(() => {
   originalStorageRoot = process.env.STORAGE_ROOT;
   temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tashira-storage-"));
   process.env.STORAGE_ROOT = temporaryRoot;
+  process.env.STORAGE_URL_SECRET = "a-secure-storage-url-secret-for-review";
 });
 
 afterEach(() => {
   if (originalStorageRoot === undefined) delete process.env.STORAGE_ROOT;
   else process.env.STORAGE_ROOT = originalStorageRoot;
+  delete process.env.STORAGE_URL_SECRET;
   fs.rmSync(temporaryRoot, { recursive: true, force: true });
 });
 
@@ -36,7 +39,15 @@ describe("local document storage", () => {
 
     expect(uploaded.path).toBe(relativePath);
     expect(fs.readFileSync(fullPath)).toEqual(contents);
-    expect(signed.signedUrl).toBe(`/storage/${relativePath}`);
+    const signedUrl = new URL(signed.signedUrl, "https://example.test");
+    expect(signedUrl.pathname).toBe(`/storage/${relativePath}`);
+    expect(
+      verifyStorageSignedUrl(
+        relativePath,
+        signedUrl.searchParams.get("expires") || "",
+        signedUrl.searchParams.get("signature") || "",
+      ),
+    ).toBe(true);
 
     await storageDelete(relativePath);
     expect(fs.existsSync(fullPath)).toBe(false);
@@ -48,4 +59,15 @@ describe("local document storage", () => {
       expect(() => resolveStoragePath(unsafePath)).toThrow("Invalid storage path");
     },
   );
+
+  it("rejects tampered and expired storage URLs", async () => {
+    const relativePath = "applications/42/photo/photo.png";
+    const signed = await storageCreateSignedUrl(relativePath);
+    const signedUrl = new URL(signed.signedUrl, "https://example.test");
+    const expires = signedUrl.searchParams.get("expires") || "";
+    const signature = signedUrl.searchParams.get("signature") || "";
+
+    expect(verifyStorageSignedUrl(`${relativePath}.tampered`, expires, signature)).toBe(false);
+    expect(verifyStorageSignedUrl(relativePath, "1", signature)).toBe(false);
+  });
 });
