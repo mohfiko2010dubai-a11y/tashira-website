@@ -10,7 +10,7 @@ Phase 3 production-readiness audit completed; launch blockers are documented in 
 
 ## Current CI status
 
-TypeScript checking, lint, 14 tests, and the production build succeed locally. Phase 3 review-branch commits are being verified by CI.
+TypeScript checking, lint, 17 tests, and the production build succeed locally. Phase 3 review-branch commits are being verified by CI.
 
 ## Errors fixed by category
 
@@ -26,7 +26,7 @@ TypeScript checking, lint, 14 tests, and the production build succeed locally. P
 
 - None at the TypeScript compiler level.
 - Lint: no errors or warnings remain (down from 149 errors and 4 warnings).
-- Tests: 14 tests pass across 4 files, including canonical filesystem-path and traversal coverage.
+- Tests: 17 tests pass across 5 files, including filesystem-path, traversal, filename, MIME, and decoded-size coverage.
 
 ## Blocked decisions
 
@@ -38,13 +38,14 @@ TypeScript checking, lint, 14 tests, and the production build succeed locally. P
 - Error normalization, cookies, and HTTP-client behavior.
 - Canonical local document write/read/delete path behavior.
 - Rejection of filesystem paths outside the configured storage root.
+- Shared filename sanitization, MIME allowlisting, and decoded-size verification.
 
 ## Commands run
 
 - `npm ci` — succeeded using the committed lockfile.
 - `npm run check` — succeeds.
 - `npm run lint` — succeeds.
-- `npm run test` — succeeds with 14 tests across 4 files; the initial run correctly failed because no test files existed.
+- `npm run test` — succeeds with 17 tests across 5 files; the initial run correctly failed because no test files existed.
 - `npm run build` — succeeds; the generated `dist/boot.js` output was not retained as a source change.
 - `npm run check -- --force` — used during local reconciliation to bypass stale incremental build metadata.
 

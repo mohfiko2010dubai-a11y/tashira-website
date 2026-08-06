@@ -27,7 +27,7 @@ This assessment is based on repository analysis and local isolated tests only. I
 ## Validation method and limitations
 
 - Traced frontend state, tRPC calls, router procedures, MySQL schema, filesystem adapter, payment flow, guards, and admin pages.
-- Ran TypeScript, ESLint, 14 unit tests, and production build locally.
+- Ran TypeScript, ESLint, 17 unit tests, and production build locally.
 - Added isolated filesystem tests using a temporary directory; no production documents were accessed.
 - Did not use real customer data, MySQL production data, Stripe, email, WhatsApp, OAuth, production filesystem, or a production server.
 - Runtime claims below are marked as verified locally, statically supported, or unverified.
@@ -64,12 +64,11 @@ Safe fix completed:
 - Upload-step progression runs only after successful mutation completion.
 - Failed selections remain on the same step and may be selected again.
 - Path traversal outside the configured storage root is rejected.
-- Four filesystem/path tests were added; the full suite now has 14 passing tests.
+- Filesystem/path and shared upload-policy tests were added; the full suite now has 17 passing tests.
 
 Remaining gaps:
 
-- No file signature/content validation; MIME type and size are client-provided in the wizard path.
-- Filename sanitization is inconsistent between storage routers.
+- MIME allowlisting, decoded-size verification, and filename sanitization are shared across upload paths; file magic/signature validation remains absent.
 - No customer ownership/session binding exists for upload, preview, download, replacement, or deletion.
 - Both passport copy and cover use the same `passport` type, so requirements and replacement cannot distinguish them.
 - No replacement/delete UI exists in the chatbot.
@@ -166,7 +165,7 @@ No secret values are reproduced in this report.
 | `setup.sh:43-49`, `docker-compose.yml:9-26`, `drizzle.config.ts:4-6` | High | Credential/configuration patterns and defaults require secret audit. Use environment injection and non-secret placeholders only. |
 | `webhook-server.js:5`, `scripts/webhook-server.py:9-30`, service/setup files | High | Webhook credential-like configuration exists. Rotate real secrets if committed and keep inactive legacy mechanisms disabled. |
 | `api/staff-router.ts` | High | Fixed-salt fast password hashing and memory-only sessions. Use Argon2id/bcrypt/scrypt and a persistent/revocable session store. |
-| `api/lib/local-storage.ts`, upload routers | High | No magic-byte validation and inconsistent sanitization. Centralize upload policy, enforce decoded size/signature, and generate server filenames. |
+| `api/lib/local-storage.ts`, upload routers | High | Magic-byte validation remains absent. Verify decoded signatures and use collision-resistant server-generated names. |
 | Invoice routes and logs in `api/boot.ts` | Medium | Public invoice retrieval and operational paths/reference logging. Authorize access and redact production logs. |
 | `api/chat-router.ts`, wizard logs | Medium | Chat/contact/reference data can reach logs or public admin endpoints. Minimize logs and enforce access controls/retention. |
 | Legacy `api/lib/supabase.ts` | Medium | Legacy provider code remains and may cause configuration ambiguity. Keep inactive, document runtime selection, and remove only after verified migration approval. |
@@ -236,7 +235,7 @@ Recommended later work (not implemented in this phase): lazy-load route groups a
 ### Medium issues
 
 1. Inconsistent storage-provider comments/schema defaults.
-2. Missing upload content validation and canonical filename policy.
+2. Missing upload magic-byte validation and collision-resistant server filenames.
 3. Random reference collision handling absent.
 4. N+1 admin queries and 500-row client processing.
 5. Public tracking/invoice data can expose PII when references are guessed/shared.
