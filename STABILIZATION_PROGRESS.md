@@ -4,7 +4,7 @@
 
 Phase 6D core-functionality stabilization is in progress on the review branch. The first implementation group adds customer-owned application capabilities, canonical primary-applicant persistence for the wizard, and ownership checks on customer application, payment, and upload mutations.
 
-The second implementation group adds signed Stripe TEST webhooks, shared idempotent payment finalization, protected invoice delivery, real owned-application tracking, safe failed-document retries, and explicit staging-only secret wiring.
+The second implementation group adds signed Stripe TEST webhooks, shared idempotent payment finalization, protected invoice delivery, real owned-application tracking, safe failed-document retries, and explicit staging-only secret wiring. The safe Phase 6D work is complete; remaining items require the product or production decisions recorded in `BLOCKED_DECISIONS.md`.
 
 ## Completed commits
 
@@ -12,7 +12,7 @@ The second implementation group adds signed Stripe TEST webhooks, shared idempot
 
 ## Current CI status
 
-TypeScript checking, lint, 17 tests, and the production build succeed locally. Phase 3 review-branch commits are being verified by CI.
+TypeScript checking, lint, 44 tests across 15 files, and the production build succeed locally. All Phase 6D review-branch commits passed CI.
 
 ## Errors fixed by category
 

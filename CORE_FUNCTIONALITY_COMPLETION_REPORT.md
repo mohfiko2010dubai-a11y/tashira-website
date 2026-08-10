@@ -25,7 +25,7 @@ Phase 6D was implemented only on `devops/deployment-safety`. No production host,
 - Tests: 42 passed across 14 files after the payment/ownership group; an additional ownership test file was subsequently added and is covered by the final gate run.
 - Client and server production bundle: pass locally.
 - Review-branch CI for ownership commit `45d7e36`: pass.
-- Review-branch CI for the subsequent core commit is tracked in GitHub Actions.
+- Review-branch CI passed for all three Phase 6D commits: `45d7e36`, `f7da6b6`, and `1672839`.
 
 ## Remaining decisions
 
