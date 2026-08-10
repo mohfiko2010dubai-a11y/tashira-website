@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, paymentQuery, publicQuery } from "./middleware";
+import { applicationAccessQuery, createRouter, paymentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, payments, invoices } from "@db/schema";
 import { and, eq } from "drizzle-orm";
@@ -7,6 +7,7 @@ import { saveInvoiceToDisk } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
 import { auditLog } from "./lib/audit-log";
 import { createStripeTestIntent, retrieveStripeTestIntent, verifyStripeIntent } from "./lib/stripe";
+import { assertApplicationReferenceAccess } from "./lib/application-access";
 
 export const paymentRouter = createRouter({
   // Create payment intent
@@ -16,8 +17,9 @@ export const paymentRouter = createRouter({
       currency: z.string().default("usd"),
       referenceNumber: z.string(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
         const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
         if (!app) throw new Error("Application not found");
@@ -66,8 +68,9 @@ export const paymentRouter = createRouter({
       referenceNumber: z.string(),
       paymentIntentId: z.string(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
         const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
         if (!app) throw new Error("Application not found");
@@ -162,9 +165,10 @@ export const paymentRouter = createRouter({
     }),
 
   // Get invoice by reference
-  getInvoice: publicQuery
+  getInvoice: applicationAccessQuery
     .input(z.object({ referenceNumber: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
       const db = getDb();
       const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
       

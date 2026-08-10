@@ -45,6 +45,14 @@ const requireStaffOrAdmin = t.middleware(async ({ ctx, next }) => {
   return next({ ctx });
 });
 
+const requireApplicationAccess = t.middleware(async ({ ctx, next }) => {
+  const privileged = Boolean(ctx.staffId || ctx.isAdmin || ctx.user?.role === "admin");
+  if (!privileged && ctx.customerApplicationReferences.size === 0) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: ErrorMessages.unauthenticated });
+  }
+  return next({ ctx });
+});
+
 function rateLimit(scope: string, limit: number, windowMs = 60_000) {
   return t.middleware(async ({ ctx, next }) => {
     const result = consumeRateLimit(ctx.req.headers, scope, limit, windowMs);
@@ -62,5 +70,9 @@ export const staffOrAdminQuery = t.procedure.use(requireStaffOrAdmin).use(rateLi
 export const loginQuery = t.procedure.use(rateLimit("login", 10, 15 * 60_000));
 export const chatQuery = t.procedure.use(rateLimit("chat", 30));
 export const uploadQuery = t.procedure.use(rateLimit("upload", 10));
+export const applicationUploadQuery = t.procedure
+  .use(requireApplicationAccess)
+  .use(rateLimit("upload", 10));
 export const paymentQuery = t.procedure.use(rateLimit("payment", 10));
 export const applicationSubmissionQuery = t.procedure.use(rateLimit("application", 30));
+export const applicationAccessQuery = t.procedure.use(requireApplicationAccess).use(rateLimit("customer", 120));

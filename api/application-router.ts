@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { adminQuery, applicationSubmissionQuery, createRouter, publicQuery, staffOrAdminQuery } from "./middleware";
+import { adminQuery, applicationAccessQuery, applicationSubmissionQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
 import { auditLog } from "./lib/audit-log";
+import { assertApplicationReferenceAccess } from "./lib/application-access";
+import { createCustomerApplicationCookie } from "./lib/customer-session";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
@@ -38,7 +40,7 @@ export const applicationRouter = createRouter({
         sponsorRelation: z.string().optional(),
       })),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const db = getDb();
         const values: typeof applications.$inferInsert = {
@@ -76,6 +78,7 @@ export const applicationRouter = createRouter({
             sponsorRelation: a.sponsorRelation || null,
           });
         }
+        ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
         return { id: appId, referenceNumber: input.referenceNumber };
       } catch (err: unknown) {
         const message = getErrorMessage(err);
@@ -84,9 +87,10 @@ export const applicationRouter = createRouter({
       }
     }),
 
-  getByReference: publicQuery
+  getByReference: applicationAccessQuery
     .input(z.object({ referenceNumber: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
       const db = getDb();
       const [app] = await db.select().from(applications)
         .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);

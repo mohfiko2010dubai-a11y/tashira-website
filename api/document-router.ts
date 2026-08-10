@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { createRouter, staffOrAdminQuery, uploadQuery } from "./middleware";
+import { applicationUploadQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { documents } from "@db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { auditLog } from "./lib/audit-log";
+import { assertApplicationIdAccess } from "./lib/application-access";
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -64,7 +65,7 @@ export const documentRouter = createRouter({
     }),
 
   // Create document metadata after a successful storage upload.
-  create: uploadQuery
+  create: applicationUploadQuery
     .input(z.object({
       applicationId: z.number().positive(),
       applicantId: z.number().optional(),
@@ -77,7 +78,8 @@ export const documentRouter = createRouter({
       uploadStatus: z.enum(UPLOAD_STATUSES).default("uploaded"),
       uploadedBy: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      await assertApplicationIdAccess(ctx, input.applicationId);
       const db = getDb();
       const [result] = await db.insert(documents).values({
         applicationId: input.applicationId,

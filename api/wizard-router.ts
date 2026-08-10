@@ -1,12 +1,14 @@
 import { z } from "zod";
-import { adminQuery, applicationSubmissionQuery, chatQuery, createRouter, publicQuery, uploadQuery } from "./middleware";
+import { adminQuery, applicationAccessQuery, applicationSubmissionQuery, applicationUploadQuery, chatQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
-import { applications, documents } from "@db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { applicants, applications, documents } from "@db/schema";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
 import { storageUpload } from "./lib/local-storage";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 import { auditLog } from "./lib/audit-log";
+import { assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
+import { createCustomerApplicationCookie } from "./lib/customer-session";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -21,6 +23,50 @@ function mapResidenceType(status: string): ResidenceType {
 
 function mapProcessingType(processingType?: string): ProcessingType {
   return processingType?.toLowerCase() === "express" ? "express" : "regular";
+}
+
+type PrimaryApplicantInput = {
+  fullName?: string;
+  nationality?: string;
+  passportNumber?: string;
+  passportExpiry?: string;
+  profession?: string;
+  countryFrom?: string;
+};
+
+async function persistPrimaryApplicant(applicationId: number, input: PrimaryApplicantInput) {
+  const db = getDb();
+  const [existing] = await db.select().from(applicants)
+    .where(and(eq(applicants.applicationId, applicationId), eq(applicants.applicantIndex, 0)))
+    .limit(1);
+
+  const values: Partial<typeof applicants.$inferInsert> = {};
+  if (input.fullName !== undefined) values.fullName = input.fullName;
+  if (input.nationality !== undefined) values.nationality = input.nationality;
+  if (input.passportNumber !== undefined) values.passportNumber = input.passportNumber;
+  if (input.passportExpiry !== undefined) values.passportExpiry = input.passportExpiry;
+  if (input.profession !== undefined) values.profession = input.profession;
+  if (input.countryFrom !== undefined) values.travelingFrom = input.countryFrom;
+
+  if (existing) {
+    if (Object.keys(values).length > 0) {
+      await db.update(applicants).set(values).where(eq(applicants.id, existing.id));
+    }
+    return existing.id;
+  }
+
+  if (!input.fullName) return undefined;
+  const [created] = await db.insert(applicants).values({
+    applicationId,
+    applicantIndex: 0,
+    fullName: input.fullName,
+    nationality: input.nationality,
+    passportNumber: input.passportNumber,
+    passportExpiry: input.passportExpiry,
+    profession: input.profession,
+    travelingFrom: input.countryFrom,
+  }).$returningId();
+  return created.id;
 }
 
 export const wizardRouter = createRouter({
@@ -45,7 +91,7 @@ export const wizardRouter = createRouter({
       totalAmount: z.number().min(0).default(0),
       chatSessionId: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       console.log("[Wizard] Starting application:", input.referenceNumber);
       try {
         const db = getDb();
@@ -74,6 +120,9 @@ export const wizardRouter = createRouter({
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
 
+        if (inserted) await persistPrimaryApplicant(inserted.id, input);
+
+        ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
         return { success: true, referenceNumber: input.referenceNumber, applicationId: inserted?.id };
       } catch (error: unknown) {
         const message = getErrorMessage(error);
@@ -103,8 +152,9 @@ export const wizardRouter = createRouter({
       totalAmount: z.number().min(0).optional(),
       lastStep: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
 
         const updateData: Partial<typeof applications.$inferInsert> = {
@@ -131,6 +181,8 @@ export const wizardRouter = createRouter({
           .from(applications)
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
+
+        if (updated) await persistPrimaryApplicant(updated.id, input);
 
         return { success: true, referenceNumber: input.referenceNumber, applicationId: updated?.id };
       } catch (error: unknown) {
@@ -160,9 +212,10 @@ export const wizardRouter = createRouter({
       applicantCount: z.number().min(1),
       totalAmount: z.number().min(0),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       console.log("[Wizard] Submitting application:", input.referenceNumber);
       try {
+        assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
         const exchangeRate = 3.6725;
         const totalAed = input.totalAmount * exchangeRate;
@@ -189,6 +242,8 @@ export const wizardRouter = createRouter({
           .from(applications)
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
+
+        if (updated) await persistPrimaryApplicant(updated.id, input);
 
         return { success: true, referenceNumber: input.referenceNumber, applicationId: updated?.id };
       } catch (error: unknown) {
@@ -237,10 +292,11 @@ export const wizardRouter = createRouter({
     }),
 
   // Get single application by reference number
-  getByReference: publicQuery
+  getByReference: applicationAccessQuery
     .input(z.object({ referenceNumber: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       try {
+        assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
         const [app] = await db.select()
           .from(applications)
@@ -255,7 +311,7 @@ export const wizardRouter = createRouter({
     }),
 
   // Upload documents for a wizard application
-  uploadDocuments: uploadQuery
+  uploadDocuments: applicationUploadQuery
     .input(z.object({
       applicationId: z.number().positive(),
       documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),
@@ -264,8 +320,9 @@ export const wizardRouter = createRouter({
       fileSize: z.number().positive(),
       base64Data: z.string().min(1),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        await assertApplicationIdAccess(ctx, input.applicationId);
         const db = getDb();
 
         // Decode base64

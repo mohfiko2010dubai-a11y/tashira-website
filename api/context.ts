@@ -5,6 +5,7 @@ import { verifyAdminSession } from "./lib/admin-session";
 import { getStaffSession } from "./lib/staff-session";
 import { getDb } from "./queries/connection";
 import { eq } from "drizzle-orm";
+import { getCustomerApplicationReferences } from "./lib/customer-session";
 
 export type TrpcContext = {
   req: Request;
@@ -12,6 +13,7 @@ export type TrpcContext = {
   user?: typeof users.$inferSelect;
   isAdmin: boolean;
   staffId?: number;
+  customerApplicationReferences: ReadonlySet<string>;
 };
 
 export async function createContext(
@@ -21,6 +23,7 @@ export async function createContext(
     req: opts.req,
     resHeaders: opts.resHeaders,
     isAdmin: verifyAdminSession(opts.req.headers),
+    customerApplicationReferences: getCustomerApplicationReferences(opts.req.headers),
   };
   try {
     ctx.user = await authenticateRequest(opts.req.headers);

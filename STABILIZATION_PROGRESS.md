@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 3 production-readiness audit completed; launch blockers are documented in `PROJECT_READINESS_REPORT.md`.
+Phase 6D core-functionality stabilization is in progress on the review branch. The first implementation group adds customer-owned application capabilities, canonical primary-applicant persistence for the wizard, and ownership checks on customer application, payment, and upload mutations.
 
 ## Completed commits
 
@@ -39,6 +39,7 @@ TypeScript checking, lint, 17 tests, and the production build succeed locally. P
 - Canonical local document write/read/delete path behavior.
 - Rejection of filesystem paths outside the configured storage root.
 - Shared filename sanitization, MIME allowlisting, and decoded-size verification.
+- Signed customer application capability-cookie verification, tamper rejection, and production cookie attributes.
 
 ## Commands run
 
@@ -54,3 +55,5 @@ TypeScript checking, lint, 17 tests, and the production build succeed locally. P
 - TypeScript build-mode metadata under `node_modules/.tmp` can suppress repeated local diagnostics; forced checks are used while stabilizing.
 - No production system, data, deployment configuration, or secrets have been accessed.
 - Critical authorization, payment verification, and document-ownership work remains blocked on approved architecture decisions; see `PROJECT_READINESS_REPORT.md`.
+- `CUSTOMER_SESSION_SECRET` is now required before the ownership capability can be enabled in any runtime; no production configuration was read or changed.
+- Multi-applicant chatbot collection, customer document replacement, invoice HTTP authorization, and Stripe webhook delivery remain in the active Phase 6D queue.

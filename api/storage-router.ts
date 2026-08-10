@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, staffOrAdminQuery, uploadQuery } from "./middleware";
+import { applicationUploadQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import {
   storageUpload,
   storageDelete,
@@ -12,6 +12,7 @@ import { TRPCError } from "@trpc/server";
 import { getErrorMessage } from "./lib/errors";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 import { auditLog } from "./lib/audit-log";
+import { assertApplicationIdAccess } from "./lib/application-access";
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
@@ -40,7 +41,7 @@ export const storageRouter = createRouter({
     }),
 
   // Upload document to the active server-side storage provider.
-  upload: uploadQuery
+  upload: applicationUploadQuery
     .input(z.object({
       applicationId: z.number().positive(),
       applicantId: z.number().optional(),
@@ -51,8 +52,9 @@ export const storageRouter = createRouter({
       base64Data: z.string().min(1), // Base64 encoded file content
       uploadedBy: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        await assertApplicationIdAccess(ctx, input.applicationId);
         if (!isStorageConfigured()) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
