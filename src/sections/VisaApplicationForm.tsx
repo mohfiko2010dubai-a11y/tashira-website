@@ -5,6 +5,7 @@ import { UploadCloud, X, CheckCircle, User, Users, Globe, Building2, Crown, User
 import { allCountries, allCountriesAr } from '@/data/countries';
 import { trpc } from '@/providers/trpc-client';
 import TrackApplication from './TrackApplication';
+import { TERMS_POLICY_VERSION } from '@contracts/constants';
 import FormDecorations from '@/components/shared/FormDecorations';
 import StripePaymentForm, { PaymentSuccessModal } from '@/components/shared/StripePaymentForm';
 import type { PendingFile } from '@/hooks/useDocumentUpload';
@@ -271,6 +272,7 @@ export default function VisaApplicationForm() {
       arrivalDate,
       exchangeRate,
       totalAmountUsd: totalUsd,
+      policyVersion: TERMS_POLICY_VERSION,
       applicants: applicants.map((a) => ({
         fullName: a.fullName,
         nationality: a.nationality,

@@ -21,6 +21,7 @@ import { auditLog } from "./lib/audit-log";
 import { verifyAdminSession } from "./lib/admin-session";
 import { hasCustomerApplicationAccess } from "./lib/customer-session";
 import { getStaffSession } from "./lib/staff-session";
+import { recordTimelineEvent } from "./lib/application-timeline";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -32,11 +33,43 @@ app.post("/api/stripe/webhook", async (c) => {
     const payload = await c.req.text();
     if (Buffer.byteLength(payload, "utf8") > 1024 * 1024) throw new Error("Stripe webhook payload is too large");
     const event = verifyStripeWebhook(payload, c.req.header("stripe-signature") || "");
-    if (event.type === "payment_intent.succeeded" || event.type === "payment_intent.payment_failed") {
+    if (["payment_intent.succeeded", "payment_intent.payment_failed", "payment_intent.requires_action"].includes(event.type)) {
       const referenceNumber = event.data.object.metadata.referenceNumber;
       if (!referenceNumber) throw new Error("Stripe event is missing the application reference");
-      if (event.type === "payment_intent.succeeded") {
-        await finalizeStripeTestPayment(referenceNumber, event.data.object.id);
+      const [application] = await getDb().select({ id: applications.id }).from(applications)
+        .where(eq(applications.referenceNumber, referenceNumber)).limit(1);
+      if (!application) throw new Error("Application not found");
+      await recordTimelineEvent({
+        applicationId: application.id,
+        eventName: "WEBHOOK_RECEIVED",
+        eventSource: "STRIPE_WEBHOOK",
+        actorType: "STRIPE",
+        actorReference: event.id,
+        summary: "Stripe webhook received",
+      });
+      await recordTimelineEvent({
+        applicationId: application.id,
+        eventName: "WEBHOOK_VERIFIED",
+        eventSource: "STRIPE_WEBHOOK",
+        actorType: "SYSTEM",
+        actorReference: event.id,
+        summary: "Stripe webhook signature verified",
+      });
+      if (event.type === "payment_intent.requires_action") {
+        await recordTimelineEvent({
+          applicationId: application.id,
+          eventName: "THREE_DS_REQUIRED",
+          eventSource: "STRIPE_WEBHOOK",
+          actorType: "STRIPE",
+          actorReference: event.data.object.id,
+          resultingState: "requires_action",
+          summary: "Additional customer authentication required",
+        });
+      } else if (event.type === "payment_intent.succeeded") {
+        await finalizeStripeTestPayment(referenceNumber, event.data.object.id, {
+          actorType: "STRIPE",
+          eventSource: "STRIPE_WEBHOOK",
+        });
       } else {
         await recordStripeTestPaymentFailure(referenceNumber, event.data.object.id);
       }

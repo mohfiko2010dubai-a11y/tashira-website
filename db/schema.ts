@@ -156,3 +156,21 @@ export const documents = mysqlTable("documents", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
 });
+
+export const applicationTimelineEvents = mysqlTable("application_timeline_events", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
+  paymentId: bigint("payment_id", { mode: "number", unsigned: true }),
+  sessionReference: varchar("session_reference", { length: 100 }),
+  eventName: varchar("event_name", { length: 80 }).notNull(),
+  eventSource: varchar("event_source", { length: 40 }).notNull(),
+  actorType: mysqlEnum("actor_type", ["CUSTOMER", "STAFF", "ADMIN", "SYSTEM", "STRIPE"]).notNull(),
+  actorReference: varchar("actor_reference", { length: 100 }),
+  sanitizedCategory: varchar("sanitized_category", { length: 80 }),
+  attemptNumber: bigint("attempt_number", { mode: "number", unsigned: true }),
+  resultingState: varchar("resulting_state", { length: 50 }),
+  policyVersion: varchar("policy_version", { length: 50 }),
+  evidenceHash: varchar("evidence_hash", { length: 64 }),
+  summary: varchar("summary", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

@@ -25,3 +25,9 @@ The admin VAT screen currently assumes every paid customer total includes 5% VAT
 ## Customer document replacement
 
 Customers can safely retry failed uploads without duplicating successful files. Replacing or deleting a successfully recorded customer document needs a retention/audit policy and an atomic storage-plus-metadata design. Staff/admin replacement remains the existing supported workflow.
+
+## Timeline, dispute evidence, and privacy retention
+
+No approved legal or business retention period exists for application timeline events, payment journey evidence, policy-acceptance records, generated evidence manifests, or the underlying customer documents. Define retention by data category, jurisdiction, dispute window, legal hold, deletion request handling, and backup lifecycle before production activation. Do not automatically purge or retain indefinitely based on an engineering assumption.
+
+Database-level append-only trigger enforcement also requires an operational decision: the application exposes no update/delete method for timeline rows and foreign keys restrict parent deletion, but production database privileges and trigger rollout must be reviewed before adding database triggers.

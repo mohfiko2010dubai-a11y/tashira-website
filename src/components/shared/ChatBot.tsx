@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/providers/trpc-client';
 import { MessageCircle, X, Send, Bot, User, Paperclip, Lock } from 'lucide-react';
+import { TERMS_POLICY_VERSION } from '@contracts/constants';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -492,6 +493,7 @@ export default function ChatBot() {
               whoTraveling: w.whoTraveling,
               applicantCount: w.applicantCount,
               totalAmount: w.totalAmount,
+              policyVersion: TERMS_POLICY_VERSION,
             },
             {
               onSuccess: () => {

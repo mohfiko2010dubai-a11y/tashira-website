@@ -7,6 +7,7 @@ import {
   CreditCard, Lock, CheckCircle, AlertCircle, Loader2,
   Shield, Clock, FileText, ArrowLeft
 } from 'lucide-react';
+import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 const stripePromise = stripePublishableKey.startsWith('pk_test_')
@@ -24,9 +25,15 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const paymentTimeline = usePaymentTimeline(referenceNumber);
+  const { paymentElementLoaded } = paymentTimeline;
 
   const confirmPayment = trpc.payment.confirm.useMutation();
   const createIntent = trpc.payment.createIntent.useMutation();
+
+  useEffect(() => {
+    if (stripe && elements) paymentElementLoaded();
+  }, [elements, paymentElementLoaded, stripe]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +41,7 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
 
     setLoading(true);
     setError('');
+    paymentTimeline.paymentStarted();
 
     try {
       // Convert amount from dollars to cents for Stripe
@@ -66,6 +74,7 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
       });
 
       if (stripeError) {
+        paymentTimeline.paymentFailed(safeStripeFailureCategory(stripeError.code));
         setError(stripeError.message || 'Payment failed');
         setLoading(false);
         return;
@@ -77,9 +86,11 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
           referenceNumber,
           paymentIntentId: paymentIntent.id,
         });
+        paymentTimeline.paymentConfirmed();
         setSuccess(true);
       }
     } catch (err: unknown) {
+      paymentTimeline.paymentFailed("unknown");
       setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {
       setLoading(false);

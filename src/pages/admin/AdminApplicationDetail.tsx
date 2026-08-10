@@ -4,11 +4,13 @@ import { trpc } from "@/providers/trpc-client";
 import {
   ArrowLeft, Receipt, Building2, RefreshCw,
   Users, DollarSign, ClipboardList, StickyNote, FolderOpen,
+  History,
 } from "lucide-react";
 import { ViewInvoiceButton, DownloadInvoiceButton } from "@/components/shared/InvoiceButton";
 import { generateInvoicePDF } from "@/components/shared/InvoiceGenerator";
 import DocumentManager from "@/components/shared/DocumentManager";
 import type { ApplicationWithLegacyAmount } from "@/types/trpc";
+import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
 
 const statusColors: Record<string, string> = {
   submitted: "bg-gray-100 text-gray-700",
@@ -28,6 +30,7 @@ const TABS = [
   { key: "applicants", label: "Applicants", icon: Users },
   { key: "payments", label: "Payments", icon: DollarSign },
   { key: "documents", label: "Documents", icon: FolderOpen },
+  { key: "timeline", label: "Timeline", icon: History },
   { key: "notes", label: "Notes", icon: StickyNote },
 ];
 
@@ -389,6 +392,10 @@ export default function AdminApplicationDetail() {
               </h2>
               <DocumentManager applicationId={app.id} />
             </div>
+          )}
+
+          {activeTab === "timeline" && (
+            <ApplicationTimeline referenceNumber={app.referenceNumber} admin />
           )}
 
           {/* Notes Tab - Placeholder */}

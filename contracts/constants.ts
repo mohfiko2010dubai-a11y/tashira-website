@@ -12,3 +12,5 @@ export const Paths = {
   login: "/login",
   oauthCallback: "/api/oauth/callback",
 } as const;
+
+export const TERMS_POLICY_VERSION = "terms-2026-08-11" as const;

@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 6D core-functionality stabilization is in progress on the review branch. The first implementation group adds customer-owned application capabilities, canonical primary-applicant persistence for the wizard, and ownership checks on customer application, payment, and upload mutations.
+Phase 6D core-functionality stabilization is in progress on the review branch. Parts 15-19 add the append-oriented customer timeline, safe payment-journey signals, best-effort checkout abandonment, minimized chargeback evidence manifests with checksums, and the privacy/retention review.
 
 The second implementation group adds signed Stripe TEST webhooks, shared idempotent payment finalization, protected invoice delivery, real owned-application tracking, safe failed-document retries, and explicit staging-only secret wiring. The safe Phase 6D work is complete; remaining items require the product or production decisions recorded in `BLOCKED_DECISIONS.md`.
 
@@ -12,7 +12,7 @@ The second implementation group adds signed Stripe TEST webhooks, shared idempot
 
 ## Current CI status
 
-TypeScript checking, lint, 44 tests across 15 files, and the production build succeed locally. All Phase 6D review-branch commits passed CI.
+TypeScript checking and lint succeed locally. The expanded suite passes 47 tests across 16 files. The production build is verified before each review-branch push.
 
 ## Errors fixed by category
 
@@ -34,6 +34,7 @@ TypeScript checking, lint, 44 tests across 15 files, and the production build su
 
 - Wizard/chat partial-application persistence requires a verified mapping to the normalized `applications` and `applicants` tables.
 - Payment amounts, currency, fees, VAT, exchange-rate policy, authentication policy, production schema, and production storage remain protected decision areas.
+- No legal or business retention duration is approved for timeline, payment evidence, policy acceptance, evidence manifests, or customer documents. Legal holds, deletion requests, backup lifecycle, dispute windows, and database-level append-only enforcement require explicit decisions before production activation.
 
 ## Tests added
 
@@ -44,6 +45,7 @@ TypeScript checking, lint, 44 tests across 15 files, and the production build su
 - Signed customer application capability-cookie verification, tamper rejection, and production cookie attributes.
 - Stripe webhook signature, timestamp, tamper, and live-mode rejection coverage.
 - Exact customer application-reference authorization and privileged staff/admin access coverage.
+- Timeline document-event classification, strict payment-failure sanitization, and deterministic evidence-manifest checksum coverage.
 
 ## Commands run
 
@@ -63,3 +65,6 @@ TypeScript checking, lint, 44 tests across 15 files, and the production build su
 - Multi-applicant chatbot collection and customer document replacement remain in the active Phase 6D queue.
 - Invoice HTTP authorization and Stripe TEST webhook handling are implemented on the review branch; endpoint registration with Stripe remains an environment operation and has not been performed.
 - The chatbot still collects one applicant record even when a family count is selected. Completing 2..n applicant capture requires a reviewed UX/data-flow change and remains an active decision.
+- Checkout abandonment is deliberately best-effort because browsers cannot guarantee an asynchronous close event. It is an analytics signal, not proof of customer intent.
+- The application exposes no timeline update/delete API and parent foreign keys are restrictive; database-trigger enforcement and migration rollout have not been applied to any environment.
+- No card number, CVC, expiry, Stripe iframe content, typed payment field, screenshot, keystroke, payment-screen recording, or raw Stripe payload is recorded.

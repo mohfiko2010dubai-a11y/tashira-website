@@ -6,6 +6,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
 import { TRPCError } from "@trpc/server";
+import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -100,6 +101,15 @@ export const documentRouter = createRouter({
         uploadedBy: input.uploadedBy || null,
       }).$returningId();
 
+      await recordTimelineEvent({
+        applicationId: input.applicationId,
+        eventName: documentUploadEvent(input.documentType),
+        eventSource: "DOCUMENT_API",
+        actorType: ctx.isAdmin ? "ADMIN" : ctx.staffId ? "STAFF" : "CUSTOMER",
+        actorReference: `document:${result.id}`,
+        summary: `${input.documentType} document uploaded`,
+      });
+
       return { id: result.id, success: true };
     }),
 
@@ -134,6 +144,14 @@ export const documentRouter = createRouter({
 
       // Delete from database
       await db.delete(documents).where(eq(documents.id, input.id));
+      await recordTimelineEvent({
+        applicationId: doc.applicationId,
+        eventName: "DOCUMENT_DELETED",
+        eventSource: "DOCUMENT_API",
+        actorType: ctx.isAdmin ? "ADMIN" : "STAFF",
+        actorReference: `document:${doc.id}`,
+        summary: `${doc.documentType} document deleted`,
+      });
       auditLog("document.delete", "success", ctx.isAdmin ? "admin" : "staff");
 
       return {

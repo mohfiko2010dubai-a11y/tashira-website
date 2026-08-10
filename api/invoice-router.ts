@@ -7,6 +7,7 @@ import fs from "fs";
 import path from "path";
 import { getErrorMessage } from "./lib/errors";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
+import { recordTimelineEvent } from "./lib/application-timeline";
 
 // Resolve absolute invoices directory
 const INVOICES_DIR = path.resolve(process.cwd(), "dist/public/invoices");
@@ -46,6 +47,17 @@ export const invoiceRouter = createRouter({
           invoicePdfPath: absolutePath,
           invoicePdfUrl: publicUrl,
         }).where(eq(applications.referenceNumber, input.referenceNumber));
+        const [application] = await db.select({ id: applications.id }).from(applications)
+          .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+        if (application) await recordTimelineEvent({
+          applicationId: application.id,
+          eventName: "INVOICE_GENERATED",
+          eventSource: "INVOICE_API",
+          actorType: ctx.isAdmin ? "ADMIN" : ctx.staffId ? "STAFF" : "CUSTOMER",
+          actorReference: input.invoiceNumber,
+          resultingState: "generated",
+          summary: "Invoice PDF saved",
+        });
 
         return {
           success: true,

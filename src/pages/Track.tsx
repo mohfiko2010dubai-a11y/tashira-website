@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, CheckCircle, Search } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
+import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
 
 const statusSteps = ["submitted", "under-review", "approved", "issued"] as const;
 
@@ -106,6 +107,9 @@ export default function Track() {
                     {isAr ? "استكمال الدفع" : "Continue to payment"} <ArrowRight size={16} />
                   </Link>
                 )}
+                <div className="mt-6">
+                  <ApplicationTimeline referenceNumber={application.referenceNumber} />
+                </div>
               </div>
             ) : (
               <div className="text-center py-10">

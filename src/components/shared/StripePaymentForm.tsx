@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { trpc } from '@/providers/trpc-client';
 import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle, Loader2 } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
+import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 
 declare global {
   interface Window {
@@ -68,9 +69,15 @@ function PaymentFormInner({
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const paymentTimeline = usePaymentTimeline(referenceNumber);
+  const { paymentElementLoaded } = paymentTimeline;
 
   const createIntent = trpc.payment.createIntent.useMutation();
   const confirmPayment = trpc.payment.confirm.useMutation();
+
+  useEffect(() => {
+    if (stripe && elements) paymentElementLoaded();
+  }, [elements, paymentElementLoaded, stripe]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +87,8 @@ function PaymentFormInner({
 
     setLoading(true);
     setError('');
+    paymentTimeline.paymentStarted();
+    let failureRecorded = false;
 
     try {
       const intentResult = await createIntent.mutateAsync({
@@ -103,6 +112,8 @@ function PaymentFormInner({
       );
 
       if (stripeError) {
+        paymentTimeline.paymentFailed(safeStripeFailureCategory(stripeError.code));
+        failureRecorded = true;
         throw new Error(stripeError.message);
       }
 
@@ -111,11 +122,13 @@ function PaymentFormInner({
           referenceNumber,
           paymentIntentId: paymentIntent.id,
         });
+        paymentTimeline.paymentConfirmed();
         // Google Ads: Purchase conversion (replace AW-XXXXXXXXXX with your real Conversion ID)
         trackConversion('purchase', amount, currency);
         onSuccess(`INV-${referenceNumber}`);
       }
     } catch (err: unknown) {
+      if (!failureRecorded) paymentTimeline.paymentFailed('unknown');
       setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {
       setLoading(false);

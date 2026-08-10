@@ -9,6 +9,7 @@ import { staffRouter } from "./staff-router";
 import { storageRouter } from "./storage-router";
 import { documentRouter } from "./document-router";
 import { wizardRouter } from "./wizard-router";
+import { timelineRouter } from "./timeline-router";
 import { createRouter } from "./middleware";
 
 export const appRouter = createRouter({
@@ -23,6 +24,7 @@ export const appRouter = createRouter({
   staff: staffRouter,
   storage: storageRouter,
   document: documentRouter,
+  timeline: timelineRouter,
 });
 
 export type AppRouter = typeof appRouter;

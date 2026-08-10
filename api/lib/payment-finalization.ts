@@ -4,8 +4,13 @@ import { getDb } from "../queries/connection";
 import { saveInvoiceToDisk } from "./invoice-pdf";
 import { getErrorMessage } from "./errors";
 import { retrieveStripeTestIntent, verifyStripeIntent } from "./stripe";
+import { hasTimelineEvent, recordTimelineEvent, type TimelineActorType } from "./application-timeline";
 
-export async function finalizeStripeTestPayment(referenceNumber: string, paymentIntentId: string) {
+export async function finalizeStripeTestPayment(
+  referenceNumber: string,
+  paymentIntentId: string,
+  evidence: { actorType: TimelineActorType; eventSource: string },
+) {
   const db = getDb();
   const [application] = await db.select().from(applications)
     .where(eq(applications.referenceNumber, referenceNumber)).limit(1);
@@ -27,6 +32,28 @@ export async function finalizeStripeTestPayment(referenceNumber: string, payment
     await db.update(applications).set({ paymentStatus: "paid", status: "payment_received" })
       .where(eq(applications.id, application.id));
     await db.update(payments).set({ status: "succeeded" }).where(eq(payments.id, payment.id));
+    await recordTimelineEvent({
+      applicationId: application.id,
+      paymentId: payment.id,
+      eventName: "PAYMENT_CONFIRMED",
+      eventSource: evidence.eventSource,
+      actorType: evidence.actorType,
+      actorReference: paymentIntentId,
+      resultingState: "paid",
+      summary: "Payment confirmed by Stripe",
+    });
+    if (await hasTimelineEvent(application.id, "THREE_DS_REQUIRED")) {
+      await recordTimelineEvent({
+        applicationId: application.id,
+        paymentId: payment.id,
+        eventName: "THREE_DS_COMPLETED",
+        eventSource: evidence.eventSource,
+        actorType: "STRIPE",
+        actorReference: paymentIntentId,
+        resultingState: "succeeded",
+        summary: "Required customer authentication completed",
+      });
+    }
   }
 
   const invoiceNumber = `INV-${referenceNumber}`;
@@ -66,11 +93,23 @@ export async function finalizeStripeTestPayment(referenceNumber: string, payment
       invoicePdfPath: pdfPath,
       invoicePdfUrl: pdfUrl,
     }).where(eq(applications.id, application.id));
+    await recordTimelineEvent({
+      applicationId: application.id,
+      paymentId: payment.id,
+      eventName: "INVOICE_GENERATED",
+      eventSource: "INVOICE_SERVICE",
+      actorType: "SYSTEM",
+      actorReference: invoiceNumber,
+      resultingState: "generated",
+      summary: "Invoice PDF generated",
+    });
   } catch (error: unknown) {
     console.error("[Invoice Auto-Gen Error]", getErrorMessage(error));
   }
 
   return {
+    applicationId: application.id,
+    paymentId: payment.id,
     success: true as const,
     invoiceNumber,
     referenceNumber,
@@ -95,4 +134,16 @@ export async function recordStripeTestPaymentFailure(referenceNumber: string, pa
   if (!payment) throw new Error("Payment does not belong to this application");
   await db.update(payments).set({ status: "failed" }).where(eq(payments.id, payment.id));
   await db.update(applications).set({ paymentStatus: "failed" }).where(eq(applications.id, application.id));
+  await recordTimelineEvent({
+    applicationId: application.id,
+    paymentId: payment.id,
+    eventName: "PAYMENT_FAILED",
+    eventSource: "STRIPE_WEBHOOK",
+    actorType: "STRIPE",
+    actorReference: paymentIntentId,
+    sanitizedCategory: "unknown",
+    resultingState: "failed",
+    summary: "Stripe reported payment failure",
+  });
+  return { applicationId: application.id, paymentId: payment.id };
 }

@@ -13,6 +13,7 @@ import { getErrorMessage } from "./lib/errors";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
+import { recordTimelineEvent } from "./lib/application-timeline";
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
@@ -132,7 +133,7 @@ export const storageRouter = createRouter({
       base64Data: z.string().min(1),
       uploadedBy: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         if (!isStorageConfigured()) {
           throw new TRPCError({
@@ -163,6 +164,13 @@ export const storageRouter = createRouter({
         }
 
         await storageUpload(storagePath, fileBuffer, input.mimeType);
+        await recordTimelineEvent({
+          applicationId: input.applicationId,
+          eventName: "DOCUMENT_REPLACED",
+          eventSource: "STORAGE_API",
+          actorType: ctx.isAdmin ? "ADMIN" : "STAFF",
+          summary: `${input.documentType} document replaced`,
+        });
         auditLog("document.upload", "success", "customer");
 
         return {

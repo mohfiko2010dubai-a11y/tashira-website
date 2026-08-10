@@ -9,6 +9,8 @@ import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-u
 import { auditLog } from "./lib/audit-log";
 import { assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
+import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
+import { TERMS_POLICY_VERSION } from "@contracts/constants";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -49,10 +51,11 @@ async function persistPrimaryApplicant(applicationId: number, input: PrimaryAppl
   if (input.countryFrom !== undefined) values.travelingFrom = input.countryFrom;
 
   if (existing) {
-    if (Object.keys(values).length > 0) {
+    const updated = Object.keys(values).length > 0;
+    if (updated) {
       await db.update(applicants).set(values).where(eq(applicants.id, existing.id));
     }
-    return existing.id;
+    return { id: existing.id, created: false, updated };
   }
 
   if (!input.fullName) return undefined;
@@ -66,7 +69,7 @@ async function persistPrimaryApplicant(applicationId: number, input: PrimaryAppl
     profession: input.profession,
     travelingFrom: input.countryFrom,
   }).$returningId();
-  return created.id;
+  return { id: created.id, created: true, updated: false };
 }
 
 export const wizardRouter = createRouter({
@@ -120,7 +123,25 @@ export const wizardRouter = createRouter({
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
 
-        if (inserted) await persistPrimaryApplicant(inserted.id, input);
+        if (inserted) {
+          await recordTimelineEvent({
+            applicationId: inserted.id,
+            eventName: "APPLICATION_CREATED",
+            eventSource: "CHATBOT_WIZARD",
+            actorType: "CUSTOMER",
+            sessionReference: input.chatSessionId,
+            summary: "Application created in chatbot wizard",
+          });
+          const applicant = await persistPrimaryApplicant(inserted.id, input);
+          if (applicant?.created) await recordTimelineEvent({
+            applicationId: inserted.id,
+            eventName: "APPLICANT_ADDED",
+            eventSource: "CHATBOT_WIZARD",
+            actorType: "CUSTOMER",
+            actorReference: `applicant:${applicant.id}`,
+            summary: "Primary applicant added",
+          });
+        }
 
         ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
         return { success: true, referenceNumber: input.referenceNumber, applicationId: inserted?.id };
@@ -182,7 +203,17 @@ export const wizardRouter = createRouter({
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
 
-        if (updated) await persistPrimaryApplicant(updated.id, input);
+        if (updated) {
+          const applicant = await persistPrimaryApplicant(updated.id, input);
+          if (applicant?.updated) await recordTimelineEvent({
+            applicationId: updated.id,
+            eventName: "APPLICANT_UPDATED",
+            eventSource: "CHATBOT_WIZARD",
+            actorType: "CUSTOMER",
+            actorReference: `applicant:${applicant.id}`,
+            summary: "Primary applicant updated",
+          });
+        }
 
         return { success: true, referenceNumber: input.referenceNumber, applicationId: updated?.id };
       } catch (error: unknown) {
@@ -211,6 +242,7 @@ export const wizardRouter = createRouter({
       whoTraveling: z.string().min(1),
       applicantCount: z.number().min(1),
       totalAmount: z.number().min(0),
+      policyVersion: z.literal(TERMS_POLICY_VERSION),
     }))
     .mutation(async ({ input, ctx }) => {
       console.log("[Wizard] Submitting application:", input.referenceNumber);
@@ -243,7 +275,25 @@ export const wizardRouter = createRouter({
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
 
-        if (updated) await persistPrimaryApplicant(updated.id, input);
+        if (updated) {
+          await persistPrimaryApplicant(updated.id, input);
+          await recordTimelineEvent({
+            applicationId: updated.id,
+            eventName: "APPLICATION_SUBMITTED",
+            eventSource: "CHATBOT_WIZARD",
+            actorType: "CUSTOMER",
+            resultingState: "documents_pending",
+            summary: "Application submitted",
+          });
+          await recordTimelineEvent({
+            applicationId: updated.id,
+            eventName: "POLICY_ACCEPTED",
+            eventSource: "CHATBOT_WIZARD",
+            actorType: "CUSTOMER",
+            policyVersion: input.policyVersion,
+            summary: "Terms policy accepted",
+          });
+        }
 
         return { success: true, referenceNumber: input.referenceNumber, applicationId: updated?.id };
       } catch (error: unknown) {
@@ -349,6 +399,13 @@ export const wizardRouter = createRouter({
           storagePath: storagePath,
           uploadStatus: "uploaded",
           uploadedBy: "chatbot-wizard",
+        });
+        await recordTimelineEvent({
+          applicationId: input.applicationId,
+          eventName: documentUploadEvent(input.documentType),
+          eventSource: "CHATBOT_WIZARD",
+          actorType: "CUSTOMER",
+          summary: `${input.documentType} document uploaded`,
         });
         auditLog("document.upload", "success", "customer");
 

@@ -7,6 +7,8 @@ import { getErrorMessage } from "./lib/errors";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
+import { recordTimelineEvent, type TimelineEventName } from "./lib/application-timeline";
+import { TERMS_POLICY_VERSION } from "@contracts/constants";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
@@ -26,6 +28,7 @@ export const applicationRouter = createRouter({
       exchangeRate: z.number().default(3.6725),
       totalAmountUsd: z.number(),
       totalAmountAed: z.number().optional(),
+      policyVersion: z.literal(TERMS_POLICY_VERSION),
       applicants: z.array(z.object({
         fullName: z.string(),
         nationality: z.string().optional(),
@@ -60,6 +63,21 @@ export const applicationRouter = createRouter({
         const [app] = await db.insert(applications).values(values).$returningId();
 
         const appId = app.id;
+        await recordTimelineEvent({
+          applicationId: appId,
+          eventName: "APPLICATION_CREATED",
+          eventSource: "APPLICATION_API",
+          actorType: "CUSTOMER",
+          summary: "Application created",
+        });
+        await recordTimelineEvent({
+          applicationId: appId,
+          eventName: "POLICY_ACCEPTED",
+          eventSource: "APPLICATION_API",
+          actorType: "CUSTOMER",
+          policyVersion: input.policyVersion,
+          summary: "Terms policy accepted",
+        });
         for (let i = 0; i < input.applicants.length; i++) {
           const a = input.applicants[i];
           await db.insert(applicants).values({
@@ -77,7 +95,23 @@ export const applicationRouter = createRouter({
             sponsorName: a.sponsorName || null,
             sponsorRelation: a.sponsorRelation || null,
           });
+          await recordTimelineEvent({
+            applicationId: appId,
+            eventName: "APPLICANT_ADDED",
+            eventSource: "APPLICATION_API",
+            actorType: "CUSTOMER",
+            actorReference: `applicant:${i}`,
+            summary: `Applicant ${i + 1} added`,
+          });
         }
+        await recordTimelineEvent({
+          applicationId: appId,
+          eventName: "APPLICATION_SUBMITTED",
+          eventSource: "APPLICATION_API",
+          actorType: "CUSTOMER",
+          resultingState: "submitted",
+          summary: "Application submitted",
+        });
         ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
         return { id: appId, referenceNumber: input.referenceNumber };
       } catch (err: unknown) {
@@ -159,6 +193,25 @@ export const applicationRouter = createRouter({
     .mutation(async ({ input }) => {
       const db = getDb();
       await db.update(applications).set({ status: input.status }).where(eq(applications.id, input.id));
+      const eventByStatus: Partial<Record<typeof input.status, TimelineEventName>> = {
+        visa_processing: "GOVERNMENT_PROCESSING",
+        visa_received: "VISA_ISSUED",
+        completed: "APPLICATION_COMPLETED",
+        cancelled: "APPLICATION_CANCELLED",
+        rejected: "APPLICATION_REJECTED",
+      };
+      const eventName = eventByStatus[input.status];
+      if (eventName) {
+        await recordTimelineEvent({
+          applicationId: input.id,
+          eventName,
+          eventSource: "ADMIN_STATUS",
+          actorType: "ADMIN",
+          actorReference: "admin",
+          resultingState: input.status,
+          summary: `Application status changed to ${input.status}`,
+        });
+      }
       auditLog("application.status_change", "success", "admin");
       return { success: true };
     }),

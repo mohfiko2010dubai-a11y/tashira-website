@@ -7,6 +7,7 @@ import { auditLog } from "./lib/audit-log";
 import { createStripeTestIntent } from "./lib/stripe";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { finalizeStripeTestPayment } from "./lib/payment-finalization";
+import { recordTimelineEvent } from "./lib/application-timeline";
 
 export const paymentRouter = createRouter({
   // Create payment intent
@@ -38,19 +39,31 @@ export const paymentRouter = createRouter({
 
         const [existingPayment] = await db.select({ id: payments.id }).from(payments)
           .where(eq(payments.stripePaymentIntentId, paymentIntent.id)).limit(1);
-        if (!existingPayment) {
-          await db.insert(payments).values({
+        let paymentId = existingPayment?.id;
+        if (!paymentId) {
+          const [createdPayment] = await db.insert(payments).values({
             applicationId: app.id,
             stripePaymentIntentId: paymentIntent.id,
             amount: serverAmountUsd.toFixed(2),
             currency: "usd",
             status: "pending",
-          });
+          }).$returningId();
+          paymentId = createdPayment.id;
         }
         await db.update(applications).set({
           stripePaymentIntentId: paymentIntent.id,
           stripeAmountUsd: serverAmountUsd.toFixed(2),
         }).where(eq(applications.id, app.id));
+        await recordTimelineEvent({
+          applicationId: app.id,
+          paymentId,
+          eventName: "PAYMENT_INTENT_CREATED",
+          eventSource: "PAYMENT_API",
+          actorType: "SYSTEM",
+          actorReference: paymentIntent.id,
+          resultingState: "pending",
+          summary: "Stripe PaymentIntent created",
+        });
 
         auditLog("payment.intent_create", "success", "customer");
         return { clientSecret: paymentIntent.client_secret };
@@ -70,7 +83,10 @@ export const paymentRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       try {
         assertApplicationReferenceAccess(ctx, input.referenceNumber);
-        const result = await finalizeStripeTestPayment(input.referenceNumber, input.paymentIntentId);
+        const result = await finalizeStripeTestPayment(input.referenceNumber, input.paymentIntentId, {
+          actorType: "CUSTOMER",
+          eventSource: "PAYMENT_CONFIRM_API",
+        });
         auditLog("payment.confirm", "success", "customer");
         return result;
       } catch (error) {
