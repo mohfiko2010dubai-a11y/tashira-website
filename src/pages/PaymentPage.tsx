@@ -8,7 +8,10 @@ import {
   Shield, Clock, FileText, ArrowLeft
 } from 'lucide-react';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+const stripePromise = stripePublishableKey.startsWith('pk_test_')
+  ? loadStripe(stripePublishableKey)
+  : null;
 
 function PaymentForm({ referenceNumber, amount, applicantName }: {
   referenceNumber: string;
@@ -299,14 +302,20 @@ export default function PaymentPage() {
 
         {/* Payment Form */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <Elements stripe={stripePromise}>
-            <PaymentForm
-              referenceNumber={referenceNumber!}
-              amount={amount}
-              visaType={app.visaType || 'Tourist Visa'}
-              applicantName={applicantName}
-            />
-          </Elements>
+          {stripePromise ? (
+            <Elements stripe={stripePromise}>
+              <PaymentForm
+                referenceNumber={referenceNumber!}
+                amount={amount}
+                visaType={app.visaType || 'Tourist Visa'}
+                applicantName={applicantName}
+              />
+            </Elements>
+          ) : (
+            <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+              Stripe TEST payments are not configured for this environment.
+            </div>
+          )}
         </div>
 
         {/* Support */}

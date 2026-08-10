@@ -23,7 +23,10 @@ function trackConversion(eventName: string, value?: number, currency?: string) {
   }
 }
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+const stripePromise = stripePublishableKey.startsWith('pk_test_')
+  ? loadStripe(stripePublishableKey)
+  : null;
 
 const cardStyle = {
   style: {
@@ -166,6 +169,14 @@ function PaymentFormInner({
 }
 
 export default function StripePaymentForm(props: PaymentFormInnerProps) {
+  if (!stripePromise) {
+    return (
+      <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+        Stripe TEST payments are not configured for this environment.
+      </div>
+    );
+  }
+
   return (
     <Elements stripe={stripePromise}>
       <PaymentFormInner {...props} />
