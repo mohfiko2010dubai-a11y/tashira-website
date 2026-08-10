@@ -19,8 +19,10 @@ Copy `staging/.env.example` to `staging/.env`, then create these ignored files u
 - `app_secret`
 - `admin_password`
 - `admin_session_secret` (at least 32 random characters)
+- `customer_session_secret` (at least 32 random characters)
 - `storage_url_secret` (at least 32 random characters)
 - `stripe_secret_key` (must be a Stripe TEST secret key)
+- `stripe_webhook_secret` (must belong to the staging Stripe TEST webhook endpoint)
 - `kimi_api_key` (a staging-only chatbot key)
 
 Never commit these files. Never reuse a production value.

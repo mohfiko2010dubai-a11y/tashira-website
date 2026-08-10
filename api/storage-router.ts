@@ -12,7 +12,7 @@ import { TRPCError } from "@trpc/server";
 import { getErrorMessage } from "./lib/errors";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 import { auditLog } from "./lib/audit-log";
-import { assertApplicationIdAccess } from "./lib/application-access";
+import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
@@ -55,6 +55,7 @@ export const storageRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       try {
         await assertApplicationIdAccess(ctx, input.applicationId);
+        await assertApplicantBelongsToApplication(input.applicantId, input.applicationId);
         if (!isStorageConfigured()) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",

@@ -223,20 +223,25 @@ export function PaymentSuccessModal({
   const handleUploadDocuments = async () => {
     if (pendingFiles.length === 0) return;
 
+    const indexesToUpload = progress.length === 0
+      ? pendingFiles.map((_, index) => index)
+      : progress.flatMap((item, index) => item.status === "failed" ? [index] : []);
+    if (indexesToUpload.length === 0) return;
+
     setUploadState("uploading");
     setUploadError("");
-    setProgress(
-      pendingFiles.map((f) => ({
+    setProgress((current) => current.length > 0 ? current.map((item) => (
+      item.status === "failed" ? { ...item, status: "pending" as const, progress: 0 } : item
+    )) : pendingFiles.map((f) => ({
         fileName: f.file.name,
         status: "pending" as const,
         progress: 0,
-      })),
-    );
+      })));
 
-    let uploaded = 0;
+    let uploaded = progress.filter((item) => item.status === "success").length;
     let failed = 0;
 
-    for (let i = 0; i < pendingFiles.length; i++) {
+    for (const i of indexesToUpload) {
       const pf = pendingFiles[i];
 
       setProgress((prev) => {
@@ -429,15 +434,21 @@ export function PaymentSuccessModal({
       {uploadState === "partial" && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
           <p className="text-sm text-amber-700">
-            Some uploads failed. Keep this reference number and contact support before closing this window.
+            Some uploads failed. Successful documents were preserved.
           </p>
+          <button onClick={handleUploadDocuments} className="mt-2 text-sm font-semibold text-amber-800 underline">
+            Retry failed uploads
+          </button>
         </div>
       )}
       {uploadState === "failed" && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
           <p className="text-sm text-red-700">
-            Upload failed. Keep this reference number and contact support before closing this window.
+            Upload failed. Your application is safe and you can retry without re-uploading successful files.
           </p>
+          <button onClick={handleUploadDocuments} className="mt-2 text-sm font-semibold text-red-800 underline">
+            Retry uploads
+          </button>
         </div>
       )}
 

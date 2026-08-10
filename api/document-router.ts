@@ -4,7 +4,8 @@ import { getDb } from "./queries/connection";
 import { documents } from "@db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { auditLog } from "./lib/audit-log";
-import { assertApplicationIdAccess } from "./lib/application-access";
+import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
+import { TRPCError } from "@trpc/server";
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -80,6 +81,11 @@ export const documentRouter = createRouter({
     }))
     .mutation(async ({ input, ctx }) => {
       await assertApplicationIdAccess(ctx, input.applicationId);
+      await assertApplicantBelongsToApplication(input.applicantId, input.applicationId);
+      const expectedPrefix = `applications/${input.applicationId}/${input.documentType}/`;
+      if (!input.storagePath.startsWith(expectedPrefix) || !input.storagePath.endsWith(`/${input.storedFileName}`)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Document storage path does not match application metadata" });
+      }
       const db = getDb();
       const [result] = await db.insert(documents).values({
         applicationId: input.applicationId,

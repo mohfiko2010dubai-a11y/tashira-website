@@ -4,6 +4,8 @@
 
 Phase 6D core-functionality stabilization is in progress on the review branch. The first implementation group adds customer-owned application capabilities, canonical primary-applicant persistence for the wizard, and ownership checks on customer application, payment, and upload mutations.
 
+The second implementation group adds signed Stripe TEST webhooks, shared idempotent payment finalization, protected invoice delivery, real owned-application tracking, safe failed-document retries, and explicit staging-only secret wiring.
+
 ## Completed commits
 
 - `d8d2125c27c8b15a524813f40aab9cb2fb3d800b` — `chore(types): remove safe unused TypeScript code`
@@ -40,6 +42,7 @@ TypeScript checking, lint, 17 tests, and the production build succeed locally. P
 - Rejection of filesystem paths outside the configured storage root.
 - Shared filename sanitization, MIME allowlisting, and decoded-size verification.
 - Signed customer application capability-cookie verification, tamper rejection, and production cookie attributes.
+- Stripe webhook signature, timestamp, tamper, and live-mode rejection coverage.
 
 ## Commands run
 
@@ -56,4 +59,6 @@ TypeScript checking, lint, 17 tests, and the production build succeed locally. P
 - No production system, data, deployment configuration, or secrets have been accessed.
 - Critical authorization, payment verification, and document-ownership work remains blocked on approved architecture decisions; see `PROJECT_READINESS_REPORT.md`.
 - `CUSTOMER_SESSION_SECRET` is now required before the ownership capability can be enabled in any runtime; no production configuration was read or changed.
-- Multi-applicant chatbot collection, customer document replacement, invoice HTTP authorization, and Stripe webhook delivery remain in the active Phase 6D queue.
+- Multi-applicant chatbot collection and customer document replacement remain in the active Phase 6D queue.
+- Invoice HTTP authorization and Stripe TEST webhook handling are implemented on the review branch; endpoint registration with Stripe remains an environment operation and has not been performed.
+- The chatbot still collects one applicant record even when a family count is selected. Completing 2..n applicant capture requires a reviewed UX/data-flow change and remains an active decision.

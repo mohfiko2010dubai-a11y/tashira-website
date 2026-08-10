@@ -2,12 +2,11 @@ import { z } from "zod";
 import { applicationAccessQuery, createRouter, paymentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, payments, invoices } from "@db/schema";
-import { and, eq } from "drizzle-orm";
-import { saveInvoiceToDisk } from "./lib/invoice-pdf";
-import { getErrorMessage } from "./lib/errors";
+import { eq } from "drizzle-orm";
 import { auditLog } from "./lib/audit-log";
-import { createStripeTestIntent, retrieveStripeTestIntent, verifyStripeIntent } from "./lib/stripe";
+import { createStripeTestIntent } from "./lib/stripe";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
+import { finalizeStripeTestPayment } from "./lib/payment-finalization";
 
 export const paymentRouter = createRouter({
   // Create payment intent
@@ -71,93 +70,9 @@ export const paymentRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       try {
         assertApplicationReferenceAccess(ctx, input.referenceNumber);
-        const db = getDb();
-        const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
-        if (!app) throw new Error("Application not found");
-
-        const [payment] = await db.select().from(payments).where(and(
-          eq(payments.stripePaymentIntentId, input.paymentIntentId),
-          eq(payments.applicationId, app.id),
-        )).limit(1);
-        if (!payment) throw new Error("Payment does not belong to this application");
-
-        const expectedAmountCents = Math.round(Number(app.totalAmountUsd) * 100);
-        const stripeIntent = await retrieveStripeTestIntent(input.paymentIntentId);
-        if (!verifyStripeIntent({
-          intent: stripeIntent,
-          paymentIntentId: input.paymentIntentId,
-          referenceNumber: input.referenceNumber,
-          expectedAmountCents,
-        })) {
-          throw new Error("Stripe payment verification failed");
-        }
-
-        if (app.paymentStatus !== "paid") {
-          await db.update(applications).set({
-            paymentStatus: "paid",
-            status: "payment_received",
-          }).where(eq(applications.id, app.id));
-          await db.update(payments).set({ status: "succeeded" }).where(eq(payments.id, payment.id));
-        }
+        const result = await finalizeStripeTestPayment(input.referenceNumber, input.paymentIntentId);
         auditLog("payment.confirm", "success", "customer");
-      
-        const invoiceNumber = `INV-${input.referenceNumber}`;
-        
-        // Insert invoice record - ensure paymentId is valid number
-        const paymentIdNum = typeof payment.id === 'bigint' ? Number(payment.id) : payment.id;
-        const appIdNum = typeof app.id === 'bigint' ? Number(app.id) : app.id;
-        
-        const [existingInvoice] = await db.select({ id: invoices.id }).from(invoices)
-          .where(eq(invoices.applicationId, app.id)).limit(1);
-        if (!existingInvoice) {
-          await db.insert(invoices).values({
-            invoiceNumber,
-            applicationId: appIdNum,
-            paymentId: paymentIdNum,
-            amount: payment.amount,
-          });
-        }
-
-        // Auto-generate PDF server-side
-        try {
-          const { pdfPath, pdfUrl } = saveInvoiceToDisk({
-            invoiceNumber,
-            referenceNumber: input.referenceNumber,
-            createdAt: new Date().toISOString(),
-            customerName: app.contactEmail.split("@")[0] || "Customer",
-            customerEmail: app.contactEmail,
-            customerPhone: app.contactPhone,
-            visaType: app.visaType,
-            processingType: app.processingType,
-            arrivalDate: app.arrivalDate || undefined,
-            totalAmount: Number(payment.amount),
-            stripePaymentIntentId: input.paymentIntentId,
-          });
-
-          // Update application with invoice info
-          await db.update(applications).set({
-            invoiceNumber,
-            invoicePdfPath: pdfPath,
-            invoicePdfUrl: pdfUrl,
-          }).where(eq(applications.id, app.id));
-
-          console.log(`[Invoice] Generated: ${pdfPath}`);
-        } catch (pdfErr: unknown) {
-          console.error("[Invoice Auto-Gen Error]", getErrorMessage(pdfErr));
-          // Don't fail payment if invoice generation fails
-        }
-        
-        return { 
-          success: true, 
-          invoiceNumber,
-          referenceNumber: input.referenceNumber,
-          totalAmount: Number(payment.amount),
-          customerEmail: app.contactEmail,
-          customerPhone: app.contactPhone,
-          visaType: app.visaType,
-          processingType: app.processingType,
-          stripePaymentIntentId: input.paymentIntentId,
-        };
+        return result;
       } catch (error) {
         auditLog("payment.confirm", "failure", "customer");
         throw error;

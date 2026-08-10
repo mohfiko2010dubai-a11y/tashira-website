@@ -15,11 +15,40 @@ import { eq } from "drizzle-orm";
 import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
 import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
+import { verifyStripeWebhook } from "./lib/stripe-webhook";
+import { finalizeStripeTestPayment, recordStripeTestPaymentFailure } from "./lib/payment-finalization";
+import { auditLog } from "./lib/audit-log";
+import { verifyAdminSession } from "./lib/admin-session";
+import { hasCustomerApplicationAccess } from "./lib/customer-session";
+import { getStaffSession } from "./lib/staff-session";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
 app.use(bodyLimit({ maxSize: 500 * 1024 * 1024 })); // 500MB total request
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
+
+app.post("/api/stripe/webhook", async (c) => {
+  try {
+    const payload = await c.req.text();
+    if (Buffer.byteLength(payload, "utf8") > 1024 * 1024) throw new Error("Stripe webhook payload is too large");
+    const event = verifyStripeWebhook(payload, c.req.header("stripe-signature") || "");
+    if (event.type === "payment_intent.succeeded" || event.type === "payment_intent.payment_failed") {
+      const referenceNumber = event.data.object.metadata.referenceNumber;
+      if (!referenceNumber) throw new Error("Stripe event is missing the application reference");
+      if (event.type === "payment_intent.succeeded") {
+        await finalizeStripeTestPayment(referenceNumber, event.data.object.id);
+      } else {
+        await recordStripeTestPaymentFailure(referenceNumber, event.data.object.id);
+      }
+      auditLog("payment.confirm", "success", "system");
+    }
+    return c.json({ received: true });
+  } catch (error: unknown) {
+    auditLog("payment.confirm", "failure", "system");
+    console.error("[Stripe Webhook]", getErrorMessage(error));
+    return c.json({ error: "Invalid webhook" }, 400);
+  }
+});
 
 // ===== INVOICE PDF ROUTES (must be BEFORE /api/trpc and catch-all) =====
 
@@ -129,9 +158,25 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   }
 }
 
+function canAccessInvoice(headers: Headers, referenceNumber: string) {
+  if (verifyAdminSession(headers) || hasCustomerApplicationAccess(headers, referenceNumber)) return true;
+  const staffToken = headers.get("x-staff-token") || "";
+  return Boolean(staffToken && getStaffSession(staffToken));
+}
+
+async function authorizeInvoiceRequest(invoiceNumber: string, headers: Headers) {
+  if (!/^[A-Za-z0-9_-]+$/.test(invoiceNumber)) return { status: 400 as const, application: null };
+  const application = await findApplicationByInvoice(invoiceNumber);
+  if (!application) return { status: 404 as const, application: null };
+  if (!canAccessInvoice(headers, application.referenceNumber)) return { status: 401 as const, application: null };
+  return { status: 200 as const, application };
+}
+
 // VIEW route (inline) - NOT under /api/ to avoid catch-all conflict
 app.get("/invoices/:invoiceNumber/view", async (c) => {
   const invoiceNumber = c.req.param("invoiceNumber");
+  const access = await authorizeInvoiceRequest(invoiceNumber, c.req.raw.headers);
+  if (!access.application) return c.json({ error: access.status === 400 ? "Invalid invoice" : access.status === 404 ? "Invoice not found" : "Unauthorized" }, access.status);
   const result = await getOrGeneratePdf(invoiceNumber);
 
   if (!result) {
@@ -153,6 +198,8 @@ app.get("/invoices/:invoiceNumber/view", async (c) => {
 // DOWNLOAD route (attachment) - NOT under /api/ to avoid catch-all conflict
 app.get("/invoices/:invoiceNumber/download", async (c) => {
   const invoiceNumber = c.req.param("invoiceNumber");
+  const access = await authorizeInvoiceRequest(invoiceNumber, c.req.raw.headers);
+  if (!access.application) return c.json({ error: access.status === 400 ? "Invalid invoice" : access.status === 404 ? "Invoice not found" : "Unauthorized" }, access.status);
   const result = await getOrGeneratePdf(invoiceNumber);
 
   if (!result) {

@@ -97,8 +97,8 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
         <p className="text-gray-500 mb-6">Amount: <span className="font-bold">${amount || 0}</span></p>
         <div className="bg-[#FFF8E7] rounded-lg p-4 max-w-md mx-auto mb-6">
           <p className="text-sm text-[#1A2332]">
-            📧 A confirmation email has been sent to you.<br/>
-            📱 You can track your application status anytime.
+            Your payment was verified and recorded.<br/>
+            You can track this application securely on this device.
           </p>
         </div>
         <a

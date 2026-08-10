@@ -312,10 +312,9 @@ export default function ChatBot() {
                 },
                   `✅ Hello, **${msg}**!\n\n**Nationality:**`);
               },
-              onError: () => {
-                // Continue even if DB save fails
-                advance({ fullName: msg, step: 'nationality' },
-                  `✅ Hello, **${msg}**!\n\n**Nationality:**`);
+              onError: (error) => {
+                addBotMessage(`Unable to create your application: ${error.message}. Please try again before continuing.`);
+                setLoading(false);
               },
             },
           );
@@ -472,7 +471,7 @@ export default function ChatBot() {
       case 'terms': {
         if (msg.toLowerCase() === 'confirm') {
           const refNum = w.referenceNumber || generateReferenceNumber();
-          const payLink = 'https://tashiraev.com/pay/' + refNum;
+          const payLink = `${window.location.origin}/payment/${refNum}`;
 
           // Final submit to backend
           submitMutation.mutate(

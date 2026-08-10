@@ -77,8 +77,10 @@ services:
       - app_secret
       - admin_password
       - admin_session_secret
+      - customer_session_secret
       - storage_url_secret
       - stripe_secret_key
+      - stripe_webhook_secret
       - kimi_api_key
     volumes:
       - staging_documents:/staging/storage/documents
@@ -152,9 +154,13 @@ secrets:
     file: ./secrets/admin_password
   admin_session_secret:
     file: ./secrets/admin_session_secret
+  customer_session_secret:
+    file: ./secrets/customer_session_secret
   storage_url_secret:
     file: ./secrets/storage_url_secret
   stripe_secret_key:
     file: ./secrets/stripe_secret_key
+  stripe_webhook_secret:
+    file: ./secrets/stripe_webhook_secret
   kimi_api_key:
     file: ./secrets/kimi_api_key
