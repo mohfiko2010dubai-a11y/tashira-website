@@ -51,7 +51,7 @@ export default function StaffApplicationDetail() {
 
   const mainApplicant = app.applicants?.[0];
   const a: ApplicationWithLegacyAmount = app;
-  const exchangeRate = Number(a.exchangeRate || 3.6725);
+  const exchangeRate = Number(a.exchangeRate || 0);
   const totalUsd = Number(a.totalAmountUsd || a.totalAmount || 0);
   const totalAed = Number(a.totalAmountAed || totalUsd * exchangeRate);
 

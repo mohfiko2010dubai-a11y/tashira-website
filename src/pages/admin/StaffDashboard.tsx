@@ -143,7 +143,7 @@ export default function StaffDashboard() {
                 <tbody className="divide-y divide-gray-50">
                   {filtered.map((app) => {
                     const revenue = Number(app.totalAmountUsd || 0);
-                    const exchangeRate = Number(app.exchangeRate || 3.6725);
+                    const exchangeRate = Number(app.exchangeRate || 0);
                     return (
                       <tr key={app.id} className="hover:bg-gray-50/50">
                         <td className="px-3 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}</td>

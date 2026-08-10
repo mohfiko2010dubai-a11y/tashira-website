@@ -29,6 +29,9 @@ export default function AdminInvoices() {
     dateTo: dateTo || undefined,
     limit: 500,
   });
+  const { data: financeSettings } = trpc.business.settings.useQuery();
+  const vatRate = financeSettings?.vatRegistered === 'yes' ? Number(financeSettings.vatRate) : 0;
+  const vatDivisor = 1 + vatRate / 100;
 
   // Filter only paid applications (these are the invoices)
   const invoices = (applications || []).filter((app) => {
@@ -43,9 +46,7 @@ export default function AdminInvoices() {
   // Summary
   const totalUsd = invoices.reduce((sum, app) => {
     const a: ApplicationWithLegacyAmount = app;
-    const exRate = Number(a.exchangeRate || 3.6725);
-    const aed = Number(a.totalAmountAed || a.totalAmount || 0);
-    return sum + (Number(a.totalAmountUsd) || aed / exRate);
+    return sum + Number(a.totalAmountUsd || 0);
   }, 0);
   const totalAed = invoices.reduce((sum, app) => {
     const a: ApplicationWithLegacyAmount = app;
@@ -54,16 +55,16 @@ export default function AdminInvoices() {
   const totalVat = invoices.reduce((sum, app) => {
     const a: ApplicationWithLegacyAmount = app;
     const aed = Number(a.totalAmountAed || a.totalAmount || 0);
-    return sum + (aed - (aed / 1.05));
+    return sum + (aed - (aed / vatDivisor));
   }, 0);
 
   const handleExportExcel = () => {
     const data = invoices.map((app) => {
       const a: ApplicationWithLegacyAmount = app;
-      const exRate = Number(a.exchangeRate || 3.6725);
+      const exRate = Number(a.exchangeRate || 0);
       const aed = Number(a.totalAmountAed || a.totalAmount || 0);
-      const usd = Number(a.totalAmountUsd) || aed / exRate;
-      const subtotal = aed / 1.05;
+      const usd = Number(a.totalAmountUsd || 0);
+      const subtotal = aed / vatDivisor;
       const vat = aed - subtotal;
       return {
         'Invoice #': a.invoiceNumber || `INV-${app.referenceNumber}`,
@@ -76,7 +77,7 @@ export default function AdminInvoices() {
         'Processing': app.processingType,
         'Exchange Rate': exRate,
         'Subtotal (AED)': subtotal.toFixed(2),
-        'VAT 5% (AED)': vat.toFixed(2),
+        [`VAT ${vatRate}% (AED)`]: vat.toFixed(2),
         'Total (AED)': aed.toFixed(2),
         'Total (USD)': usd.toFixed(2),
         'Payment Status': app.paymentStatus,
@@ -161,7 +162,7 @@ export default function AdminInvoices() {
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Visa</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Rate</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Subtotal (AED)</th>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-600">VAT 5%</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">VAT {vatRate}%</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Total (AED)</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Total (USD)</th>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600">Status</th>
@@ -171,10 +172,10 @@ export default function AdminInvoices() {
                 <tbody className="divide-y divide-gray-50">
                   {invoices.map((app) => {
                     const a: ApplicationWithLegacyAmount = app;
-                    const exRate = Number(a.exchangeRate || 3.6725);
+                    const exRate = Number(a.exchangeRate || 0);
                     const aed = Number(a.totalAmountAed || a.totalAmount || 0);
                     const usd = Number(a.totalAmountUsd) || aed / exRate;
-                    const subtotal = aed / 1.05;
+                    const subtotal = aed / vatDivisor;
                     const vat = aed - subtotal;
                     return (
                       <tr key={app.id} className="hover:bg-gray-50/50">

@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 6D core-functionality stabilization is in progress on the review branch. Parts 15-19 add the append-oriented customer timeline, safe payment-journey signals, best-effort checkout abandonment, minimized chargeback evidence manifests with checksums, and the privacy/retention review.
+Phase 7 business architecture is implemented on the review branch: server pricing snapshots, versioned company/finance settings, finance/VAT/analytics cockpit, explainable risk and health metrics, document lifecycle evidence, recovery/email abstractions, and retention/legal-hold/MySQL immutability architecture.
 
 The second implementation group adds signed Stripe TEST webhooks, shared idempotent payment finalization, protected invoice delivery, real owned-application tracking, safe failed-document retries, and explicit staging-only secret wiring. The safe Phase 6D work is complete; remaining items require the product or production decisions recorded in `BLOCKED_DECISIONS.md`.
 
@@ -12,7 +12,7 @@ The second implementation group adds signed Stripe TEST webhooks, shared idempot
 
 ## Current CI status
 
-TypeScript checking and lint succeed locally. The expanded suite passes 47 tests across 16 files. The production build is verified before each review-branch push.
+TypeScript checking and lint succeed locally. The expanded Phase 7 suite passes 53 tests across 19 files. The production build is verified before each review-branch push.
 
 ## Errors fixed by category
 

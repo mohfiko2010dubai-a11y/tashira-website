@@ -14,6 +14,7 @@ import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-u
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
 import { recordTimelineEvent } from "./lib/application-timeline";
+import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
@@ -170,6 +171,13 @@ export const storageRouter = createRouter({
           eventSource: "STORAGE_API",
           actorType: ctx.isAdmin ? "ADMIN" : "STAFF",
           summary: `${input.documentType} document replaced`,
+        });
+        await recordDocumentLifecycleEvent({
+          applicationId: input.applicationId,
+          applicantId: input.applicantId,
+          eventType: "REPLACED",
+          actorType: ctx.isAdmin ? "ADMIN" : "STAFF",
+          reason: "Authorized document replacement",
         });
         auditLog("document.upload", "success", "customer");
 

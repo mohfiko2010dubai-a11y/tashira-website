@@ -7,6 +7,7 @@ import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
 import { TRPCError } from "@trpc/server";
 import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
+import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -109,6 +110,14 @@ export const documentRouter = createRouter({
         actorReference: `document:${result.id}`,
         summary: `${input.documentType} document uploaded`,
       });
+      await recordDocumentLifecycleEvent({
+        applicationId: input.applicationId,
+        documentId: result.id,
+        applicantId: input.applicantId,
+        eventType: "UPLOADED",
+        actorType: ctx.isAdmin ? "ADMIN" : ctx.staffId ? "STAFF" : "CUSTOMER",
+        actorReference: input.uploadedBy,
+      });
 
       return { id: result.id, success: true };
     }),
@@ -127,6 +136,31 @@ export const documentRouter = createRouter({
       return { success: true };
     }),
 
+  requestReplacement: applicationUploadQuery
+    .input(z.object({ id: z.number().positive(), reason: z.string().min(1).max(255) }))
+    .mutation(async ({ input, ctx }) => {
+      const [doc] = await getDb().select().from(documents).where(eq(documents.id, input.id)).limit(1);
+      if (!doc) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
+      await assertApplicationIdAccess(ctx, doc.applicationId);
+      await recordDocumentLifecycleEvent({
+        applicationId: doc.applicationId,
+        documentId: doc.id,
+        applicantId: doc.applicantId ?? undefined,
+        eventType: "REPLACEMENT_REQUESTED",
+        actorType: ctx.isAdmin ? "ADMIN" : ctx.staffId ? "STAFF" : "CUSTOMER",
+        reason: input.reason,
+      });
+      await recordTimelineEvent({
+        applicationId: doc.applicationId,
+        eventName: "DOCUMENT_REPLACEMENT_REQUESTED",
+        eventSource: "DOCUMENT_LIFECYCLE",
+        actorType: ctx.isAdmin ? "ADMIN" : ctx.staffId ? "STAFF" : "CUSTOMER",
+        actorReference: `document:${doc.id}`,
+        summary: "Document replacement requested",
+      });
+      return { success: true };
+    }),
+
   // Delete document record + storage file
   delete: staffOrAdminQuery
     .input(z.object({ id: z.number().positive() }))
@@ -142,7 +176,14 @@ export const documentRouter = createRouter({
         return { success: false, error: "Document not found" };
       }
 
-      // Delete from database
+      await recordDocumentLifecycleEvent({
+        applicationId: doc.applicationId,
+        documentId: doc.id,
+        applicantId: doc.applicantId ?? undefined,
+        eventType: "DELETED",
+        actorType: ctx.isAdmin ? "ADMIN" : "STAFF",
+      });
+      // Current metadata can be removed; immutable lifecycle evidence remains.
       await db.delete(documents).where(eq(documents.id, input.id));
       await recordTimelineEvent({
         applicationId: doc.applicationId,

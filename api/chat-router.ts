@@ -4,6 +4,7 @@ import { getDb } from "./queries/connection";
 import { chatMessages, applications } from "@db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { storageUpload } from "./lib/local-storage";
+import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 
 // AI Chatbot using Kimi API
 const KIMI_API_KEY = process.env.VITE_KIMI_API_KEY || "";
@@ -313,30 +314,36 @@ export const chatRouter = createRouter({
             
             // Create application in database
             try {
-              const totalAmount = session.totalAmount || 170;
-              const exchangeRate = 3.6725;
-              const totalAmountAed = totalAmount * exchangeRate;
+              const processingType = session.processingType?.toLowerCase() === "express" ? "express" : "regular";
+              const quote = await quoteApplicationPrice({
+                serviceCode: session.visaType || "",
+                processingType,
+                applicantCount: 1,
+              });
+              if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
               
               // Generate reference number
               const referenceNumber = generateReferenceNumber();
               session.referenceNumber = referenceNumber;
               
-              await db.insert(applications).values({
+              const [created] = await db.insert(applications).values({
                 referenceNumber,
                 baseType: "single",
                 residenceType: "non-gcc",
                 visaType: session.visaType || "30 Days",
-                processingType: session.processingType?.toLowerCase() === "express" ? "express" : "regular",
+                processingType,
                 contactEmail: session.visitorEmail || "",
                 contactPhone: session.visitorPhone || "",
-                totalAmountAed: String(totalAmountAed),
-                totalAmountUsd: String(totalAmount),
-                exchangeRate: String(exchangeRate),
+                totalAmountAed: quote.totalInBaseCurrency.toFixed(2),
+                totalAmountUsd: quote.totalPrice.toFixed(2),
+                exchangeRate: quote.exchangeRateToBase.toFixed(4),
                 status: "documents_pending",
                 paymentStatus: "pending",
                 createdAt: new Date(),
                 updatedAt: new Date(),
-              });
+              }).$returningId();
+              await saveApplicationPriceSnapshot(created.id, quote);
+              session.totalAmount = quote.totalPrice;
             } catch (err) {
               console.error("[Chat] Failed to create application:", err);
             }

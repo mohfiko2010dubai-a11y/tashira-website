@@ -101,6 +101,11 @@ export default function VisaApplicationForm() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const priceQuote = trpc.business.quote.useQuery({
+    serviceCode: visaType,
+    processingType,
+    applicantCount: applicants.length,
+  });
 
   const isGCC = residenceType === 'gcc-resident' || residenceType === 'gcc-accompany';
   const isFamily = baseType === 'family';
@@ -244,22 +249,13 @@ export default function VisaApplicationForm() {
   const [paymentInvoiceNumber, setPaymentInvoiceNumber] = useState('');
   const [applicationId, setApplicationId] = useState<number | null>(null);
   const allScreeningYes = true; // screening questions removed, form always visible
-  const selectedVisaOption = visaOptions.find((v) => v.value === visaType);
-  const calculateTotal = () => {
-    const visaPrice = selectedVisaOption?.price || 0;
-    const baseTotal = visaPrice * applicants.length;
-    const expressFee = processingType === 'express' ? 40 * applicants.length : 0;
-    return baseTotal + expressFee;
-  };
+  const calculateTotal = () => priceQuote.data?.totalPrice ?? 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!termsAccepted || !allScreeningYes) return;
+    if (!termsAccepted || !allScreeningYes || !priceQuote.data) return;
     setLoading(true);
     const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
-    
-    const totalUsd = calculateTotal();
-    const exchangeRate = 3.6725; // Default rate - can be made editable
     
     submitApplication.mutate({
       referenceNumber: ref,
@@ -270,8 +266,6 @@ export default function VisaApplicationForm() {
       contactEmail: email,
       contactPhone: phone,
       arrivalDate,
-      exchangeRate,
-      totalAmountUsd: totalUsd,
       policyVersion: TERMS_POLICY_VERSION,
       applicants: applicants.map((a) => ({
         fullName: a.fullName,
@@ -438,7 +432,7 @@ export default function VisaApplicationForm() {
                   <select value={visaType} onChange={(e) => setVisaType(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] focus:ring-1 focus:ring-[#C9A04C] outline-none bg-white text-gray-800">
                     {visaOptions.map((v) => <option key={v.value} value={v.value}>{isAr ? v.labelAr : v.label}</option>)}
                   </select>
-                  {selectedVisaOption && <p className="text-xs text-gray-400 mt-1">{isAr ? 'السعر:' : 'Price:'} <span className="font-semibold text-[#C9A04C]">${selectedVisaOption.price}</span> {processingType === 'express' && <span className="text-gray-400">{isAr ? '(+ $40 سريع)' : '(+ $40 express)'}</span>}</p>}
+                  {priceQuote.data && <p className="text-xs text-gray-400 mt-1">{isAr ? 'السعر من الخادم:' : 'Server price:'} <span className="font-semibold text-[#C9A04C]">{priceQuote.data.currency} {priceQuote.data.unitPrice.toFixed(2)}</span></p>}
                 </div>
 
                 <div>
@@ -630,7 +624,7 @@ export default function VisaApplicationForm() {
                 invoiceNumber={paymentInvoiceNumber}
                 referenceNumber={referenceNumber}
                 totalAmountUsd={calculateTotal()}
-                exchangeRate={3.6725}
+                exchangeRate={priceQuote.data?.exchangeRateToBase ?? 0}
                 applicationId={applicationId || 0}
                 pendingFiles={collectPendingFiles()}
                 applicantData={{

@@ -8,13 +8,14 @@ import { createStripeTestIntent } from "./lib/stripe";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { finalizeStripeTestPayment } from "./lib/payment-finalization";
 import { recordTimelineEvent } from "./lib/application-timeline";
+import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
 
 export const paymentRouter = createRouter({
   // Create payment intent
   createIntent: paymentQuery
     .input(z.object({
-      amount: z.number(), // in cents
-      currency: z.string().default("usd"),
+      amount: z.number().optional(), // Legacy client hint; never trusted.
+      currency: z.string().optional(), // Legacy client hint; never trusted.
       referenceNumber: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -25,7 +26,9 @@ export const paymentRouter = createRouter({
         if (!app) throw new Error("Application not found");
         if (app.paymentStatus === "paid") throw new Error("Application is already paid");
 
-        const serverAmountUsd = Number(app.totalAmountUsd);
+        const priceSnapshot = await getApplicationPriceSnapshot(app.id);
+        if (priceSnapshot.currency.toUpperCase() !== "USD") throw new Error("Stripe checkout requires a USD price snapshot");
+        const serverAmountUsd = Number(priceSnapshot.totalPrice);
         if (!Number.isFinite(serverAmountUsd) || serverAmountUsd <= 0) {
           throw new Error("Application amount is invalid");
         }

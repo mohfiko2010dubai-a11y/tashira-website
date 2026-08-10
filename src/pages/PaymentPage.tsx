@@ -140,6 +140,7 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
         <div className="border border-gray-200 rounded-lg p-4 focus-within:border-[#C9A04C] focus-within:ring-1 focus-within:ring-[#C9A04C]">
           <CardElement
             options={{
+              hidePostalCode: true,
               style: {
                 base: {
                   fontSize: '16px',

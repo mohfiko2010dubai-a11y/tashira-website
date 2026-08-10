@@ -5,6 +5,7 @@ import { saveInvoiceToDisk } from "./invoice-pdf";
 import { getErrorMessage } from "./errors";
 import { retrieveStripeTestIntent, verifyStripeIntent } from "./stripe";
 import { hasTimelineEvent, recordTimelineEvent, type TimelineActorType } from "./application-timeline";
+import { activeBusinessSettings, getApplicationPriceSnapshot } from "./pricing-engine";
 
 export async function finalizeStripeTestPayment(
   referenceNumber: string,
@@ -22,7 +23,9 @@ export async function finalizeStripeTestPayment(
   )).limit(1);
   if (!payment) throw new Error("Payment does not belong to this application");
 
-  const expectedAmountCents = Math.round(Number(application.totalAmountUsd) * 100);
+  const priceSnapshot = await getApplicationPriceSnapshot(application.id);
+  if (priceSnapshot.currency.toUpperCase() !== "USD") throw new Error("Stripe payment currency does not match the price snapshot");
+  const expectedAmountCents = Math.round(Number(priceSnapshot.totalPrice) * 100);
   const stripeIntent = await retrieveStripeTestIntent(paymentIntentId);
   if (!verifyStripeIntent({ intent: stripeIntent, paymentIntentId, referenceNumber, expectedAmountCents })) {
     throw new Error("Stripe payment verification failed");
@@ -60,12 +63,14 @@ export async function finalizeStripeTestPayment(
   const [existingInvoice] = await db.select({ id: invoices.id }).from(invoices)
     .where(eq(invoices.applicationId, application.id)).limit(1);
   if (!existingInvoice) {
+    const settings = await activeBusinessSettings();
     try {
       await db.insert(invoices).values({
         invoiceNumber,
         applicationId: application.id,
         paymentId: payment.id,
         amount: payment.amount,
+        vatRate: settings.vatRegistered === "yes" ? settings.vatRate : "0.00",
       });
     } catch (error: unknown) {
       const [concurrentInvoice] = await db.select({ id: invoices.id }).from(invoices)

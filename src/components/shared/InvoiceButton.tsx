@@ -5,7 +5,7 @@ interface InvoiceButtonProps {
   invoiceNumber: string;
   referenceNumber: string;
   totalAmountUsd: number;
-  exchangeRate?: number;
+  exchangeRate: number;
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;

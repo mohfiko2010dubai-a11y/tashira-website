@@ -58,7 +58,7 @@ export default function AdminApplications() {
   const handleExportExcel = () => {
     const data = filtered.map((app) => {
       const a: ApplicationWithLegacyAmount = app;
-      const exchangeRate = Number(a.exchangeRate || 3.6725);
+      const exchangeRate = Number(a.exchangeRate || 0);
       const totalAed = Number(a.totalAmountAed || a.totalAmount || 0);
       const totalUsd = Number(a.totalAmountUsd || a.stripeAmountUsd || totalAed / exchangeRate);
       const costAed = Number(a.supplierCostAed || 0);
@@ -109,6 +109,9 @@ export default function AdminApplications() {
           </Link>
           <Link to="/admin/vat" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Percent size={14} /> VAT
+          </Link>
+          <Link to="/admin/finance" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <TrendingUp size={14} /> Finance
           </Link>
           <Link to="/admin/suppliers" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Building2 size={14} /> Suppliers
@@ -213,7 +216,7 @@ export default function AdminApplications() {
                 <tbody className="divide-y divide-gray-50">
                   {filtered.map((app) => {
                     const a: ApplicationWithLegacyAmount = app;
-                    const exchangeRate = Number(a.exchangeRate || 3.6725);
+                    const exchangeRate = Number(a.exchangeRate || 0);
                     const totalAed = Number(a.totalAmountAed || a.totalAmount || 0);
                     const totalUsd = Number(a.totalAmountUsd || a.stripeAmountUsd || totalAed / exchangeRate);
                     const costAed = Number(a.supplierCostAed || 0);

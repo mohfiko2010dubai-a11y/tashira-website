@@ -10,6 +10,9 @@ import { storageRouter } from "./storage-router";
 import { documentRouter } from "./document-router";
 import { wizardRouter } from "./wizard-router";
 import { timelineRouter } from "./timeline-router";
+import { businessRouter } from "./business-router";
+import { retentionRouter } from "./retention-router";
+import { riskRouter } from "./risk-router";
 import { createRouter } from "./middleware";
 
 export const appRouter = createRouter({
@@ -25,6 +28,9 @@ export const appRouter = createRouter({
   storage: storageRouter,
   document: documentRouter,
   timeline: timelineRouter,
+  business: businessRouter,
+  retention: retentionRouter,
+  risk: riskRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -9,6 +9,8 @@ import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { recordTimelineEvent, type TimelineEventName } from "./lib/application-timeline";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
+import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { activeBusinessSettings } from "./lib/pricing-engine";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
@@ -25,9 +27,6 @@ export const applicationRouter = createRouter({
       contactEmail: z.string().email(),
       contactPhone: z.string(),
       arrivalDate: z.string().optional(),
-      exchangeRate: z.number().default(3.6725),
-      totalAmountUsd: z.number(),
-      totalAmountAed: z.number().optional(),
       policyVersion: z.literal(TERMS_POLICY_VERSION),
       applicants: z.array(z.object({
         fullName: z.string(),
@@ -46,6 +45,12 @@ export const applicationRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       try {
         const db = getDb();
+        const quote = await quoteApplicationPrice({
+          serviceCode: input.visaType,
+          processingType: input.processingType,
+          applicantCount: input.applicants.length,
+        });
+        if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
         const values: typeof applications.$inferInsert = {
           referenceNumber: input.referenceNumber,
           baseType: input.baseType,
@@ -55,14 +60,15 @@ export const applicationRouter = createRouter({
           contactEmail: input.contactEmail,
           contactPhone: input.contactPhone,
           arrivalDate: input.arrivalDate,
-          exchangeRate: String(input.exchangeRate),
-          totalAmountUsd: String(input.totalAmountUsd),
-          totalAmountAed: String(input.totalAmountAed || (input.totalAmountUsd * input.exchangeRate)),
+          exchangeRate: quote.exchangeRateToBase.toFixed(4),
+          totalAmountUsd: quote.totalPrice.toFixed(2),
+          totalAmountAed: quote.totalInBaseCurrency.toFixed(2),
         };
 
         const [app] = await db.insert(applications).values(values).$returningId();
 
         const appId = app.id;
+        await saveApplicationPriceSnapshot(appId, quote);
         await recordTimelineEvent({
           applicationId: appId,
           eventName: "APPLICATION_CREATED",
@@ -251,6 +257,8 @@ export const applicationRouter = createRouter({
 
   analytics: adminQuery.query(async () => {
     const db = getDb();
+    const settings = await activeBusinessSettings();
+    const usdToBaseRate = Number(settings.usdToBaseRate);
     const [total] = await db.select({ count: sql<number>`count(*)` }).from(applications);
     const [paid] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
 
@@ -280,11 +288,11 @@ export const applicationRouter = createRouter({
       totalApplications: total?.count || 0,
       paidApplications: paid?.count || 0,
       totalRevenueAed: revAed,
-      totalRevenueUsd: revAed / 3.6725,
+      totalRevenueUsd: settings.baseCurrency === "USD" ? revAed : revAed / usdToBaseRate,
       totalCostsAed: costAed,
-      totalCostsUsd: costAed / 3.6725,
+      totalCostsUsd: settings.baseCurrency === "USD" ? costAed : costAed / usdToBaseRate,
       profitAed: profitAed,
-      profitUsd: profitAed / 3.6725,
+      profitUsd: settings.baseCurrency === "USD" ? profitAed : profitAed / usdToBaseRate,
       profitMargin: revAed > 0 ? ((profitAed / revAed) * 100).toFixed(1) : '0',
       familyCount: familyCount?.count || 0,
     };

@@ -53,6 +53,13 @@ export default function AdminApplicationDetail() {
     { applicationId: app?.id || 0 },
     { enabled: !!app?.id },
   );
+  const { data: risk } = trpc.risk.latest.useQuery(
+    { referenceNumber: referenceNumber || "" },
+    { enabled: !!referenceNumber },
+  );
+  const assessRisk = trpc.risk.assess.useMutation({
+    onSuccess: () => utils.risk.latest.invalidate({ referenceNumber: referenceNumber || "" }),
+  });
 
   const updateStatus = trpc.application.updateStatus.useMutation({
     onSuccess: () => {
@@ -83,7 +90,7 @@ export default function AdminApplicationDetail() {
 
   const mainApplicant = app.applicants?.[0];
   const a: ApplicationWithLegacyAmount = app;
-  const exchangeRate = Number(a.exchangeRate || 3.6725);
+  const exchangeRate = Number(a.exchangeRate || 0);
   const totalUsd = Number(a.totalAmountUsd || a.totalAmount || 0);
   const totalAed = Number(a.totalAmountAed || totalUsd * exchangeRate);
 
@@ -279,6 +286,19 @@ export default function AdminApplicationDetail() {
                 ) : (
                   <p className="text-gray-400 text-sm">No supplier assigned.</p>
                 )}
+              </div>
+              <div className="bg-white rounded-lg border border-gray-100 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Explainable Risk</h2>
+                  <button onClick={() => assessRisk.mutate({ referenceNumber: app.referenceNumber })} disabled={assessRisk.isPending} className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Assess</button>
+                </div>
+                {risk ? (
+                  <div className="mt-4 space-y-2 text-sm">
+                    <p><span className="text-gray-500">Level:</span> <strong>{risk.level}</strong></p>
+                    <p><span className="text-gray-500">Score:</span> {risk.score}/100</p>
+                    <p className="text-xs text-gray-400">Advisory only. It never automatically rejects an application.</p>
+                  </div>
+                ) : <p className="mt-4 text-sm text-gray-400">No assessment recorded.</p>}
               </div>
             </div>
           )}

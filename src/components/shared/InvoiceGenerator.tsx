@@ -14,20 +14,18 @@ interface InvoiceData {
   processingType: string;
   arrivalDate?: string;
   totalAmountUsd: number; // USD from Stripe - PRIMARY
-  exchangeRate?: number;  // Rate to convert to AED
+  exchangeRate: number;  // Immutable application snapshot rate
   stripePaymentIntentId?: string;
 }
 
 // VAT temporarily disabled until TRN is obtained
 // const VAT_RATE = 0.05;
-const DEFAULT_EXCHANGE_RATE = 3.6725;
-
 export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
   // USD is primary, calculate AED
-  const exchangeRate = data.exchangeRate || DEFAULT_EXCHANGE_RATE;
+  const exchangeRate = data.exchangeRate;
   const totalUsd = data.totalAmountUsd;
   const totalAed = totalUsd * exchangeRate;
   // No VAT breakdown - total is the final amount

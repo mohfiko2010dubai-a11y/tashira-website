@@ -6,6 +6,7 @@ interface InvoiceViewerProps {
   invoiceNumber: string;
   referenceNumber: string;
   totalAmount: number;
+  exchangeRate: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -20,6 +21,7 @@ export default function InvoiceViewer({
   invoiceNumber,
   referenceNumber,
   totalAmount,
+  exchangeRate,
   customerName,
   customerEmail,
   customerPhone,
@@ -41,6 +43,7 @@ export default function InvoiceViewer({
       processingType,
       arrivalDate,
       totalAmountUsd: totalAmount,
+      exchangeRate,
       stripePaymentIntentId,
     });
 

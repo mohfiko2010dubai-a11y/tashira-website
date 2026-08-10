@@ -11,6 +11,7 @@ import { assertApplicationIdAccess, assertApplicationReferenceAccess } from "./l
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
+import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -98,9 +99,6 @@ export const wizardRouter = createRouter({
       console.log("[Wizard] Starting application:", input.referenceNumber);
       try {
         const db = getDb();
-        const exchangeRate = 3.6725;
-        const totalAed = input.totalAmount * exchangeRate;
-
         await db.insert(applications).values({
           referenceNumber: input.referenceNumber,
           baseType: (input.applicantCount ?? 1) > 1 ? "family" : "single",
@@ -109,9 +107,9 @@ export const wizardRouter = createRouter({
           processingType: mapProcessingType(input.processingType),
           contactEmail: input.email || "",
           contactPhone: input.phone || "",
-          totalAmountAed: String(totalAed),
-          totalAmountUsd: String(input.totalAmount ?? 0),
-          exchangeRate: String(exchangeRate),
+          totalAmountAed: "0.00",
+          totalAmountUsd: "0.00",
+          exchangeRate: "0.0000",
           status: "submitted",
           paymentStatus: "pending",
           createdAt: new Date(),
@@ -189,11 +187,6 @@ export const wizardRouter = createRouter({
         if (input.arrivalDate !== undefined) updateData.arrivalDate = input.arrivalDate;
         if (input.email !== undefined) updateData.contactEmail = input.email;
         if (input.phone !== undefined) updateData.contactPhone = input.phone;
-        if (input.totalAmount !== undefined) {
-          updateData.totalAmountUsd = String(input.totalAmount);
-          updateData.totalAmountAed = String(input.totalAmount * 3.6725);
-        }
-
         await db.update(applications)
           .set(updateData)
           .where(eq(applications.referenceNumber, input.referenceNumber));
@@ -249,21 +242,26 @@ export const wizardRouter = createRouter({
       try {
         assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
-        const exchangeRate = 3.6725;
-        const totalAed = input.totalAmount * exchangeRate;
+        const processingType = mapProcessingType(input.processingType);
+        const quote = await quoteApplicationPrice({
+          serviceCode: input.visaType,
+          processingType,
+          applicantCount: input.applicantCount,
+        });
+        if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
 
         await db.update(applications)
           .set({
             baseType: input.applicantCount > 1 ? "family" : "single",
             residenceType: mapResidenceType(input.residenceStatus),
             visaType: input.visaType,
-            processingType: mapProcessingType(input.processingType),
+            processingType,
             arrivalDate: input.arrivalDate,
             contactEmail: input.email,
             contactPhone: input.phone,
-            totalAmountAed: String(totalAed),
-            totalAmountUsd: String(input.totalAmount),
-            exchangeRate: String(exchangeRate),
+            totalAmountAed: quote.totalInBaseCurrency.toFixed(2),
+            totalAmountUsd: quote.totalPrice.toFixed(2),
+            exchangeRate: quote.exchangeRateToBase.toFixed(4),
             status: "documents_pending",
             paymentStatus: "pending",
             updatedAt: new Date(),
@@ -276,6 +274,7 @@ export const wizardRouter = createRouter({
           .limit(1);
 
         if (updated) {
+          await saveApplicationPriceSnapshot(updated.id, quote);
           await persistPrimaryApplicant(updated.id, input);
           await recordTimelineEvent({
             applicationId: updated.id,
@@ -295,7 +294,12 @@ export const wizardRouter = createRouter({
           });
         }
 
-        return { success: true, referenceNumber: input.referenceNumber, applicationId: updated?.id };
+        return {
+          success: true,
+          referenceNumber: input.referenceNumber,
+          applicationId: updated?.id,
+          quote: { totalPrice: quote.totalPrice, currency: quote.currency },
+        };
       } catch (error: unknown) {
         const message = getErrorMessage(error);
         console.error("[Wizard] Failed to submit application:", message);

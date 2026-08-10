@@ -31,3 +31,14 @@ Customers can safely retry failed uploads without duplicating successful files. 
 No approved legal or business retention period exists for application timeline events, payment journey evidence, policy-acceptance records, generated evidence manifests, or the underlying customer documents. Define retention by data category, jurisdiction, dispute window, legal hold, deletion request handling, and backup lifecycle before production activation. Do not automatically purge or retain indefinitely based on an engineering assumption.
 
 Database-level append-only trigger enforcement also requires an operational decision: the application exposes no update/delete method for timeline rows and foreign keys restrict parent deletion, but production database privileges and trigger rollout must be reviewed before adding database triggers.
+
+## Phase 7 launch decisions
+
+- Approve the opening pricing-rule dataset: supplier cost, internal cost, markup, selling/promotional/minimum prices, currency, and effective dates. Engineering must not invent these commercial values.
+- Approve company legal identity and finance settings, including VAT registration state, TRN, invoice sequence, base currency, and exchange rate source.
+- Tax/legal review must define relevant sales, registration threshold inputs, VAT calculation/treatment, and effective dates. The configurable monitor intentionally does not encode legal rules.
+- Define exact retention durations, legal-hold authority, deletion authorization, backup deletion behavior, and subject-request handling by category.
+- Approve commercial refund policy and dispute handling rules before enabling refund execution. The current implementation records requests/events only.
+- Select and approve recovery/email providers, sender identity, message wording, OTP expiry/attempt policy, and production delivery credentials. Delivery remains disabled.
+- Review the disclosed risk and Business Health weights. Neither engine makes automated customer decisions.
+- Review migration 005 triggers and least-privilege MySQL grants in staging before any production migration request.

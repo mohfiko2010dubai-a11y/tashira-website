@@ -30,6 +30,7 @@ import StaffLogin from '@/pages/admin/StaffLogin';
 import StaffDashboard from '@/pages/admin/StaffDashboard';
 import StaffApplicationDetail from '@/pages/admin/StaffApplicationDetail';
 import StaffGuard from '@/components/shared/StaffGuard';
+import AdminFinanceCockpit from '@/pages/admin/AdminFinanceCockpit';
 
 function AppContent() {
   const { i18n } = useTranslation();
@@ -67,6 +68,7 @@ function AppContent() {
           <Route path="/admin/invoices" element={<AdminGuard><AdminInvoices /></AdminGuard>} />
           <Route path="/admin/supplier-dashboard" element={<AdminGuard><AdminSupplierDashboard /></AdminGuard>} />
           <Route path="/admin/vat" element={<AdminGuard><AdminVat /></AdminGuard>} />
+          <Route path="/admin/finance" element={<AdminGuard><AdminFinanceCockpit /></AdminGuard>} />
           <Route path="/admin/chat" element={<AdminGuard><AdminChat /></AdminGuard>} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />

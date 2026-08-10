@@ -30,6 +30,7 @@ const stripePromise = stripePublishableKey.startsWith('pk_test_')
   : null;
 
 const cardStyle = {
+  hidePostalCode: true,
   style: {
     base: {
       fontSize: '16px',
@@ -154,7 +155,7 @@ function PaymentFormInner({
           Card Details
         </label>
         <div className="border border-gray-200 rounded-lg p-3 focus-within:border-[#C9A04C] focus-within:ring-1 focus-within:ring-[#C9A04C] transition-all">
-          <CardElement options={{ style: cardStyle.style }} />
+          <CardElement options={cardStyle} />
         </div>
       </div>
 
