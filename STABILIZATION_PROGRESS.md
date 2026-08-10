@@ -43,6 +43,7 @@ TypeScript checking, lint, 17 tests, and the production build succeed locally. P
 - Shared filename sanitization, MIME allowlisting, and decoded-size verification.
 - Signed customer application capability-cookie verification, tamper rejection, and production cookie attributes.
 - Stripe webhook signature, timestamp, tamper, and live-mode rejection coverage.
+- Exact customer application-reference authorization and privileged staff/admin access coverage.
 
 ## Commands run
 

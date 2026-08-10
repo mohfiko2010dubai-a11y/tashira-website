@@ -149,7 +149,7 @@ export function saveInvoiceToDisk(data: InvoiceData): { pdfPath: string; pdfUrl:
   const doc = generateInvoicePDF(data);
   const fileName = `${data.invoiceNumber}.pdf`;
   const pdfPath = path.join(STORAGE_DIR, fileName);
-  const pdfUrl = `/api/invoices/${data.invoiceNumber}/view`;
+  const pdfUrl = `/invoices/${data.invoiceNumber}/view`;
 
   // Use fs.writeFileSync - Node.js compatible, unlike doc.save()
   const pdfOutput = doc.output("arraybuffer");

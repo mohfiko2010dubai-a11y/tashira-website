@@ -20,6 +20,8 @@ The repository has no mail transport dependency or selected provider. Staging ex
 
 The form and chatbot contain client-side price tables, while application creation still accepts calculated totals from the browser. Stripe intent creation correctly uses the stored server amount, but the authoritative product/fee/VAT catalogue is not represented server-side. Confirm the canonical prices, exchange-rate policy, fee/VAT inclusivity, and effective-date rules before replacing client totals.
 
+The admin VAT screen currently assumes every paid customer total includes 5% VAT, while both invoice generators explicitly state that VAT is disabled until a TRN is obtained. The VAT report must not be treated as accounting output until registration status and tax treatment are approved and reconciled.
+
 ## Customer document replacement
 
 Customers can safely retry failed uploads without duplicating successful files. Replacing or deleting a successfully recorded customer document needs a retention/audit policy and an atomic storage-plus-metadata design. Staff/admin replacement remains the existing supported workflow.

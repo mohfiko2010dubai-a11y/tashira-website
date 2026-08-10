@@ -3,17 +3,9 @@ import { applicants, applications } from "@db/schema";
 import { and, eq } from "drizzle-orm";
 import type { TrpcContext } from "../context";
 import { getDb } from "../queries/connection";
+import { assertApplicationReferenceAccess } from "./application-authorization";
 
-export function hasPrivilegedApplicationAccess(ctx: TrpcContext): boolean {
-  return Boolean(ctx.staffId || ctx.isAdmin || ctx.user?.role === "admin");
-}
-
-export function assertApplicationReferenceAccess(ctx: TrpcContext, referenceNumber: string): void {
-  if (hasPrivilegedApplicationAccess(ctx)) return;
-  if (!ctx.customerApplicationReferences.has(referenceNumber)) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Application access denied" });
-  }
-}
+export { assertApplicationReferenceAccess, hasPrivilegedApplicationAccess } from "./application-authorization";
 
 export async function assertApplicationIdAccess(ctx: TrpcContext, applicationId: number): Promise<string> {
   const [application] = await getDb().select({ referenceNumber: applications.referenceNumber })

@@ -147,7 +147,7 @@ async function getOrGeneratePdf(invoiceNumber: string) {
     await db.update(applications).set({
       invoiceNumber,
       invoicePdfPath: absolutePath,
-      invoicePdfUrl: `/api/invoices/${invoiceNumber}/view`,
+      invoicePdfUrl: `/invoices/${invoiceNumber}/view`,
     }).where(eq(applications.id, appRow.id));
 
     console.log(`[Invoice] Regenerated and saved: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);

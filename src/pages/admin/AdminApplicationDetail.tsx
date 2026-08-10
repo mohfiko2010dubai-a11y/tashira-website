@@ -85,6 +85,7 @@ export default function AdminApplicationDetail() {
   const totalAed = Number(a.totalAmountAed || totalUsd * exchangeRate);
 
   const handleGenerateInvoice = () => {
+    if (app.paymentStatus !== "paid") return;
     const invoiceNumber = app.invoiceNumber || `INV-${app.referenceNumber}`;
     const doc = generateInvoicePDF({
       invoiceNumber,
@@ -349,7 +350,7 @@ export default function AdminApplicationDetail() {
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={handleGenerateInvoice} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm rounded-lg hover:shadow-md transition-all">
+                <button disabled={app.paymentStatus !== "paid"} onClick={handleGenerateInvoice} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm rounded-lg hover:shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50">
                   <Receipt size={14} /> Generate Invoice
                 </button>
                 {app.invoiceNumber && (
