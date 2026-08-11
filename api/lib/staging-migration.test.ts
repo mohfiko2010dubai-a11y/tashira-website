@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 const migrationUrl = new URL("../../migrations/005_business_architecture.sql", import.meta.url);
+const applicantSlotMigrationUrl = new URL("../../migrations/006_applicant_slot_uniqueness.sql", import.meta.url);
 const runnerUrl = new URL("../../staging/guarded-db-push.mjs", import.meta.url);
 
 describe("staging migration 005 safety", () => {
@@ -25,5 +26,14 @@ describe("staging migration 005 safety", () => {
     expect(runner).toContain('databaseUser !== "tashira_staging_app"');
     expect(runner).toContain('identity.database_name !== "tashira_staging"');
     expect(runner).toContain("migrations/005_business_architecture.sql");
+  });
+
+  it("refuses to create applicant-slot uniqueness over unresolved duplicates", async () => {
+    const sql = await readFile(applicantSlotMigrationUrl, "utf8");
+    expect(sql).not.toMatch(/\bDELETE\b/i);
+    expect(sql).not.toMatch(/\bDROP\b/i);
+    expect(sql).toContain("HAVING COUNT(*) > 1");
+    expect(sql).toContain("Duplicate applicant slots require reviewed resolution");
+    expect(sql).toContain("applicant_application_index_uq");
   });
 });

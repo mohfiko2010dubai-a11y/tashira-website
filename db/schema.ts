@@ -73,7 +73,9 @@ export const applicants = mysqlTable("applicants", {
   gccResidenceCountry: varchar("gcc_residence_country", { length: 100 }),
   sponsorName: varchar("sponsor_name", { length: 255 }),
   sponsorRelation: varchar("sponsor_relation", { length: 50 }),
-});
+}, (table) => [
+  uniqueIndex("applicant_application_index_uq").on(table.applicationId, table.applicantIndex),
+]);
 
 export const payments = mysqlTable("payments", {
   id: serial("id").primaryKey(),

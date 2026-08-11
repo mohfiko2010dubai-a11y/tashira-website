@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import type { TrpcContext } from "../context";
 import { getDb } from "../queries/connection";
 import { assertApplicationReferenceAccess } from "./application-authorization";
+import { assertApplicantSelection } from "./applicant-selection";
 
 export { assertApplicationReferenceAccess, hasPrivilegedApplicationAccess } from "./application-authorization";
 
@@ -20,10 +21,18 @@ export async function assertApplicationIdAccess(ctx: TrpcContext, applicationId:
   return application.referenceNumber;
 }
 
-export async function assertApplicantBelongsToApplication(applicantId: number | undefined, applicationId: number) {
-  if (applicantId === undefined) return;
-  const [applicant] = await getDb().select({ id: applicants.id }).from(applicants)
+export async function assertApplicantBelongsToApplication(
+  applicantId: number | undefined,
+  applicationId: number,
+  applicantIndex?: number,
+) {
+  if (applicantId === undefined) return undefined;
+  const [applicant] = await getDb().select({
+    id: applicants.id,
+    applicationId: applicants.applicationId,
+    applicantIndex: applicants.applicantIndex,
+  }).from(applicants)
     .where(and(eq(applicants.id, applicantId), eq(applicants.applicationId, applicationId)))
     .limit(1);
-  if (!applicant) throw new TRPCError({ code: "BAD_REQUEST", message: "Applicant does not belong to application" });
+  return assertApplicantSelection(applicant, { applicationId, applicantId, applicantIndex });
 }

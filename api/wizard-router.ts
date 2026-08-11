@@ -7,11 +7,12 @@ import { getErrorMessage } from "./lib/errors";
 import { LOCAL_STORAGE_METADATA, storageUpload } from "./lib/local-storage";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 import { auditLog } from "./lib/audit-log";
-import { assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
+import { assertApplicantBelongsToApplication, assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
 import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { assertCompleteApplicantSequence, assertRequiredApplicantDocuments } from "./lib/wizard-applicants";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -28,7 +29,7 @@ function mapProcessingType(processingType?: string): ProcessingType {
   return processingType?.toLowerCase() === "express" ? "express" : "regular";
 }
 
-type PrimaryApplicantInput = {
+type ApplicantInput = {
   fullName?: string;
   nationality?: string;
   passportNumber?: string;
@@ -37,10 +38,10 @@ type PrimaryApplicantInput = {
   countryFrom?: string;
 };
 
-async function persistPrimaryApplicant(applicationId: number, input: PrimaryApplicantInput) {
+async function persistApplicant(applicationId: number, applicantIndex: number, input: ApplicantInput) {
   const db = getDb();
   const [existing] = await db.select().from(applicants)
-    .where(and(eq(applicants.applicationId, applicationId), eq(applicants.applicantIndex, 0)))
+    .where(and(eq(applicants.applicationId, applicationId), eq(applicants.applicantIndex, applicantIndex)))
     .limit(1);
 
   const values: Partial<typeof applicants.$inferInsert> = {};
@@ -62,7 +63,7 @@ async function persistPrimaryApplicant(applicationId: number, input: PrimaryAppl
   if (!input.fullName) return undefined;
   const [created] = await db.insert(applicants).values({
     applicationId,
-    applicantIndex: 0,
+    applicantIndex,
     fullName: input.fullName,
     nationality: input.nationality,
     passportNumber: input.passportNumber,
@@ -73,7 +74,37 @@ async function persistPrimaryApplicant(applicationId: number, input: PrimaryAppl
   return { id: created.id, created: true, updated: false };
 }
 
+const completeApplicantSchema = z.object({
+  applicantIndex: z.number().int().min(0).max(19),
+  fullName: z.string().min(1),
+  nationality: z.string().min(1),
+  passportNumber: z.string().min(1),
+  passportExpiry: z.string().min(1),
+  profession: z.string().min(1),
+  countryFrom: z.string().min(1),
+});
+
 export const wizardRouter = createRouter({
+  quoteApplication: applicationSubmissionQuery
+    .input(z.object({
+      visaType: z.string().min(1),
+      processingType: z.string().min(1),
+      applicantCount: z.number().int().min(1).max(20),
+    }))
+    .mutation(async ({ input }) => {
+      const quote = await quoteApplicationPrice({
+        serviceCode: input.visaType,
+        processingType: mapProcessingType(input.processingType),
+        applicantCount: input.applicantCount,
+      });
+      return {
+        unitPrice: quote.unitPrice,
+        totalPrice: quote.totalPrice,
+        currency: quote.currency,
+        applicantCount: quote.applicantCount,
+      };
+    }),
+
   // Start a new submitted application (called on first step)
   startApplication: applicationSubmissionQuery
     .input(z.object({
@@ -91,7 +122,7 @@ export const wizardRouter = createRouter({
       arrivalDate: z.string().optional(),
       email: z.string().optional(),
       phone: z.string().optional(),
-      applicantCount: z.number().min(1).default(1),
+      applicantCount: z.number().int().min(1).max(20).default(1),
       totalAmount: z.number().min(0).default(0),
       chatSessionId: z.string().optional(),
     }))
@@ -121,6 +152,9 @@ export const wizardRouter = createRouter({
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
 
+        const applicant = inserted
+          ? await persistApplicant(inserted.id, 0, input)
+          : undefined;
         if (inserted) {
           await recordTimelineEvent({
             applicationId: inserted.id,
@@ -130,7 +164,6 @@ export const wizardRouter = createRouter({
             sessionReference: input.chatSessionId,
             summary: "Application created in chatbot wizard",
           });
-          const applicant = await persistPrimaryApplicant(inserted.id, input);
           if (applicant?.created) await recordTimelineEvent({
             applicationId: inserted.id,
             eventName: "APPLICANT_ADDED",
@@ -142,7 +175,13 @@ export const wizardRouter = createRouter({
         }
 
         ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
-        return { success: true, referenceNumber: input.referenceNumber, applicationId: inserted?.id };
+        return {
+          success: true,
+          referenceNumber: input.referenceNumber,
+          applicationId: inserted?.id,
+          applicantId: applicant?.id,
+          applicantIndex: 0,
+        };
       } catch (error: unknown) {
         const message = getErrorMessage(error);
         console.error("[Wizard] Failed to start application:", message);
@@ -167,9 +206,10 @@ export const wizardRouter = createRouter({
       arrivalDate: z.string().optional(),
       email: z.string().optional(),
       phone: z.string().optional(),
-      applicantCount: z.number().min(1).optional(),
+      applicantCount: z.number().int().min(1).max(20).optional(),
       totalAmount: z.number().min(0).optional(),
       lastStep: z.string().optional(),
+      applicantIndex: z.number().int().min(0).max(19).default(0),
     }))
     .mutation(async ({ input, ctx }) => {
       try {
@@ -197,18 +237,34 @@ export const wizardRouter = createRouter({
           .limit(1);
 
         if (updated) {
-          const applicant = await persistPrimaryApplicant(updated.id, input);
+          const applicant = await persistApplicant(updated.id, input.applicantIndex, input);
           if (applicant?.updated) await recordTimelineEvent({
             applicationId: updated.id,
             eventName: "APPLICANT_UPDATED",
             eventSource: "CHATBOT_WIZARD",
             actorType: "CUSTOMER",
             actorReference: `applicant:${applicant.id}`,
-            summary: "Primary applicant updated",
+            summary: `Applicant ${input.applicantIndex + 1} updated`,
           });
+          if (applicant?.created) await recordTimelineEvent({
+            applicationId: updated.id,
+            eventName: "APPLICANT_ADDED",
+            eventSource: "CHATBOT_WIZARD",
+            actorType: "CUSTOMER",
+            actorReference: `applicant:${applicant.id}`,
+            summary: `Applicant ${input.applicantIndex + 1} added`,
+          });
+
+          return {
+            success: true,
+            referenceNumber: input.referenceNumber,
+            applicationId: updated.id,
+            applicantId: applicant?.id,
+            applicantIndex: input.applicantIndex,
+          };
         }
 
-        return { success: true, referenceNumber: input.referenceNumber, applicationId: updated?.id };
+        return { success: true, referenceNumber: input.referenceNumber, applicationId: undefined };
       } catch (error: unknown) {
         const message = getErrorMessage(error);
         console.error("[Wizard] Failed to update application:", message);
@@ -233,9 +289,10 @@ export const wizardRouter = createRouter({
       processingType: z.string().min(1),
       residenceStatus: z.string().min(1),
       whoTraveling: z.string().min(1),
-      applicantCount: z.number().min(1),
+      applicantCount: z.number().int().min(1).max(20),
       totalAmount: z.number().min(0),
       policyVersion: z.literal(TERMS_POLICY_VERSION),
+      applicants: z.array(completeApplicantSchema).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       console.log("[Wizard] Submitting application:", input.referenceNumber);
@@ -243,12 +300,43 @@ export const wizardRouter = createRouter({
         assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
         const processingType = mapProcessingType(input.processingType);
+        const submittedApplicants = assertCompleteApplicantSequence(
+          input.applicants ?? [{
+            applicantIndex: 0,
+            fullName: input.fullName,
+            nationality: input.nationality,
+            passportNumber: input.passportNumber,
+            passportExpiry: input.passportExpiry,
+            profession: input.profession,
+            countryFrom: input.countryFrom,
+          }],
+          input.applicantCount,
+        );
         const quote = await quoteApplicationPrice({
           serviceCode: input.visaType,
           processingType,
           applicantCount: input.applicantCount,
         });
         if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
+
+        const [updated] = await db.select({ id: applications.id })
+          .from(applications)
+          .where(eq(applications.referenceNumber, input.referenceNumber))
+          .limit(1);
+        if (!updated) throw new Error("Application not found");
+
+        const persistedApplicants: Array<{ id: number; applicantIndex: number }> = [];
+        for (const applicant of submittedApplicants) {
+          const persisted = await persistApplicant(updated.id, applicant.applicantIndex, applicant);
+          if (!persisted) throw new Error(`Unable to persist applicant ${applicant.applicantIndex + 1}`);
+          persistedApplicants.push({ id: persisted.id, applicantIndex: applicant.applicantIndex });
+        }
+        const uploadedDocuments = await db.select({
+          applicantId: documents.applicantId,
+          documentType: documents.documentType,
+          uploadStatus: documents.uploadStatus,
+        }).from(documents).where(eq(documents.applicationId, updated.id));
+        assertRequiredApplicantDocuments(persistedApplicants, uploadedDocuments);
 
         await db.update(applications)
           .set({
@@ -268,36 +356,28 @@ export const wizardRouter = createRouter({
           })
           .where(eq(applications.referenceNumber, input.referenceNumber));
 
-        const [updated] = await db.select({ id: applications.id })
-          .from(applications)
-          .where(eq(applications.referenceNumber, input.referenceNumber))
-          .limit(1);
-
-        if (updated) {
-          await saveApplicationPriceSnapshot(updated.id, quote);
-          await persistPrimaryApplicant(updated.id, input);
-          await recordTimelineEvent({
+        await saveApplicationPriceSnapshot(updated.id, quote);
+        await recordTimelineEvent({
             applicationId: updated.id,
             eventName: "APPLICATION_SUBMITTED",
             eventSource: "CHATBOT_WIZARD",
             actorType: "CUSTOMER",
             resultingState: "documents_pending",
             summary: "Application submitted",
-          });
-          await recordTimelineEvent({
+        });
+        await recordTimelineEvent({
             applicationId: updated.id,
             eventName: "POLICY_ACCEPTED",
             eventSource: "CHATBOT_WIZARD",
             actorType: "CUSTOMER",
             policyVersion: input.policyVersion,
             summary: "Terms policy accepted",
-          });
-        }
+        });
 
         return {
           success: true,
           referenceNumber: input.referenceNumber,
-          applicationId: updated?.id,
+          applicationId: updated.id,
           quote: { totalPrice: quote.totalPrice, currency: quote.currency },
         };
       } catch (error: unknown) {
@@ -364,10 +444,33 @@ export const wizardRouter = createRouter({
       }
     }),
 
+  getProgress: applicationAccessQuery
+    .input(z.object({ referenceNumber: z.string() }))
+    .query(async ({ input, ctx }) => {
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
+      const db = getDb();
+      const [application] = await db.select().from(applications)
+        .where(eq(applications.referenceNumber, input.referenceNumber))
+        .limit(1);
+      if (!application) return null;
+      const applicantRows = await db.select().from(applicants)
+        .where(eq(applicants.applicationId, application.id))
+        .orderBy(applicants.applicantIndex);
+      const documentRows = await db.select({
+        id: documents.id,
+        applicantId: documents.applicantId,
+        documentType: documents.documentType,
+        uploadStatus: documents.uploadStatus,
+      }).from(documents).where(eq(documents.applicationId, application.id));
+      return { application, applicants: applicantRows, documents: documentRows };
+    }),
+
   // Upload documents for a wizard application
   uploadDocuments: applicationUploadQuery
     .input(z.object({
       applicationId: z.number().positive(),
+      applicantId: z.number().positive(),
+      applicantIndex: z.number().int().min(0).max(19),
       documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),
       fileName: z.string().min(1),
       mimeType: z.string().min(1),
@@ -377,6 +480,7 @@ export const wizardRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       try {
         await assertApplicationIdAccess(ctx, input.applicationId);
+        await assertApplicantBelongsToApplication(input.applicantId, input.applicationId, input.applicantIndex);
         const db = getDb();
 
         // Decode base64
@@ -387,7 +491,7 @@ export const wizardRouter = createRouter({
         // Create stored filename
         const timestamp = Date.now();
         const storedName = `${timestamp}-${sanitizeDocumentFileName(input.fileName)}`;
-        const storagePath = `applications/${input.applicationId}/${input.documentType}/${storedName}`;
+        const storagePath = `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/${storedName}`;
 
         // Persist at the same canonical path recorded in MySQL and served by /storage/*.
         await storageUpload(storagePath, fileBuffer, input.mimeType);
@@ -395,6 +499,7 @@ export const wizardRouter = createRouter({
         // Insert into documents table
         await db.insert(documents).values({
           applicationId: input.applicationId,
+          applicantId: input.applicantId,
           documentType: input.documentType,
           originalFileName: input.fileName,
           storedFileName: storedName,
@@ -410,7 +515,8 @@ export const wizardRouter = createRouter({
           eventName: documentUploadEvent(input.documentType),
           eventSource: "CHATBOT_WIZARD",
           actorType: "CUSTOMER",
-          summary: `${input.documentType} document uploaded`,
+          actorReference: `applicant:${input.applicantId}`,
+          summary: `${input.documentType} document uploaded for applicant ${input.applicantIndex + 1}`,
         });
         auditLog("document.upload", "success", "customer");
 
