@@ -6,13 +6,13 @@ Last verified: 2026-08-11
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `1ba5bc87ac015b935a497b8634906daeedcf1356`.
-- CI: GREEN; GitHub Actions runs 55 through 61 succeeded.
+- Current verified implementation HEAD: `1471ec070242b2652b8085bc95bb50918a3b9002`.
+- CI: GREEN; GitHub Actions run 63 succeeded on the current implementation.
 - Tests: 67/67 passing across 22 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
-- Verified launch readiness: 82%.
+- Verified launch readiness: 83%.
 - Classification: C — Not Launch Candidate.
 
 ## Completed capabilities
@@ -34,12 +34,13 @@ Last verified: 2026-08-11
 - Exact-commit staging UAT authenticated as an administrator and verified original signed-URL access, replacement content, logical deletion, refusal to sign a deleted document, and removal from active document lists.
 - A permanent staging authentication verifier now confirms anonymous admin rejection, admin login/session/logout, synthetic staff creation, staff login/session verification, staff-only API access, logout invalidation, and cleanup without exposing credentials or tokens.
 - Public staging is live at `https://staging.tashiraev.com` with a dedicated Let's Encrypt certificate, HTTP-to-HTTPS redirect, noindex/security headers, and a staging-only Nginx proxy to `127.0.0.1:3002`. External health and unauthenticated route-guard browser smoke tests pass.
+- Synthetic browser UAT verified staff login and the real staff dashboard through public HTTPS. The temporary staff account was removed. Automated activation of the dashboard logout control was inconclusive, so no speculative application change was retained.
 
 ## Active blockers
 
 - Stripe TEST credentials, webhook registration, and end-to-end payment UAT.
 - Sandbox mail transport and magic-link/OTP delivery UAT.
-- Full authenticated customer/admin/staff browser UAT.
+- Authenticated customer/admin browser UAT and manual confirmation of the staff logout control.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
 - Large XLSX/invoice chunks and the 35.1 MB bundled server artifact.
@@ -54,4 +55,4 @@ Last verified: 2026-08-11
 
 ## Next highest-priority task
 
-Complete synthetic authenticated customer/admin/staff browser UAT on public staging. Stripe TEST credentials and sandbox mail remain owner/environment prerequisites for payment and recovery UAT.
+Complete synthetic authenticated customer/admin browser UAT and manually confirm staff logout behavior. Stripe TEST credentials and sandbox mail remain owner/environment prerequisites for payment and recovery UAT.

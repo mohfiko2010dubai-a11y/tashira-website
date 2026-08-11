@@ -12,6 +12,9 @@
 - Published only the isolated staging runtime at `https://staging.tashiraev.com`. DNS resolves to the approved host, TLS verifies successfully with a dedicated certificate, HTTP redirects to HTTPS, noindex/security headers are present, and Nginx proxies exclusively to `127.0.0.1:3002`.
 - Post-change checks confirmed production and `www` remain HTTP 200 with the production PM2 PID/restart count unchanged. Staging MySQL remains `tashira_staging`/`tashira_staging_app` on loopback, staging document storage remains isolated with mode 700, and ports 3002/3306 are not publicly reachable.
 - Public browser smoke verified the homepage and automatic protection redirects for admin and staff dashboards with no console errors.
+- Added a tightly scoped staging fixture for disposable browser staff accounts. Public HTTPS UAT verified staff login and dashboard data, then the fixture was removed and staging was restored to exact commit `1471ec070242b2652b8085bc95bb50918a3b9002`.
+- Browser automation could not activate the dashboard logout control reliably even though the reviewed bundle contained the handler. Experimental source changes were fully reverted; manual confirmation remains required rather than treating the automation result as a confirmed product defect.
+- Staging responses now disable browser caching so every UAT session loads the current build. This header is confined to the staging virtual host.
 - Initialized the lightweight project director in `AGENTS.md`, `PROJECT_DIRECTOR.md`, and `PROJECT_STATUS.md`.
 - Rechecked external staging prerequisites: `staging.tashiraev.com` has no public DNS/TLS yet, and staging has no Stripe TEST or sandbox-mail credentials configured.
 - Classified all 24 dependency findings and applied only compatible targeted updates, reducing the audit to 18 findings (1 low, 9 moderate, 8 high). A broad lockfile update was rejected because it produced an `npm ci` inconsistency.

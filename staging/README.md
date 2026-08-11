@@ -41,7 +41,7 @@ Never commit these files. Never reuse a production value.
 
 ## Current native staging entry point
 
-The approved native runtime is private on `127.0.0.1:3002`. The public entry point is only `https://staging.tashiraev.com`, using the reviewed `staging/nginx-native.conf` virtual host and a separate Let's Encrypt certificate. HTTP redirects to HTTPS and every response carries `X-Robots-Tag: noindex, nofollow, noarchive`.
+The approved native runtime is private on `127.0.0.1:3002`. The public entry point is only `https://staging.tashiraev.com`, using the reviewed `staging/nginx-native.conf` virtual host and a separate Let's Encrypt certificate. HTTP redirects to HTTPS, every response carries `X-Robots-Tag: noindex, nofollow, noarchive`, and staging disables browser caching so UAT always exercises the current build.
 
 MySQL remains private on `127.0.0.1:3306`. Never publish port 3002 or the database port, and never point this virtual host at production port 3000.
 
