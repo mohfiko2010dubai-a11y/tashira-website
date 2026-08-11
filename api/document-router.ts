@@ -2,13 +2,13 @@ import { z } from "zod";
 import { applicationUploadQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { documents } from "@db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, ne, sql } from "drizzle-orm";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
 import { TRPCError } from "@trpc/server";
 import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
 import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
-import { LOCAL_STORAGE_METADATA } from "./lib/local-storage";
+import { LOCAL_STORAGE_METADATA, storageDelete } from "./lib/local-storage";
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -30,7 +30,10 @@ export const documentRouter = createRouter({
     .query(async ({ input }) => {
       const db = getDb();
 
-      const conditions = [eq(documents.applicationId, input.applicationId)];
+      const conditions = [
+        eq(documents.applicationId, input.applicationId),
+        ne(documents.uploadStatus, "replaced"),
+      ];
 
       // Apply document type filter
       if (input.documentType) {
@@ -85,7 +88,9 @@ export const documentRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       await assertApplicationIdAccess(ctx, input.applicationId);
       await assertApplicantBelongsToApplication(input.applicantId, input.applicationId);
-      const expectedPrefix = `applications/${input.applicationId}/${input.documentType}/`;
+      const expectedPrefix = input.applicantId
+        ? `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/`
+        : `applications/${input.applicationId}/${input.documentType}/`;
       if (!input.storagePath.startsWith(expectedPrefix) || !input.storagePath.endsWith(`/${input.storedFileName}`)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Document storage path does not match application metadata" });
       }
@@ -178,6 +183,10 @@ export const documentRouter = createRouter({
         return { success: false, error: "Document not found" };
       }
 
+      // Delete storage first; a failure leaves the current metadata visible and retryable.
+      await storageDelete(doc.storagePath);
+      // Preserve the metadata row for immutable lifecycle foreign keys and hide it from active lists.
+      await db.update(documents).set({ uploadStatus: "replaced" }).where(eq(documents.id, input.id));
       await recordDocumentLifecycleEvent({
         applicationId: doc.applicationId,
         documentId: doc.id,
@@ -185,8 +194,6 @@ export const documentRouter = createRouter({
         eventType: "DELETED",
         actorType: ctx.isAdmin ? "ADMIN" : "STAFF",
       });
-      // Current metadata can be removed; immutable lifecycle evidence remains.
-      await db.delete(documents).where(eq(documents.id, input.id));
       await recordTimelineEvent({
         applicationId: doc.applicationId,
         eventName: "DOCUMENT_DELETED",
@@ -213,7 +220,7 @@ export const documentRouter = createRouter({
         totalSize: sql<number>`COALESCE(SUM(${documents.fileSize}), 0)`,
       })
         .from(documents)
-        .where(eq(documents.applicationId, input.applicationId));
+        .where(and(eq(documents.applicationId, input.applicationId), ne(documents.uploadStatus, "replaced")));
 
       return {
         count: result?.count || 0,

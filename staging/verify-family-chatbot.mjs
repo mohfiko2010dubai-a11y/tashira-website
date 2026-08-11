@@ -141,12 +141,53 @@ const submitted = await mutation("wizard.submitApplication", {
 });
 assert(submitted.quote.totalPrice === quote.totalPrice, "Submit did not preserve the server-authoritative aggregate quote");
 
+assert(process.env.ADMIN_PASSWORD, "ADMIN_PASSWORD is required for privileged document UAT");
+await mutation("auth.adminLogin", { password: process.env.ADMIN_PASSWORD });
+const lifecycleDocument = progress.documents.find((document) =>
+  document.applicantId === primary.applicantId && document.documentType === "passport");
+assert(lifecycleDocument, "No primary passport document available for lifecycle UAT");
+
+const originalSigned = await query("storage.getSignedUrl", { documentId: lifecycleDocument.id });
+const originalResponse = await fetch(new URL(originalSigned.signedUrl, baseUrl));
+assert(originalResponse.ok, "Document signed URL did not serve the original file");
+
+const replacementContents = "synthetic-family-uat-replacement";
+await mutation("storage.replace", {
+  documentId: lifecycleDocument.id,
+  applicationId: started.applicationId,
+  applicantId: primary.applicantId,
+  documentType: "passport",
+  fileName: "passport-replacement.pdf",
+  mimeType: "application/pdf",
+  fileSize: Buffer.byteLength(replacementContents),
+  base64Data: Buffer.from(replacementContents).toString("base64"),
+  uploadedBy: "staging-family-uat",
+});
+const replacementSigned = await query("storage.getSignedUrl", { documentId: lifecycleDocument.id });
+const replacementResponse = await fetch(new URL(replacementSigned.signedUrl, baseUrl));
+assert(await replacementResponse.text() === replacementContents, "Replacement signed URL did not serve the new file");
+
+await mutation("document.delete", { id: lifecycleDocument.id });
+let deletedSignedUrlRejected = false;
+try {
+  await query("storage.getSignedUrl", { documentId: lifecycleDocument.id });
+} catch (error) {
+  deletedSignedUrlRejected = String(error).includes("Document not found");
+}
+assert(deletedSignedUrlRejected, "Deleted document still issued a signed URL");
+const activeDocuments = await query("document.listByApplication", { applicationId: started.applicationId });
+assert(activeDocuments.length === 5, "Deleted document remains in the active document list");
+
 console.log(JSON.stringify({
   referenceNumber,
   applicationId: started.applicationId,
   applicantIds: [primary.applicantId, secondary.applicantId],
   documentCount: progress.documents.length,
   crossApplicantRejected,
+  signedUrlVerified: true,
+  replacementVerified: true,
+  deletedSignedUrlRejected,
+  activeDocumentCount: activeDocuments.length,
   totalPrice: submitted.quote.totalPrice,
   currency: submitted.quote.currency,
 }));

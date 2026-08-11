@@ -15,11 +15,14 @@ import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
 import { recordTimelineEvent } from "./lib/application-timeline";
 import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
+import { documents } from "@db/schema";
+import { getDb } from "./queries/connection";
+import { eq } from "drizzle-orm";
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
   getSignedUrl: staffOrAdminQuery
-    .input(z.object({ path: z.string().min(1) }))
+    .input(z.object({ documentId: z.number().positive() }))
     .query(async ({ input }) => {
       try {
         if (!isStorageConfigured()) {
@@ -29,7 +32,15 @@ export const storageRouter = createRouter({
           });
         }
 
-        const { signedUrl } = await storageCreateSignedUrl(input.path);
+        const [document] = await getDb().select({
+          storagePath: documents.storagePath,
+          uploadStatus: documents.uploadStatus,
+        })
+          .from(documents).where(eq(documents.id, input.documentId)).limit(1);
+        if (!document || document.uploadStatus === "replaced") {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
+        }
+        const { signedUrl } = await storageCreateSignedUrl(document.storagePath);
 
         return { signedUrl, expiresIn: SIGNED_URL_EXPIRY };
       } catch (err: unknown) {
@@ -74,7 +85,9 @@ export const storageRouter = createRouter({
         const sanitizedName = sanitizeDocumentFileName(input.fileName);
         const timestamp = Date.now();
         const storedName = `${timestamp}-${sanitizedName}`;
-        const storagePath = `applications/${input.applicationId}/${input.documentType}/${storedName}`;
+        const storagePath = input.applicantId
+          ? `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/${storedName}`
+          : `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
         // Decode base64 to Buffer
         const fileBuffer = Buffer.from(input.base64Data, "base64");
@@ -102,7 +115,7 @@ export const storageRouter = createRouter({
 
   // Delete document from the active server-side storage provider.
   delete: staffOrAdminQuery
-    .input(z.object({ path: z.string().min(1) }))
+    .input(z.object({ documentId: z.number().positive() }))
     .mutation(async ({ input }) => {
       try {
         if (!isStorageConfigured()) {
@@ -112,7 +125,15 @@ export const storageRouter = createRouter({
           });
         }
 
-        await storageDelete(input.path);
+        const [document] = await getDb().select({
+          storagePath: documents.storagePath,
+          uploadStatus: documents.uploadStatus,
+        })
+          .from(documents).where(eq(documents.id, input.documentId)).limit(1);
+        if (!document || document.uploadStatus === "replaced") {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
+        }
+        await storageDelete(document.storagePath);
 
         return { success: true };
       } catch (err: unknown) {
@@ -124,7 +145,7 @@ export const storageRouter = createRouter({
   // Replace document (delete old + upload new)
   replace: staffOrAdminQuery
     .input(z.object({
-      oldPath: z.string().min(1),
+      documentId: z.number().positive(),
       applicationId: z.number().positive(),
       applicantId: z.number().optional(),
       documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),
@@ -143,20 +164,28 @@ export const storageRouter = createRouter({
           });
         }
 
-        // Validate new file
+        const [document] = await getDb().select().from(documents)
+          .where(eq(documents.id, input.documentId)).limit(1);
+        if (!document || document.uploadStatus === "replaced" || document.applicationId !== input.applicationId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Document does not belong to application" });
+        }
+        if (document.applicantId !== (input.applicantId ?? null) || document.documentType !== input.documentType) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Replacement target metadata mismatch" });
+        }
+        await assertApplicantBelongsToApplication(input.applicantId, input.applicationId);
+
+        // Validate the complete replacement before touching the existing file.
         const validationError = validateDocumentFile(input.mimeType, input.fileSize);
         if (validationError) {
           throw new TRPCError({ code: "BAD_REQUEST", message: validationError });
         }
 
-        // Delete old file
-        await storageDelete(input.oldPath);
-
-        // Upload new file
         const sanitizedName = sanitizeDocumentFileName(input.fileName);
         const timestamp = Date.now();
         const storedName = `${timestamp}-${sanitizedName}`;
-        const storagePath = `applications/${input.applicationId}/${input.documentType}/${storedName}`;
+        const storagePath = input.applicantId
+          ? `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/${storedName}`
+          : `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
         const fileBuffer = Buffer.from(input.base64Data, "base64");
         const decodedSizeError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
@@ -164,7 +193,18 @@ export const storageRouter = createRouter({
           throw new TRPCError({ code: "BAD_REQUEST", message: decodedSizeError });
         }
 
+        // Upload first so a failed replacement never destroys the current document.
         await storageUpload(storagePath, fileBuffer, input.mimeType);
+        await getDb().update(documents).set({
+          originalFileName: input.fileName,
+          storedFileName: storedName,
+          mimeType: input.mimeType,
+          fileSize: input.fileSize,
+          storagePath,
+          uploadStatus: "uploaded",
+          uploadedBy: input.uploadedBy ?? null,
+        }).where(eq(documents.id, document.id));
+        await storageDelete(document.storagePath);
         await recordTimelineEvent({
           applicationId: input.applicationId,
           eventName: "DOCUMENT_REPLACED",
@@ -174,6 +214,7 @@ export const storageRouter = createRouter({
         });
         await recordDocumentLifecycleEvent({
           applicationId: input.applicationId,
+          documentId: document.id,
           applicantId: input.applicantId,
           eventType: "REPLACED",
           actorType: ctx.isAdmin ? "ADMIN" : "STAFF",

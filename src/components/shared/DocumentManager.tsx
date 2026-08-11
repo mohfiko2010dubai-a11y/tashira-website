@@ -64,18 +64,8 @@ export default function DocumentManager({ applicationId }: DocumentManagerProps)
   });
 
   const { data: countData } = trpc.document.countByApplication.useQuery({ applicationId });
-  const deleteStorage = trpc.storage.delete.useMutation();
-
   const deleteDoc = trpc.document.delete.useMutation({
-    onSuccess: async (data) => {
-      // Also delete from the active server-side storage provider.
-      if (data.success && data.storagePath) {
-        try {
-          await deleteStorage.mutateAsync({ path: data.storagePath });
-        } catch (err) {
-          console.error("[Delete] Storage delete failed:", err);
-        }
-      }
+    onSuccess: () => {
       utils.document.listByApplication.invalidate({ applicationId });
       utils.document.countByApplication.invalidate({ applicationId });
       setDeletingId(null);
@@ -90,7 +80,7 @@ export default function DocumentManager({ applicationId }: DocumentManagerProps)
 
   const handleDownload = async (doc: DocumentListItem) => {
     try {
-      const result = await utils.storage.getSignedUrl.fetch({ path: doc.storagePath });
+      const result = await utils.storage.getSignedUrl.fetch({ documentId: doc.id });
       if (result?.signedUrl) {
         const a = document.createElement("a");
         a.href = result.signedUrl;
@@ -247,7 +237,6 @@ export default function DocumentManager({ applicationId }: DocumentManagerProps)
           documentId={previewDoc.id}
           fileName={previewDoc.originalFileName}
           mimeType={previewDoc.mimeType}
-          storagePath={previewDoc.storagePath}
           onClose={() => setPreviewDoc(null)}
         />
       )}

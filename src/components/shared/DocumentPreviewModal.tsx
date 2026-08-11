@@ -5,19 +5,18 @@ interface DocumentPreviewModalProps {
   documentId: number;
   fileName: string;
   mimeType: string;
-  storagePath: string;
   onClose: () => void;
 }
 
 export default function DocumentPreviewModal({
+  documentId,
   fileName,
   mimeType,
-  storagePath,
   onClose,
 }: DocumentPreviewModalProps) {
   const { data: urlData, isLoading } = trpc.storage.getSignedUrl.useQuery(
-    { path: storagePath },
-    { enabled: !!storagePath },
+    { documentId },
+    { enabled: documentId > 0 },
   );
 
   const signedUrl = urlData?.signedUrl ?? null;
