@@ -1,5 +1,17 @@
 # TASHIRA Stabilization Progress
 
+## Phase 9 launch-blocker closure (2026-08-11)
+
+- Initialized the lightweight project director in `AGENTS.md`, `PROJECT_DIRECTOR.md`, and `PROJECT_STATUS.md`.
+- Rechecked external staging prerequisites: `staging.tashiraev.com` has no public DNS/TLS yet, and staging has no Stripe TEST or sandbox-mail credentials configured.
+- Classified all 24 dependency findings and applied only compatible targeted updates, reducing the audit to 18 findings (1 low, 9 moderate, 8 high). A broad lockfile update was rejected because it produced an `npm ci` inconsistency.
+- Aligned React Router imports and packages on the existing v6 runtime, removing the verified `/staff` fallback crash without changing route behavior.
+- Added route-level lazy loading. The main client chunk decreased from about 3.4 MB (704 KB gzip) to about 1.19 MB (232 KB gzip); XLSX, invoice, and the 35.1 MB server bundle remain optimization targets.
+- Corrected the chatbot's canonical visa code, registered payment route, and server-authoritative quoted total. Added two focused tests.
+- Isolated staging is running commit `ff6faff8e01ab3afb4254a1cb6395847246e893c`; TypeScript, ESLint, 58/58 tests across 21 files, build, and GitHub Actions run `31469999903` all pass.
+- Family per-applicant capture and document ownership/resume remain active product work. Public staging, Stripe TEST, mail delivery, and authenticated external UAT remain blocked on environment inputs.
+- Production and `main`/`master` were not changed. The preserved stash and production-audit artifacts remain untouched.
+
 ## Phase 8 staging migration and UAT (2026-08-11)
 
 - Reviewed and hardened migration 005, including restrictive foreign keys, indexes, long-date compatibility, rerunnable triggers, and explicit MySQL-safe constraint names.

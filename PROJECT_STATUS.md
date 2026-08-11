@@ -6,13 +6,13 @@ Last verified: 2026-08-11
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- HEAD at initialization: `ad2eac0fcf2ad178937db6d06c34164f2f0edc6c`.
-- CI: GREEN; GitHub Actions run `31466409877` succeeded.
-- Tests: 56/56 passing across 20 files.
+- Current verified implementation HEAD: `ff6faff8e01ab3afb4254a1cb6395847246e893c`.
+- CI: GREEN; GitHub Actions run `31469999903` succeeded.
+- Tests: 58/58 passing across 21 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
-- Verified launch readiness: 64%.
+- Verified launch readiness: 67%.
 - Classification: C — Not Launch Candidate.
 
 ## Completed capabilities
@@ -24,6 +24,10 @@ Last verified: 2026-08-11
 - Filesystem document upload with ownership checks and lifecycle/timeline evidence.
 - Signed customer application capability, admin/staff authorization foundations, risk engine, evidence manifest, finance/VAT cockpit, retention, and legal holds.
 - Stripe TEST-only verification/webhook foundation and transactional-email/recovery abstractions.
+- Safe dependency updates reduced the audit from 24 to 18 findings without force-upgrading incompatible packages.
+- Router packages are aligned on React Router 6, eliminating the verified `/staff` fallback crash.
+- Route-level lazy loading reduced the main client chunk from about 3.4 MB to about 1.19 MB.
+- The chatbot now sends canonical visa-service codes, links to the registered `/pay/:referenceNumber` route, and displays the server-authoritative quote.
 
 ## Active blockers
 
@@ -34,8 +38,8 @@ Last verified: 2026-08-11
 - Family chatbot per-applicant details/documents and resume state.
 - Privileged document replace/delete/signed URL browser UAT.
 - Owner-approved business configuration.
-- Individual npm audit triage and safe fixes.
-- Main client and server bundle size review.
+- Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
+- Large XLSX/invoice chunks and the 35.1 MB bundled server artifact.
 
 ## Owner decisions/actions required
 
@@ -48,4 +52,4 @@ Last verified: 2026-08-11
 
 ## Next highest-priority task
 
-Recheck whether public staging DNS/TLS and test integrations are now available. Then complete the highest-priority independent work: family chatbot ownership-safe multi-applicant flow, authenticated staging UAT, dependency audit triage, and safe route-level code splitting.
+Complete the family chatbot ownership-safe multi-applicant flow. In parallel, public DNS/TLS, Stripe TEST credentials, and sandbox mail remain owner/environment prerequisites for external authenticated UAT.
