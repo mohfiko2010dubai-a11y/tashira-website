@@ -14,11 +14,11 @@ Customer access now uses a signed, HttpOnly browser capability. It supports safe
 
 ## Transactional email provider
 
-The repository has no mail transport dependency or selected provider. Staging exposes Mailpit SMTP, but production provider credentials, sender/domain policy, retry behavior, and templates are not defined. Choose and approve a provider before implementing application, payment, document, and completion notifications. The UI must not claim an email was sent until this is implemented.
+The repository has no selected delivery provider. The current isolated native staging runtime has no sandbox mail transport configured. Production provider credentials, sender/domain policy, retry behavior, and templates are not defined. Choose and approve a provider before enabling application, payment, document, and completion notifications. The UI must not claim an email was sent until this is implemented.
 
 ## Server-authoritative pricing and VAT
 
-The form and chatbot contain client-side price tables, while application creation still accepts calculated totals from the browser. Stripe intent creation correctly uses the stored server amount, but the authoritative product/fee/VAT catalogue is not represented server-side. Confirm the canonical prices, exchange-rate policy, fee/VAT inclusivity, and effective-date rules before replacing client totals.
+Application creation now obtains its amount from versioned server-side pricing rules and stores an immutable price snapshot; client-supplied totals are not accepted by that API. Phase 8 verified this behavior with synthetic versioned prices in staging. The opening production prices, exchange-rate policy, fee/VAT inclusivity, and effective-date rules still require owner approval.
 
 The admin VAT screen currently assumes every paid customer total includes 5% VAT, while both invoice generators explicitly state that VAT is disabled until a TRN is obtained. The VAT report must not be treated as accounting output until registration status and tax treatment are approved and reconciled.
 
@@ -31,6 +31,16 @@ Customers can safely retry failed uploads without duplicating successful files. 
 No approved legal or business retention period exists for application timeline events, payment journey evidence, policy-acceptance records, generated evidence manifests, or the underlying customer documents. Define retention by data category, jurisdiction, dispute window, legal hold, deletion request handling, and backup lifecycle before production activation. Do not automatically purge or retain indefinitely based on an engineering assumption.
 
 Database-level append-only trigger enforcement also requires an operational decision: the application exposes no update/delete method for timeline rows and foreign keys restrict parent deletion, but production database privileges and trigger rollout must be reviewed before adding database triggers.
+
+Phase 8 verified the proposed MySQL append-only triggers in the isolated `tashira_staging` database. Production rollout, backup, maintenance-user privileges, and rollback approval remain separate decisions.
+
+## Phase 8 external launch blockers
+
+- Provision DNS and TLS for `staging.tashiraev.com` before public/cross-device UAT. The verified staging listener is intentionally private on `127.0.0.1:3002` and was reached only through an SSH tunnel.
+- Supply approved Stripe TEST credentials and a staging webhook endpoint before payment success, failure, retry, 3DS, replay, idempotency, invoice, and payment-evidence UAT.
+- Select a sandbox mail provider and approve synthetic test recipients before delivery, magic-link, OTP, and cross-device recovery UAT.
+- Provide approved synthetic staff credentials and a safe browser-secret handoff if authenticated staff/admin browser UAT is required. Server-side authentication and authorization smoke checks passed, but the complete authenticated dashboard matrix was not executed in the browser.
+- Review the 24 dependency-audit findings reported by `npm ci` (1 low, 7 moderate, 16 high) without applying an automatic or breaking upgrade.
 
 ## Phase 7 launch decisions
 

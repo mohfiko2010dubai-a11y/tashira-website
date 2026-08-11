@@ -1,5 +1,17 @@
 # TASHIRA Stabilization Progress
 
+## Phase 8 staging migration and UAT (2026-08-11)
+
+- Reviewed and hardened migration 005, including restrictive foreign keys, indexes, long-date compatibility, rerunnable triggers, and explicit MySQL-safe constraint names.
+- Provisioned an isolated native staging runtime at `/var/www/tashira-staging` using only `tashira_staging`, `tashira_staging_app`, staging filesystem storage, `tashira-staging`, and `127.0.0.1:3002`.
+- Applied migration 005 only to staging and verified 22 tables, 11 foreign keys, 77 index entries, and 16 append-only triggers.
+- Verified single, family/GCC, server pricing, immutable price versions, synthetic filesystem upload, timeline, checkout abandonment, risk, evidence manifest, finance/VAT calculations, and legal-hold behavior.
+- Fixed local-storage metadata so new application and wizard document rows record `local/local` instead of legacy Supabase defaults.
+- Current staging code commit: `c30313be87b0b6288c7a55154d09ced0571b23af`.
+- Current gates: TypeScript PASS, ESLint PASS, 56/56 tests PASS, build PASS, GitHub CI PASS.
+- Launch Candidate status: not yet qualified. Public staging DNS/TLS, Stripe TEST, sandbox mail/recovery, full authenticated browser UAT, owner-approved business settings, and dependency-audit triage remain blockers.
+- Production and main/master remain untouched; the preserved stash remains intact.
+
 ## Current phase
 
 Phase 7 business architecture is implemented on the review branch: server pricing snapshots, versioned company/finance settings, finance/VAT/analytics cockpit, explainable risk and health metrics, document lifecycle evidence, recovery/email abstractions, and retention/legal-hold/MySQL immutability architecture.
