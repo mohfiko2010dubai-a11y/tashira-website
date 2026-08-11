@@ -6,13 +6,13 @@ Last verified: 2026-08-11
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `50734648f595251b8f76dd86f7d3d33e043b5483`.
-- CI: GREEN; GitHub Actions runs 55 through 60 succeeded.
+- Current verified implementation HEAD: `1ba5bc87ac015b935a497b8634906daeedcf1356`.
+- CI: GREEN; GitHub Actions runs 55 through 61 succeeded.
 - Tests: 67/67 passing across 22 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
-- Verified launch readiness: 77%.
+- Verified launch readiness: 82%.
 - Classification: C — Not Launch Candidate.
 
 ## Completed capabilities
@@ -33,10 +33,10 @@ Last verified: 2026-08-11
 - Privileged document lifecycle APIs now accept a trusted document ID instead of a client-provided storage path. Replacement uploads and validates the new file before removing the old one, updates MySQL metadata, and preserves immutable lifecycle references.
 - Exact-commit staging UAT authenticated as an administrator and verified original signed-URL access, replacement content, logical deletion, refusal to sign a deleted document, and removal from active document lists.
 - A permanent staging authentication verifier now confirms anonymous admin rejection, admin login/session/logout, synthetic staff creation, staff login/session verification, staff-only API access, logout invalidation, and cleanup without exposing credentials or tokens.
+- Public staging is live at `https://staging.tashiraev.com` with a dedicated Let's Encrypt certificate, HTTP-to-HTTPS redirect, noindex/security headers, and a staging-only Nginx proxy to `127.0.0.1:3002`. External health and unauthenticated route-guard browser smoke tests pass.
 
 ## Active blockers
 
-- Public staging DNS/TLS.
 - Stripe TEST credentials, webhook registration, and end-to-end payment UAT.
 - Sandbox mail transport and magic-link/OTP delivery UAT.
 - Full authenticated customer/admin/staff browser UAT.
@@ -46,7 +46,6 @@ Last verified: 2026-08-11
 
 ## Owner decisions/actions required
 
-- Provision or delegate DNS for `staging.tashiraev.com` and approve staging TLS exposure.
 - Supply Stripe TEST-only credentials and configure the staging webhook endpoint without exposing secrets.
 - Select a sandbox mail provider and synthetic recipients.
 - Approve production pricing/company/VAT/exchange-rate/invoice values.
@@ -55,4 +54,4 @@ Last verified: 2026-08-11
 
 ## Next highest-priority task
 
-Expose isolated staging through owner-approved DNS/TLS, then complete authenticated customer/admin/staff browser UAT. Stripe TEST credentials and sandbox mail remain owner/environment prerequisites for payment and recovery UAT.
+Complete synthetic authenticated customer/admin/staff browser UAT on public staging. Stripe TEST credentials and sandbox mail remain owner/environment prerequisites for payment and recovery UAT.

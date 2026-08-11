@@ -4,9 +4,9 @@ This directory defines an isolated staging runtime. It must never reference prod
 
 ## Required external resources
 
-1. A staging host with Docker Engine and Docker Compose.
-2. DNS for `staging.tashiraev.com` pointing only to that host.
-3. TLS certificate files at `staging/certs/fullchain.pem` and `staging/certs/privkey.pem`.
+1. An isolated native or Docker staging runtime.
+2. DNS for `staging.tashiraev.com` pointing only to the approved staging entry point.
+3. A valid staging-only TLS certificate.
 4. Stripe TEST publishable, secret, and webhook credentials.
 5. Synthetic test data only.
 
@@ -38,6 +38,12 @@ Never commit these files. Never reuse a production value.
 - Mail is routed to Mailpit; its UI is bound to host loopback only.
 - Stripe server startup refuses non-TEST secret keys.
 - Nginx proxies only to the staging application service.
+
+## Current native staging entry point
+
+The approved native runtime is private on `127.0.0.1:3002`. The public entry point is only `https://staging.tashiraev.com`, using the reviewed `staging/nginx-native.conf` virtual host and a separate Let's Encrypt certificate. HTTP redirects to HTTPS and every response carries `X-Robots-Tag: noindex, nofollow, noarchive`.
+
+MySQL remains private on `127.0.0.1:3306`. Never publish port 3002 or the database port, and never point this virtual host at production port 3000.
 
 ## Schema preparation
 
