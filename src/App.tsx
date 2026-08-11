@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HelmetProvider } from 'react-helmet-async';
@@ -9,6 +9,7 @@ import ScrollToTop from '@/components/shared/ScrollToTop';
 import ChatBot from '@/components/shared/ChatBot';
 import AdminGuard from '@/components/shared/AdminGuard';
 import StaffGuard from '@/components/shared/StaffGuard';
+import ChunkLoadErrorBoundary from '@/components/shared/ChunkLoadErrorBoundary';
 import { importWithStaleChunkRecovery } from '@/lib/lazy-import';
 
 const Home = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Home')));
@@ -50,8 +51,9 @@ function AppContent() {
     <div className={`min-h-screen bg-white ${i18n.language === 'ar' ? 'font-tajawal' : 'font-inter'}`}>
       {!isAdminRoute && <Header />}
       <main>
-        <Suspense fallback={<div className="min-h-[40vh]" aria-label="Loading page" />}>
-        <Routes>
+        <ChunkLoadErrorBoundary>
+          <Suspense fallback={<div className="min-h-[40vh]" aria-label="Loading page" />}>
+          <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/visa-prices" element={<Pricing />} />
           <Route path="/how-to-apply" element={<HowToApply />} />
@@ -64,6 +66,7 @@ function AppContent() {
           <Route path="/dashboard" element={<AdminGuard><Dashboard /></AdminGuard>} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
           <Route path="/admin/applications" element={<AdminGuard><AdminApplications /></AdminGuard>} />
           <Route path="/admin/applications/:referenceNumber" element={<AdminGuard><AdminApplicationDetail /></AdminGuard>} />
           <Route path="/admin/suppliers" element={<AdminGuard><AdminSuppliers /></AdminGuard>} />
@@ -77,8 +80,9 @@ function AppContent() {
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
           <Route path="*" element={<NotFound />} />
-        </Routes>
-        </Suspense>
+          </Routes>
+          </Suspense>
+        </ChunkLoadErrorBoundary>
       </main>
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <ScrollToTop />}

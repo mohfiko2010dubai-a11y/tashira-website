@@ -6,8 +6,24 @@ import path from "path";
 
 type App = Hono<{ Bindings: HttpBindings }>;
 
+const IMMUTABLE_ASSET_CACHE = "public, max-age=31536000, immutable";
+const HTML_CACHE = "no-cache, no-store, must-revalidate";
+
+export function getFrontendCacheControl(requestPath: string): string {
+  return requestPath.startsWith("/assets/") ? IMMUTABLE_ASSET_CACHE : HTML_CACHE;
+}
+
 export function serveStaticFiles(app: App) {
   const distPath = path.resolve(process.cwd(), "dist/public");
+
+  app.use("*", async (c, next) => {
+    await next();
+    const requestPath = c.req.path;
+    if (requestPath.startsWith("/api/") || requestPath.startsWith("/storage/") || requestPath.startsWith("/invoices/")) {
+      return;
+    }
+    c.header("Cache-Control", getFrontendCacheControl(requestPath));
+  });
 
   // Serve static files for non-API, non-storage routes only
   app.use("*", async (c, next) => {

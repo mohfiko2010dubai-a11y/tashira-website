@@ -24,7 +24,10 @@ export default defineConfig({
   envDir: path.resolve(__dirname),
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
-    emptyOutDir: true,
+    // Deployments build in place. Keep previously hashed chunks so browser
+    // tabs opened before a deployment can finish their lazy imports safely.
+    // A release-based deployment may replace this with atomic directory swaps.
+    emptyOutDir: false,
     minify: false,
   },
   optimizeDeps: {
