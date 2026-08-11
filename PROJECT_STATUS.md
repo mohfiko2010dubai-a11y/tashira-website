@@ -6,13 +6,13 @@ Last verified: 2026-08-11
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `1471ec070242b2652b8085bc95bb50918a3b9002`.
-- CI: GREEN; GitHub Actions run 63 succeeded on the current implementation.
-- Tests: 67/67 passing across 22 files.
+- Current verified implementation HEAD: `5be87c691e9677b9543f2920743f38d9baa5ed8e`.
+- CI: GREEN through the previous implementation; the current review-branch run is being verified.
+- Tests: 71/71 passing across 23 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
-- Verified launch readiness: 83%.
+- Verified launch readiness: 84%.
 - Classification: C — Not Launch Candidate.
 
 ## Completed capabilities
@@ -35,6 +35,7 @@ Last verified: 2026-08-11
 - A permanent staging authentication verifier now confirms anonymous admin rejection, admin login/session/logout, synthetic staff creation, staff login/session verification, staff-only API access, logout invalidation, and cleanup without exposing credentials or tokens.
 - Public staging is live at `https://staging.tashiraev.com` with a dedicated Let's Encrypt certificate, HTTP-to-HTTPS redirect, noindex/security headers, and a staging-only Nginx proxy to `127.0.0.1:3002`. External health and unauthenticated route-guard browser smoke tests pass.
 - Synthetic browser UAT verified staff login and the real staff dashboard through public HTTPS. The temporary staff account was removed. Automated activation of the dashboard logout control was inconclusive, so no speculative application change was retained.
+- Lazy-loaded routes now recover once from stale deployment chunks, fixing admin/staff pages that previously failed when a browser retained an older entry bundle. Unrelated errors are never swallowed, and four regression cases cover the classifier and loop prevention boundary.
 
 ## Active blockers
 
