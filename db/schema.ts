@@ -3,10 +3,13 @@ import {
   serial,
   varchar,
   timestamp,
+  datetime,
   text,
   mysqlEnum,
   decimal,
   bigint,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -187,16 +190,19 @@ export const pricingRules = mysqlTable("pricing_rules", {
   promotionalPrice: decimal("promotional_price", { precision: 12, scale: 2 }),
   minimumSellingPrice: decimal("minimum_selling_price", { precision: 12, scale: 2 }).notNull(),
   currency: varchar("pricing_currency", { length: 3 }).notNull(),
-  effectiveAt: timestamp("effective_at").notNull(),
-  expiresAt: timestamp("expires_at"),
+  effectiveAt: datetime("effective_at").notNull(),
+  expiresAt: datetime("expires_at"),
   createdBy: varchar("created_by", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("pricing_rule_version_uq").on(table.serviceCode, table.processingType, table.version),
+  index("pricing_rule_active_idx").on(table.serviceCode, table.processingType, table.effectiveAt, table.expiresAt),
+]);
 
 export const applicationPriceSnapshots = mysqlTable("application_price_snapshots", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull().unique(),
-  pricingRuleId: bigint("pricing_rule_id", { mode: "number", unsigned: true }).notNull(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull().unique().references(() => applications.id, { onDelete: "restrict" }),
+  pricingRuleId: bigint("pricing_rule_id", { mode: "number", unsigned: true }).notNull().references(() => pricingRules.id, { onDelete: "restrict" }),
   pricingVersion: bigint("pricing_version", { mode: "number", unsigned: true }).notNull(),
   applicantCount: bigint("applicant_count", { mode: "number", unsigned: true }).notNull(),
   unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
@@ -222,94 +228,103 @@ export const businessSettingsVersions = mysqlTable("business_settings_versions",
   vatRegistered: mysqlEnum("vat_registered", ["yes", "no"]).notNull(),
   trn: varchar("trn", { length: 100 }),
   vatRate: decimal("settings_vat_rate", { precision: 7, scale: 4 }).notNull(),
-  vatEffectiveAt: timestamp("vat_effective_at"),
+  vatEffectiveAt: datetime("vat_effective_at"),
   registrationThreshold: decimal("registration_threshold", { precision: 14, scale: 2 }),
   warningLevelsJson: text("warning_levels_json").notNull(),
   invoicePrefix: varchar("invoice_prefix", { length: 20 }).notNull(),
   nextInvoiceNumber: bigint("next_invoice_number", { mode: "number", unsigned: true }).notNull(),
   baseCurrency: varchar("base_currency", { length: 3 }).notNull(),
   usdToBaseRate: decimal("usd_to_base_rate", { precision: 14, scale: 6 }).notNull(),
-  effectiveAt: timestamp("settings_effective_at").notNull(),
+  effectiveAt: datetime("settings_effective_at").notNull(),
   createdBy: varchar("settings_created_by", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const financialEvents = mysqlTable("financial_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("application_id", { mode: "number", unsigned: true }),
-  paymentId: bigint("payment_id", { mode: "number", unsigned: true }),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).references(() => applications.id, { onDelete: "restrict" }),
+  paymentId: bigint("payment_id", { mode: "number", unsigned: true }).references(() => payments.id, { onDelete: "restrict" }),
   eventType: mysqlEnum("financial_event_type", ["REFUND_REQUESTED", "REFUND_COMPLETED", "CHARGEBACK_OPENED", "CHARGEBACK_WON", "CHARGEBACK_LOST"]).notNull(),
   amount: decimal("financial_event_amount", { precision: 12, scale: 2 }),
   currency: varchar("financial_event_currency", { length: 3 }),
   sourceReference: varchar("source_reference", { length: 100 }),
   actorReference: varchar("financial_actor_reference", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("financial_event_application_idx").on(table.applicationId, table.createdAt),
+  index("financial_event_payment_idx").on(table.paymentId, table.createdAt),
+]);
 
 export const applicationRiskAssessments = mysqlTable("application_risk_assessments", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull().references(() => applications.id, { onDelete: "restrict" }),
   level: mysqlEnum("risk_level", ["LOW", "MEDIUM", "HIGH", "CRITICAL"]).notNull(),
   score: bigint("risk_score", { mode: "number", unsigned: true }).notNull(),
   factorsJson: text("risk_factors_json").notNull(),
   modelVersion: varchar("risk_model_version", { length: 50 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [index("risk_application_created_idx").on(table.applicationId, table.createdAt)]);
 
 export const retentionPolicies = mysqlTable("retention_policies", {
   id: serial("id").primaryKey(),
   category: mysqlEnum("retention_category", ["IDENTITY_DOCUMENTS", "APPLICATION_RECORDS", "PAYMENT_RECORDS", "CHARGEBACK_EVIDENCE", "AUDIT_LOGS"]).notNull(),
   durationDays: bigint("duration_days", { mode: "number", unsigned: true }),
   version: bigint("retention_version", { mode: "number", unsigned: true }).notNull(),
-  effectiveAt: timestamp("retention_effective_at").notNull(),
+  effectiveAt: datetime("retention_effective_at").notNull(),
   createdBy: varchar("retention_created_by", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [uniqueIndex("retention_policy_version_uq").on(table.category, table.version)]);
 
 export const retentionRecords = mysqlTable("retention_records", {
   id: varchar("id", { length: 36 }).primaryKey(),
   category: mysqlEnum("record_retention_category", ["IDENTITY_DOCUMENTS", "APPLICATION_RECORDS", "PAYMENT_RECORDS", "CHARGEBACK_EVIDENCE", "AUDIT_LOGS"]).notNull(),
   subjectType: varchar("retention_subject_type", { length: 50 }).notNull(),
   subjectReference: varchar("retention_subject_reference", { length: 100 }).notNull(),
-  retentionStart: timestamp("retention_start").notNull(),
-  scheduledDeletionAt: timestamp("scheduled_deletion_at"),
+  retentionStart: datetime("retention_start").notNull(),
+  scheduledDeletionAt: datetime("scheduled_deletion_at"),
   legalHoldActive: mysqlEnum("legal_hold_active", ["yes", "no"]).default("no").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("retention_subject_uq").on(table.category, table.subjectType, table.subjectReference),
+  index("retention_due_hold_idx").on(table.scheduledDeletionAt, table.legalHoldActive),
+]);
 
 export const legalHoldEvents = mysqlTable("legal_hold_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  retentionRecordId: varchar("retention_record_id", { length: 36 }).notNull(),
+  retentionRecordId: varchar("retention_record_id", { length: 36 }).notNull().references(() => retentionRecords.id, { onDelete: "restrict" }),
   action: mysqlEnum("legal_hold_action", ["PLACED", "RELEASED"]).notNull(),
   reason: varchar("legal_hold_reason", { length: 255 }).notNull(),
   authorizedActor: varchar("legal_hold_actor", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [index("legal_hold_record_created_idx").on(table.retentionRecordId, table.createdAt)]);
 
 export const deletionAuditEvents = mysqlTable("deletion_audit_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  retentionRecordId: varchar("deletion_retention_record_id", { length: 36 }).notNull(),
+  retentionRecordId: varchar("deletion_retention_record_id", { length: 36 }).notNull().references(() => retentionRecords.id, { onDelete: "restrict" }),
   outcome: mysqlEnum("deletion_outcome", ["BLOCKED_LEGAL_HOLD", "ELIGIBLE", "DELETED", "FAILED"]).notNull(),
   actorReference: varchar("deletion_actor_reference", { length: 100 }).notNull(),
   details: varchar("deletion_details", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [index("deletion_audit_record_created_idx").on(table.retentionRecordId, table.createdAt)]);
 
 export const customerRecoveryChallenges = mysqlTable("customer_recovery_challenges", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("recovery_application_id", { mode: "number", unsigned: true }).notNull(),
+  applicationId: bigint("recovery_application_id", { mode: "number", unsigned: true }).notNull().references(() => applications.id, { onDelete: "restrict" }),
   channel: mysqlEnum("recovery_channel", ["MAGIC_LINK", "EMAIL_OTP", "SMS_OTP"]).notNull(),
   tokenHash: varchar("token_hash", { length: 64 }).notNull(),
   destinationHash: varchar("destination_hash", { length: 64 }).notNull(),
-  expiresAt: timestamp("recovery_expires_at").notNull(),
-  consumedAt: timestamp("recovery_consumed_at"),
+  expiresAt: datetime("recovery_expires_at").notNull(),
+  consumedAt: datetime("recovery_consumed_at"),
   attemptCount: bigint("recovery_attempt_count", { mode: "number", unsigned: true }).default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("recovery_application_idx").on(table.applicationId, table.createdAt),
+  index("recovery_token_expiry_idx").on(table.tokenHash, table.expiresAt),
+]);
 
 export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("email_application_id", { mode: "number", unsigned: true }),
+  applicationId: bigint("email_application_id", { mode: "number", unsigned: true }).references(() => applications.id, { onDelete: "restrict" }),
   template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "VISA_ISSUED", "RESUME_LINK"]).notNull(),
   recipientHash: varchar("recipient_hash", { length: 64 }).notNull(),
   provider: varchar("email_provider", { length: 50 }).notNull(),
@@ -317,13 +332,13 @@ export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   providerReference: varchar("email_provider_reference", { length: 100 }),
   failureCategory: varchar("email_failure_category", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [index("outbound_email_application_idx").on(table.applicationId, table.createdAt)]);
 
 export const documentLifecycleEvents = mysqlTable("document_lifecycle_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("document_event_application_id", { mode: "number", unsigned: true }).notNull(),
+  applicationId: bigint("document_event_application_id", { mode: "number", unsigned: true }).notNull().references(() => applications.id, { onDelete: "restrict" }),
   documentId: bigint("document_event_document_id", { mode: "number", unsigned: true }),
-  applicantId: bigint("document_event_applicant_id", { mode: "number", unsigned: true }),
+  applicantId: bigint("document_event_applicant_id", { mode: "number", unsigned: true }).references(() => applicants.id, { onDelete: "restrict" }),
   replacesDocumentId: bigint("replaces_document_id", { mode: "number", unsigned: true }),
   eventType: mysqlEnum("document_lifecycle_event_type", ["UPLOADED", "REPLACED", "DELETED", "REPLACEMENT_REQUESTED", "VALIDATED", "REJECTED"]).notNull(),
   documentVersion: bigint("document_version", { mode: "number", unsigned: true }).notNull(),
@@ -332,4 +347,8 @@ export const documentLifecycleEvents = mysqlTable("document_lifecycle_events", {
   evidenceReference: varchar("document_evidence_reference", { length: 100 }),
   reason: varchar("document_event_reason", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("document_lifecycle_application_idx").on(table.applicationId, table.createdAt),
+  index("document_lifecycle_document_idx").on(table.documentId, table.createdAt),
+  index("document_lifecycle_applicant_idx").on(table.applicantId, table.createdAt),
+]);

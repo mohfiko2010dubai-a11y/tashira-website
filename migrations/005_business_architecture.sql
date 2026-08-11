@@ -4,7 +4,7 @@
 ALTER TABLE `invoices` ALTER COLUMN `vat_rate` DROP DEFAULT;
 ALTER TABLE `applications` ALTER COLUMN `exchange_rate` DROP DEFAULT;
 
-CREATE TABLE `pricing_rules` (
+CREATE TABLE IF NOT EXISTS `pricing_rules` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `service_code` varchar(80) NOT NULL,
   `pricing_processing_type` enum('regular','express') NOT NULL,
@@ -16,8 +16,8 @@ CREATE TABLE `pricing_rules` (
   `promotional_price` decimal(12,2) NULL,
   `minimum_selling_price` decimal(12,2) NOT NULL,
   `pricing_currency` char(3) NOT NULL,
-  `effective_at` timestamp NOT NULL,
-  `expires_at` timestamp NULL,
+  `effective_at` datetime NOT NULL,
+  `expires_at` datetime NULL,
   `created_by` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -25,7 +25,7 @@ CREATE TABLE `pricing_rules` (
   KEY `pricing_rule_active_idx` (`service_code`,`pricing_processing_type`,`effective_at`,`expires_at`)
 );
 
-CREATE TABLE `business_settings_versions` (
+CREATE TABLE IF NOT EXISTS `business_settings_versions` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `settings_version` bigint unsigned NOT NULL,
   `legal_name` varchar(255) NOT NULL,
@@ -35,14 +35,14 @@ CREATE TABLE `business_settings_versions` (
   `vat_registered` enum('yes','no') NOT NULL,
   `trn` varchar(100) NULL,
   `settings_vat_rate` decimal(7,4) NOT NULL,
-  `vat_effective_at` timestamp NULL,
+  `vat_effective_at` datetime NULL,
   `registration_threshold` decimal(14,2) NULL,
   `warning_levels_json` text NOT NULL,
   `invoice_prefix` varchar(20) NOT NULL,
   `next_invoice_number` bigint unsigned NOT NULL,
   `base_currency` char(3) NOT NULL,
   `usd_to_base_rate` decimal(14,6) NOT NULL,
-  `settings_effective_at` timestamp NOT NULL,
+  `settings_effective_at` datetime NOT NULL,
   `settings_created_by` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -50,7 +50,7 @@ CREATE TABLE `business_settings_versions` (
   KEY `business_settings_effective_idx` (`settings_effective_at`)
 );
 
-CREATE TABLE `application_price_snapshots` (
+CREATE TABLE IF NOT EXISTS `application_price_snapshots` (
   `id` varchar(36) NOT NULL,
   `application_id` bigint unsigned NOT NULL,
   `pricing_rule_id` bigint unsigned NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE `application_price_snapshots` (
   CONSTRAINT `price_snapshot_rule_fk` FOREIGN KEY (`pricing_rule_id`) REFERENCES `pricing_rules` (`id`) ON DELETE RESTRICT
 );
 
-CREATE TABLE `financial_events` (
+CREATE TABLE IF NOT EXISTS `financial_events` (
   `id` varchar(36) NOT NULL,
   `application_id` bigint unsigned NULL,
   `payment_id` bigint unsigned NULL,
@@ -84,10 +84,13 @@ CREATE TABLE `financial_events` (
   `financial_actor_reference` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `financial_event_application_idx` (`application_id`,`created_at`)
+  KEY `financial_event_application_idx` (`application_id`,`created_at`),
+  KEY `financial_event_payment_idx` (`payment_id`,`created_at`),
+  CONSTRAINT `financial_event_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `financial_event_payment_fk` FOREIGN KEY (`payment_id`) REFERENCES `payments` (`id`) ON DELETE RESTRICT
 );
 
-CREATE TABLE `application_risk_assessments` (
+CREATE TABLE IF NOT EXISTS `application_risk_assessments` (
   `id` varchar(36) NOT NULL,
   `application_id` bigint unsigned NOT NULL,
   `risk_level` enum('LOW','MEDIUM','HIGH','CRITICAL') NOT NULL,
@@ -96,35 +99,37 @@ CREATE TABLE `application_risk_assessments` (
   `risk_model_version` varchar(50) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `risk_application_created_idx` (`application_id`,`created_at`)
+  KEY `risk_application_created_idx` (`application_id`,`created_at`),
+  CONSTRAINT `risk_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT
 );
 
-CREATE TABLE `retention_policies` (
+CREATE TABLE IF NOT EXISTS `retention_policies` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `retention_category` enum('IDENTITY_DOCUMENTS','APPLICATION_RECORDS','PAYMENT_RECORDS','CHARGEBACK_EVIDENCE','AUDIT_LOGS') NOT NULL,
   `duration_days` bigint unsigned NULL,
   `retention_version` bigint unsigned NOT NULL,
-  `retention_effective_at` timestamp NOT NULL,
+  `retention_effective_at` datetime NOT NULL,
   `retention_created_by` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `retention_policy_version_uq` (`retention_category`,`retention_version`)
 );
 
-CREATE TABLE `retention_records` (
+CREATE TABLE IF NOT EXISTS `retention_records` (
   `id` varchar(36) NOT NULL,
   `record_retention_category` enum('IDENTITY_DOCUMENTS','APPLICATION_RECORDS','PAYMENT_RECORDS','CHARGEBACK_EVIDENCE','AUDIT_LOGS') NOT NULL,
   `retention_subject_type` varchar(50) NOT NULL,
   `retention_subject_reference` varchar(100) NOT NULL,
-  `retention_start` timestamp NOT NULL,
-  `scheduled_deletion_at` timestamp NULL,
+  `retention_start` datetime NOT NULL,
+  `scheduled_deletion_at` datetime NULL,
   `legal_hold_active` enum('yes','no') NOT NULL DEFAULT 'no',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `retention_subject_uq` (`record_retention_category`,`retention_subject_type`,`retention_subject_reference`)
+  UNIQUE KEY `retention_subject_uq` (`record_retention_category`,`retention_subject_type`,`retention_subject_reference`),
+  KEY `retention_due_hold_idx` (`scheduled_deletion_at`,`legal_hold_active`)
 );
 
-CREATE TABLE `legal_hold_events` (
+CREATE TABLE IF NOT EXISTS `legal_hold_events` (
   `id` varchar(36) NOT NULL,
   `retention_record_id` varchar(36) NOT NULL,
   `legal_hold_action` enum('PLACED','RELEASED') NOT NULL,
@@ -132,10 +137,11 @@ CREATE TABLE `legal_hold_events` (
   `legal_hold_actor` varchar(100) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `legal_hold_record_created_idx` (`retention_record_id`,`created_at`),
   CONSTRAINT `legal_hold_record_fk` FOREIGN KEY (`retention_record_id`) REFERENCES `retention_records` (`id`) ON DELETE RESTRICT
 );
 
-CREATE TABLE `deletion_audit_events` (
+CREATE TABLE IF NOT EXISTS `deletion_audit_events` (
   `id` varchar(36) NOT NULL,
   `deletion_retention_record_id` varchar(36) NOT NULL,
   `deletion_outcome` enum('BLOCKED_LEGAL_HOLD','ELIGIBLE','DELETED','FAILED') NOT NULL,
@@ -143,25 +149,27 @@ CREATE TABLE `deletion_audit_events` (
   `deletion_details` varchar(255) NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  KEY `deletion_audit_record_created_idx` (`deletion_retention_record_id`,`created_at`),
   CONSTRAINT `deletion_audit_record_fk` FOREIGN KEY (`deletion_retention_record_id`) REFERENCES `retention_records` (`id`) ON DELETE RESTRICT
 );
 
-CREATE TABLE `customer_recovery_challenges` (
+CREATE TABLE IF NOT EXISTS `customer_recovery_challenges` (
   `id` varchar(36) NOT NULL,
   `recovery_application_id` bigint unsigned NOT NULL,
   `recovery_channel` enum('MAGIC_LINK','EMAIL_OTP','SMS_OTP') NOT NULL,
   `token_hash` varchar(64) NOT NULL,
   `destination_hash` varchar(64) NOT NULL,
-  `recovery_expires_at` timestamp NOT NULL,
-  `recovery_consumed_at` timestamp NULL,
+  `recovery_expires_at` datetime NOT NULL,
+  `recovery_consumed_at` datetime NULL,
   `recovery_attempt_count` bigint unsigned NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `recovery_application_idx` (`recovery_application_id`,`created_at`),
+  KEY `recovery_token_expiry_idx` (`token_hash`,`recovery_expires_at`),
   CONSTRAINT `recovery_application_fk` FOREIGN KEY (`recovery_application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT
 );
 
-CREATE TABLE `outbound_email_events` (
+CREATE TABLE IF NOT EXISTS `outbound_email_events` (
   `id` varchar(36) NOT NULL,
   `email_application_id` bigint unsigned NULL,
   `email_template` enum('APPLICATION_RECEIVED','PAYMENT_SUCCESS','PAYMENT_FAILED','DOCUMENTS_REQUIRED','SUBMITTED','VISA_ISSUED','RESUME_LINK') NOT NULL,
@@ -172,10 +180,11 @@ CREATE TABLE `outbound_email_events` (
   `email_failure_category` varchar(50) NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `outbound_email_application_idx` (`email_application_id`,`created_at`)
+  KEY `outbound_email_application_idx` (`email_application_id`,`created_at`),
+  CONSTRAINT `outbound_email_application_fk` FOREIGN KEY (`email_application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT
 );
 
-CREATE TABLE `document_lifecycle_events` (
+CREATE TABLE IF NOT EXISTS `document_lifecycle_events` (
   `id` varchar(36) NOT NULL,
   `document_event_application_id` bigint unsigned NOT NULL,
   `document_event_document_id` bigint unsigned NULL,
@@ -189,10 +198,30 @@ CREATE TABLE `document_lifecycle_events` (
   `document_event_reason` varchar(255) NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `document_lifecycle_application_idx` (`document_event_application_id`,`created_at`)
+  KEY `document_lifecycle_application_idx` (`document_event_application_id`,`created_at`),
+  KEY `document_lifecycle_document_idx` (`document_event_document_id`,`created_at`),
+  KEY `document_lifecycle_applicant_idx` (`document_event_applicant_id`,`created_at`),
+  CONSTRAINT `document_lifecycle_application_fk` FOREIGN KEY (`document_event_application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `document_lifecycle_applicant_fk` FOREIGN KEY (`document_event_applicant_id`) REFERENCES `applicants` (`id`) ON DELETE RESTRICT
 );
 
 DELIMITER $$
+DROP TRIGGER IF EXISTS `application_timeline_no_update`$$
+DROP TRIGGER IF EXISTS `application_timeline_no_delete`$$
+DROP TRIGGER IF EXISTS `price_snapshot_no_update`$$
+DROP TRIGGER IF EXISTS `price_snapshot_no_delete`$$
+DROP TRIGGER IF EXISTS `financial_events_no_update`$$
+DROP TRIGGER IF EXISTS `financial_events_no_delete`$$
+DROP TRIGGER IF EXISTS `risk_assessments_no_update`$$
+DROP TRIGGER IF EXISTS `risk_assessments_no_delete`$$
+DROP TRIGGER IF EXISTS `legal_hold_events_no_update`$$
+DROP TRIGGER IF EXISTS `legal_hold_events_no_delete`$$
+DROP TRIGGER IF EXISTS `deletion_audit_no_update`$$
+DROP TRIGGER IF EXISTS `deletion_audit_no_delete`$$
+DROP TRIGGER IF EXISTS `outbound_email_no_update`$$
+DROP TRIGGER IF EXISTS `outbound_email_no_delete`$$
+DROP TRIGGER IF EXISTS `document_lifecycle_no_update`$$
+DROP TRIGGER IF EXISTS `document_lifecycle_no_delete`$$
 CREATE TRIGGER `application_timeline_no_update` BEFORE UPDATE ON `application_timeline_events`
 FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'application timeline is append-only'$$
 CREATE TRIGGER `application_timeline_no_delete` BEFORE DELETE ON `application_timeline_events`

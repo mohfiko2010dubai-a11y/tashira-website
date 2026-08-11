@@ -42,3 +42,7 @@ Database-level append-only trigger enforcement also requires an operational deci
 - Select and approve recovery/email providers, sender identity, message wording, OTP expiry/attempt policy, and production delivery credentials. Delivery remains disabled.
 - Review the disclosed risk and Business Health weights. Neither engine makes automated customer decisions.
 - Review migration 005 triggers and least-privilege MySQL grants in staging before any production migration request.
+
+## Credential rotation required
+
+Static migration review found a credential-like MySQL password embedded in the historical comment of `db/migration.sql`. The value has been removed from the working branch, but Git history must be treated as exposed. The database owner must identify whether that credential is active and rotate it through an approved production change. Codex did not test, use, or change the credential or production database.
