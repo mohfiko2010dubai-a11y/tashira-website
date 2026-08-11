@@ -1,5 +1,8 @@
 # TASHIRA Stabilization Progress
 
+- Fixed staging lazy-asset deployment consistency at `00b99ac2fd099b6173613667ab1e08446e460817`. In-place builds retain previous hashed chunks, HTML is not persistently cached, hashed assets are immutable, builds verify every local static reference, and stale chunk failures have a user-facing refresh fallback. Staging restored the exact missing Admin Applications chunk, verified 172 JavaScript assets over HTTPS, passed all 73 tests and quality gates, and GitHub Actions run 67 passed.
+- Authenticated staging browser UAT passed all lazy-loaded admin routes, `/admin` routing, a synthetic application detail, public routes, hard refresh, and normal navigation. A temporary synthetic staff account was created and removed; logout activation remains inconclusive because the browser automation selected the language control despite scoped selectors, and no speculative application change was retained.
+
 ## Phase 9 launch-blocker closure (2026-08-11)
 
 - Completed the family chatbot backend and UI flow: applicant-index-aware upsert, stable applicant IDs, Applicant 1..N progression, applicant-scoped storage paths, cross-slot rejection, reference-only resume marker, server-side resume payload, and aggregate server pricing at quote and submit.

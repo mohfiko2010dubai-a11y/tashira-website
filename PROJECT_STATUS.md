@@ -6,9 +6,9 @@ Last verified: 2026-08-11
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `5be87c691e9677b9543f2920743f38d9baa5ed8e`.
-- CI: GREEN through the previous implementation; the current review-branch run is being verified.
-- Tests: 71/71 passing across 23 files.
+- Current verified implementation HEAD: `00b99ac2fd099b6173613667ab1e08446e460817`.
+- CI: GREEN through run 67.
+- Tests: 73/73 passing across 24 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
@@ -36,12 +36,14 @@ Last verified: 2026-08-11
 - Public staging is live at `https://staging.tashiraev.com` with a dedicated Let's Encrypt certificate, HTTP-to-HTTPS redirect, noindex/security headers, and a staging-only Nginx proxy to `127.0.0.1:3002`. External health and unauthenticated route-guard browser smoke tests pass.
 - Synthetic browser UAT verified staff login and the real staff dashboard through public HTTPS. The temporary staff account was removed. Automated activation of the dashboard logout control was inconclusive, so no speculative application change was retained.
 - Lazy-loaded routes now recover once from stale deployment chunks, fixing admin/staff pages that previously failed when a browser retained an older entry bundle. Unrelated errors are never swallowed, and four regression cases cover the classifier and loop prevention boundary.
+- In-place builds now retain prior content-hashed chunks so tabs opened before deployment can finish lazy imports. HTML/client routes are `no-store`, hashed assets are immutable, every generated local asset reference is verified during `npm run build`, and an explicit chunk-load fallback replaces the raw router error screen.
+- Staging restored the exact previously missing `AdminApplications-1JinaxRj.js` generation, served 172 retained JavaScript assets without HTTP errors, and passed authenticated browser UAT for `/admin`, applications, a synthetic application detail, suppliers, staff management, invoices, supplier bills, VAT, finance, chat, public routes, hard refresh, and normal navigation.
 
 ## Active blockers
 
 - Stripe TEST credentials, webhook registration, and end-to-end payment UAT.
 - Sandbox mail transport and magic-link/OTP delivery UAT.
-- Authenticated customer/admin browser UAT and manual confirmation of the staff logout control.
+- Authenticated customer resume/tracking browser UAT and manual confirmation of the staff logout control. Browser automation repeatedly activated the language toggle instead of the visually distinct logout control, so no speculative logout change was retained.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
 - Large XLSX/invoice chunks and the 35.1 MB bundled server artifact.
@@ -56,4 +58,4 @@ Last verified: 2026-08-11
 
 ## Next highest-priority task
 
-Complete synthetic authenticated customer/admin browser UAT and manually confirm staff logout behavior. Stripe TEST credentials and sandbox mail remain owner/environment prerequisites for payment and recovery UAT.
+Complete synthetic authenticated customer resume/tracking browser UAT. Manual staff logout confirmation, Stripe TEST credentials, and sandbox mail remain owner/environment prerequisites for the remaining UAT.
