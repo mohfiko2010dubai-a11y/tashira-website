@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/providers/trpc-client';
 import { MessageCircle, X, Send, Bot, User, Paperclip, Lock } from 'lucide-react';
 import { TERMS_POLICY_VERSION } from '@contracts/constants';
+import { buildChatbotPaymentPath, getChatbotVisaServiceCode } from '@/lib/chatbot-application';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -290,6 +291,12 @@ export default function ChatBot() {
       case 'full_name': {
         if (validateName(msg)) {
           const refNum = generateReferenceNumber();
+          const serviceCode = getChatbotVisaServiceCode(w.visaType);
+          if (!serviceCode) {
+            addBotMessage('Unable to identify the selected visa product. Please restart the application.');
+            setLoading(false);
+            break;
+          }
           // Start application in DB
           startMutation.mutate(
             {
@@ -297,7 +304,7 @@ export default function ChatBot() {
               whoTraveling: w.whoTraveling,
               applicantCount: w.applicantCount,
               residenceStatus: w.residenceStatus,
-              visaType: w.visaType,
+              visaType: serviceCode,
               processingType: w.processingType,
               fullName: msg,
               totalAmount: w.totalAmount,
@@ -472,7 +479,13 @@ export default function ChatBot() {
       case 'terms': {
         if (msg.toLowerCase() === 'confirm') {
           const refNum = w.referenceNumber || generateReferenceNumber();
-          const payLink = `${window.location.origin}/payment/${refNum}`;
+          const payLink = `${window.location.origin}${buildChatbotPaymentPath(refNum)}`;
+          const serviceCode = getChatbotVisaServiceCode(w.visaType);
+          if (!serviceCode) {
+            addBotMessage('Unable to identify the selected visa product. Please restart the application.');
+            setLoading(false);
+            break;
+          }
 
           // Final submit to backend
           submitMutation.mutate(
@@ -487,7 +500,7 @@ export default function ChatBot() {
               arrivalDate: w.arrivalDate,
               email: w.email,
               phone: w.phone,
-              visaType: w.visaType,
+              visaType: serviceCode,
               processingType: w.processingType,
               residenceStatus: w.residenceStatus,
               whoTraveling: w.whoTraveling,
@@ -496,16 +509,18 @@ export default function ChatBot() {
               policyVersion: TERMS_POLICY_VERSION,
             },
             {
-              onSuccess: () => {
+              onSuccess: (result) => {
+                const authoritativeTotal = result.quote.totalPrice;
                 advance(
                   {
                     step: 'payment',
                     referenceNumber: refNum,
                     paymentLink: payLink,
+                    totalAmount: authoritativeTotal,
                   },
                   `✅ Application confirmed and saved!\n\n` +
                     `📋 Reference: **${refNum}**\n` +
-                    `💰 Total: **$${w.totalAmount}**\n\n` +
+                    `💰 Total: **$${authoritativeTotal}**\n\n` +
                     `**Pay Now:**\n${payLink}`,
                 );
               },
