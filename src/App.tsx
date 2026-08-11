@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HelmetProvider } from 'react-helmet-async';
 import './i18n';
@@ -8,29 +8,30 @@ import Footer from '@/components/shared/Footer';
 import ScrollToTop from '@/components/shared/ScrollToTop';
 import ChatBot from '@/components/shared/ChatBot';
 import AdminGuard from '@/components/shared/AdminGuard';
-import Home from '@/pages/Home';
-import Pricing from '@/pages/Pricing';
-import HowToApply from '@/pages/HowToApply';
-import Track from '@/pages/Track';
-import Legal from '@/pages/Legal';
-import PaymentPage from '@/pages/PaymentPage';
-import Dashboard from '@/pages/Dashboard';
-import Login from './pages/Login';
-import NotFound from './pages/NotFound';
-import AdminLogin from '@/pages/admin/AdminLogin';
-import AdminApplications from '@/pages/admin/AdminApplications';
-import AdminApplicationDetail from '@/pages/admin/AdminApplicationDetail';
-import AdminSuppliers from '@/pages/admin/AdminSuppliers';
-import AdminStaff from '@/pages/admin/AdminStaff';
-import AdminInvoices from '@/pages/admin/AdminInvoices';
-import AdminSupplierDashboard from '@/pages/admin/AdminSupplierDashboard';
-import AdminVat from '@/pages/admin/AdminVat';
-import AdminChat from '@/pages/admin/AdminChat';
-import StaffLogin from '@/pages/admin/StaffLogin';
-import StaffDashboard from '@/pages/admin/StaffDashboard';
-import StaffApplicationDetail from '@/pages/admin/StaffApplicationDetail';
 import StaffGuard from '@/components/shared/StaffGuard';
-import AdminFinanceCockpit from '@/pages/admin/AdminFinanceCockpit';
+
+const Home = lazy(() => import('@/pages/Home'));
+const Pricing = lazy(() => import('@/pages/Pricing'));
+const HowToApply = lazy(() => import('@/pages/HowToApply'));
+const Track = lazy(() => import('@/pages/Track'));
+const Legal = lazy(() => import('@/pages/Legal'));
+const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Login = lazy(() => import('./pages/Login'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const AdminLogin = lazy(() => import('@/pages/admin/AdminLogin'));
+const AdminApplications = lazy(() => import('@/pages/admin/AdminApplications'));
+const AdminApplicationDetail = lazy(() => import('@/pages/admin/AdminApplicationDetail'));
+const AdminSuppliers = lazy(() => import('@/pages/admin/AdminSuppliers'));
+const AdminStaff = lazy(() => import('@/pages/admin/AdminStaff'));
+const AdminInvoices = lazy(() => import('@/pages/admin/AdminInvoices'));
+const AdminSupplierDashboard = lazy(() => import('@/pages/admin/AdminSupplierDashboard'));
+const AdminVat = lazy(() => import('@/pages/admin/AdminVat'));
+const AdminChat = lazy(() => import('@/pages/admin/AdminChat'));
+const StaffLogin = lazy(() => import('@/pages/admin/StaffLogin'));
+const StaffDashboard = lazy(() => import('@/pages/admin/StaffDashboard'));
+const StaffApplicationDetail = lazy(() => import('@/pages/admin/StaffApplicationDetail'));
+const AdminFinanceCockpit = lazy(() => import('@/pages/admin/AdminFinanceCockpit'));
 
 function AppContent() {
   const { i18n } = useTranslation();
@@ -48,6 +49,7 @@ function AppContent() {
     <div className={`min-h-screen bg-white ${i18n.language === 'ar' ? 'font-tajawal' : 'font-inter'}`}>
       {!isAdminRoute && <Header />}
       <main>
+        <Suspense fallback={<div className="min-h-[40vh]" aria-label="Loading page" />}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/visa-prices" element={<Pricing />} />
@@ -75,6 +77,7 @@ function AppContent() {
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </main>
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <ScrollToTop />}
