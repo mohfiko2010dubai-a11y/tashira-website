@@ -8,6 +8,7 @@
 - Current family-flow gates: TypeScript PASS, ESLint PASS, 67/67 tests across 22 files PASS, build PASS, CI runs 55 and 56 PASS.
 - Hardened privileged document operations so signed URLs, deletion, and replacement resolve storage metadata from a server-trusted document ID. Replacement validates and uploads before deleting the prior file; deletion preserves immutable metadata while hiding the document from active lists.
 - Exact commit `a4e6bd98024c9702e2f5e1e02a032ed7a0dc40d0` passed TypeScript, ESLint, 67/67 tests, build, GitHub Actions run 58, and isolated staging UAT. The UAT verified signed access, replacement bytes, deleted-document rejection, and an active-document count reduction from six to five.
+- Added a staging-only authentication verifier at commit `50734648f595251b8f76dd86f7d3d33e043b5483`. It verified admin and staff login/session/logout behavior, staff-protected API access, anonymous rejection, and deterministic synthetic-user cleanup without printing secrets or tokens. All quality gates and GitHub Actions run 60 passed.
 - Initialized the lightweight project director in `AGENTS.md`, `PROJECT_DIRECTOR.md`, and `PROJECT_STATUS.md`.
 - Rechecked external staging prerequisites: `staging.tashiraev.com` has no public DNS/TLS yet, and staging has no Stripe TEST or sandbox-mail credentials configured.
 - Classified all 24 dependency findings and applied only compatible targeted updates, reducing the audit to 18 findings (1 low, 9 moderate, 8 high). A broad lockfile update was rejected because it produced an `npm ci` inconsistency.

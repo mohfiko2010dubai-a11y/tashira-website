@@ -6,13 +6,13 @@ Last verified: 2026-08-11
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `a4e6bd98024c9702e2f5e1e02a032ed7a0dc40d0`.
-- CI: GREEN; GitHub Actions runs 55 through 58 succeeded.
+- Current verified implementation HEAD: `50734648f595251b8f76dd86f7d3d33e043b5483`.
+- CI: GREEN; GitHub Actions runs 55 through 60 succeeded.
 - Tests: 67/67 passing across 22 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
-- Verified launch readiness: 75%.
+- Verified launch readiness: 77%.
 - Classification: C — Not Launch Candidate.
 
 ## Completed capabilities
@@ -32,6 +32,7 @@ Last verified: 2026-08-11
 - Staging migration 006 enforces unique `(application_id, applicant_index)` slots and refuses automatic duplicate resolution. Synthetic API UAT verified two applicants, six isolated documents, cross-slot rejection, resume data, and a USD 340 server quote.
 - Privileged document lifecycle APIs now accept a trusted document ID instead of a client-provided storage path. Replacement uploads and validates the new file before removing the old one, updates MySQL metadata, and preserves immutable lifecycle references.
 - Exact-commit staging UAT authenticated as an administrator and verified original signed-URL access, replacement content, logical deletion, refusal to sign a deleted document, and removal from active document lists.
+- A permanent staging authentication verifier now confirms anonymous admin rejection, admin login/session/logout, synthetic staff creation, staff login/session verification, staff-only API access, logout invalidation, and cleanup without exposing credentials or tokens.
 
 ## Active blockers
 
@@ -54,4 +55,4 @@ Last verified: 2026-08-11
 
 ## Next highest-priority task
 
-Complete authenticated customer/admin/staff browser UAT against isolated staging. Public DNS/TLS, Stripe TEST credentials, and sandbox mail remain owner/environment prerequisites for external UAT.
+Expose isolated staging through owner-approved DNS/TLS, then complete authenticated customer/admin/staff browser UAT. Stripe TEST credentials and sandbox mail remain owner/environment prerequisites for payment and recovery UAT.
