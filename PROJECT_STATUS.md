@@ -6,13 +6,13 @@ Last verified: 2026-08-11
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `32ef60da32ef117f2b9b6797440d76826ffa0fcc`.
-- CI: GREEN; GitHub Actions runs 55 and 56 succeeded.
+- Current verified implementation HEAD: `a4e6bd98024c9702e2f5e1e02a032ed7a0dc40d0`.
+- CI: GREEN; GitHub Actions runs 55 through 58 succeeded.
 - Tests: 67/67 passing across 22 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
-- Verified launch readiness: 72%.
+- Verified launch readiness: 75%.
 - Classification: C — Not Launch Candidate.
 
 ## Completed capabilities
@@ -30,6 +30,8 @@ Last verified: 2026-08-11
 - The chatbot now sends canonical visa-service codes, links to the registered `/pay/:referenceNumber` route, and displays the server-authoritative quote.
 - Family chatbot applications use stable applicant IDs and zero-based slots, isolate every document by applicant, resume from server state using a reference-only browser marker, and submit one aggregate server-authoritative quote.
 - Staging migration 006 enforces unique `(application_id, applicant_index)` slots and refuses automatic duplicate resolution. Synthetic API UAT verified two applicants, six isolated documents, cross-slot rejection, resume data, and a USD 340 server quote.
+- Privileged document lifecycle APIs now accept a trusted document ID instead of a client-provided storage path. Replacement uploads and validates the new file before removing the old one, updates MySQL metadata, and preserves immutable lifecycle references.
+- Exact-commit staging UAT authenticated as an administrator and verified original signed-URL access, replacement content, logical deletion, refusal to sign a deleted document, and removal from active document lists.
 
 ## Active blockers
 
@@ -37,7 +39,6 @@ Last verified: 2026-08-11
 - Stripe TEST credentials, webhook registration, and end-to-end payment UAT.
 - Sandbox mail transport and magic-link/OTP delivery UAT.
 - Full authenticated customer/admin/staff browser UAT.
-- Privileged document replace/delete/signed URL browser UAT.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
 - Large XLSX/invoice chunks and the 35.1 MB bundled server artifact.
@@ -53,4 +54,4 @@ Last verified: 2026-08-11
 
 ## Next highest-priority task
 
-Complete authenticated document replace/delete/signed-URL UAT with synthetic staging data, then continue customer/admin/staff browser UAT. Public DNS/TLS, Stripe TEST credentials, and sandbox mail remain owner/environment prerequisites for external UAT.
+Complete authenticated customer/admin/staff browser UAT against isolated staging. Public DNS/TLS, Stripe TEST credentials, and sandbox mail remain owner/environment prerequisites for external UAT.

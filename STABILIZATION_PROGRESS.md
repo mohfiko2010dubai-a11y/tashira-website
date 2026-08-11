@@ -6,6 +6,8 @@
 - Added migration 006 with a duplicate-refusing unique applicant-slot constraint. Verified and applied it only to `tashira_staging`; the guarded application user reports exactly one index and no production database was contacted.
 - Added permanent guarded staging runners and synthetic family API UAT. Exact-commit staging UAT produced two distinct applicant IDs, six isolated documents, rejected a cross-applicant upload, restored both applicants, and ignored a client amount of 1 in favor of the USD 340 server quote.
 - Current family-flow gates: TypeScript PASS, ESLint PASS, 67/67 tests across 22 files PASS, build PASS, CI runs 55 and 56 PASS.
+- Hardened privileged document operations so signed URLs, deletion, and replacement resolve storage metadata from a server-trusted document ID. Replacement validates and uploads before deleting the prior file; deletion preserves immutable metadata while hiding the document from active lists.
+- Exact commit `a4e6bd98024c9702e2f5e1e02a032ed7a0dc40d0` passed TypeScript, ESLint, 67/67 tests, build, GitHub Actions run 58, and isolated staging UAT. The UAT verified signed access, replacement bytes, deleted-document rejection, and an active-document count reduction from six to five.
 - Initialized the lightweight project director in `AGENTS.md`, `PROJECT_DIRECTOR.md`, and `PROJECT_STATUS.md`.
 - Rechecked external staging prerequisites: `staging.tashiraev.com` has no public DNS/TLS yet, and staging has no Stripe TEST or sandbox-mail credentials configured.
 - Classified all 24 dependency findings and applied only compatible targeted updates, reducing the audit to 18 findings (1 low, 9 moderate, 8 high). A broad lockfile update was rejected because it produced an `npm ci` inconsistency.
