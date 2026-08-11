@@ -2,6 +2,10 @@
 
 ## Phase 9 launch-blocker closure (2026-08-11)
 
+- Completed the family chatbot backend and UI flow: applicant-index-aware upsert, stable applicant IDs, Applicant 1..N progression, applicant-scoped storage paths, cross-slot rejection, reference-only resume marker, server-side resume payload, and aggregate server pricing at quote and submit.
+- Added migration 006 with a duplicate-refusing unique applicant-slot constraint. Verified and applied it only to `tashira_staging`; the guarded application user reports exactly one index and no production database was contacted.
+- Added permanent guarded staging runners and synthetic family API UAT. Exact-commit staging UAT produced two distinct applicant IDs, six isolated documents, rejected a cross-applicant upload, restored both applicants, and ignored a client amount of 1 in favor of the USD 340 server quote.
+- Current family-flow gates: TypeScript PASS, ESLint PASS, 67/67 tests across 22 files PASS, build PASS, CI runs 55 and 56 PASS.
 - Initialized the lightweight project director in `AGENTS.md`, `PROJECT_DIRECTOR.md`, and `PROJECT_STATUS.md`.
 - Rechecked external staging prerequisites: `staging.tashiraev.com` has no public DNS/TLS yet, and staging has no Stripe TEST or sandbox-mail credentials configured.
 - Classified all 24 dependency findings and applied only compatible targeted updates, reducing the audit to 18 findings (1 low, 9 moderate, 8 high). A broad lockfile update was rejected because it produced an `npm ci` inconsistency.

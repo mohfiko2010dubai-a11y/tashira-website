@@ -6,13 +6,13 @@ Last verified: 2026-08-11
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `ff6faff8e01ab3afb4254a1cb6395847246e893c`.
-- CI: GREEN; GitHub Actions run `31469999903` succeeded.
-- Tests: 58/58 passing across 21 files.
+- Current verified implementation HEAD: `32ef60da32ef117f2b9b6797440d76826ffa0fcc`.
+- CI: GREEN; GitHub Actions runs 55 and 56 succeeded.
+- Tests: 67/67 passing across 22 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
-- Verified launch readiness: 67%.
+- Verified launch readiness: 72%.
 - Classification: C — Not Launch Candidate.
 
 ## Completed capabilities
@@ -28,6 +28,8 @@ Last verified: 2026-08-11
 - Router packages are aligned on React Router 6, eliminating the verified `/staff` fallback crash.
 - Route-level lazy loading reduced the main client chunk from about 3.4 MB to about 1.19 MB.
 - The chatbot now sends canonical visa-service codes, links to the registered `/pay/:referenceNumber` route, and displays the server-authoritative quote.
+- Family chatbot applications use stable applicant IDs and zero-based slots, isolate every document by applicant, resume from server state using a reference-only browser marker, and submit one aggregate server-authoritative quote.
+- Staging migration 006 enforces unique `(application_id, applicant_index)` slots and refuses automatic duplicate resolution. Synthetic API UAT verified two applicants, six isolated documents, cross-slot rejection, resume data, and a USD 340 server quote.
 
 ## Active blockers
 
@@ -35,7 +37,6 @@ Last verified: 2026-08-11
 - Stripe TEST credentials, webhook registration, and end-to-end payment UAT.
 - Sandbox mail transport and magic-link/OTP delivery UAT.
 - Full authenticated customer/admin/staff browser UAT.
-- Family chatbot per-applicant details/documents and resume state.
 - Privileged document replace/delete/signed URL browser UAT.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
@@ -52,4 +53,4 @@ Last verified: 2026-08-11
 
 ## Next highest-priority task
 
-Complete the family chatbot ownership-safe multi-applicant flow. In parallel, public DNS/TLS, Stripe TEST credentials, and sandbox mail remain owner/environment prerequisites for external authenticated UAT.
+Complete authenticated document replace/delete/signed-URL UAT with synthetic staging data, then continue customer/admin/staff browser UAT. Public DNS/TLS, Stripe TEST credentials, and sandbox mail remain owner/environment prerequisites for external UAT.
