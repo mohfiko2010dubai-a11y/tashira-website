@@ -102,4 +102,9 @@ export function isStorageConfigured(): boolean {
 }
 
 export const STORAGE_BUCKET = "local";
+export const STORAGE_PROVIDER = "local";
+export const LOCAL_STORAGE_METADATA = {
+  storageProvider: STORAGE_PROVIDER,
+  storageBucket: STORAGE_BUCKET,
+} as const;
 export const SIGNED_URL_EXPIRY = 15 * 60;

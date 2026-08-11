@@ -4,7 +4,7 @@ import { getDb } from "./queries/connection";
 import { applicants, applications, documents } from "@db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
-import { storageUpload } from "./lib/local-storage";
+import { LOCAL_STORAGE_METADATA, storageUpload } from "./lib/local-storage";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
@@ -400,6 +400,7 @@ export const wizardRouter = createRouter({
           storedFileName: storedName,
           mimeType: input.mimeType,
           fileSize: input.fileSize,
+          ...LOCAL_STORAGE_METADATA,
           storagePath: storagePath,
           uploadStatus: "uploaded",
           uploadedBy: "chatbot-wizard",

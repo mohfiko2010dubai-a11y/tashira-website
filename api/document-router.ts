@@ -8,6 +8,7 @@ import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "
 import { TRPCError } from "@trpc/server";
 import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
 import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
+import { LOCAL_STORAGE_METADATA } from "./lib/local-storage";
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -97,6 +98,7 @@ export const documentRouter = createRouter({
         storedFileName: input.storedFileName,
         mimeType: input.mimeType,
         fileSize: input.fileSize,
+        ...LOCAL_STORAGE_METADATA,
         storagePath: input.storagePath,
         uploadStatus: input.uploadStatus,
         uploadedBy: input.uploadedBy || null,

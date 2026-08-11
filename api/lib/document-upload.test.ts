@@ -5,8 +5,13 @@ import {
   sanitizeDocumentFileName,
   validateDocumentFile,
 } from "./document-upload";
+import { LOCAL_STORAGE_METADATA } from "./local-storage";
 
 describe("document upload policy", () => {
+  it("records the active server filesystem provider in document metadata", () => {
+    expect(LOCAL_STORAGE_METADATA).toEqual({ storageProvider: "local", storageBucket: "local" });
+  });
+
   it("removes paths and unsafe filename characters", () => {
     expect(sanitizeDocumentFileName("../../passport (final)#.pdf")).toBe("passport final.pdf");
     expect(sanitizeDocumentFileName("folder\\photo.png")).toBe("photo.png");
