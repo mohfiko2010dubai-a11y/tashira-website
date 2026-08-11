@@ -22,6 +22,14 @@ fi
 mkdir -p storage/documents storage/invoices dist/public/invoices logs backups
 chmod 700 storage storage/documents storage/invoices logs backups
 
+if [[ "${STAGING_RESET:-false}" == "true" ]]; then
+  pm2 delete tashira-staging >/dev/null 2>&1 || true
+  if mysql -uroot --batch --skip-column-names -e "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME='${database_name}'" | grep -Fx "$database_name" >/dev/null; then
+    mysqldump -uroot "$database_name" > "backups/pre-reset-$(date -u +%Y%m%dT%H%M%SZ).sql"
+    mysql -uroot -e "DROP DATABASE \`${database_name}\`;"
+  fi
+fi
+
 db_password_file=".staging-db-password"
 if [[ ! -s "$db_password_file" ]]; then
   openssl rand -hex 32 > "$db_password_file"
@@ -49,7 +57,17 @@ mysql -uroot --batch --skip-column-names -e "SELECT DATABASE()" "$database_name"
 mysqldump -uroot --no-data "$database_name" > "backups/pre-005-empty-schema.sql"
 
 npm ci
-DATABASE_URL="mysql://${migration_user}:${migration_password}@127.0.0.1:3306/${database_name}" npm run db:push -- --force
+push_log="$(mktemp)"
+if ! DATABASE_URL="mysql://${migration_user}:${migration_password}@127.0.0.1:3306/${database_name}" npm run db:push -- --force 2>&1 | tee "$push_log"; then
+  rm -f "$push_log"
+  exit 1
+fi
+if grep -q '^Error:' "$push_log"; then
+  rm -f "$push_log"
+  echo "Drizzle reported an error despite returning success" >&2
+  exit 1
+fi
+rm -f "$push_log"
 mysql -uroot "$database_name" < migrations/005_business_architecture.sql
 mysql -uroot "$database_name" < staging/seed-reference.sql
 cleanup_migrator

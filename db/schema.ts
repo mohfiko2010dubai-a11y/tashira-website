@@ -10,6 +10,7 @@ import {
   bigint,
   index,
   uniqueIndex,
+  foreignKey,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -201,8 +202,8 @@ export const pricingRules = mysqlTable("pricing_rules", {
 
 export const applicationPriceSnapshots = mysqlTable("application_price_snapshots", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull().unique().references(() => applications.id, { onDelete: "restrict" }),
-  pricingRuleId: bigint("pricing_rule_id", { mode: "number", unsigned: true }).notNull().references(() => pricingRules.id, { onDelete: "restrict" }),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull().unique(),
+  pricingRuleId: bigint("pricing_rule_id", { mode: "number", unsigned: true }).notNull(),
   pricingVersion: bigint("pricing_version", { mode: "number", unsigned: true }).notNull(),
   applicantCount: bigint("applicant_count", { mode: "number", unsigned: true }).notNull(),
   unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
@@ -216,7 +217,10 @@ export const applicationPriceSnapshots = mysqlTable("application_price_snapshots
   baseCurrency: varchar("snapshot_base_currency", { length: 3 }).notNull(),
   totalInBaseCurrency: decimal("total_in_base_currency", { precision: 12, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  foreignKey({ name: "price_snapshot_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
+  foreignKey({ name: "price_snapshot_rule_fk", columns: [table.pricingRuleId], foreignColumns: [pricingRules.id] }).onDelete("restrict"),
+]);
 
 export const businessSettingsVersions = mysqlTable("business_settings_versions", {
   id: serial("id").primaryKey(),
@@ -242,8 +246,8 @@ export const businessSettingsVersions = mysqlTable("business_settings_versions",
 
 export const financialEvents = mysqlTable("financial_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("application_id", { mode: "number", unsigned: true }).references(() => applications.id, { onDelete: "restrict" }),
-  paymentId: bigint("payment_id", { mode: "number", unsigned: true }).references(() => payments.id, { onDelete: "restrict" }),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }),
+  paymentId: bigint("payment_id", { mode: "number", unsigned: true }),
   eventType: mysqlEnum("financial_event_type", ["REFUND_REQUESTED", "REFUND_COMPLETED", "CHARGEBACK_OPENED", "CHARGEBACK_WON", "CHARGEBACK_LOST"]).notNull(),
   amount: decimal("financial_event_amount", { precision: 12, scale: 2 }),
   currency: varchar("financial_event_currency", { length: 3 }),
@@ -253,17 +257,22 @@ export const financialEvents = mysqlTable("financial_events", {
 }, (table) => [
   index("financial_event_application_idx").on(table.applicationId, table.createdAt),
   index("financial_event_payment_idx").on(table.paymentId, table.createdAt),
+  foreignKey({ name: "financial_event_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
+  foreignKey({ name: "financial_event_payment_fk", columns: [table.paymentId], foreignColumns: [payments.id] }).onDelete("restrict"),
 ]);
 
 export const applicationRiskAssessments = mysqlTable("application_risk_assessments", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull().references(() => applications.id, { onDelete: "restrict" }),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
   level: mysqlEnum("risk_level", ["LOW", "MEDIUM", "HIGH", "CRITICAL"]).notNull(),
   score: bigint("risk_score", { mode: "number", unsigned: true }).notNull(),
   factorsJson: text("risk_factors_json").notNull(),
   modelVersion: varchar("risk_model_version", { length: 50 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [index("risk_application_created_idx").on(table.applicationId, table.createdAt)]);
+}, (table) => [
+  index("risk_application_created_idx").on(table.applicationId, table.createdAt),
+  foreignKey({ name: "risk_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
+]);
 
 export const retentionPolicies = mysqlTable("retention_policies", {
   id: serial("id").primaryKey(),
@@ -291,25 +300,31 @@ export const retentionRecords = mysqlTable("retention_records", {
 
 export const legalHoldEvents = mysqlTable("legal_hold_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  retentionRecordId: varchar("retention_record_id", { length: 36 }).notNull().references(() => retentionRecords.id, { onDelete: "restrict" }),
+  retentionRecordId: varchar("retention_record_id", { length: 36 }).notNull(),
   action: mysqlEnum("legal_hold_action", ["PLACED", "RELEASED"]).notNull(),
   reason: varchar("legal_hold_reason", { length: 255 }).notNull(),
   authorizedActor: varchar("legal_hold_actor", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [index("legal_hold_record_created_idx").on(table.retentionRecordId, table.createdAt)]);
+}, (table) => [
+  index("legal_hold_record_created_idx").on(table.retentionRecordId, table.createdAt),
+  foreignKey({ name: "legal_hold_record_fk", columns: [table.retentionRecordId], foreignColumns: [retentionRecords.id] }).onDelete("restrict"),
+]);
 
 export const deletionAuditEvents = mysqlTable("deletion_audit_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  retentionRecordId: varchar("deletion_retention_record_id", { length: 36 }).notNull().references(() => retentionRecords.id, { onDelete: "restrict" }),
+  retentionRecordId: varchar("deletion_retention_record_id", { length: 36 }).notNull(),
   outcome: mysqlEnum("deletion_outcome", ["BLOCKED_LEGAL_HOLD", "ELIGIBLE", "DELETED", "FAILED"]).notNull(),
   actorReference: varchar("deletion_actor_reference", { length: 100 }).notNull(),
   details: varchar("deletion_details", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [index("deletion_audit_record_created_idx").on(table.retentionRecordId, table.createdAt)]);
+}, (table) => [
+  index("deletion_audit_record_created_idx").on(table.retentionRecordId, table.createdAt),
+  foreignKey({ name: "deletion_audit_record_fk", columns: [table.retentionRecordId], foreignColumns: [retentionRecords.id] }).onDelete("restrict"),
+]);
 
 export const customerRecoveryChallenges = mysqlTable("customer_recovery_challenges", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("recovery_application_id", { mode: "number", unsigned: true }).notNull().references(() => applications.id, { onDelete: "restrict" }),
+  applicationId: bigint("recovery_application_id", { mode: "number", unsigned: true }).notNull(),
   channel: mysqlEnum("recovery_channel", ["MAGIC_LINK", "EMAIL_OTP", "SMS_OTP"]).notNull(),
   tokenHash: varchar("token_hash", { length: 64 }).notNull(),
   destinationHash: varchar("destination_hash", { length: 64 }).notNull(),
@@ -320,11 +335,12 @@ export const customerRecoveryChallenges = mysqlTable("customer_recovery_challeng
 }, (table) => [
   index("recovery_application_idx").on(table.applicationId, table.createdAt),
   index("recovery_token_expiry_idx").on(table.tokenHash, table.expiresAt),
+  foreignKey({ name: "recovery_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
 ]);
 
 export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("email_application_id", { mode: "number", unsigned: true }).references(() => applications.id, { onDelete: "restrict" }),
+  applicationId: bigint("email_application_id", { mode: "number", unsigned: true }),
   template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "VISA_ISSUED", "RESUME_LINK"]).notNull(),
   recipientHash: varchar("recipient_hash", { length: 64 }).notNull(),
   provider: varchar("email_provider", { length: 50 }).notNull(),
@@ -332,13 +348,16 @@ export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   providerReference: varchar("email_provider_reference", { length: 100 }),
   failureCategory: varchar("email_failure_category", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [index("outbound_email_application_idx").on(table.applicationId, table.createdAt)]);
+}, (table) => [
+  index("outbound_email_application_idx").on(table.applicationId, table.createdAt),
+  foreignKey({ name: "outbound_email_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
+]);
 
 export const documentLifecycleEvents = mysqlTable("document_lifecycle_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  applicationId: bigint("document_event_application_id", { mode: "number", unsigned: true }).notNull().references(() => applications.id, { onDelete: "restrict" }),
+  applicationId: bigint("document_event_application_id", { mode: "number", unsigned: true }).notNull(),
   documentId: bigint("document_event_document_id", { mode: "number", unsigned: true }),
-  applicantId: bigint("document_event_applicant_id", { mode: "number", unsigned: true }).references(() => applicants.id, { onDelete: "restrict" }),
+  applicantId: bigint("document_event_applicant_id", { mode: "number", unsigned: true }),
   replacesDocumentId: bigint("replaces_document_id", { mode: "number", unsigned: true }),
   eventType: mysqlEnum("document_lifecycle_event_type", ["UPLOADED", "REPLACED", "DELETED", "REPLACEMENT_REQUESTED", "VALIDATED", "REJECTED"]).notNull(),
   documentVersion: bigint("document_version", { mode: "number", unsigned: true }).notNull(),
@@ -351,4 +370,6 @@ export const documentLifecycleEvents = mysqlTable("document_lifecycle_events", {
   index("document_lifecycle_application_idx").on(table.applicationId, table.createdAt),
   index("document_lifecycle_document_idx").on(table.documentId, table.createdAt),
   index("document_lifecycle_applicant_idx").on(table.applicantId, table.createdAt),
+  foreignKey({ name: "document_lifecycle_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
+  foreignKey({ name: "document_lifecycle_applicant_fk", columns: [table.applicantId], foreignColumns: [applicants.id] }).onDelete("restrict"),
 ]);
