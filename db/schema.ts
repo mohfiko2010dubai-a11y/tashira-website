@@ -163,6 +163,19 @@ export const documents = mysqlTable("documents", {
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
+export const stripeWebhookEvents = mysqlTable("stripe_webhook_events", {
+  eventId: varchar("event_id", { length: 255 }).primaryKey(),
+  eventType: varchar("event_type", { length: 100 }).notNull(),
+  paymentIntentId: varchar("payment_intent_id", { length: 255 }).notNull(),
+  processingStatus: mysqlEnum("processing_status", ["processing", "processed", "failed"]).notNull(),
+  attemptCount: bigint("attempt_count", { mode: "number", unsigned: true }).notNull().default(1),
+  processedAt: datetime("processed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  index("stripe_webhook_payment_intent_idx").on(table.paymentIntentId, table.createdAt),
+]);
+
 export const applicationTimelineEvents = mysqlTable("application_timeline_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
   applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),

@@ -21,7 +21,12 @@ import { auditLog } from "./lib/audit-log";
 import { verifyAdminSession } from "./lib/admin-session";
 import { hasCustomerApplicationAccess } from "./lib/customer-session";
 import { getStaffSession } from "./lib/staff-session";
-import { recordTimelineEvent } from "./lib/application-timeline";
+import { hasTimelineEventReference, recordTimelineEvent } from "./lib/application-timeline";
+import {
+  claimStripeWebhookEvent,
+  markStripeWebhookFailed,
+  markStripeWebhookProcessed,
+} from "./lib/stripe-webhook-idempotency";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -29,32 +34,44 @@ app.use(bodyLimit({ maxSize: 500 * 1024 * 1024 })); // 500MB total request
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
 
 app.post("/api/stripe/webhook", async (c) => {
+  let claimedEventId: string | null = null;
   try {
     const payload = await c.req.text();
     if (Buffer.byteLength(payload, "utf8") > 1024 * 1024) throw new Error("Stripe webhook payload is too large");
     const event = verifyStripeWebhook(payload, c.req.header("stripe-signature") || "");
     if (["payment_intent.succeeded", "payment_intent.payment_failed", "payment_intent.requires_action"].includes(event.type)) {
+      const claim = await claimStripeWebhookEvent({
+        eventId: event.id,
+        eventType: event.type,
+        paymentIntentId: event.data.object.id,
+      });
+      if (claim === "duplicate") return c.json({ received: true, duplicate: true });
+      claimedEventId = event.id;
       const referenceNumber = event.data.object.metadata.referenceNumber;
       if (!referenceNumber) throw new Error("Stripe event is missing the application reference");
       const [application] = await getDb().select({ id: applications.id }).from(applications)
         .where(eq(applications.referenceNumber, referenceNumber)).limit(1);
       if (!application) throw new Error("Application not found");
-      await recordTimelineEvent({
-        applicationId: application.id,
-        eventName: "WEBHOOK_RECEIVED",
-        eventSource: "STRIPE_WEBHOOK",
-        actorType: "STRIPE",
-        actorReference: event.id,
-        summary: "Stripe webhook received",
-      });
-      await recordTimelineEvent({
-        applicationId: application.id,
-        eventName: "WEBHOOK_VERIFIED",
-        eventSource: "STRIPE_WEBHOOK",
-        actorType: "SYSTEM",
-        actorReference: event.id,
-        summary: "Stripe webhook signature verified",
-      });
+      if (!await hasTimelineEventReference(application.id, "WEBHOOK_RECEIVED", event.id)) {
+        await recordTimelineEvent({
+          applicationId: application.id,
+          eventName: "WEBHOOK_RECEIVED",
+          eventSource: "STRIPE_WEBHOOK",
+          actorType: "STRIPE",
+          actorReference: event.id,
+          summary: "Stripe webhook received",
+        });
+      }
+      if (!await hasTimelineEventReference(application.id, "WEBHOOK_VERIFIED", event.id)) {
+        await recordTimelineEvent({
+          applicationId: application.id,
+          eventName: "WEBHOOK_VERIFIED",
+          eventSource: "STRIPE_WEBHOOK",
+          actorType: "SYSTEM",
+          actorReference: event.id,
+          summary: "Stripe webhook signature verified",
+        });
+      }
       if (event.type === "payment_intent.requires_action") {
         await recordTimelineEvent({
           applicationId: application.id,
@@ -73,10 +90,18 @@ app.post("/api/stripe/webhook", async (c) => {
       } else {
         await recordStripeTestPaymentFailure(referenceNumber, event.data.object.id);
       }
+      await markStripeWebhookProcessed(event.id);
       auditLog("payment.confirm", "success", "system");
     }
     return c.json({ received: true });
   } catch (error: unknown) {
+    if (claimedEventId) {
+      try {
+        await markStripeWebhookFailed(claimedEventId);
+      } catch (markError: unknown) {
+        console.error("[Stripe Webhook State]", getErrorMessage(markError));
+      }
+    }
     auditLog("payment.confirm", "failure", "system");
     console.error("[Stripe Webhook]", getErrorMessage(error));
     return c.json({ error: "Invalid webhook" }, 400);

@@ -43,3 +43,15 @@ No retention duration has been invented. Retention, legal holds, deletion reques
 - No typed payment fields or keystrokes are recorded.
 - No screenshots of the payment form are recorded.
 - No payment-screen or browser-session recording is implemented.
+
+## Stripe TEST staging UAT — 2026-08-12
+
+The isolated staging runtime now loads the Stripe publishable key from the ignored `staging/.env` file and the secret/signing keys from ignored files below `staging/secrets/`. Startup rejects non-TEST API keys. No credential value is tracked or printed.
+
+Synthetic TEST-mode UAT verified a succeeded PaymentIntent, a declined payment, a successful retry on that application, a PaymentIntent requiring 3DS action, an abandoned pending intent, valid webhook signatures, invalid-signature rejection, and duplicate event replay. The duplicate returned an idempotent response and did not duplicate payment confirmation, invoice, or invoice timeline evidence.
+
+For the successful case, the immutable application price snapshot, Stripe amount, payment row, and invoice amount matched. The application became paid, the payment row became succeeded, an invoice PDF was linked, and policy acceptance, PaymentIntent, webhook, payment, and invoice references were present in the timeline/evidence foundation.
+
+The current embedded Stripe `CardElement` collects card number, expiry, and CVC inside Stripe-hosted UI. Postal code is hidden and there is no custom or fake ZIP value. Conditional provider-requested billing fields would require a reviewed migration to Stripe Payment Element; that UX migration was not mixed into the payment-integrity change.
+
+For PAY LATER, the recommended design is an application-specific Stripe Checkout Session created server-side from the immutable price snapshot. Store the Checkout Session and PaymentIntent references against the existing application/payment, use one idempotency key per application/payment attempt, and finalize only through verified handled webhook events. Do not use a generic reusable Payment Link. Before enabling this design, implement and test `checkout.session.completed`; refund/dispute handlers should likewise precede any new event subscriptions.

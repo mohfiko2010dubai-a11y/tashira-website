@@ -69,6 +69,8 @@ if grep -q '^Error:' "$push_log"; then
 fi
 rm -f "$push_log"
 mysql -uroot "$database_name" < migrations/005_business_architecture.sql
+mysql -uroot "$database_name" < migrations/006_applicant_slot_uniqueness.sql
+mysql -uroot "$database_name" < migrations/007_stripe_webhook_idempotency.sql
 mysql -uroot "$database_name" < staging/seed-reference.sql
 cleanup_migrator
 trap - EXIT
@@ -99,10 +101,10 @@ write_secret_if_missing STORAGE_ROOT "$expected_dir/storage/documents"
 npm run check
 npm run lint
 npm run test
-npm run build
+node staging/build-native.mjs
 
 pm2 delete tashira-staging >/dev/null 2>&1 || true
-pm2 start dist/boot.js --name tashira-staging --cwd "$expected_dir" \
+pm2 start staging/run-native.mjs --name tashira-staging --cwd "$expected_dir" \
   --output "$expected_dir/logs/app-out.log" --error "$expected_dir/logs/app-error.log" --time
 
 sleep 3

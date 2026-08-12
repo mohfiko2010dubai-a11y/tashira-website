@@ -1,6 +1,6 @@
 # TASHIRA Project Status
 
-Last verified: 2026-08-11
+Last verified: 2026-08-12
 
 ## Current state
 
@@ -8,7 +8,7 @@ Last verified: 2026-08-11
 - Branch: `devops/deployment-safety`.
 - Current verified implementation HEAD: `00b99ac2fd099b6173613667ab1e08446e460817`.
 - CI: GREEN through run 67.
-- Tests: 73/73 passing across 24 files.
+- Tests: 76/76 passing across 25 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
@@ -38,10 +38,12 @@ Last verified: 2026-08-11
 - Lazy-loaded routes now recover once from stale deployment chunks, fixing admin/staff pages that previously failed when a browser retained an older entry bundle. Unrelated errors are never swallowed, and four regression cases cover the classifier and loop prevention boundary.
 - In-place builds now retain prior content-hashed chunks so tabs opened before deployment can finish lazy imports. HTML/client routes are `no-store`, hashed assets are immutable, every generated local asset reference is verified during `npm run build`, and an explicit chunk-load fallback replaces the raw router error screen.
 - Staging restored the exact previously missing `AdminApplications-1JinaxRj.js` generation, served 172 retained JavaScript assets without HTTP errors, and passed authenticated browser UAT for `/admin`, applications, a synthetic application detail, suppliers, staff management, invoices, supplier bills, VAT, finance, chat, public routes, hard refresh, and normal navigation.
+- Stripe TEST keys are wired through ignored staging-only secret files with TEST-mode startup enforcement. Migration 007 adds durable webhook event claims; signed duplicate delivery is replay-safe.
+- Synthetic Stripe TEST UAT passed success, decline, retry, 3DS-required, abandonment, valid/invalid signature, and duplicate-delivery scenarios. Snapshot, Stripe, payment, and invoice amounts matched; payment/invoice evidence remained single-instance.
 
 ## Active blockers
 
-- Stripe TEST credentials, webhook registration, and end-to-end payment UAT.
+- Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields.
 - Sandbox mail transport and magic-link/OTP delivery UAT.
 - Authenticated customer resume/tracking browser UAT and manual confirmation of the staff logout control. Browser automation repeatedly activated the language toggle instead of the visually distinct logout control, so no speculative logout change was retained.
 - Owner-approved business configuration.
@@ -50,7 +52,6 @@ Last verified: 2026-08-11
 
 ## Owner decisions/actions required
 
-- Supply Stripe TEST-only credentials and configure the staging webhook endpoint without exposing secrets.
 - Select a sandbox mail provider and synthetic recipients.
 - Approve production pricing/company/VAT/exchange-rate/invoice values.
 - Approve refund policy and legal retention periods.
@@ -58,4 +59,4 @@ Last verified: 2026-08-11
 
 ## Next highest-priority task
 
-Complete synthetic authenticated customer resume/tracking browser UAT. Manual staff logout confirmation, Stripe TEST credentials, and sandbox mail remain owner/environment prerequisites for the remaining UAT.
+Complete synthetic authenticated customer resume/tracking browser UAT. Manual staff logout confirmation and sandbox mail remain owner/environment prerequisites for the remaining UAT.

@@ -79,37 +79,42 @@ export async function finalizeStripeTestPayment(
     }
   }
 
-  try {
-    const { pdfPath, pdfUrl } = saveInvoiceToDisk({
-      invoiceNumber,
-      referenceNumber,
-      createdAt: new Date().toISOString(),
-      customerName: application.contactEmail.split("@")[0] || "Customer",
-      customerEmail: application.contactEmail,
-      customerPhone: application.contactPhone,
-      visaType: application.visaType,
-      processingType: application.processingType,
-      arrivalDate: application.arrivalDate || undefined,
-      totalAmount: Number(payment.amount),
-      stripePaymentIntentId: paymentIntentId,
-    });
-    await db.update(applications).set({
-      invoiceNumber,
-      invoicePdfPath: pdfPath,
-      invoicePdfUrl: pdfUrl,
-    }).where(eq(applications.id, application.id));
-    await recordTimelineEvent({
-      applicationId: application.id,
-      paymentId: payment.id,
-      eventName: "INVOICE_GENERATED",
-      eventSource: "INVOICE_SERVICE",
-      actorType: "SYSTEM",
-      actorReference: invoiceNumber,
-      resultingState: "generated",
-      summary: "Invoice PDF generated",
-    });
-  } catch (error: unknown) {
-    console.error("[Invoice Auto-Gen Error]", getErrorMessage(error));
+  const invoiceEventExists = await hasTimelineEvent(application.id, "INVOICE_GENERATED");
+  if (!application.invoicePdfPath || !invoiceEventExists) {
+    try {
+      const { pdfPath, pdfUrl } = saveInvoiceToDisk({
+        invoiceNumber,
+        referenceNumber,
+        createdAt: new Date().toISOString(),
+        customerName: application.contactEmail.split("@")[0] || "Customer",
+        customerEmail: application.contactEmail,
+        customerPhone: application.contactPhone,
+        visaType: application.visaType,
+        processingType: application.processingType,
+        arrivalDate: application.arrivalDate || undefined,
+        totalAmount: Number(payment.amount),
+        stripePaymentIntentId: paymentIntentId,
+      });
+      await db.update(applications).set({
+        invoiceNumber,
+        invoicePdfPath: pdfPath,
+        invoicePdfUrl: pdfUrl,
+      }).where(eq(applications.id, application.id));
+      if (!invoiceEventExists) {
+        await recordTimelineEvent({
+          applicationId: application.id,
+          paymentId: payment.id,
+          eventName: "INVOICE_GENERATED",
+          eventSource: "INVOICE_SERVICE",
+          actorType: "SYSTEM",
+          actorReference: invoiceNumber,
+          resultingState: "generated",
+          summary: "Invoice PDF generated",
+        });
+      }
+    } catch (error: unknown) {
+      console.error("[Invoice Auto-Gen Error]", getErrorMessage(error));
+    }
   }
 
   return {

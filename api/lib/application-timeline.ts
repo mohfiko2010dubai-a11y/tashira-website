@@ -79,4 +79,18 @@ export async function hasTimelineEvent(applicationId: number, eventName: Timelin
   return Number(result?.value || 0) > 0;
 }
 
+export async function hasTimelineEventReference(
+  applicationId: number,
+  eventName: TimelineEventName,
+  actorReference: string,
+) {
+  const [result] = await getDb().select({ value: count() }).from(applicationTimelineEvents)
+    .where(and(
+      eq(applicationTimelineEvents.applicationId, applicationId),
+      eq(applicationTimelineEvents.eventName, eventName),
+      eq(applicationTimelineEvents.actorReference, actorReference),
+    ));
+  return Number(result?.value || 0) > 0;
+}
+
 export { documentUploadEvent, sanitizePaymentFailureCategory } from "./timeline-safety";
