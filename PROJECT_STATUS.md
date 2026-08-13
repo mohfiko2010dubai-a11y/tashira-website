@@ -6,9 +6,9 @@ Last verified: 2026-08-13
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `7a61e3e`.
-- CI: GREEN through run 71.
-- Tests: 85/85 passing across 27 files.
+- Current verified implementation HEAD: `1cc8d12`.
+- CI: GREEN through run 73.
+- Tests: 88/88 passing across 28 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
@@ -42,6 +42,7 @@ Last verified: 2026-08-13
 - Synthetic Stripe TEST UAT passed success, decline, retry, 3DS-required, abandonment, valid/invalid signature, and duplicate-delivery scenarios. Snapshot, Stripe, payment, and invoice amounts matched; payment/invoice evidence remained single-instance.
 - Payment creation now fails closed unless a server-authoritative readiness evaluator confirms required application data, current policy acceptance, a valid price snapshot, every applicant's required personal/passport fields, and flow-specific applicant-owned documents. Primary-form uploads occur before checkout. Incomplete and partial staging applications returned HTTP 412; a complete application received a Stripe TEST client secret; an incomplete family member blocked aggregate payment without cross-application data disclosure.
 - Verified payment success now unmounts checkout, refreshes canonical application state, and renders one Payment Confirmed experience. Paid applications remain on that state after refresh/back and cannot create another PaymentIntent. Stripe TEST webhook replay remained single-payment/single-invoice.
+- Customer checkout now performs the authoritative readiness query before mounting payment UI. Incomplete applications remain in the form with grouped applicant requirements and a Complete Documents focus action; Stripe loading is deferred until the ready-only payment component mounts. Staging browser UAT verified no Secure Payment modal and zero Stripe card frames for an incomplete application.
 
 ## Active blockers
 
