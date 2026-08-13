@@ -8,7 +8,7 @@ import TrackApplication from './TrackApplication';
 import { TERMS_POLICY_VERSION } from '@contracts/constants';
 import FormDecorations from '@/components/shared/FormDecorations';
 import StripePaymentForm, { PaymentSuccessModal } from '@/components/shared/StripePaymentForm';
-import type { PendingFile } from '@/hooks/useDocumentUpload';
+import { useDocumentUpload, type PendingFile } from '@/hooks/useDocumentUpload';
 
 type BaseType = 'single' | 'family';
 type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';
@@ -101,6 +101,8 @@ export default function VisaApplicationForm() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const [completionError, setCompletionError] = useState('');
+  const { uploadFiles, uploadProgress, isUploading } = useDocumentUpload();
   const priceQuote = trpc.business.quote.useQuery({
     serviceCode: visaType,
     processingType,
@@ -230,11 +232,16 @@ export default function VisaApplicationForm() {
   };
 
   const submitApplication = trpc.application.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setReferenceNumber(data.referenceNumber);
       setApplicationId(data.id);
+      const uploadResult = await uploadFiles(collectPendingFiles(), data.id, data.applicantIds, email);
       setLoading(false);
-      setShowPaymentModal(true); // Show payment after successful submit
+      if (!uploadResult.success) {
+        setCompletionError('Some required documents could not be uploaded. Please retry the application before proceeding to payment.');
+        return;
+      }
+      setShowPaymentModal(true);
     },
     onError: (err) => {
       setLoading(false);
@@ -255,6 +262,7 @@ export default function VisaApplicationForm() {
     e.preventDefault();
     if (!termsAccepted || !allScreeningYes || !priceQuote.data) return;
     setLoading(true);
+    setCompletionError('');
     const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
     
     submitApplication.mutate({
@@ -305,6 +313,25 @@ export default function VisaApplicationForm() {
       )}
     </div>
   );
+
+  if (submitted && paymentInvoiceNumber) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 pb-20">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <PaymentSuccessModal
+            invoiceNumber={paymentInvoiceNumber}
+            referenceNumber={referenceNumber}
+            totalAmountUsd={calculateTotal()}
+            exchangeRate={priceQuote.data?.exchangeRateToBase ?? 0}
+            applicationId={applicationId || 0}
+            pendingFiles={[]}
+            applicantData={{ customerName: applicants[0]?.fullName || '', customerEmail: email, customerPhone: phone, visaType, processingType, arrivalDate }}
+            onClose={() => { setSubmitted(false); setPaymentInvoiceNumber(''); setBaseType(null); setResidenceType(null); setApplicants([emptyApplicant(0)]); setTermsAccepted(false); }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -602,8 +629,10 @@ export default function VisaApplicationForm() {
             </div>
 
           {/* Submit */}
-          <div className="mt-6 flex justify-center">
-            <button type="submit" disabled={loading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+          <div className="mt-6 flex flex-col items-center gap-3">
+            {completionError && <p role="alert" className="text-sm text-red-600">{completionError}</p>}
+            {isUploading && uploadProgress.length > 0 && <p className="text-sm text-gray-600">Uploading required documents…</p>}
+            <button type="submit" disabled={loading || isUploading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
               {loading ? (isAr ? 'جاري الإرسال...' : 'Submitting...') : (isAr ? 'إرسال الطلب' : 'Submit Application')}
             </button>
           </div>
@@ -626,7 +655,7 @@ export default function VisaApplicationForm() {
                 totalAmountUsd={calculateTotal()}
                 exchangeRate={priceQuote.data?.exchangeRateToBase ?? 0}
                 applicationId={applicationId || 0}
-                pendingFiles={collectPendingFiles()}
+                pendingFiles={[]}
                 applicantData={{
                   customerName: applicants[0]?.fullName || '',
                   customerEmail: email,
@@ -635,7 +664,7 @@ export default function VisaApplicationForm() {
                   processingType: processingType,
                   arrivalDate: arrivalDate,
                 }}
-                onClose={() => { setShowPaymentModal(false); setSubmitted(true); }}
+                onClose={() => { setShowPaymentModal(false); setPaymentInvoiceNumber(''); setSubmitted(false); }}
               />
             ) : (
               <>
@@ -658,7 +687,7 @@ export default function VisaApplicationForm() {
                     processingType: processingType,
                     arrivalDate: arrivalDate,
                   }}
-                  onSuccess={(invoiceNumber) => setPaymentInvoiceNumber(invoiceNumber)}
+                  onSuccess={(invoiceNumber) => { setPaymentInvoiceNumber(invoiceNumber); setShowPaymentModal(false); setSubmitted(true); }}
                   onClose={() => setShowPaymentModal(false)}
                 />
               </>

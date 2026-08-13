@@ -8,23 +8,25 @@ import {
   Shield, Clock, FileText, ArrowLeft
 } from 'lucide-react';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
+import { paymentViewState } from '@/lib/payment-view-state';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 const stripePromise = stripePublishableKey.startsWith('pk_test_')
   ? loadStripe(stripePublishableKey)
   : null;
 
-function PaymentForm({ referenceNumber, amount, applicantName }: {
+function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
   referenceNumber: string;
   amount: number;
   visaType: string;
   applicantName: string;
+  onConfirmed: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const utils = trpc.useUtils();
   const paymentTimeline = usePaymentTimeline(referenceNumber);
   const { paymentElementLoaded } = paymentTimeline;
 
@@ -53,10 +55,6 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
         amount: amountInCents,
         currency: 'usd',
       });
-
-      if ('error' in result && result.error) {
-        throw new Error(result.error);
-      }
 
       const clientSecret = result.clientSecret;
       if (!clientSecret) {
@@ -87,7 +85,8 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
           paymentIntentId: paymentIntent.id,
         });
         paymentTimeline.paymentConfirmed();
-        setSuccess(true);
+        await utils.application.getByReference.invalidate({ referenceNumber });
+        onConfirmed();
       }
     } catch (err: unknown) {
       paymentTimeline.paymentFailed("unknown");
@@ -96,32 +95,6 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
       setLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="text-center py-12">
-        <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle size={40} className="text-emerald-500" />
-        </div>
-        <h2 className="text-2xl font-bold text-[#1A2332] mb-2">Payment Successful!</h2>
-        <p className="text-gray-500 mb-2">Reference: <span className="font-mono font-bold text-[#C9A04C]">{referenceNumber}</span></p>
-        <p className="text-gray-500 mb-6">Amount: <span className="font-bold">${amount || 0}</span></p>
-        <div className="bg-[#FFF8E7] rounded-lg p-4 max-w-md mx-auto mb-6">
-          <p className="text-sm text-[#1A2332]">
-            Your payment was verified and recorded.<br/>
-            You can track this application securely on this device.
-          </p>
-        </div>
-        <a
-          href={`/track?ref=${referenceNumber}`}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-[#C9A04C] text-white rounded-lg hover:bg-[#DDBB7A] transition-colors"
-        >
-          <FileText size={18} />
-          Track Application
-        </a>
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -183,6 +156,7 @@ function PaymentForm({ referenceNumber, amount, applicantName }: {
 export default function PaymentPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
   const navigate = useNavigate();
+  const [confirmed, setConfirmed] = useState(false);
 
   // Get application details
   const { data: app, isLoading, error } = trpc.application.getByReference.useQuery(
@@ -243,6 +217,29 @@ export default function PaymentPage() {
   
   const amount = dbAmount > 0 ? dbAmount : calculatedAmount;
   const applicantName = app.contactEmail ? app.contactEmail.split('@')[0] : 'Applicant';
+
+  const viewState = paymentViewState({ paymentStatus: app.paymentStatus, browserConfirmed: confirmed, confirmationPending: false });
+  if (viewState === 'confirmed') {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#FAFAF7] to-white flex items-center justify-center px-6">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-xl w-full text-center">
+          <CheckCircle size={56} className="text-emerald-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-[#1A2332]">Payment Confirmed</h1>
+          <p className="text-gray-600 mt-2">Your application has been received and payment was successful. It is ready for the next processing stage.</p>
+          <div className="bg-gray-50 rounded-xl p-5 my-6 text-left space-y-2">
+            <p><span className="text-gray-500">Reference:</span> <span className="font-mono font-semibold">{referenceNumber}</span></p>
+            <p><span className="text-gray-500">Invoice:</span> <span className="font-mono font-semibold">{app.invoiceNumber || `INV-${referenceNumber}`}</span></p>
+            <p><span className="text-gray-500">Amount paid:</span> <span className="font-semibold">${amount.toFixed(2)}</span></p>
+            <p><span className="text-gray-500">Status:</span> <span className="font-semibold text-emerald-700">Paid / Ready for Processing</span></p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            <a href={`/track?ref=${referenceNumber}`} className="px-5 py-3 bg-[#C9A04C] text-white rounded-lg">Track Application</a>
+            <button onClick={() => navigate('/')} className="px-5 py-3 border border-gray-200 rounded-lg">Back to Home</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FAFAF7] to-white">
@@ -321,6 +318,7 @@ export default function PaymentPage() {
                 amount={amount}
                 visaType={app.visaType || 'Tourist Visa'}
                 applicantName={applicantName}
+                onConfirmed={() => setConfirmed(true)}
               />
             </Elements>
           ) : (

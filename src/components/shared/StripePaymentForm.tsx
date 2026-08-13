@@ -75,6 +75,7 @@ function PaymentFormInner({
 
   const createIntent = trpc.payment.createIntent.useMutation();
   const confirmPayment = trpc.payment.confirm.useMutation();
+  const readiness = trpc.payment.readiness.useQuery({ referenceNumber });
 
   useEffect(() => {
     if (stripe && elements) paymentElementLoaded();
@@ -84,7 +85,7 @@ function PaymentFormInner({
     e.preventDefault();
     // Google Ads: Begin checkout conversion
     trackConversion('begin_checkout', amount, currency);
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || readiness.data?.status !== 'READY' || readiness.data.paymentStatus === 'paid') return;
 
     setLoading(true);
     setError('');
@@ -98,9 +99,7 @@ function PaymentFormInner({
         referenceNumber,
       });
 
-      if (intentResult.error || !intentResult.clientSecret) {
-        throw new Error(intentResult.error || 'Failed to create payment intent');
-      }
+      if (!intentResult.clientSecret) throw new Error('Failed to create payment intent');
 
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
         intentResult.clientSecret,
@@ -170,11 +169,21 @@ function PaymentFormInner({
         </div>
       )}
 
+      {readiness.data?.status === 'INCOMPLETE' && (
+        <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+          <p className="font-medium">{readiness.data.message}</p>
+          {readiness.data.applicationMissing.map((item) => <p key={item.code}>• {item.label}</p>)}
+          {readiness.data.applicants.filter((item) => item.missing.length > 0).map((applicant) => (
+            <div key={applicant.applicantId} className="mt-2"><p className="font-medium">{applicant.label}</p>{applicant.missing.map((item) => <p key={item.code}>• {item.label}</p>)}</div>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-3">
         <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
           Cancel
         </button>
-        <button type="submit" disabled={!stripe || loading} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50">
+        <button type="submit" disabled={!stripe || loading || readiness.isLoading || readiness.data?.status !== 'READY' || readiness.data?.paymentStatus === 'paid'} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50">
           {loading ? 'Processing...' : `Pay $${amount}`}
         </button>
       </div>

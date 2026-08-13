@@ -84,9 +84,10 @@ export const applicationRouter = createRouter({
           policyVersion: input.policyVersion,
           summary: "Terms policy accepted",
         });
+        const applicantIds: number[] = [];
         for (let i = 0; i < input.applicants.length; i++) {
           const a = input.applicants[i];
-          await db.insert(applicants).values({
+          const [createdApplicant] = await db.insert(applicants).values({
             applicationId: appId,
             applicantIndex: i,
             fullName: a.fullName,
@@ -100,7 +101,8 @@ export const applicationRouter = createRouter({
             gccResidenceCountry: a.gccResidenceCountry || null,
             sponsorName: a.sponsorName || null,
             sponsorRelation: a.sponsorRelation || null,
-          });
+          }).$returningId();
+          applicantIds.push(createdApplicant.id);
           await recordTimelineEvent({
             applicationId: appId,
             eventName: "APPLICANT_ADDED",
@@ -119,7 +121,7 @@ export const applicationRouter = createRouter({
           summary: "Application submitted",
         });
         ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
-        return { id: appId, referenceNumber: input.referenceNumber };
+        return { id: appId, referenceNumber: input.referenceNumber, applicantIds };
       } catch (err: unknown) {
         const message = getErrorMessage(err);
         console.error('[API ERROR]', message);

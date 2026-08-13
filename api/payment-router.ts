@@ -9,6 +9,8 @@ import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { finalizeStripeTestPayment } from "./lib/payment-finalization";
 import { recordTimelineEvent } from "./lib/application-timeline";
 import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { TRPCError } from "@trpc/server";
+import { getApplicationReadiness } from "./lib/application-readiness";
 
 export const paymentRouter = createRouter({
   // Create payment intent
@@ -24,7 +26,17 @@ export const paymentRouter = createRouter({
         const db = getDb();
         const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
         if (!app) throw new Error("Application not found");
-        if (app.paymentStatus === "paid") throw new Error("Application is already paid");
+        if (app.paymentStatus === "paid") {
+          throw new TRPCError({ code: "CONFLICT", message: "Application is already paid" });
+        }
+        const readiness = await getApplicationReadiness(app.id);
+        if (readiness.status !== "READY") {
+          auditLog("payment.readiness_rejected", "failure", "customer");
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: JSON.stringify({ code: "APPLICATION_INCOMPLETE", ...readiness }),
+          });
+        }
 
         const priceSnapshot = await getApplicationPriceSnapshot(app.id);
         if (priceSnapshot.currency.toUpperCase() !== "USD") throw new Error("Stripe checkout requires a USD price snapshot");
@@ -72,9 +84,21 @@ export const paymentRouter = createRouter({
         return { clientSecret: paymentIntent.client_secret };
       } catch (err: unknown) {
         auditLog("payment.intent_create", "failure", "customer");
+        if (err instanceof TRPCError) throw err;
         const msg = err instanceof Error ? err.message : "Payment error";
-        return { error: msg };
+        throw new TRPCError({ code: "BAD_REQUEST", message: msg });
       }
+    }),
+
+  readiness: applicationAccessQuery
+    .input(z.object({ referenceNumber: z.string() }))
+    .query(async ({ input, ctx }) => {
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
+      const db = getDb();
+      const [app] = await db.select({ id: applications.id, paymentStatus: applications.paymentStatus })
+        .from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+      return { paymentStatus: app.paymentStatus, ...(await getApplicationReadiness(app.id)) };
     }),
 
   // Confirm payment success

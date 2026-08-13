@@ -7,6 +7,7 @@ export type AuditEvent =
   | "document.upload"
   | "document.delete"
   | "payment.intent_create"
+  | "payment.readiness_rejected"
   | "payment.confirm";
 
 export function auditLog(
