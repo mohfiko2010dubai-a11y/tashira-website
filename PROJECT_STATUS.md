@@ -47,10 +47,12 @@ Last verified: 2026-08-13
 - Payment-success views now discard the retained checkout scroll position and focus the programmatic success heading without causing a second scroll. The behavior applies both to the primary-form confirmation and the canonical paid payment page used after confirmation, 3DS return, refresh, and revisit.
 - Staging transactional email delivery is accepted by Resend and was confirmed in the approved `admin@tashiraev.com` inbox using the sandbox sender. Provider-independent Magic Link and Email OTP recovery now issue hashed, expiring, single-use challenges behind enumeration-safe responses and rate limits; successful verification grants only the recovered application capability and routes to its canonical state.
 - Outbound email evidence now records Magic Link and Email OTP under their exact template identities; migration 008 extends the append-only evidence enum without weakening its update/delete protections.
+- Staging commit `04247b4` now loads only allowlisted non-secret mail settings from ignored staging configuration and the Resend key from its mode-600 secret file. Migration 008 is applied to `tashira_staging`; `/recover`, enumeration-safe unknown-email handling, and invalid-token rejection were reverified without sending mail.
 
 ## Active blockers
 
 - Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields. Automated TEST verification reached the expected `requires_action` state, but the interactive challenge was not completed in this phase.
+- Repeat live Magic Link/OTP delivery and single-use consumption UAT requires explicit authorization to send recovery credentials to the named staging recipient.
 - Authenticated customer resume/tracking browser UAT and manual confirmation of the staff logout control. Browser automation repeatedly activated the language toggle instead of the visually distinct logout control, so no speculative logout change was retained.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
@@ -59,6 +61,7 @@ Last verified: 2026-08-13
 ## Owner decisions/actions required
 
 - Approve production pricing/company/VAT/exchange-rate/invoice values.
+- Explicitly authorize the staging recipient for a new synthetic Magic Link and Email OTP delivery test.
 - Approve refund policy and legal retention periods.
 - Review any production credential rotation and migration plan as separate authorized changes.
 
