@@ -14,6 +14,7 @@ import { businessRouter } from "./business-router";
 import { retentionRouter } from "./retention-router";
 import { riskRouter } from "./risk-router";
 import { createRouter } from "./middleware";
+import { recoveryRouter } from "./recovery-router";
 
 export const appRouter = createRouter({
   auth: authRouter,
@@ -31,6 +32,7 @@ export const appRouter = createRouter({
   business: businessRouter,
   retention: retentionRouter,
   risk: riskRouter,
+  recovery: recoveryRouter,
 });
 
 export type AppRouter = typeof appRouter;

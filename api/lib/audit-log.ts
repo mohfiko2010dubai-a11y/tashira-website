@@ -8,7 +8,9 @@ export type AuditEvent =
   | "document.delete"
   | "payment.intent_create"
   | "payment.readiness_rejected"
-  | "payment.confirm";
+  | "payment.confirm"
+  | "customer.recovery_requested"
+  | "customer.recovery_verified";
 
 export function auditLog(
   event: AuditEvent,

@@ -5,7 +5,11 @@ type ResendConfig = { apiKey: string; fromName: string; fromEmail: string; allow
 
 export class ResendEmailProvider implements TransactionalEmailProvider {
   readonly name = "resend";
-  constructor(private readonly config: ResendConfig, private readonly request: typeof fetch = fetch) {
+  private readonly config: ResendConfig;
+  private readonly request: typeof fetch;
+  constructor(config: ResendConfig, request: typeof fetch = fetch) {
+    this.config = config;
+    this.request = request;
     if (!config.apiKey.startsWith("re_")) throw new Error("Resend API key is not configured");
     if (!config.staging) throw new Error("Resend provider is restricted to staging");
   }
