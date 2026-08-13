@@ -356,7 +356,7 @@ export const customerRecoveryChallenges = mysqlTable("customer_recovery_challeng
 export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
   applicationId: bigint("email_application_id", { mode: "number", unsigned: true }),
-  template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "VISA_ISSUED", "RESUME_LINK"]).notNull(),
+  template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP"]).notNull(),
   recipientHash: varchar("recipient_hash", { length: 64 }).notNull(),
   provider: varchar("email_provider", { length: 50 }).notNull(),
   status: mysqlEnum("email_status", ["QUEUED", "SENT", "FAILED", "SUPPRESSED"]).notNull(),

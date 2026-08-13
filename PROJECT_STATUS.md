@@ -46,6 +46,7 @@ Last verified: 2026-08-13
 - Customer checkout now performs the authoritative readiness query before mounting payment UI. Incomplete applications remain in the form with grouped applicant requirements and a Complete Documents focus action; Stripe loading is deferred until the ready-only payment component mounts. Staging browser UAT verified no Secure Payment modal and zero Stripe card frames for an incomplete application.
 - Payment-success views now discard the retained checkout scroll position and focus the programmatic success heading without causing a second scroll. The behavior applies both to the primary-form confirmation and the canonical paid payment page used after confirmation, 3DS return, refresh, and revisit.
 - Staging transactional email delivery is accepted by Resend and was confirmed in the approved `admin@tashiraev.com` inbox using the sandbox sender. Provider-independent Magic Link and Email OTP recovery now issue hashed, expiring, single-use challenges behind enumeration-safe responses and rate limits; successful verification grants only the recovered application capability and routes to its canonical state.
+- Outbound email evidence now records Magic Link and Email OTP under their exact template identities; migration 008 extends the append-only evidence enum without weakening its update/delete protections.
 
 ## Active blockers
 

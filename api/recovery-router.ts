@@ -37,18 +37,19 @@ export const recoveryRouter = createRouter({
       });
 
       const provider = transactionalEmailProvider();
+      const template = input.channel === "MAGIC_LINK" ? "RESUME_LINK" : "RECOVERY_OTP";
       const variables: Record<string, string> = input.channel === "MAGIC_LINK"
         ? { referenceNumber: application.referenceNumber, resumeUrl: `https://staging.tashiraev.com/recover?token=${encodeURIComponent(challenge.secret)}` }
         : { referenceNumber: application.referenceNumber, otp: challenge.secret, expiresMinutes: "10" };
       try {
-        const sent = await provider.send({ recipient: email, template: input.channel === "MAGIC_LINK" ? "RESUME_LINK" : "RECOVERY_OTP", variables });
+        const sent = await provider.send({ recipient: email, template, variables });
         await db.insert(outboundEmailEvents).values({
-          id: randomUUID(), applicationId: application.id, template: "RESUME_LINK", recipientHash: recipientHash(email),
+          id: randomUUID(), applicationId: application.id, template, recipientHash: recipientHash(email),
           provider: provider.name, status: "SENT", providerReference: sent.reference,
         });
       } catch {
         await db.insert(outboundEmailEvents).values({
-          id: randomUUID(), applicationId: application.id, template: "RESUME_LINK", recipientHash: recipientHash(email),
+          id: randomUUID(), applicationId: application.id, template, recipientHash: recipientHash(email),
           provider: provider.name, status: "FAILED", failureCategory: "delivery_failed",
         });
       }
