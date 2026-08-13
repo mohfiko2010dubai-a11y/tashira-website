@@ -1,14 +1,14 @@
 # TASHIRA Project Status
 
-Last verified: 2026-08-12
+Last verified: 2026-08-13
 
 ## Current state
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `00b99ac2fd099b6173613667ab1e08446e460817`.
-- CI: GREEN through run 67.
-- Tests: 76/76 passing across 25 files.
+- Current verified implementation HEAD: `7a61e3e`.
+- CI: pending for payment-readiness commit; previously GREEN through run 67.
+- Tests: 85/85 passing across 27 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
@@ -40,10 +40,12 @@ Last verified: 2026-08-12
 - Staging restored the exact previously missing `AdminApplications-1JinaxRj.js` generation, served 172 retained JavaScript assets without HTTP errors, and passed authenticated browser UAT for `/admin`, applications, a synthetic application detail, suppliers, staff management, invoices, supplier bills, VAT, finance, chat, public routes, hard refresh, and normal navigation.
 - Stripe TEST keys are wired through ignored staging-only secret files with TEST-mode startup enforcement. Migration 007 adds durable webhook event claims; signed duplicate delivery is replay-safe.
 - Synthetic Stripe TEST UAT passed success, decline, retry, 3DS-required, abandonment, valid/invalid signature, and duplicate-delivery scenarios. Snapshot, Stripe, payment, and invoice amounts matched; payment/invoice evidence remained single-instance.
+- Payment creation now fails closed unless a server-authoritative readiness evaluator confirms required application data, current policy acceptance, a valid price snapshot, every applicant's required personal/passport fields, and flow-specific applicant-owned documents. Primary-form uploads occur before checkout. Incomplete and partial staging applications returned HTTP 412; a complete application received a Stripe TEST client secret; an incomplete family member blocked aggregate payment without cross-application data disclosure.
+- Verified payment success now unmounts checkout, refreshes canonical application state, and renders one Payment Confirmed experience. Paid applications remain on that state after refresh/back and cannot create another PaymentIntent. Stripe TEST webhook replay remained single-payment/single-invoice.
 
 ## Active blockers
 
-- Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields.
+- Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields. Automated TEST verification reached the expected `requires_action` state, but the interactive challenge was not completed in this phase.
 - Sandbox mail transport and magic-link/OTP delivery UAT.
 - Authenticated customer resume/tracking browser UAT and manual confirmation of the staff logout control. Browser automation repeatedly activated the language toggle instead of the visually distinct logout control, so no speculative logout change was retained.
 - Owner-approved business configuration.
