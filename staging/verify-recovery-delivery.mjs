@@ -31,11 +31,37 @@ try {
   }
 
   const recipient = recipients[0];
-  const [applicationRows] = await connection.execute(
+  let [applicationRows] = await connection.execute(
     "SELECT id FROM applications WHERE LOWER(contact_email)=? ORDER BY updated_at DESC LIMIT 1",
     [recipient],
   );
-  if (!applicationRows[0]) throw new Error("No staging application exists for the approved recipient");
+  let createdSyntheticApplication = false;
+  if (!applicationRows[0]) {
+    const referenceNumber = `TSH-RECOVERY-UAT-${Date.now()}`;
+    const response = await fetch("http://127.0.0.1:3002/api/trpc/application.create", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-forwarded-for": "192.0.2.80" },
+      body: JSON.stringify({ json: {
+        referenceNumber,
+        baseType: "single",
+        residenceType: "non-gcc",
+        visaType: "14days-single",
+        processingType: "regular",
+        contactEmail: recipient,
+        contactPhone: "+971500000000",
+        arrivalDate: "2027-01-01",
+        policyVersion: "terms-2026-08-11",
+        applicants: [{ fullName: "Synthetic Recovery UAT", nationality: "Testland" }],
+      } }),
+    });
+    if (!response.ok) throw new Error(`Synthetic recovery application creation failed with HTTP ${response.status}`);
+    createdSyntheticApplication = true;
+    [applicationRows] = await connection.execute(
+      "SELECT id FROM applications WHERE reference_number=? LIMIT 1",
+      [referenceNumber],
+    );
+  }
+  if (!applicationRows[0]) throw new Error("Synthetic recovery application was not persisted");
   const applicationId = applicationRows[0].id;
   const [beforeRows] = await connection.execute(
     "SELECT COUNT(*) count FROM outbound_email_events WHERE email_application_id=?",
@@ -71,6 +97,7 @@ try {
     evidenceRowsAdded: Number(afterRows[0].count) - before,
     templatesRecorded: ["RESUME_LINK", "RECOVERY_OTP"].every((name) => templates.has(name)),
     providerAccepted: eventRows.length === 2 && eventRows.every((row) => row.status === "SENT"),
+    createdSyntheticApplication,
     secretsPrinted: false,
   }));
 } finally {
