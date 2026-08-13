@@ -12,17 +12,24 @@ function readSecret(name) {
   return value;
 }
 
-function readPublishableKey() {
+function readStagingConfig() {
   const source = fs.readFileSync(path.join(expectedDirectory, "staging", ".env"), "utf8");
-  const line = source.split(/\r?\n/).find((entry) => entry.startsWith("VITE_STRIPE_PUBLISHABLE_KEY="));
-  const value = line?.slice("VITE_STRIPE_PUBLISHABLE_KEY=".length).trim() ?? "";
-  if (!value.startsWith("pk_test_")) throw new Error("Staging requires a Stripe TEST publishable key");
-  return value;
+  return Object.fromEntries(source.split(/\r?\n/).flatMap((entry) => {
+    const separator = entry.indexOf("=");
+    if (separator < 1) return [];
+    return [[entry.slice(0, separator).trim(), entry.slice(separator + 1).trim()]];
+  }));
 }
 
-process.env.VITE_STRIPE_PUBLISHABLE_KEY = readPublishableKey();
+const stagingConfig = readStagingConfig();
+const publishableKey = stagingConfig.VITE_STRIPE_PUBLISHABLE_KEY ?? "";
+if (!publishableKey.startsWith("pk_test_")) throw new Error("Staging requires a Stripe TEST publishable key");
+process.env.VITE_STRIPE_PUBLISHABLE_KEY = publishableKey;
 process.env.STRIPE_SECRET_KEY = readSecret("stripe_secret_key");
 process.env.STRIPE_WEBHOOK_SECRET = readSecret("stripe_webhook_secret");
+for (const name of ["STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "FROM_NAME", "FROM_EMAIL"]) {
+  if (stagingConfig[name]) process.env[name] = stagingConfig[name];
+}
 const resendSecretPath = path.join(expectedDirectory, "staging", "secrets", "resend_api_key");
 if (fs.existsSync(resendSecretPath)) {
   const resendApiKey = fs.readFileSync(resendSecretPath, "utf8").trim();

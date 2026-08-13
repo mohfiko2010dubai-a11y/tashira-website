@@ -71,6 +71,7 @@ rm -f "$push_log"
 mysql -uroot "$database_name" < migrations/005_business_architecture.sql
 mysql -uroot "$database_name" < migrations/006_applicant_slot_uniqueness.sql
 mysql -uroot "$database_name" < migrations/007_stripe_webhook_idempotency.sql
+mysql -uroot "$database_name" < migrations/008_email_template_evidence.sql
 mysql -uroot "$database_name" < staging/seed-reference.sql
 cleanup_migrator
 trap - EXIT

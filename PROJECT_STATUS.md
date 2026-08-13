@@ -51,7 +51,6 @@ Last verified: 2026-08-13
 ## Active blockers
 
 - Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields. Automated TEST verification reached the expected `requires_action` state, but the interactive challenge was not completed in this phase.
-- Sandbox mail transport and magic-link/OTP delivery UAT.
 - Authenticated customer resume/tracking browser UAT and manual confirmation of the staff logout control. Browser automation repeatedly activated the language toggle instead of the visually distinct logout control, so no speculative logout change was retained.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
@@ -59,7 +58,6 @@ Last verified: 2026-08-13
 
 ## Owner decisions/actions required
 
-- Select a sandbox mail provider and synthetic recipients.
 - Approve production pricing/company/VAT/exchange-rate/invoice values.
 - Approve refund policy and legal retention periods.
 - Review any production credential rotation and migration plan as separate authorized changes.
