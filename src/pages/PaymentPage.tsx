@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
 import { loadStripe } from '@stripe/stripe-js';
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 import { paymentViewState } from '@/lib/payment-view-state';
+import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 const stripePromise = stripePublishableKey.startsWith('pk_test_')
@@ -157,12 +158,17 @@ export default function PaymentPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
   const navigate = useNavigate();
   const [confirmed, setConfirmed] = useState(false);
+  const successHeadingRef = useRef<HTMLHeadingElement>(null);
 
   // Get application details
   const { data: app, isLoading, error } = trpc.application.getByReference.useQuery(
     { referenceNumber: referenceNumber! },
     { enabled: !!referenceNumber }
   );
+  const canonicalPaymentConfirmed = app?.paymentStatus === 'paid' || confirmed;
+  useLayoutEffect(() => {
+    if (canonicalPaymentConfirmed) resetPaymentSuccessViewport(successHeadingRef.current, window);
+  }, [canonicalPaymentConfirmed]);
 
   // Debug: log any errors
   useEffect(() => {
@@ -224,7 +230,7 @@ export default function PaymentPage() {
       <div className="min-h-screen bg-gradient-to-b from-[#FAFAF7] to-white flex items-center justify-center px-6">
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-xl w-full text-center">
           <CheckCircle size={56} className="text-emerald-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-[#1A2332]">Payment Confirmed</h1>
+          <h1 ref={successHeadingRef} tabIndex={-1} className="text-2xl font-bold text-[#1A2332] outline-none">Payment Confirmed</h1>
           <p className="text-gray-600 mt-2">Your application has been received and payment was successful. It is ready for the next processing stage.</p>
           <div className="bg-gray-50 rounded-xl p-5 my-6 text-left space-y-2">
             <p><span className="text-gray-500">Reference:</span> <span className="font-mono font-semibold">{referenceNumber}</span></p>

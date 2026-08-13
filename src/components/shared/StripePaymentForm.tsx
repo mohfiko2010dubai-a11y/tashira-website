@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { trpc } from '@/providers/trpc-client';
@@ -6,6 +6,7 @@ import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle, Loader2
 import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
+import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
 
 declare global {
   interface Window {
@@ -235,6 +236,10 @@ export function PaymentSuccessModal({
   };
   onClose: () => void;
 }) {
+  const successHeadingRef = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    resetPaymentSuccessViewport(successHeadingRef.current, window);
+  }, []);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "success" | "partial" | "failed">("idle");
   const [progress, setProgress] = useState<UploadProgress[]>([]);
   const [uploadError, setUploadError] = useState("");
@@ -346,7 +351,7 @@ export function PaymentSuccessModal({
       <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
         <CheckCircle size={32} className="text-emerald-500" />
       </div>
-      <h3 className="text-xl font-bold text-gray-900">Payment Successful!</h3>
+      <h3 ref={successHeadingRef} tabIndex={-1} className="text-xl font-bold text-gray-900 outline-none">Payment Successful!</h3>
       <p className="text-sm text-gray-500">
         Your application has been submitted and payment received.
       </p>
