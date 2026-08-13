@@ -23,6 +23,11 @@ function readPublishableKey() {
 process.env.VITE_STRIPE_PUBLISHABLE_KEY = readPublishableKey();
 process.env.STRIPE_SECRET_KEY = readSecret("stripe_secret_key");
 process.env.STRIPE_WEBHOOK_SECRET = readSecret("stripe_webhook_secret");
+const resendSecretPath = path.join(expectedDirectory, "staging", "secrets", "resend_api_key");
+if (fs.existsSync(resendSecretPath)) {
+  const resendApiKey = fs.readFileSync(resendSecretPath, "utf8").trim();
+  if (resendApiKey) process.env.RESEND_API_KEY = resendApiKey;
+}
 
 if (!process.env.STRIPE_SECRET_KEY.startsWith("sk_test_")) {
   throw new Error("Staging requires a Stripe TEST secret key");

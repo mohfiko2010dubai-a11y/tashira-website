@@ -31,6 +31,25 @@ export function verifyRecoverySecret(secret: string, expectedHash: string) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
+export type RecoveryVerificationState = { expiresAt: Date; consumedAt: Date | null; attemptCount: number };
+
+export function recoveryVerificationDecision(
+  state: RecoveryVerificationState,
+  secretMatches: boolean,
+  now = new Date(),
+  maximumAttempts = 5,
+): "ACCEPT" | "INVALID" | "EXPIRED" | "CONSUMED" | "LOCKED" {
+  if (state.consumedAt) return "CONSUMED";
+  if (state.expiresAt.getTime() <= now.getTime()) return "EXPIRED";
+  if (state.attemptCount >= maximumAttempts) return "LOCKED";
+  return secretMatches ? "ACCEPT" : "INVALID";
+}
+
+export function recoveryExpiry(channel: RecoveryChannel, now = new Date()): Date {
+  const minutes = channel === "MAGIC_LINK" ? 15 : 10;
+  return new Date(now.getTime() + minutes * 60_000);
+}
+
 export class DisabledRecoveryProvider implements RecoveryDeliveryProvider {
   readonly name = "disabled";
   async deliver(): Promise<{ reference: string }> {
