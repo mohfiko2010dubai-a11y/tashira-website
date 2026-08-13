@@ -9,6 +9,8 @@ import { TERMS_POLICY_VERSION } from '@contracts/constants';
 import FormDecorations from '@/components/shared/FormDecorations';
 import StripePaymentForm, { PaymentSuccessModal } from '@/components/shared/StripePaymentForm';
 import { useDocumentUpload, type PendingFile } from '@/hooks/useDocumentUpload';
+import type { ApplicationReadiness } from '../../api/lib/application-readiness';
+import { checkoutPreflightDecision, completionPanelGroups } from '@/lib/checkout-preflight';
 
 type BaseType = 'single' | 'family';
 type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';
@@ -103,6 +105,8 @@ export default function VisaApplicationForm() {
   const [referenceNumber, setReferenceNumber] = useState('');
   const [completionError, setCompletionError] = useState('');
   const { uploadFiles, uploadProgress, isUploading } = useDocumentUpload();
+  const utils = trpc.useUtils();
+  const [readinessIssues, setReadinessIssues] = useState<ApplicationReadiness | null>(null);
   const priceQuote = trpc.business.quote.useQuery({
     serviceCode: visaType,
     processingType,
@@ -241,7 +245,15 @@ export default function VisaApplicationForm() {
         setCompletionError('Some required documents could not be uploaded. Please retry the application before proceeding to payment.');
         return;
       }
-      setShowPaymentModal(true);
+      try {
+        const readiness = await utils.payment.readiness.fetch({ referenceNumber: data.referenceNumber });
+        const decision = checkoutPreflightDecision(readiness.status);
+        setReadinessIssues(decision.showCompletionPanel ? readiness : null);
+        setShowPaymentModal(decision.openPaymentUi);
+      } catch (error: unknown) {
+        setShowPaymentModal(false);
+        setCompletionError(error instanceof Error ? error.message : 'Unable to verify application readiness. Please try again.');
+      }
     },
     onError: (err) => {
       setLoading(false);
@@ -263,6 +275,8 @@ export default function VisaApplicationForm() {
     if (!termsAccepted || !allScreeningYes || !priceQuote.data) return;
     setLoading(true);
     setCompletionError('');
+    setReadinessIssues(null);
+    setShowPaymentModal(false);
     const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
     
     submitApplication.mutate({
@@ -292,6 +306,7 @@ export default function VisaApplicationForm() {
   };
 
   const app = applicants[currentApplicantIdx];
+  const completionGroups = readinessIssues ? completionPanelGroups(readinessIssues) : [];
 
   const renderDropZone = (idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id', file: UploadedFile | null, label: string) => (
     <div className="space-y-1">
@@ -453,7 +468,7 @@ export default function VisaApplicationForm() {
           {/* ===== 2-COLUMN FORM ===== */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-5">
               {/* LEFT COLUMN */}
-              <div className="space-y-5">
+              <div id="documents-section" tabIndex={-1} className="space-y-5">
                 <div id="visa-type-field">
                   <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'نوع التأشيرة' : 'Visa Type'} <span className="text-red-500">*</span></label>
                   <select value={visaType} onChange={(e) => setVisaType(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] focus:ring-1 focus:ring-[#C9A04C] outline-none bg-white text-gray-800">
@@ -630,6 +645,23 @@ export default function VisaApplicationForm() {
 
           {/* Submit */}
           <div className="mt-6 flex flex-col items-center gap-3">
+            {readinessIssues?.status === 'INCOMPLETE' && (
+              <div role="alert" className="w-full max-w-2xl rounded-xl border border-amber-300 bg-amber-50 p-5 text-left text-amber-950">
+                <h3 className="font-semibold text-lg">Please complete the following before payment.</h3>
+                {completionGroups.map((group) => (
+                  <div key={group.heading} className="mt-3">
+                    <p className="font-medium">{group.heading}</p>
+                    {group.items.map((item) => <p key={item}>• {item}</p>)}
+                  </div>
+                ))}
+                <button type="button" onClick={() => {
+                  const first = readinessIssues.applicants.find((item) => item.missing.length > 0);
+                  if (first) setCurrentApplicantIdx(first.applicantIndex);
+                  document.getElementById('documents-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  document.getElementById('documents-section')?.focus({ preventScroll: true });
+                }} className="mt-4 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-900">Complete Documents</button>
+              </div>
+            )}
             {completionError && <p role="alert" className="text-sm text-red-600">{completionError}</p>}
             {isUploading && uploadProgress.length > 0 && <p className="text-sm text-gray-600">Uploading required documents…</p>}
             <button type="submit" disabled={loading || isUploading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">

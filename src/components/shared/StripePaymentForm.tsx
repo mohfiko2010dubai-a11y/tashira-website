@@ -24,11 +24,6 @@ function trackConversion(eventName: string, value?: number, currency?: string) {
   }
 }
 
-const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
-const stripePromise = stripePublishableKey.startsWith('pk_test_')
-  ? loadStripe(stripePublishableKey)
-  : null;
-
 const cardStyle = {
   hidePostalCode: true,
   style: {
@@ -192,6 +187,10 @@ function PaymentFormInner({
 }
 
 export default function StripePaymentForm(props: PaymentFormInnerProps) {
+  const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+  const stripePromise = stripePublishableKey.startsWith('pk_test_')
+    ? loadStripe(stripePublishableKey)
+    : null;
   if (!stripePromise) {
     return (
       <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
