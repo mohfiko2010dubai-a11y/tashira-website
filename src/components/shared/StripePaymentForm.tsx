@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js/pure';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { trpc } from '@/providers/trpc-client';
 import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle, Loader2 } from 'lucide-react';
