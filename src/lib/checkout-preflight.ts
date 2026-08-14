@@ -26,3 +26,11 @@ export function completionPanelGroups(input: {
       .map((applicant) => ({ heading: applicant.label, items: applicant.missing.map((item) => item.label) })),
   ];
 }
+
+export function safeCheckoutErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("APPLICATION_INCOMPLETE")) {
+    return "Your application is not ready for payment yet. Please complete the missing information and documents first.";
+  }
+  return message || "Payment failed. Please try again.";
+}

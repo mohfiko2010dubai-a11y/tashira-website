@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkoutPreflightDecision, completionPanelGroups } from "../../src/lib/checkout-preflight";
+import { checkoutPreflightDecision, completionPanelGroups, safeCheckoutErrorMessage } from "../../src/lib/checkout-preflight";
 
 describe("checkout readiness preflight", () => {
   it("keeps incomplete applications outside all payment UI", () => {
@@ -9,6 +9,14 @@ describe("checkout readiness preflight", () => {
       createPaymentIntent: false,
       showCompletionPanel: true,
     });
+  });
+
+  it("does not expose the server readiness payload as a raw payment error", () => {
+    const raw = new Error('{"code":"APPLICATION_INCOMPLETE","applicants":[{"applicantId":37}]}');
+    const message = safeCheckoutErrorMessage(raw);
+
+    expect(message).toBe("Your application is not ready for payment yet. Please complete the missing information and documents first.");
+    expect(message).not.toContain("applicantId");
   });
 
   it("allows a complete application to mount payment normally without creating an intent during preflight", () => {

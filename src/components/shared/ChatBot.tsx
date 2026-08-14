@@ -122,7 +122,7 @@ function generateReferenceNumber(): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ChatBot() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get('resume') === '1');
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

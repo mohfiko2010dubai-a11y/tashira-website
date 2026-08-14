@@ -10,6 +10,7 @@ import {
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 import { paymentViewState } from '@/lib/payment-view-state';
 import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
+import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-preflight';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 const stripePromise = stripePublishableKey.startsWith('pk_test_')
@@ -91,7 +92,7 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
       }
     } catch (err: unknown) {
       paymentTimeline.paymentFailed("unknown");
-      setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
+      setError(safeCheckoutErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -165,6 +166,10 @@ export default function PaymentPage() {
     { referenceNumber: referenceNumber! },
     { enabled: !!referenceNumber }
   );
+  const readiness = trpc.payment.readiness.useQuery(
+    { referenceNumber: referenceNumber! },
+    { enabled: !!referenceNumber && !!app },
+  );
   const canonicalPaymentConfirmed = app?.paymentStatus === 'paid' || confirmed;
   useLayoutEffect(() => {
     if (canonicalPaymentConfirmed) resetPaymentSuccessViewport(successHeadingRef.current, window);
@@ -177,7 +182,7 @@ export default function PaymentPage() {
     }
   }, [error]);
 
-  if (isLoading) {
+  if (isLoading || (!!app && readiness.isLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 size={32} className="text-[#C9A04C] animate-spin" />
@@ -223,6 +228,17 @@ export default function PaymentPage() {
   
   const amount = dbAmount > 0 ? dbAmount : calculatedAmount;
   const applicantName = app.contactEmail ? app.contactEmail.split('@')[0] : 'Applicant';
+  const completionGroups = readiness.data?.status === 'INCOMPLETE'
+    ? completionPanelGroups(readiness.data)
+    : [];
+
+  const continueApplication = () => {
+    localStorage.setItem('tashira_chatbot_resume', JSON.stringify({
+      referenceNumber,
+      applicantCount: Math.max(app.applicants.length, 1),
+    }));
+    navigate('/?resume=1');
+  };
 
   const viewState = paymentViewState({ paymentStatus: app.paymentStatus, browserConfirmed: confirmed, confirmationPending: false });
   if (viewState === 'confirmed') {
@@ -317,7 +333,38 @@ export default function PaymentPage() {
 
         {/* Payment Form */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          {stripePromise ? (
+          {readiness.error ? (
+            <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+              We could not verify that this application is ready for payment. Please refresh the page or contact support.
+            </div>
+          ) : readiness.data?.status === 'INCOMPLETE' ? (
+            <div role="alert" className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-amber-950">
+              <div className="flex items-start gap-3">
+                <AlertCircle size={22} className="mt-0.5 shrink-0 text-amber-700" />
+                <div className="flex-1">
+                  <h2 className="font-semibold text-lg">Complete your application before payment</h2>
+                  <p className="mt-1 text-sm text-amber-800">Your information is saved. Please add the following details and documents:</p>
+                  <div className="mt-4 space-y-3">
+                    {completionGroups.map((group) => (
+                      <div key={group.heading}>
+                        <h3 className="text-sm font-semibold">{group.heading}</h3>
+                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-800">
+                          {group.items.map((item) => <li key={item}>{item}</li>)}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={continueApplication}
+                    className="mt-5 w-full rounded-lg bg-amber-800 px-4 py-3 font-semibold text-white transition-colors hover:bg-amber-900"
+                  >
+                    Complete Application
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : stripePromise && readiness.data?.status === 'READY' ? (
             <Elements stripe={stripePromise}>
               <PaymentForm
                 referenceNumber={referenceNumber!}
