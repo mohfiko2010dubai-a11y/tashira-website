@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
 import { loadStripe } from '@stripe/stripe-js';
@@ -13,9 +13,6 @@ import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
 import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-preflight';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
-const stripePromise = stripePublishableKey.startsWith('pk_test_')
-  ? loadStripe(stripePublishableKey)
-  : null;
 
 function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
   referenceNumber: string;
@@ -169,6 +166,12 @@ export default function PaymentPage() {
   const readiness = trpc.payment.readiness.useQuery(
     { referenceNumber: referenceNumber! },
     { enabled: !!referenceNumber && !!app },
+  );
+  const stripePromise = useMemo(
+    () => readiness.data?.status === 'READY' && stripePublishableKey.startsWith('pk_test_')
+      ? loadStripe(stripePublishableKey)
+      : null,
+    [readiness.data?.status],
   );
   const canonicalPaymentConfirmed = app?.paymentStatus === 'paid' || confirmed;
   useLayoutEffect(() => {
