@@ -50,11 +50,11 @@ Last verified: 2026-08-13
 - Staging commit `04247b4` now loads only allowlisted non-secret mail settings from ignored staging configuration and the Resend key from its mode-600 secret file. Migration 008 is applied to `tashira_staging`; `/recover`, enumeration-safe unknown-email handling, and invalid-token rejection were reverified without sending mail.
 - Authorized synthetic recovery UAT created an application through the canonical API, sent one Magic Link and one Email OTP to the sole approved staging recipient, and recorded two `SENT` evidence rows under the exact `RESUME_LINK` and `RECOVERY_OTP` templates without exposing either credential.
 - Recovery email rendering now includes a safe clickable HTML action and clickable fallback URL while retaining the plain-text alternative; only the exact HTTPS staging recovery origin is accepted.
+- Interactive staging Recovery UAT passed end to end: the approved inbox received the HTML Magic Link, the active `Resume Application` action opened the correct canonical payment screen, and reuse of the same link was rejected without granting a new session.
 
 ## Active blockers
 
 - Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields. Automated TEST verification reached the expected `requires_action` state, but the interactive challenge was not completed in this phase.
-- Interactive confirmation of Magic Link/OTP receipt and single-use consumption remains pending in the approved recipient inbox.
 - Authenticated customer resume/tracking browser UAT and manual confirmation of the staff logout control. Browser automation repeatedly activated the language toggle instead of the visually distinct logout control, so no speculative logout change was retained.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
@@ -63,7 +63,6 @@ Last verified: 2026-08-13
 ## Owner decisions/actions required
 
 - Approve production pricing/company/VAT/exchange-rate/invoice values.
-- Confirm receipt in the approved staging inbox and complete one Magic Link or OTP recovery attempt.
 - Approve refund policy and legal retention periods.
 - Review any production credential rotation and migration plan as separate authorized changes.
 
