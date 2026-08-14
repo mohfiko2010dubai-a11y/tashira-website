@@ -47,5 +47,23 @@ export function renderTransactionalEmail(template: EmailTemplate, variables: Rec
     RESUME_LINK: { subject: `Secure application resume link — ${reference}`, body: `Resume your application: ${variables.resumeUrl}\nThis single-use link expires shortly.` },
     RECOVERY_OTP: { subject: `Application recovery code — ${reference}`, body: `Your one-time code is ${variables.otp}. It expires in ${variables.expiresMinutes} minutes.` },
   };
-  return content[template];
+  const rendered = content[template];
+  if (template !== "RESUME_LINK") return { ...rendered, html: undefined };
+
+  const resumeUrl = new URL(variables.resumeUrl);
+  if (resumeUrl.protocol !== "https:" || resumeUrl.origin !== "https://staging.tashiraev.com" || resumeUrl.pathname !== "/recover") {
+    throw new Error("Recovery email URL is not an approved staging URL");
+  }
+  const escapedUrl = escapeHtml(resumeUrl.toString());
+  const escapedReference = escapeHtml(reference);
+  return {
+    ...rendered,
+    html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#172235;line-height:1.5"><h1 style="font-size:22px">Resume your TASHIRA application</h1><p>Application reference: <strong>${escapedReference}</strong></p><p><a href="${escapedUrl}" style="display:inline-block;background:#d9ad55;color:#172235;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:6px">Resume Application</a></p><p>This secure single-use link expires shortly.</p><p>If the button does not work, copy this address into your browser:<br><a href="${escapedUrl}">${escapedUrl}</a></p></body></html>`,
+  };
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
+  })[character] ?? character);
 }

@@ -21,7 +21,13 @@ export class ResendEmailProvider implements TransactionalEmailProvider {
     const response = await this.request("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${this.config.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: `${this.config.fromName} <${this.config.fromEmail}>`, to: [recipient], subject: `[STAGING] ${rendered.subject}`, text: rendered.body }),
+      body: JSON.stringify({
+        from: `${this.config.fromName} <${this.config.fromEmail}>`,
+        to: [recipient],
+        subject: `[STAGING] ${rendered.subject}`,
+        text: rendered.body,
+        ...(rendered.html ? { html: rendered.html } : {}),
+      }),
     });
     const payload = await response.json().catch(() => ({})) as { id?: string };
     if (!response.ok || !payload.id) throw new Error("Resend delivery failed");
