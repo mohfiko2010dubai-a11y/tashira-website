@@ -88,7 +88,7 @@ function AppContent() {
       </main>
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <ScrollToTop />}
-      {!isAdminRoute && <ChatBot />}
+      {!isAdminRoute && <ChatBot key={new URLSearchParams(location.search).get('resume') === '1' ? 'resume' : 'default'} />}
     </div>
     </HelmetProvider>
   );
