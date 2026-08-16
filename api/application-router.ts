@@ -11,6 +11,8 @@ import { recordTimelineEvent, type TimelineEventName } from "./lib/application-t
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
 import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { activeBusinessSettings } from "./lib/pricing-engine";
+import { canEnterApplicationState } from "./lib/processing-gate";
+import { TRPCError } from "@trpc/server";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
@@ -200,6 +202,13 @@ export const applicationRouter = createRouter({
     .input(z.object({ id: z.number(), status: z.enum(STATUS_ENUM) }))
     .mutation(async ({ input }) => {
       const db = getDb();
+      const [application] = await db.select({ paymentStatus: applications.paymentStatus }).from(applications)
+        .where(eq(applications.id, input.id)).limit(1);
+      if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+      if (!canEnterApplicationState(application.paymentStatus, input.status)) {
+        auditLog("application.status_change", "failure", "admin");
+        throw new TRPCError({ code: "CONFLICT", message: "Verified payment is required before operational processing" });
+      }
       await db.update(applications).set({ status: input.status }).where(eq(applications.id, input.id));
       const eventByStatus: Partial<Record<typeof input.status, TimelineEventName>> = {
         visa_processing: "GOVERNMENT_PROCESSING",
