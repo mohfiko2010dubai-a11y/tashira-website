@@ -7,23 +7,7 @@ import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
-
-declare global {
-  interface Window {
-    gtag?: (command: string, eventName: string, params: Record<string, unknown>) => void;
-  }
-}
-
-// Google Ads Conversion Tracking
-function trackConversion(eventName: string, value?: number, currency?: string) {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', eventName, {
-      send_to: 'AW-XXXXXXXXXX', // Replace with your Google Ads Conversion ID
-      value: value || 0,
-      currency: currency || 'USD',
-    });
-  }
-}
+import { trackGoogleEvent, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
 
 const cardStyle = {
   hidePostalCode: true,
@@ -80,7 +64,7 @@ function PaymentFormInner({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Google Ads: Begin checkout conversion
-    trackConversion('begin_checkout', amount, currency);
+    trackGoogleEvent('begin_checkout', { value: amount, currency });
     if (!stripe || !elements || readiness.data?.status !== 'READY' || readiness.data.paymentStatus === 'paid') return;
 
     setLoading(true);
@@ -114,13 +98,16 @@ function PaymentFormInner({
       }
 
       if (paymentIntent?.status === 'succeeded') {
-        await confirmPayment.mutateAsync({
+        const confirmedPayment = await confirmPayment.mutateAsync({
           referenceNumber,
           paymentIntentId: paymentIntent.id,
         });
         paymentTimeline.paymentConfirmed();
-        // Google Ads: Purchase conversion (replace AW-XXXXXXXXXX with your real Conversion ID)
-        trackConversion('purchase', amount, currency);
+        trackVerifiedPaymentConversion({
+          transactionId: confirmedPayment.referenceNumber,
+          value: confirmedPayment.totalAmount,
+          currency: confirmedPayment.currency,
+        });
         onSuccess(`INV-${referenceNumber}`);
       }
     } catch (err: unknown) {
@@ -340,7 +327,7 @@ export function PaymentSuccessModal({
     if (failed === 0) {
       setUploadState("success");
       // Google Ads: Document upload conversion
-      trackConversion('submit_application');
+      trackGoogleEvent('documents_completed');
     }
     else if (uploaded > 0) setUploadState("partial");
     else setUploadState("failed");

@@ -11,6 +11,7 @@ import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymen
 import { paymentViewState } from '@/lib/payment-view-state';
 import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
 import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-preflight';
+import { trackVerifiedPaymentConversion } from '@/lib/google-conversion';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 
@@ -79,11 +80,16 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
 
       if (paymentIntent?.status === 'succeeded') {
         // Confirm in backend
-        await confirmPayment.mutateAsync({
+        const confirmedPayment = await confirmPayment.mutateAsync({
           referenceNumber,
           paymentIntentId: paymentIntent.id,
         });
         paymentTimeline.paymentConfirmed();
+        trackVerifiedPaymentConversion({
+          transactionId: confirmedPayment.referenceNumber,
+          value: confirmedPayment.totalAmount,
+          currency: confirmedPayment.currency,
+        });
         await utils.application.getByReference.invalidate({ referenceNumber });
         onConfirmed();
       }
