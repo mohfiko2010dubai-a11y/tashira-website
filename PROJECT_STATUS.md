@@ -6,8 +6,8 @@ Last verified: 2026-08-16
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `6a912d7`.
-- CI: GREEN through run `31958760036`.
+- Current verified implementation HEAD: `b73901e`.
+- CI: pending verification for `b73901e`; the latest local/staging quality gates are green.
 - Tests: 98/98 passing across 30 files.
 - TypeScript: PASS.
 - ESLint: PASS.
@@ -24,7 +24,7 @@ Last verified: 2026-08-16
 - Filesystem document upload with ownership checks and lifecycle/timeline evidence.
 - Signed customer application capability, admin/staff authorization foundations, risk engine, evidence manifest, finance/VAT cockpit, retention, and legal holds.
 - Stripe TEST-only verification/webhook foundation and transactional-email/recovery abstractions.
-- Safe dependency updates reduced the audit from 24 to 18 findings without force-upgrading incompatible packages.
+- Safe dependency updates reduced the audit from 24 to 16 findings without force-upgrading incompatible packages. The direct `@hono/node-server` dependency is locked to the patched `1.19.17` release.
 - Router packages are aligned on React Router 6, eliminating the verified `/staff` fallback crash.
 - Route-level lazy loading reduced the main client chunk from about 3.4 MB to about 1.19 MB.
 - The chatbot now sends canonical visa-service codes, links to the registered `/pay/:referenceNumber` route, and displays the server-authoritative quote.
@@ -52,11 +52,13 @@ Last verified: 2026-08-16
 - Recovery email rendering now includes a safe clickable HTML action and clickable fallback URL while retaining the plain-text alternative; only the exact HTTPS staging recovery origin is accepted.
 - Interactive staging Recovery UAT passed end to end: the approved inbox received the HTML Magic Link, the active `Resume Application` action opened the correct canonical payment screen, and reuse of the same link was rejected without granting a new session.
 - The canonical recovery payment page now performs the same server-authoritative readiness gate as the primary form. Incomplete applications show grouped requirements and a `Complete Application` action instead of raw API JSON or card entry; Stripe uses the pure loader and is not initialized until readiness is `READY`. Staging browser UAT verified zero Stripe frames/elements for an incomplete application and confirmed that the completion action opens the assistant at the persisted resume step.
+- Public customer tracking UAT now verifies the application reference, immutable timeline, and canonical `/pay/:referenceNumber` continuation route. The footer's Track Application link now opens `/track` instead of a dead fragment.
+- Staff logout now awaits server-side session invalidation before navigation while retaining a guaranteed local cleanup path. The existing authenticated browser click still requires a final manual confirmation; no synthetic credential was entered without owner confirmation.
 
 ## Active blockers
 
 - Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields. Automated TEST verification reached the expected `requires_action` state, but the interactive challenge was not completed in this phase.
-- Authenticated customer resume/tracking browser UAT and manual confirmation of the staff logout control. Browser automation repeatedly activated the language toggle instead of the visually distinct logout control, so no speculative logout change was retained.
+- Manual authenticated browser confirmation of the staff logout control. The implementation and automated session tests pass, but the browser interaction still requires explicit approval before entering a synthetic password.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
 - Large XLSX/invoice chunks and the 35.1 MB bundled server artifact.
@@ -69,4 +71,4 @@ Last verified: 2026-08-16
 
 ## Next highest-priority task
 
-Complete the remaining authenticated customer tracking-state browser UAT and manually confirm the staff logout control. The incomplete-checkout-to-assistant resume path is now verified.
+Manually confirm the authenticated staff logout control, then review the remaining dependency findings that require major-version migration or library replacement. Customer tracking and incomplete-checkout recovery are verified.
