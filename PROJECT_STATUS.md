@@ -1,14 +1,14 @@
 # TASHIRA Project Status
 
-Last verified: 2026-08-13
+Last verified: 2026-08-16
 
 ## Current state
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `1cc8d12`.
-- CI: GREEN through run 73.
-- Tests: 88/88 passing across 28 files.
+- Current verified implementation HEAD: `6a912d7`.
+- CI: GREEN through run `31958760036`.
+- Tests: 98/98 passing across 30 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
@@ -51,6 +51,7 @@ Last verified: 2026-08-13
 - Authorized synthetic recovery UAT created an application through the canonical API, sent one Magic Link and one Email OTP to the sole approved staging recipient, and recorded two `SENT` evidence rows under the exact `RESUME_LINK` and `RECOVERY_OTP` templates without exposing either credential.
 - Recovery email rendering now includes a safe clickable HTML action and clickable fallback URL while retaining the plain-text alternative; only the exact HTTPS staging recovery origin is accepted.
 - Interactive staging Recovery UAT passed end to end: the approved inbox received the HTML Magic Link, the active `Resume Application` action opened the correct canonical payment screen, and reuse of the same link was rejected without granting a new session.
+- The canonical recovery payment page now performs the same server-authoritative readiness gate as the primary form. Incomplete applications show grouped requirements and a `Complete Application` action instead of raw API JSON or card entry; Stripe uses the pure loader and is not initialized until readiness is `READY`. Staging browser UAT verified zero Stripe frames/elements for an incomplete application and confirmed that the completion action opens the assistant at the persisted resume step.
 
 ## Active blockers
 
@@ -68,4 +69,4 @@ Last verified: 2026-08-13
 
 ## Next highest-priority task
 
-Complete synthetic authenticated customer resume/tracking browser UAT. Manual staff logout confirmation and sandbox mail remain owner/environment prerequisites for the remaining UAT.
+Complete the remaining authenticated customer tracking-state browser UAT and manually confirm the staff logout control. The incomplete-checkout-to-assistant resume path is now verified.
