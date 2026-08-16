@@ -74,7 +74,7 @@ export default function Footer() {
                 { label: 'Home', path: '/' },
                 { label: 'UAE Visa Prices', path: '/visa-prices' },
                 { label: 'How to Apply', path: '/how-to-apply' },
-                { label: 'Track Application', path: '#' },
+                { label: 'Track Application', path: '/track' },
               ].map((link) => (
                 <li key={link.path}>
                   <Link to={link.path} className="text-sm text-gray-400 hover:text-white transition-colors">
