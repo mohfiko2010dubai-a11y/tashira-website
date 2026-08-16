@@ -27,7 +27,7 @@ if (!publishableKey.startsWith("pk_test_")) throw new Error("Staging requires a 
 process.env.VITE_STRIPE_PUBLISHABLE_KEY = publishableKey;
 process.env.STRIPE_SECRET_KEY = readSecret("stripe_secret_key");
 process.env.STRIPE_WEBHOOK_SECRET = readSecret("stripe_webhook_secret");
-for (const name of ["STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "FROM_NAME", "FROM_EMAIL"]) {
+for (const name of ["STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "FROM_NAME", "FROM_EMAIL", "PUBLIC_APP_URL"]) {
   if (stagingConfig[name]) process.env[name] = stagingConfig[name];
 }
 const resendSecretPath = path.join(expectedDirectory, "staging", "secrets", "resend_api_key");
