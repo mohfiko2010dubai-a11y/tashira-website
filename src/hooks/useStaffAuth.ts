@@ -36,15 +36,15 @@ export function useStaffAuth() {
     setSessionStaff(staffData);
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem(STAFF_AUTH_KEY);
     setToken(null);
     setSessionStaff(null);
-    // Call server logout in background
-    if (token) {
-      logoutMutation.mutate({ token });
+    try {
+      if (token) await logoutMutation.mutateAsync({ token });
+    } finally {
+      window.location.href = '/staff/login';
     }
-    window.location.href = '/staff/login';
   };
 
   const isLoading = verifyQuery.isLoading && !!token && !sessionStaff;

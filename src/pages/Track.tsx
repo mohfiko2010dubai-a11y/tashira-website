@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, CheckCircle, Search } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
 import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
+import { buildChatbotPaymentPath } from "@/lib/chatbot-application";
 
 const statusSteps = ["submitted", "under-review", "approved", "issued"] as const;
 
@@ -103,7 +104,7 @@ export default function Track() {
                 </div>
 
                 {application.paymentStatus !== "paid" && (
-                  <Link to={`/payment/${application.referenceNumber}`} className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-[#C9A04C] px-4 py-3 font-semibold text-white">
+                  <Link to={buildChatbotPaymentPath(application.referenceNumber)} className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-[#C9A04C] px-4 py-3 font-semibold text-white">
                     {isAr ? "استكمال الدفع" : "Continue to payment"} <ArrowRight size={16} />
                   </Link>
                 )}
