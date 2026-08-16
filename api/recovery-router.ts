@@ -42,7 +42,7 @@ export const recoveryRouter = createRouter({
         ? { referenceNumber: application.referenceNumber, resumeUrl: `https://staging.tashiraev.com/recover?token=${encodeURIComponent(challenge.secret)}` }
         : { referenceNumber: application.referenceNumber, otp: challenge.secret, expiresMinutes: "10" };
       try {
-        const sent = await provider.send({ recipient: email, template, variables });
+        const sent = await provider.send({ recipient: email, template, variables, idempotencyKey: `recovery/${challenge.id}` });
         await db.insert(outboundEmailEvents).values({
           id: randomUUID(), applicationId: application.id, template, recipientHash: recipientHash(email),
           provider: provider.name, status: "SENT", providerReference: sent.reference,

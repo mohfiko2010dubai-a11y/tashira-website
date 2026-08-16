@@ -1,14 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
 import { ResendEmailProvider, recipientHash } from "./resend-email";
 
-const config = { apiKey: "re_review_only", fromName: "TASHIRA Staging", fromEmail: "onboarding@resend.dev", allowedRecipients: new Set(["owner@example.test"]), staging: true };
+const config = {
+  apiKey: "re_review_only", fromName: "TASHIRA Staging", fromEmail: "onboarding@resend.dev",
+  allowedRecipients: new Set(["owner@example.test"]), restrictRecipients: true,
+  subjectPrefix: "[STAGING] ", enabled: true,
+};
 
 describe("Resend staging provider", () => {
   it("sends a staging-labelled provider-independent template", async () => {
     const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "email_test" }), { status: 200 }));
-    const result = await new ResendEmailProvider(config, request).send({ recipient: "owner@example.test", template: "PAYMENT_SUCCESS", variables: { referenceNumber: "TSH-1", invoiceNumber: "INV-1" } });
+    const result = await new ResendEmailProvider(config, request).send({
+      recipient: "owner@example.test",
+      template: "PAYMENT_SUCCESS",
+      variables: { referenceNumber: "TSH-1", invoiceNumber: "INV-1", amountPaid: "170.00", currency: "USD", currentStatus: "Paid / Ready for Processing" },
+      idempotencyKey: "payment-success/1/1",
+    });
     expect(result.reference).toBe("email_test");
     expect(JSON.parse(String(request.mock.calls[0][1]?.body)).subject).toContain("[STAGING]");
+    expect(request.mock.calls[0][1]?.headers).toMatchObject({ "Idempotency-Key": "payment-success/1/1" });
   });
 
   it("sends recovery links as clickable HTML with a plain-text fallback", async () => {
@@ -34,6 +44,7 @@ describe("Resend staging provider", () => {
 
   it("fails closed for missing keys and unapproved recipients", async () => {
     expect(() => new ResendEmailProvider({ ...config, apiKey: "" })).toThrow("not configured");
+    expect(() => new ResendEmailProvider({ ...config, enabled: false })).toThrow("not enabled");
     await expect(new ResendEmailProvider(config).send({ recipient: "customer@example.com", template: "SUBMITTED", variables: { referenceNumber: "TSH-1" } })).rejects.toThrow("not approved");
   });
 

@@ -1,7 +1,15 @@
 import { createHash } from "node:crypto";
 import { renderTransactionalEmail, type EmailTemplate, type TransactionalEmailProvider } from "./transactional-email";
 
-type ResendConfig = { apiKey: string; fromName: string; fromEmail: string; allowedRecipients: ReadonlySet<string>; staging: boolean };
+type ResendConfig = {
+  apiKey: string;
+  fromName: string;
+  fromEmail: string;
+  allowedRecipients: ReadonlySet<string>;
+  restrictRecipients: boolean;
+  subjectPrefix: string;
+  enabled: boolean;
+};
 
 export class ResendEmailProvider implements TransactionalEmailProvider {
   readonly name = "resend";
@@ -11,20 +19,24 @@ export class ResendEmailProvider implements TransactionalEmailProvider {
     this.config = config;
     this.request = request;
     if (!config.apiKey.startsWith("re_")) throw new Error("Resend API key is not configured");
-    if (!config.staging) throw new Error("Resend provider is restricted to staging");
+    if (!config.enabled) throw new Error("Resend provider is not enabled for this environment");
   }
 
-  async send(input: { recipient: string; template: EmailTemplate; variables: Record<string, string> }) {
+  async send(input: { recipient: string; template: EmailTemplate; variables: Record<string, string>; idempotencyKey?: string }) {
     const recipient = input.recipient.trim().toLowerCase();
-    if (!this.config.allowedRecipients.has(recipient)) throw new Error("Recipient is not approved for staging email UAT");
+    if (this.config.restrictRecipients && !this.config.allowedRecipients.has(recipient)) throw new Error("Recipient is not approved for staging email UAT");
     const rendered = renderTransactionalEmail(input.template, input.variables);
     const response = await this.request("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        "Content-Type": "application/json",
+        ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {}),
+      },
       body: JSON.stringify({
         from: `${this.config.fromName} <${this.config.fromEmail}>`,
         to: [recipient],
-        subject: `[STAGING] ${rendered.subject}`,
+        subject: `${this.config.subjectPrefix}${rendered.subject}`,
         text: rendered.body,
         ...(rendered.html ? { html: rendered.html } : {}),
       }),

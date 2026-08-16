@@ -6,6 +6,7 @@ import { getErrorMessage } from "./errors";
 import { retrieveStripeTestIntent, verifyStripeIntent } from "./stripe";
 import { hasTimelineEvent, recordTimelineEvent, type TimelineActorType } from "./application-timeline";
 import { activeBusinessSettings, getApplicationPriceSnapshot } from "./pricing-engine";
+import { sendPaymentSuccessEmail } from "./payment-success-email";
 
 export async function finalizeStripeTestPayment(
   referenceNumber: string,
@@ -117,6 +118,16 @@ export async function finalizeStripeTestPayment(
     }
   }
 
+  await sendPaymentSuccessEmail({
+    applicationId: application.id,
+    paymentId: payment.id,
+    recipient: application.contactEmail,
+    referenceNumber,
+    invoiceNumber,
+    amountPaid: Number(payment.amount),
+    currency: payment.currency,
+  });
+
   return {
     applicationId: application.id,
     paymentId: payment.id,
@@ -124,6 +135,7 @@ export async function finalizeStripeTestPayment(
     invoiceNumber,
     referenceNumber,
     totalAmount: Number(payment.amount),
+    currency: payment.currency.toUpperCase(),
     customerEmail: application.contactEmail,
     customerPhone: application.contactPhone,
     visaType: application.visaType,
