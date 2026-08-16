@@ -6,9 +6,9 @@ Last verified: 2026-08-16
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `b73901e`.
-- CI: GREEN through run `31959829292` at HEAD `8960c11`.
-- Tests: 98/98 passing across 30 files.
+- Current verified implementation HEAD: `1612f55`.
+- CI: GREEN through run `31961400373` at HEAD `ada4b85`; final documentation/verifier CI pending.
+- Tests: 110/110 passing across 33 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
@@ -54,10 +54,14 @@ Last verified: 2026-08-16
 - The canonical recovery payment page now performs the same server-authoritative readiness gate as the primary form. Incomplete applications show grouped requirements and a `Complete Application` action instead of raw API JSON or card entry; Stripe uses the pure loader and is not initialized until readiness is `READY`. Staging browser UAT verified zero Stripe frames/elements for an incomplete application and confirmed that the completion action opens the assistant at the persisted resume step.
 - Public customer tracking UAT now verifies the application reference, immutable timeline, and canonical `/pay/:referenceNumber` continuation route. The footer's Track Application link now opens `/track` instead of a dead fragment.
 - Staff logout now awaits server-side session invalidation before navigation while retaining a guaranteed local cleanup path. The existing authenticated browser click still requires a final manual confirmation; no synthetic credential was entered without owner confirmation.
+- Authoritative Payment Successful email delivery now runs after verified Stripe finalization, uses Resend idempotency keys and durable evidence, remains failure-isolated from payment truth, and keeps production delivery disabled until explicitly enabled.
+- Fake Google IDs were removed. Verified purchase conversion now uses the server-confirmed amount/currency and stable reference, emits only after successful backend confirmation, and remains disabled until owner IDs are configured.
+- Unpaid applications are now rejected server-side from operational processing states. The rule is covered by eight regression cases.
 
 ## Active blockers
 
 - Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields. Automated TEST verification reached the expected `requires_action` state, but the interactive challenge was not completed in this phase.
+- Final V1 candidate `TSH-V1-1786901526429` reached READY with three documents but Stripe TEST confirmation failed before webhook completion; the fresh paid E2E remains blocked by account capability.
 - Manual authenticated browser confirmation of the staff logout control. The implementation and automated session tests pass, but the browser interaction still requires explicit approval before entering a synthetic password.
 - Owner-approved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
@@ -68,7 +72,8 @@ Last verified: 2026-08-16
 - Approve production pricing/company/VAT/exchange-rate/invoice values.
 - Approve refund policy and legal retention periods.
 - Review any production credential rotation and migration plan as separate authorized changes.
+- Resolve Stripe TEST card-payment capability, confirm the Resend domain/sender in its dashboard, and provide Google Tag/Ads conversion IDs plus the purchase label.
 
 ## Next highest-priority task
 
-Manually confirm the authenticated staff logout control, then review the remaining dependency findings that require major-version migration or library replacement. Customer tracking and incomplete-checkout recovery are verified.
+Resolve the Stripe TEST capability and rerun `staging/verify-v1-launch.mjs`; then complete the fresh paid Admin/email/conversion acceptance test. Optional dependency and bundle work is deferred to `POST_LAUNCH_ROADMAP.md`.
