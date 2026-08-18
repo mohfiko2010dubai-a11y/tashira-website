@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowRight, CheckCircle, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Search } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
 import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
 import { buildChatbotPaymentPath } from "@/lib/chatbot-application";
@@ -22,6 +22,7 @@ export default function Track() {
   const isAr = i18n.language === "ar";
   const [searchParams] = useSearchParams();
   const initialReference = (searchParams.get("ref") || "").trim().toUpperCase();
+  const fromPaymentConfirmation = searchParams.get("from") === "payment-confirmation";
   const [reference, setReference] = useState(initialReference);
   const [submittedReference, setSubmittedReference] = useState(initialReference);
   const result = trpc.application.getByReference.useQuery(
@@ -106,6 +107,11 @@ export default function Track() {
                 {application.paymentStatus !== "paid" && (
                   <Link to={buildChatbotPaymentPath(application.referenceNumber)} className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-[#C9A04C] px-4 py-3 font-semibold text-white">
                     {isAr ? "استكمال الدفع" : "Continue to payment"} <ArrowRight size={16} />
+                  </Link>
+                )}
+                {application.paymentStatus === "paid" && fromPaymentConfirmation && (
+                  <Link to={buildChatbotPaymentPath(application.referenceNumber)} className="mt-6 flex items-center justify-center gap-2 rounded-lg border border-[#C9A04C] px-4 py-3 font-semibold text-[#9C792D]">
+                    <ArrowLeft size={16} /> {isAr ? "العودة إلى تأكيد الدفع" : "Back to Payment Confirmation"}
                   </Link>
                 )}
                 <div className="mt-6">

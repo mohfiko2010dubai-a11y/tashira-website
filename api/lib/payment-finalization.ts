@@ -7,6 +7,7 @@ import { retrieveStripeTestIntent, verifyStripeIntent } from "./stripe";
 import { hasTimelineEvent, recordTimelineEvent, type TimelineActorType } from "./application-timeline";
 import { activeBusinessSettings, getApplicationPriceSnapshot } from "./pricing-engine";
 import { sendPaymentSuccessEmail } from "./payment-success-email";
+import { getCanonicalInvoiceCustomerName } from "./invoice-customer-name";
 
 export async function finalizeStripeTestPayment(
   referenceNumber: string,
@@ -83,11 +84,12 @@ export async function finalizeStripeTestPayment(
   const invoiceEventExists = await hasTimelineEvent(application.id, "INVOICE_GENERATED");
   if (!application.invoicePdfPath || !invoiceEventExists) {
     try {
+      const customerName = await getCanonicalInvoiceCustomerName(application.id);
       const { pdfPath, pdfUrl } = saveInvoiceToDisk({
         invoiceNumber,
         referenceNumber,
         createdAt: new Date().toISOString(),
-        customerName: application.contactEmail.split("@")[0] || "Customer",
+        customerName,
         customerEmail: application.contactEmail,
         customerPhone: application.contactPhone,
         visaType: application.visaType,

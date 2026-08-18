@@ -6,9 +6,9 @@ Last verified: 2026-08-18
 
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
-- Current verified implementation HEAD: `1612f55`.
-- CI: GREEN through run `31961400373` at HEAD `ada4b85`; final documentation/verifier CI pending.
-- Tests: 110/110 passing across 33 files.
+- Current verified implementation: final Payment Successful presentation on `devops/deployment-safety` (commit recorded in Git history).
+- CI: local quality gates GREEN; review-branch CI pending the final UX push.
+- Tests: 128/128 passing across 39 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
@@ -58,6 +58,7 @@ Last verified: 2026-08-18
 - Fake Google IDs were removed. Verified purchase conversion now uses the server-confirmed amount/currency and stable reference, emits only after successful backend confirmation, and remains disabled until owner IDs are configured.
 - Unpaid applications are now rejected server-side from operational processing states. The rule is covered by eight regression cases.
 - Final V1 legal-policy remediation is deployed to isolated staging: complete equivalent English/Arabic Terms, Privacy, and Refund/Cancellation policies; explicit three-policy acceptance in the primary form and chatbot; immutable policy bundle `legal-bundle-2026-08-18-v1`; auditable `PROCESSING_STARTED` transition; qualified timing/private-provider wording; and working `/terms`, `/privacy`, `/refund`, `/contact`, and `/track` direct/hard-refresh routes. Exact-commit gates passed with 112 tests, the merged staging tree passed 120 tests and build, and CI run `32121645748` is green at `94ad1ff`.
+- The owner-approved final Payment Successful presentation now uses one shared normal/chatbot component, a centered responsive desktop layout, the existing authorized inline PDF invoice route, direct secure download, paid-state tracking round-trip, clean home exit, and authoritative primary-applicant identity for newly generated invoice PDFs. Focused tests and all local quality gates pass without changing Stripe, pricing, webhook, Resend, or email behavior.
 
 ## Active blockers
 

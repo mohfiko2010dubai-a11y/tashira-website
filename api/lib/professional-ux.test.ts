@@ -25,7 +25,7 @@ describe("professional customer UX invariants", () => {
     ]);
     expect(page).toContain("<PaymentSuccessExperience");
     expect(form).toContain("<PaymentSuccessExperience");
-    expect(experience).toContain("/invoices/${encodeURIComponent(invoiceNumber)}/download");
+    expect(experience).toContain("/invoices/${encodedInvoice}/download");
     expect(experience).toContain("Paid / Ready for Processing");
     expect(experience).toContain("resetPaymentSuccessViewport");
   });

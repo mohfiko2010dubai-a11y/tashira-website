@@ -27,6 +27,7 @@ import {
   markStripeWebhookFailed,
   markStripeWebhookProcessed,
 } from "./lib/stripe-webhook-idempotency";
+import { getCanonicalInvoiceCustomerName } from "./lib/invoice-customer-name";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -180,7 +181,7 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
   try {
     const customerEmail = appRow.contactEmail || "customer@example.com";
-    const customerName = customerEmail.split("@")[0] || "Customer";
+    const customerName = await getCanonicalInvoiceCustomerName(appRow.id);
     
     const invoiceData = {
       invoiceNumber,
