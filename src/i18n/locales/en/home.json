@@ -2,7 +2,7 @@
   "hero": {
     "badge": "UAE Electronic Visa Portal",
     "title": "Get Your UAE Visa Online",
-    "subtitle": "Fast, secure visa processing for tourists, families, and business travelers. Apply in minutes, get your visa in 24-72 hours.",
+    "subtitle": "Secure visa-application support for tourists, families, and business travelers. Processing times are estimates and approval is decided by the relevant authority.",
     "ctaApply": "Apply for Visa",
     "ctaTrack": "Track Application",
     "stats": {
@@ -16,7 +16,7 @@
     "title": "Why Choose Tashira?",
     "fast": {
       "title": "Lightning Fast",
-      "desc": "Get your visa in 24-72 hours with our express service"
+      "desc": "Estimated expedited handling, subject to complete documents and authority review"
     },
     "secure": {
       "title": "100% Secure",
@@ -43,7 +43,7 @@
     },
     "step3": {
       "title": "Receive Visa",
-      "desc": "Get your approved visa delivered to your email"
+      "desc": "If approved by the authority, receive the issued visa by email"
     }
   },
   "visaTypes": {
@@ -65,7 +65,7 @@
   },
   "ctaSection": {
     "title": "Ready to Travel to UAE?",
-    "subtitle": "Start your visa application now and get approved within 24-72 hours",
+    "subtitle": "Start your application; timing and approval remain subject to authority review",
     "button": "Start Application"
   },
   "faq": {
@@ -77,7 +77,7 @@
       },
       {
         "question": "Can I get a refund if my visa application is rejected?",
-        "answer": "Legally, as per government regulations, visa application fees are paid for the processing effort. In case your application is rejected by the Immigration Department, the fees are non-refundable."
+        "answer": "Visa refusal does not automatically create a refund entitlement because TASHIRA provides application-processing services and does not decide approval. Refund eligibility depends on whether processing started and on actual third-party costs under our Refund/Cancellation Policy."
       },
       {
         "question": "How many days will my visa processing take?",

@@ -38,7 +38,7 @@ export default function HowToApply() {
     <>
       <Helmet>
         <title>How to Apply for UAE Visa | Step by Step Guide | Tashira</title>
-        <meta name="description" content="Learn how to apply for UAE visa online. Step by step guide: fill form, upload documents, pay online, receive visa. Get your Dubai visa in 24-48 hours." />
+        <meta name="description" content="Learn how to request UAE visa-application services online. Processing times are estimates subject to complete documents and authority review." />
         <link rel="canonical" href="https://tashiraev.com/how-to-apply" />
         <meta property="og:title" content="How to Apply for UAE Visa | Step by Step Guide | Tashira" />
         <meta property="og:description" content="Step by step guide to apply for UAE visa online." />

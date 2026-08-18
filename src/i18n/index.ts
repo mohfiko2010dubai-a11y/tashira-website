@@ -16,7 +16,7 @@ import arHome from './locales/ar/home.json';
 import arPricing from './locales/ar/pricing.json';
 import arHowToApply from './locales/ar/howToApply.json';
 import arTrack from './locales/ar/track.json';
-import arLegal from './locales/ar/legal.json';
+import arLegal from './locales/ar/legal-v2.json';
 import arSaudiVisa from './locales/ar/saudiVisa.json';
 import arTravelDeals from './locales/ar/travelDeals.json';
 

@@ -421,7 +421,7 @@ export default function ChatBot() {
             },
           );
         } else {
-          addBotMessage('❌ Please choose:\n• **Regular** (3-4 days)\n• **Express** (24-36 hours, +$40)');
+          addBotMessage('❌ Please choose:\n• **Regular** (estimated 3–4 days)\n• **Express** (estimated 24–36 hours, +$40)\n\nTimes depend on complete documents, eligibility, authority review and system availability. Approval and exact timing are not guaranteed.');
           setLoading(false);
         }
         break;
@@ -651,6 +651,11 @@ export default function ChatBot() {
       // ─── Terms ────────────────────────────────────────────────────────────
       case 'terms': {
         if (msg.toLowerCase() === 'confirm') {
+          if (!w.acceptedTerms) {
+            addBotMessage('Please explicitly accept the Terms & Conditions, Privacy Policy, and Refund/Cancellation Policy before continuing.');
+            setLoading(false);
+            break;
+          }
           const refNum = w.referenceNumber || generateReferenceNumber();
           const payLink = `${window.location.origin}${buildChatbotPaymentPath(refNum)}`;
           const serviceCode = getChatbotVisaServiceCode(w.visaType);
@@ -969,8 +974,23 @@ export default function ChatBot() {
       case 'terms':
         return (
           <div className="p-3 bg-gray-50 border-t border-gray-100 space-y-2">
+            <label className="flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700">
+              <input
+                type="checkbox"
+                checked={wizard.acceptedTerms}
+                onChange={(event) => setWizard((current) => ({ ...current, acceptedTerms: event.target.checked }))}
+                className="mt-0.5 h-4 w-4 shrink-0"
+              />
+              <span>
+                I have read and agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#C9A04C] underline">Terms & Conditions</a>,{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#C9A04C] underline">Privacy Policy</a>, and{' '}
+                <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-[#C9A04C] underline">Refund/Cancellation Policy</a>.
+              </span>
+            </label>
             <button onClick={() => { addUserMessage('CONFIRM'); setLoading(true); processInput('CONFIRM'); }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all font-bold">
+              disabled={!wizard.acceptedTerms}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all font-bold disabled:cursor-not-allowed disabled:opacity-50">
               <Lock size={18} />
               CONFIRM & PAY
             </button>

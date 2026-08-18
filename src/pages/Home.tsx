@@ -36,10 +36,10 @@ export default function Home() {
     <>
       <Helmet>
         <title>UAE Visa Online | Apply for Dubai & Abu Dhabi Visa | Tashira</title>
-        <meta name="description" content="Apply for UAE visa online with Tashira. Tourist visas, transit visas, GCC resident visas. Fast processing in 24-48 hours, secure payment, 24/7 support." />
+        <meta name="description" content="Apply for UAE visa services online with TASHIRA, a private application service provider. Processing estimates depend on complete documents and authority review." />
         <link rel="canonical" href="https://tashiraev.com/" />
         <meta property="og:title" content="UAE Visa Online | Apply for Dubai & Abu Dhabi Visa | Tashira" />
-        <meta property="og:description" content="Apply for UAE visa online. Tourist, transit, GCC resident visas. Fast 24-48 hour processing." />
+        <meta property="og:description" content="Private UAE visa-application support with estimated processing subject to authority review; approval is not guaranteed." />
         <meta property="og:url" content="https://tashiraev.com/" />
       </Helmet>
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #FAFAF7 0%, #F5F3EE 15%, #FFFFFF 30%)' }}>

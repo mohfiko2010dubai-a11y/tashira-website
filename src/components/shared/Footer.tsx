@@ -14,8 +14,8 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <ShieldCheck size={22} className="text-[#C9A04C]" />
               <div>
-                <p className="text-xs text-gray-400">A licensed company under</p>
-                <p className="text-sm font-semibold text-white">Meydan Free Zone, Dubai Government</p>
+                <p className="text-xs text-gray-400">Private company licensed in</p>
+                <p className="text-sm font-semibold text-white">Meydan Free Zone, Dubai, UAE</p>
               </div>
             </div>
             <div className="hidden sm:block w-px h-8 bg-white/20" />
@@ -96,6 +96,7 @@ export default function Footer() {
                 { label: t('footer.privacy'), path: '/privacy' },
                 { label: t('footer.refund'), path: '/refund' },
                 { label: t('footer.cookies'), path: '/cookies' },
+                { label: 'Contact', path: '/contact' },
               ].map((link) => (
                 <li key={link.path}>
                   <Link to={link.path} className="text-sm text-gray-400 hover:text-white transition-colors">

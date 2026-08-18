@@ -8,7 +8,7 @@ import { auditLog } from "./lib/audit-log";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { recordTimelineEvent, type TimelineEventName } from "./lib/application-timeline";
-import { TERMS_POLICY_VERSION } from "@contracts/constants";
+import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
 import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { activeBusinessSettings } from "./lib/pricing-engine";
 import { canEnterApplicationState } from "./lib/processing-gate";
@@ -84,7 +84,7 @@ export const applicationRouter = createRouter({
           eventSource: "APPLICATION_API",
           actorType: "CUSTOMER",
           policyVersion: input.policyVersion,
-          summary: "Terms policy accepted",
+          summary: `${ACCEPTED_POLICY_TYPES.join(", ")} accepted; effective ${TERMS_POLICY_EFFECTIVE_DATE}`,
         });
         const applicantIds: number[] = [];
         for (let i = 0; i < input.applicants.length; i++) {
@@ -211,6 +211,7 @@ export const applicationRouter = createRouter({
       }
       await db.update(applications).set({ status: input.status }).where(eq(applications.id, input.id));
       const eventByStatus: Partial<Record<typeof input.status, TimelineEventName>> = {
+        under_review: "PROCESSING_STARTED",
         visa_processing: "GOVERNMENT_PROCESSING",
         visa_received: "VISA_ISSUED",
         completed: "APPLICATION_COMPLETED",

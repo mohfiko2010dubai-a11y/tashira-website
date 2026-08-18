@@ -10,7 +10,7 @@ import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
-import { TERMS_POLICY_VERSION } from "@contracts/constants";
+import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
 import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { assertCompleteApplicantSequence, assertRequiredApplicantDocuments } from "./lib/wizard-applicants";
 
@@ -371,7 +371,7 @@ export const wizardRouter = createRouter({
             eventSource: "CHATBOT_WIZARD",
             actorType: "CUSTOMER",
             policyVersion: input.policyVersion,
-            summary: "Terms policy accepted",
+            summary: `${ACCEPTED_POLICY_TYPES.join(", ")} accepted; effective ${TERMS_POLICY_EFFECTIVE_DATE}`,
         });
 
         return {

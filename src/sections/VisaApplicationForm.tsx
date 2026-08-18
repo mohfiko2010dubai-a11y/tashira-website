@@ -620,10 +620,11 @@ export default function VisaApplicationForm() {
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'نوع المعالجة' : 'Processing Type'} <span className="text-red-500">*</span></label>
                   <div className="flex gap-6 py-2">
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="regular" checked={processingType === 'regular'} onChange={() => setProcessingType('regular')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'عادي (3-4 أيام)' : 'Regular (3~4 days)'}</span></label>
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="express" checked={processingType === 'express'} onChange={() => setProcessingType('express')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'سريع (+$40)' : 'Express (+$40)'}</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="regular" checked={processingType === 'regular'} onChange={() => setProcessingType('regular')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'عادي (تقديرياً 3-4 أيام)' : 'Regular (estimated 3–4 days)'}</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="express" checked={processingType === 'express'} onChange={() => setProcessingType('express')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'سريع (مدة تقديرية، +$40)' : 'Express (estimated timing, +$40)'}</span></label>
                   </div>
                 </div>
+                <p className="mt-2 text-xs text-gray-500">{isAr ? 'المدد تقديرية وتعتمد على اكتمال المستندات والأهلية ومراجعة الجهة وتوفر الأنظمة، ولا نضمن الموافقة أو توقيتاً دقيقاً.' : 'Times are estimates subject to complete documents, eligibility, authority review and system availability. Approval and exact timing are not guaranteed.'}</p>
 
                 {isFamily && applicants.length > 1 && (
                   <div className="flex items-center justify-between pt-2">
@@ -639,7 +640,14 @@ export default function VisaApplicationForm() {
           <div className="mt-6 pt-4 border-t border-gray-100">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 text-[#C9A04C] border-gray-300 rounded" required />
-                <span className="text-sm text-gray-600">{isAr ? 'لقد قرأت وأوافق على ' : 'I have read and agree to the '}<Link to="/terms" className="text-[#C9A04C] hover:underline">{isAr ? 'الشروط والأحكام' : 'Terms and Conditions'}</Link>. <span className="text-red-500">*</span></span>
+                <span className="text-sm text-gray-600">
+                  {isAr ? 'أقرأ وأوافق على ' : 'I have read and agree to the '}
+                  <Link to="/terms" target="_blank" className="text-[#C9A04C] hover:underline">{isAr ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link>
+                  {isAr ? '، و' : ', '}
+                  <Link to="/privacy" target="_blank" className="text-[#C9A04C] hover:underline">{isAr ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link>
+                  {isAr ? '، و' : ', and '}
+                  <Link to="/refund" target="_blank" className="text-[#C9A04C] hover:underline">{isAr ? 'سياسة الاسترداد والإلغاء' : 'Refund/Cancellation Policy'}</Link>. <span className="text-red-500">*</span>
+                </span>
               </label>
             </div>
 
