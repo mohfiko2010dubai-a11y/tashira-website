@@ -1,6 +1,6 @@
 # TASHIRA Project Status
 
-Last verified: 2026-08-16
+Last verified: 2026-08-18
 
 ## Current state
 
@@ -57,6 +57,7 @@ Last verified: 2026-08-16
 - Authoritative Payment Successful email delivery now runs after verified Stripe finalization, uses Resend idempotency keys and durable evidence, remains failure-isolated from payment truth, and keeps production delivery disabled until explicitly enabled.
 - Fake Google IDs were removed. Verified purchase conversion now uses the server-confirmed amount/currency and stable reference, emits only after successful backend confirmation, and remains disabled until owner IDs are configured.
 - Unpaid applications are now rejected server-side from operational processing states. The rule is covered by eight regression cases.
+- Final V1 legal-policy remediation is deployed to isolated staging: complete equivalent English/Arabic Terms, Privacy, and Refund/Cancellation policies; explicit three-policy acceptance in the primary form and chatbot; immutable policy bundle `legal-bundle-2026-08-18-v1`; auditable `PROCESSING_STARTED` transition; qualified timing/private-provider wording; and working `/terms`, `/privacy`, `/refund`, `/contact`, and `/track` direct/hard-refresh routes. Exact-commit gates passed with 112 tests, the merged staging tree passed 120 tests and build, and CI run `32121645748` is green at `94ad1ff`.
 
 ## Active blockers
 
@@ -70,7 +71,6 @@ Last verified: 2026-08-16
 ## Owner decisions/actions required
 
 - Approve production pricing/company/VAT/exchange-rate/invoice values.
-- Approve refund policy and legal retention periods.
 - Review any production credential rotation and migration plan as separate authorized changes.
 - Resolve Stripe TEST card-payment capability, confirm the Resend domain/sender in its dashboard, and provide Google Tag/Ads conversion IDs plus the purchase label.
 
