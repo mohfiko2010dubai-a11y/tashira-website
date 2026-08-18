@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { and, desc, eq, isNull, lte, or, gt } from "drizzle-orm";
 import { applicationPriceSnapshots, businessSettingsVersions, pricingRules } from "@db/schema";
 import { getDb } from "../queries/connection";
+import { priceSnapshotMatchesQuote } from "./price-snapshot-match";
 
 export type PriceQuote = {
   pricingRuleId: number;
@@ -18,6 +19,15 @@ export type PriceQuote = {
   baseCurrency: string;
   totalInBaseCurrency: number;
 };
+
+function mysqlErrorCode(error: unknown): string | undefined {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth += 1) {
+    if ("code" in current && typeof current.code === "string") return current.code;
+    current = "cause" in current ? current.cause : undefined;
+  }
+  return undefined;
+}
 
 function money(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -80,30 +90,47 @@ export async function quoteApplicationPrice(input: {
 }
 
 export async function saveApplicationPriceSnapshot(applicationId: number, quote: PriceQuote) {
+  const existing = await getApplicationPriceSnapshotIfPresent(applicationId);
+  if (existing) {
+    if (!priceSnapshotMatchesQuote(existing, quote)) throw new Error("Existing application price snapshot does not match the current server quote");
+    return existing.id;
+  }
   const id = randomUUID();
-  await getDb().insert(applicationPriceSnapshots).values({
-    id,
-    applicationId,
-    pricingRuleId: quote.pricingRuleId,
-    pricingVersion: quote.pricingVersion,
-    applicantCount: quote.applicantCount,
-    unitPrice: quote.unitPrice.toFixed(2),
-    totalPrice: quote.totalPrice.toFixed(2),
-    supplierCost: quote.supplierCost.toFixed(2),
-    internalCost: quote.internalCost.toFixed(2),
-    markup: quote.markup.toFixed(2),
-    minimumSellingPrice: quote.minimumSellingPrice.toFixed(2),
-    currency: quote.currency,
-    exchangeRateToBase: quote.exchangeRateToBase.toFixed(6),
-    baseCurrency: quote.baseCurrency,
-    totalInBaseCurrency: quote.totalInBaseCurrency.toFixed(2),
-  });
+  try {
+    await getDb().insert(applicationPriceSnapshots).values({
+      id,
+      applicationId,
+      pricingRuleId: quote.pricingRuleId,
+      pricingVersion: quote.pricingVersion,
+      applicantCount: quote.applicantCount,
+      unitPrice: quote.unitPrice.toFixed(2),
+      totalPrice: quote.totalPrice.toFixed(2),
+      supplierCost: quote.supplierCost.toFixed(2),
+      internalCost: quote.internalCost.toFixed(2),
+      markup: quote.markup.toFixed(2),
+      minimumSellingPrice: quote.minimumSellingPrice.toFixed(2),
+      currency: quote.currency,
+      exchangeRateToBase: quote.exchangeRateToBase.toFixed(6),
+      baseCurrency: quote.baseCurrency,
+      totalInBaseCurrency: quote.totalInBaseCurrency.toFixed(2),
+    });
+  } catch (error: unknown) {
+    if (mysqlErrorCode(error) !== "ER_DUP_ENTRY") throw error;
+    const racedSnapshot = await getApplicationPriceSnapshotIfPresent(applicationId);
+    if (!racedSnapshot || !priceSnapshotMatchesQuote(racedSnapshot, quote)) throw error;
+    return racedSnapshot.id;
+  }
   return id;
 }
 
-export async function getApplicationPriceSnapshot(applicationId: number) {
+async function getApplicationPriceSnapshotIfPresent(applicationId: number) {
   const [snapshot] = await getDb().select().from(applicationPriceSnapshots)
     .where(eq(applicationPriceSnapshots.applicationId, applicationId)).limit(1);
+  return snapshot;
+}
+
+export async function getApplicationPriceSnapshot(applicationId: number) {
+  const snapshot = await getApplicationPriceSnapshotIfPresent(applicationId);
   if (!snapshot) throw new Error("Application price snapshot is missing");
   return snapshot;
 }

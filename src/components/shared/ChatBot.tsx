@@ -718,10 +718,10 @@ export default function ChatBot() {
                     `**Pay Now:**\n${payLink}`,
                 );
               },
-              onError: (err) => {
+              onError: () => {
                 addBotMessage(
-                  `❌ Failed to save application: ${err.message}\n\n` +
-                    `Please try again or contact support on WhatsApp +971 58 989 6644`,
+                  `❌ We couldn't save your application. Please try again. If the problem continues, contact TASHIRA support.\n\n` +
+                    `WhatsApp: +971 58 989 6644`,
                 );
                 setLoading(false);
               },

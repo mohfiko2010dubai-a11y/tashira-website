@@ -79,6 +79,16 @@ export async function hasTimelineEvent(applicationId: number, eventName: Timelin
   return Number(result?.value || 0) > 0;
 }
 
+export async function hasTimelinePolicyAcceptance(applicationId: number, policyVersion: string) {
+  const [result] = await getDb().select({ value: count() }).from(applicationTimelineEvents)
+    .where(and(
+      eq(applicationTimelineEvents.applicationId, applicationId),
+      eq(applicationTimelineEvents.eventName, "POLICY_ACCEPTED"),
+      eq(applicationTimelineEvents.policyVersion, policyVersion),
+    ));
+  return Number(result?.value || 0) > 0;
+}
+
 export async function hasTimelineEventReference(
   applicationId: number,
   eventName: TimelineEventName,

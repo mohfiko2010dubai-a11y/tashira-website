@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { adminQuery, applicationAccessQuery, applicationSubmissionQuery, applicationUploadQuery, chatQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applicants, applications, documents } from "@db/schema";
@@ -9,7 +10,7 @@ import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-u
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
-import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
+import { documentUploadEvent, hasTimelineEvent, hasTimelinePolicyAcceptance, recordTimelineEvent } from "./lib/application-timeline";
 import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
 import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { assertCompleteApplicantSequence, assertRequiredApplicantDocuments } from "./lib/wizard-applicants";
@@ -357,7 +358,7 @@ export const wizardRouter = createRouter({
           .where(eq(applications.referenceNumber, input.referenceNumber));
 
         await saveApplicationPriceSnapshot(updated.id, quote);
-        await recordTimelineEvent({
+        if (!await hasTimelineEvent(updated.id, "APPLICATION_SUBMITTED")) await recordTimelineEvent({
             applicationId: updated.id,
             eventName: "APPLICATION_SUBMITTED",
             eventSource: "CHATBOT_WIZARD",
@@ -365,7 +366,7 @@ export const wizardRouter = createRouter({
             resultingState: "documents_pending",
             summary: "Application submitted",
         });
-        await recordTimelineEvent({
+        if (!await hasTimelinePolicyAcceptance(updated.id, input.policyVersion)) await recordTimelineEvent({
             applicationId: updated.id,
             eventName: "POLICY_ACCEPTED",
             eventSource: "CHATBOT_WIZARD",
@@ -381,9 +382,13 @@ export const wizardRouter = createRouter({
           quote: { totalPrice: quote.totalPrice, currency: quote.currency },
         };
       } catch (error: unknown) {
-        const message = getErrorMessage(error);
-        console.error("[Wizard] Failed to submit application:", message);
-        throw new Error(`Failed to save application: ${message}`);
+        console.error("[Wizard] Failed to submit application", {
+          category: error instanceof Error ? error.constructor.name : "UnknownError",
+        });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We couldn't save your application. Please try again. If the problem continues, contact TASHIRA support.",
+        });
       }
     }),
 
