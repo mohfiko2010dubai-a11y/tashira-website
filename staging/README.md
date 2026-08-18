@@ -43,6 +43,14 @@ Never commit these files. Never reuse a production value.
 
 The approved native runtime is private on `127.0.0.1:3002`. The public entry point is only `https://staging.tashiraev.com`, using the reviewed `staging/nginx-native.conf` virtual host and a separate Let's Encrypt certificate. HTTP redirects to HTTPS, every response carries `X-Robots-Tag: noindex, nofollow, noarchive`, and staging disables browser caching so UAT always exercises the current build.
 
+All updates to the existing native staging runtime must use this single deployment entry point from `/var/www/tashira-staging`:
+
+```bash
+node staging/deploy-native.mjs
+```
+
+It invokes the guarded `staging/build-native.mjs`, verifies that the current payment chunk contains the configured Stripe TEST publishable key, restarts only `tashira-staging`, and checks the private staging health endpoint. Plain `npm run build` is not a valid staging deployment command and fails before Vite builds when the required staging injection is absent.
+
 MySQL remains private on `127.0.0.1:3306`. Never publish port 3002 or the database port, and never point this virtual host at production port 3000.
 
 ## Schema preparation

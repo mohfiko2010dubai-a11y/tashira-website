@@ -5,6 +5,12 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
 
+const repositoryRoot = path.resolve(__dirname)
+const isNativeStaging = repositoryRoot === '/var/www/tashira-staging'
+if (isNativeStaging && !process.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_')) {
+  throw new Error('Native staging builds must use node staging/build-native.mjs')
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [

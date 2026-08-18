@@ -14,3 +14,8 @@ const result = spawnSync(npmCommand, ["run", "build"], {
   stdio: "inherit",
 });
 if (result.status !== 0) process.exit(result.status ?? 1);
+
+const verification = spawnSync(process.execPath, ["staging/verify-native-build.mjs"], {
+  stdio: "inherit",
+});
+if (verification.status !== 0) process.exit(verification.status ?? 1);
