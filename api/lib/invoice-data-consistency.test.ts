@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { canonicalInvoiceCustomerName } from "./invoice-customer-name";
+import { canonicalInvoiceCustomerName } from "./invoice-customer-identity";
 
 describe("canonical invoice customer identity", () => {
   it("uses the single applicant's submitted full name and normalizes whitespace only", () => {
