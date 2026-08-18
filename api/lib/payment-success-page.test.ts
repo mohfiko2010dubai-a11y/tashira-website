@@ -50,8 +50,11 @@ describe("final payment success presentation", () => {
     ]);
     expect(helper).toContain("applicants.fullName");
     expect(helper).toContain("applicants.applicantIndex");
-    expect(finalization).toContain("getCanonicalInvoiceCustomerName(application.id)");
-    expect(fallback).toContain("getCanonicalInvoiceCustomerName(appRow.id)");
+    expect(helper).toContain("applicants.nationality");
+    expect(helper).toContain("applicants.passportNumber");
+    expect(helper).toContain("applicants.passportExpiry");
+    expect(finalization).toContain("getCanonicalInvoiceCustomerIdentity(application.id)");
+    expect(fallback).toContain("getCanonicalInvoiceCustomerIdentity(appRow.id)");
     expect(finalization).not.toContain('application.contactEmail.split("@")');
     expect(fallback).not.toContain('customerEmail.split("@")');
   });
