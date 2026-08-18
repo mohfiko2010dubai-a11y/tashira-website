@@ -29,8 +29,6 @@ describe("price snapshot retry invariants", () => {
 
   it("recognizes an identical immutable snapshot on retry", () => {
     expect(priceSnapshotMatchesQuote({
-      id: "snapshot-1",
-      applicationId: 38,
       pricingRuleId: 4,
       pricingVersion: 1,
       applicantCount: 1,
@@ -44,15 +42,12 @@ describe("price snapshot retry invariants", () => {
       exchangeRateToBase: "3.670000",
       baseCurrency: "AED",
       totalInBaseCurrency: "789.05",
-      createdAt: new Date("2026-08-18T00:00:00Z"),
     }, quote)).toBe(true);
   });
 
   it("rejects a retry whose server quote differs from immutable evidence", () => {
     const changed = { ...quote, totalPrice: 216 };
     expect(priceSnapshotMatchesQuote({
-      id: "snapshot-1",
-      applicationId: 38,
       pricingRuleId: 4,
       pricingVersion: 1,
       applicantCount: 1,
@@ -66,7 +61,6 @@ describe("price snapshot retry invariants", () => {
       exchangeRateToBase: "3.670000",
       baseCurrency: "AED",
       totalInBaseCurrency: "789.05",
-      createdAt: new Date("2026-08-18T00:00:00Z"),
     }, changed)).toBe(false);
   });
 });
