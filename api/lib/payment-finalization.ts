@@ -7,7 +7,7 @@ import { retrieveStripeTestIntent, verifyStripeIntent } from "./stripe";
 import { hasTimelineEvent, recordTimelineEvent, type TimelineActorType } from "./application-timeline";
 import { activeBusinessSettings, getApplicationPriceSnapshot } from "./pricing-engine";
 import { sendPaymentSuccessEmail } from "./payment-success-email";
-import { getCanonicalInvoiceCustomerName } from "./invoice-customer-name";
+import { getCanonicalInvoiceCustomerIdentity } from "./invoice-customer-name";
 
 export async function finalizeStripeTestPayment(
   referenceNumber: string,
@@ -84,18 +84,26 @@ export async function finalizeStripeTestPayment(
   const invoiceEventExists = await hasTimelineEvent(application.id, "INVOICE_GENERATED");
   if (!application.invoicePdfPath || !invoiceEventExists) {
     try {
-      const customerName = await getCanonicalInvoiceCustomerName(application.id);
+      const customerIdentity = await getCanonicalInvoiceCustomerIdentity(application.id);
       const { pdfPath, pdfUrl } = saveInvoiceToDisk({
         invoiceNumber,
         referenceNumber,
         createdAt: new Date().toISOString(),
-        customerName,
+        customerName: customerIdentity.fullName,
         customerEmail: application.contactEmail,
         customerPhone: application.contactPhone,
+        nationality: customerIdentity.nationality,
+        passportNumber: customerIdentity.passportNumber,
+        passportExpiry: customerIdentity.passportExpiry,
         visaType: application.visaType,
         processingType: application.processingType,
         arrivalDate: application.arrivalDate || undefined,
+        applicantCount: priceSnapshot.applicantCount,
+        unitPriceInBaseCurrency: Number(priceSnapshot.unitPrice) * Number(priceSnapshot.exchangeRateToBase),
+        baseCurrency: priceSnapshot.baseCurrency.toUpperCase(),
+        exchangeRateToBase: Number(priceSnapshot.exchangeRateToBase),
         totalAmount: Number(payment.amount),
+        currency: payment.currency.toUpperCase(),
         stripePaymentIntentId: paymentIntentId,
       });
       await db.update(applications).set({

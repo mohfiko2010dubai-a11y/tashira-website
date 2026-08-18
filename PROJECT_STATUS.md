@@ -1,6 +1,6 @@
 # TASHIRA Project Status
 
-Last verified: 2026-08-18
+Last verified: 2026-08-19
 
 ## Current state
 
@@ -59,6 +59,7 @@ Last verified: 2026-08-18
 - Unpaid applications are now rejected server-side from operational processing states. The rule is covered by eight regression cases.
 - Final V1 legal-policy remediation is deployed to isolated staging: complete equivalent English/Arabic Terms, Privacy, and Refund/Cancellation policies; explicit three-policy acceptance in the primary form and chatbot; immutable policy bundle `legal-bundle-2026-08-18-v1`; auditable `PROCESSING_STARTED` transition; qualified timing/private-provider wording; and working `/terms`, `/privacy`, `/refund`, `/contact`, and `/track` direct/hard-refresh routes. Exact-commit gates passed with 112 tests, the merged staging tree passed 120 tests and build, and CI run `32121645748` is green at `94ad1ff`.
 - The owner-approved final Payment Successful presentation now uses one shared normal/chatbot component, a centered responsive desktop layout, the existing authorized inline PDF invoice route, direct secure download, paid-state tracking round-trip, clean home exit, and authoritative primary-applicant identity for newly generated invoice PDFs. Focused tests and all local quality gates pass without changing Stripe, pricing, webhook, Resend, or email behavior.
+- The final V1 invoice now maps every BILL TO identity field from ordered Applicant 1, preserves full-family financial evidence from the immutable price snapshot and verified payment, and embeds the OFL-licensed Noto Naskh Arabic font for shaped RTL Arabic values without changing the English/LTR structure. Preview, download, admin access, and email attachments continue to use the same canonical server PDF.
 
 ## Active blockers
 

@@ -27,7 +27,8 @@ import {
   markStripeWebhookFailed,
   markStripeWebhookProcessed,
 } from "./lib/stripe-webhook-idempotency";
-import { getCanonicalInvoiceCustomerName } from "./lib/invoice-customer-name";
+import { getCanonicalInvoiceCustomerIdentity } from "./lib/invoice-customer-name";
+import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -181,19 +182,30 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
   try {
     const customerEmail = appRow.contactEmail || "customer@example.com";
-    const customerName = await getCanonicalInvoiceCustomerName(appRow.id);
+    const [customerIdentity, priceSnapshot] = await Promise.all([
+      getCanonicalInvoiceCustomerIdentity(appRow.id),
+      getApplicationPriceSnapshot(appRow.id),
+    ]);
     
     const invoiceData = {
       invoiceNumber,
       referenceNumber: appRow.referenceNumber,
       createdAt: appRow.createdAt ? new Date(appRow.createdAt).toISOString() : new Date().toISOString(),
-      customerName,
+      customerName: customerIdentity.fullName,
       customerEmail,
       customerPhone: appRow.contactPhone || "",
+      nationality: customerIdentity.nationality,
+      passportNumber: customerIdentity.passportNumber,
+      passportExpiry: customerIdentity.passportExpiry,
       visaType: appRow.visaType || "",
       processingType: appRow.processingType || "",
       arrivalDate: appRow.arrivalDate || undefined,
+      applicantCount: priceSnapshot.applicantCount,
+      unitPriceInBaseCurrency: Number(priceSnapshot.unitPrice) * Number(priceSnapshot.exchangeRateToBase),
+      baseCurrency: priceSnapshot.baseCurrency.toUpperCase(),
+      exchangeRateToBase: Number(priceSnapshot.exchangeRateToBase),
       totalAmount: Number(appRow.totalAmountUsd || appRow.stripeAmountUsd || 0),
+      currency: priceSnapshot.currency.toUpperCase(),
       stripePaymentIntentId: appRow.stripePaymentIntentId || undefined,
     };
 
