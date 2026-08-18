@@ -80,11 +80,12 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor("#666666");
-  doc.text(data.customerName, 15, 72);
-  doc.text(data.customerEmail, 15, 78);
-  doc.text(data.customerPhone, 15, 84);
-  if (data.passportNumber) doc.text(`Passport: ${data.passportNumber}`, 15, 90);
-  if (data.nationality) doc.text(`Nationality: ${data.nationality}`, 15, 96);
+  const customerNameLines = doc.splitTextToSize(data.customerName, 82) as string[];
+  doc.text(customerNameLines, 15, 72);
+  const customerEmailY = 72 + (customerNameLines.length * 5);
+  const customerPhoneY = customerEmailY + 6;
+  doc.text(data.customerEmail, 15, customerEmailY);
+  doc.text(data.customerPhone, 15, customerPhoneY);
 
   // === APPLICATION DETAILS ===
   doc.setTextColor("#1A2332");
@@ -102,7 +103,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
 
   // === LINE ITEMS TABLE ===
   autoTable(doc, {
-    startY: 108,
+    startY: Math.max(108, customerPhoneY + 12),
     head: [["Description", "Qty", "Unit Price", "Amount (USD)"]],
     body: [
       [`${data.visaType} - ${data.processingType} Processing`, "1", `$${subtotal.toFixed(2)}`, `$${subtotal.toFixed(2)}`],
