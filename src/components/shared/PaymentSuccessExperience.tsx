@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Download, FileText, Headphones, Home, MapPinned, ShieldCheck, Timer, X } from 'lucide-react';
 import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
 
-export function PaymentSuccessExperience({ referenceNumber, invoiceNumber, amountPaid, currency = 'USD' }: {
-  referenceNumber: string; invoiceNumber: string; amountPaid: number; currency?: string; visaType?: string; processingType?: string;
+export function PaymentSuccessExperience({ referenceNumber, invoiceNumber, amountPaid, currency = 'USD', onBackHome }: {
+  referenceNumber: string; invoiceNumber: string; amountPaid: number; currency?: string; visaType?: string; processingType?: string; onBackHome?: () => void;
 }) {
   const navigate = useNavigate();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -38,9 +38,14 @@ export function PaymentSuccessExperience({ referenceNumber, invoiceNumber, amoun
     };
   }, [invoiceView]);
 
-  return <div className="min-h-screen bg-gradient-to-b from-[#F7F7F2] to-white">
+  const backToHome = () => {
+    onBackHome?.();
+    navigate('/', { replace: true });
+  };
+
+  return <div className="fixed inset-0 z-[100] min-h-screen overflow-y-auto bg-gradient-to-b from-[#F7F7F2] to-white">
     <header className="border-b border-gray-200 bg-white px-4 py-3 sm:px-8"><div className="mx-auto flex max-w-[1280px] items-center justify-between">
-      <button type="button" onClick={() => navigate('/', { replace: true })} className="text-xl font-bold tracking-[0.22em] text-[#172235]">TASHIRA</button>
+      <button type="button" onClick={backToHome} className="text-xl font-bold tracking-[0.22em] text-[#172235]">TASHIRA</button>
       <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-700"><ShieldCheck size={15}/>Secure confirmation</span>
     </div></header>
     <main className="px-4 py-5 sm:px-6 sm:py-8 lg:px-10">
@@ -62,7 +67,7 @@ export function PaymentSuccessExperience({ referenceNumber, invoiceNumber, amoun
             <div><p className="text-xs text-gray-400">Application Reference</p><p className="mt-1 font-mono font-semibold text-[#172235]">{referenceNumber}</p></div><div><p className="text-xs text-gray-400">Invoice Number</p><p className="mt-1 font-mono font-semibold text-[#172235]">{invoiceNumber}</p></div><div><p className="text-xs text-gray-400">Amount Paid</p><p className="mt-1 font-semibold text-[#172235]">{currency} {amountPaid.toFixed(2)}</p></div><div><p className="text-xs text-gray-400">Status</p><p className="mt-1 font-semibold text-emerald-700">Paid / Ready for Processing</p></div>
           </div>
           <p className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-800"><CheckCircle size={15} className="mt-0.5 shrink-0"/>A confirmation email with your invoice has been sent to your email address.</p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-3"><a href={trackingUrl} className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-4 py-3 text-sm font-bold text-white shadow-sm"><MapPinned size={16}/>Track Application</a><a href={invoiceDownload} className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-3 text-sm font-semibold text-[#172235]"><Download size={16}/>Download Invoice</a><button type="button" onClick={() => navigate('/', { replace: true })} className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600"><Home size={16}/>Back to Home</button></div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3"><a href={trackingUrl} className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-4 py-3 text-sm font-bold text-white shadow-sm"><MapPinned size={16}/>Track Application</a><a href={invoiceDownload} className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-3 text-sm font-semibold text-[#172235]"><Download size={16}/>Download Invoice</a><button type="button" onClick={backToHome} className="flex items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600"><Home size={16}/>Back to Home</button></div>
           {!invoiceOpen && <button type="button" onClick={() => setInvoiceOpen(true)} className="mt-4 self-start text-sm font-semibold text-[#9C792D] hover:underline">View secure invoice preview</button>}
         </section>
       </div>

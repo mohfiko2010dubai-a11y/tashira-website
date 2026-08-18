@@ -11,6 +11,16 @@ describe("final payment success presentation", () => {
     expect(source).toContain("src={invoicePreviewUrl}");
     expect(source).toContain("Invoice Preview");
     expect(source).not.toContain("Invoice Summary");
+    expect(source).toContain("fixed inset-0 z-[100]");
+  });
+
+  it("covers the home hero and clears the normal-flow success state on home exit", async () => {
+    const [experience, paymentForm] = await Promise.all([
+      readFile(new URL("../../src/components/shared/PaymentSuccessExperience.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../../src/components/shared/StripePaymentForm.tsx", import.meta.url), "utf8"),
+    ]);
+    expect(experience).toContain("onBackHome?.()");
+    expect(paymentForm).toContain("onBackHome={onClose}");
   });
 
   it("keeps explicit inline preview and attachment download dispositions", async () => {

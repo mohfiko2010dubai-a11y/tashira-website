@@ -343,6 +343,7 @@ export function PaymentSuccessModal({
         currency="USD"
         visaType={applicantData.visaType}
         processingType={applicantData.processingType}
+        onBackHome={onClose}
       />
     );
   }
