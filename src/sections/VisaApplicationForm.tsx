@@ -331,20 +331,16 @@ export default function VisaApplicationForm() {
 
   if (submitted && paymentInvoiceNumber) {
     return (
-      <div className="max-w-2xl mx-auto px-4 pb-20">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <PaymentSuccessModal
-            invoiceNumber={paymentInvoiceNumber}
-            referenceNumber={referenceNumber}
-            totalAmountUsd={calculateTotal()}
-            exchangeRate={priceQuote.data?.exchangeRateToBase ?? 0}
-            applicationId={applicationId || 0}
-            pendingFiles={[]}
-            applicantData={{ customerName: applicants[0]?.fullName || '', customerEmail: email, customerPhone: phone, visaType, processingType, arrivalDate }}
-            onClose={() => { setSubmitted(false); setPaymentInvoiceNumber(''); setBaseType(null); setResidenceType(null); setApplicants([emptyApplicant(0)]); setTermsAccepted(false); }}
-          />
-        </div>
-      </div>
+      <PaymentSuccessModal
+        invoiceNumber={paymentInvoiceNumber}
+        referenceNumber={referenceNumber}
+        totalAmountUsd={calculateTotal()}
+        exchangeRate={priceQuote.data?.exchangeRateToBase ?? 0}
+        applicationId={applicationId || 0}
+        pendingFiles={[]}
+        applicantData={{ customerName: applicants[0]?.fullName || '', customerEmail: email, customerPhone: phone, visaType, processingType, arrivalDate }}
+        onClose={() => { setSubmitted(false); setPaymentInvoiceNumber(''); setBaseType(null); setResidenceType(null); setApplicants([emptyApplicant(0)]); setTermsAccepted(false); }}
+      />
     );
   }
 

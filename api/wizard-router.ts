@@ -5,7 +5,7 @@ import { getDb } from "./queries/connection";
 import { applicants, applications, documents } from "@db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
-import { LOCAL_STORAGE_METADATA, storageUpload } from "./lib/local-storage";
+import { LOCAL_STORAGE_METADATA, storageDelete, storageUpload } from "./lib/local-storage";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
@@ -14,6 +14,7 @@ import { documentUploadEvent, hasTimelineEvent, hasTimelinePolicyAcceptance, rec
 import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
 import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { assertCompleteApplicantSequence, assertRequiredApplicantDocuments } from "./lib/wizard-applicants";
+import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -535,6 +536,79 @@ export const wizardRouter = createRouter({
         const message = getErrorMessage(error);
         console.error("[Wizard] Failed to upload document:", message);
         throw new Error(`Failed to upload document: ${message}`);
+      }
+    }),
+
+  replaceDocument: applicationUploadQuery
+    .input(z.object({
+      applicationId: z.number().positive(),
+      applicantId: z.number().positive(),
+      applicantIndex: z.number().int().min(0).max(19),
+      documentId: z.number().positive(),
+      documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),
+      fileName: z.string().min(1),
+      mimeType: z.string().min(1),
+      fileSize: z.number().positive(),
+      base64Data: z.string().min(1),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        await assertApplicationIdAccess(ctx, input.applicationId);
+        await assertApplicantBelongsToApplication(input.applicantId, input.applicationId, input.applicantIndex);
+        const db = getDb();
+        const [application] = await db.select({ paymentStatus: applications.paymentStatus }).from(applications)
+          .where(eq(applications.id, input.applicationId)).limit(1);
+        if (!application || application.paymentStatus !== "pending") {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Documents can only be replaced before payment" });
+        }
+        const [document] = await db.select().from(documents).where(eq(documents.id, input.documentId)).limit(1);
+        if (!document || document.uploadStatus !== "uploaded"
+          || document.applicationId !== input.applicationId
+          || document.applicantId !== input.applicantId
+          || document.documentType !== input.documentType) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Document replacement target is invalid" });
+        }
+
+        const fileBuffer = Buffer.from(input.base64Data, "base64");
+        const validationError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
+        if (validationError) throw new TRPCError({ code: "BAD_REQUEST", message: validationError });
+        const storedName = `${Date.now()}-${sanitizeDocumentFileName(input.fileName)}`;
+        const storagePath = `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/${storedName}`;
+
+        await storageUpload(storagePath, fileBuffer, input.mimeType);
+        await db.update(documents).set({
+          originalFileName: input.fileName,
+          storedFileName: storedName,
+          mimeType: input.mimeType,
+          fileSize: input.fileSize,
+          storagePath,
+          uploadStatus: "uploaded",
+          uploadedBy: "chatbot-wizard",
+        }).where(eq(documents.id, document.id));
+        await storageDelete(document.storagePath);
+        await recordTimelineEvent({
+          applicationId: input.applicationId,
+          eventName: "DOCUMENT_REPLACED",
+          eventSource: "CHATBOT_WIZARD",
+          actorType: "CUSTOMER",
+          actorReference: `applicant:${input.applicantId}`,
+          summary: `${input.documentType} document replaced for applicant ${input.applicantIndex + 1}`,
+        });
+        await recordDocumentLifecycleEvent({
+          applicationId: input.applicationId,
+          documentId: document.id,
+          applicantId: input.applicantId,
+          eventType: "REPLACED",
+          actorType: "CUSTOMER",
+          reason: "Customer corrected document before payment",
+        });
+        auditLog("document.upload", "success", "customer");
+        return { success: true };
+      } catch (error: unknown) {
+        auditLog("document.upload", "failure", "customer");
+        if (error instanceof TRPCError) throw error;
+        console.error("[Wizard] Failed to replace document", { category: error instanceof Error ? error.constructor.name : "UnknownError" });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "We couldn't replace this document. Please try again." });
       }
     }),
 });

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/providers/trpc-client';
-import { MessageCircle, X, Send, Bot, User, Paperclip, Lock } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Paperclip, Lock, ChevronLeft } from 'lucide-react';
 import { TERMS_POLICY_VERSION } from '@contracts/constants';
 import {
   buildChatbotPaymentPath,
@@ -11,6 +11,7 @@ import {
   upsertChatbotApplicant,
   type ChatbotApplicant,
 } from '@/lib/chatbot-application';
+import { ChatbotReview } from './ChatbotReview';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -170,9 +171,14 @@ export default function ChatBot() {
   const updateMutation = trpc.wizard.updateApplication.useMutation();
   const submitMutation = trpc.wizard.submitApplication.useMutation();
   const uploadDocMutation = trpc.wizard.uploadDocuments.useMutation();
+  const replaceDocMutation = trpc.wizard.replaceDocument.useMutation();
   const resumeQuery = trpc.wizard.getProgress.useQuery(
     { referenceNumber: resumeMetadata?.referenceNumber ?? '' },
     { enabled: Boolean(resumeMetadata), retry: false },
+  );
+  const reviewProgress = trpc.wizard.getProgress.useQuery(
+    { referenceNumber: wizard.referenceNumber },
+    { enabled: wizard.step === 'review' && Boolean(wizard.referenceNumber), retry: false },
   );
 
   useEffect(() => {
@@ -318,6 +324,69 @@ export default function ChatBot() {
         setWizard(w => ({ ...w, step: 'who_traveling' }));
       }, 800);
     }
+  };
+
+  const previousStep: Partial<Record<Step, Step>> = {
+    applicant_count: 'who_traveling', residence_status: 'who_traveling', visa_type: 'residence_status',
+    processing_type: 'visa_type', full_name: 'processing_type', nationality: 'full_name',
+    passport_number: 'nationality', passport_expiry: 'passport_number', profession: 'passport_expiry',
+    country_from: 'profession', arrival_date: 'country_from', email: 'arrival_date', phone: 'email',
+    upload_passport_copy: 'phone', upload_passport_cover: 'upload_passport_copy', upload_passport_photo: 'upload_passport_cover',
+    terms: 'review',
+  };
+
+  const goBack = () => {
+    const target = previousStep[wizard.step];
+    if (!target || loading) return;
+    setWizard((current) => ({ ...current, step: target }));
+    addBotMessage('You can update the previous answer. Your saved information has been preserved.');
+  };
+
+  const saveReviewedApplicant = async (index: number, changes: Pick<ChatbotApplicant, 'fullName' | 'nationality' | 'passportNumber' | 'passportExpiry' | 'profession' | 'countryFrom'>) => {
+    if (!wizard.referenceNumber || !validateName(changes.fullName) || !validatePassportNumber(changes.passportNumber)) throw new Error('Invalid applicant details');
+    await updateMutation.mutateAsync({ referenceNumber: wizard.referenceNumber, applicantIndex: index, ...changes });
+    setWizard((current) => ({
+      ...current,
+      applicants: current.applicants.map((applicant) => applicant.applicantIndex === index ? { ...applicant, ...changes } : applicant),
+      ...(current.currentApplicant - 1 === index ? changes : {}),
+    }));
+  };
+
+  const saveReviewedContact = async (email: string, phone: string) => {
+    if (!wizard.referenceNumber || !validateEmail(email) || !validatePhone(phone)) throw new Error('Invalid contact details');
+    await updateMutation.mutateAsync({ referenceNumber: wizard.referenceNumber, applicantIndex: 0, email, phone });
+    setWizard((current) => ({ ...current, email, phone }));
+  };
+
+  const saveReviewedService = async (visaType: string, processingType: string) => {
+    const serviceCode = getChatbotVisaServiceCode(visaType);
+    if (!wizard.referenceNumber || !serviceCode) throw new Error('Invalid service');
+    const quote = await quoteMutation.mutateAsync({ visaType: serviceCode, processingType, applicantCount: wizard.applicantCount });
+    await updateMutation.mutateAsync({ referenceNumber: wizard.referenceNumber, applicantIndex: 0, visaType: serviceCode, processingType, totalAmount: quote.totalPrice });
+    setWizard((current) => ({ ...current, visaType, processingType, totalAmount: quote.totalPrice, acceptedTerms: false }));
+  };
+
+  const replaceReviewedDocument = async (document: { id: number; applicantId: number | null; documentType: 'passport' | 'photo' | 'national_id' | 'supporting' | 'visa' | 'invoice' | 'gcc_residence' | 'sponsor_id' }, file: File) => {
+    const applicant = wizard.applicants.find((item) => item.applicantId === document.applicantId);
+    if (!wizard.applicationId || !document.applicantId || !applicant) throw new Error('Invalid document ownership');
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    await replaceDocMutation.mutateAsync({
+      applicationId: wizard.applicationId,
+      applicantId: document.applicantId,
+      applicantIndex: applicant.applicantIndex,
+      documentId: document.id,
+      documentType: document.documentType,
+      fileName: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
+      base64Data,
+    });
+    await reviewProgress.refetch();
   };
 
   // ─── Handle User Input ────────────────────────────────────────────────────
@@ -625,25 +694,7 @@ export default function ChatBot() {
 
       // ─── Review ───────────────────────────────────────────────────────────
       case 'review': {
-        const total = w.totalAmount;
-        const applicantSummary = w.applicants.map((applicant) =>
-          `**Applicant ${applicant.applicantIndex + 1}:**\n` +
-          `• Name: ${applicant.fullName}\n` +
-          `• Nationality: ${applicant.nationality}\n` +
-          `• Passport: ${applicant.passportNumber}`,
-        ).join('\n\n');
-        addBotMessage(
-          `📋 **Application Summary**\n\n` +
-          `**Travelers:** ${w.whoTraveling} (${w.applicantCount})\n` +
-          `**Residence:** ${w.residenceStatus}\n` +
-          `**Visa:** ${w.visaType}\n` +
-          `**Processing:** ${w.processingType}\n\n` +
-          `${applicantSummary}\n\n` +
-          `**Contact:** ${w.email} · ${w.phone}\n\n` +
-          `**Total Amount: $${total}**\n\n` +
-          `Type **CONFIRM** to proceed to payment.`
-        );
-        setWizard(w => ({ ...w, step: 'terms' }));
+        addBotMessage('Use the Review Your Application panel below to verify or edit your information.');
         setLoading(false);
         break;
       }
@@ -868,19 +919,10 @@ export default function ChatBot() {
             `• Nationality: ${applicant.nationality}\n` +
             `• Passport: ${applicant.passportNumber}`,
           ).join('\n\n');
-          addBotMessage(
-            `📋 **Application Summary**\n\n` +
-            `**Travelers:** ${latest.whoTraveling} (${latest.applicantCount})\n` +
-            `**Residence:** ${latest.residenceStatus}\n` +
-            `**Visa:** ${latest.visaType}\n` +
-            `**Processing:** ${latest.processingType}\n\n` +
-            `${applicantSummary}\n\n` +
-            `**Contact:** ${latest.email} · ${latest.phone}\n\n` +
-            `**Estimated Total: $${latest.totalAmount}**\n` +
-            'The server will verify the aggregate price before payment.\n\n' +
-            `Type **CONFIRM** to proceed to payment.`
-          );
-          setWizard(prev => ({ ...prev, applicants: completedApplicants, step: 'terms' }));
+          void applicantSummary;
+          void latest;
+          addBotMessage('✅ All information and documents are ready. Please review every section before continuing.');
+          setWizard(prev => ({ ...prev, applicants: completedApplicants, step: 'review' }));
           setLoading(false);
         }, 800);
       });
@@ -997,6 +1039,25 @@ export default function ChatBot() {
           </div>
         );
 
+      case 'review':
+        return (
+          <ChatbotReview
+            applicants={wizard.applicants}
+            email={wizard.email}
+            phone={wizard.phone}
+            visaType={wizard.visaType}
+            processingType={wizard.processingType}
+            applicantCount={wizard.applicantCount}
+            totalAmount={wizard.totalAmount}
+            documents={reviewProgress.data?.documents ?? []}
+            onSaveApplicant={saveReviewedApplicant}
+            onSaveContact={saveReviewedContact}
+            onSaveService={saveReviewedService}
+            onReplaceDocument={replaceReviewedDocument}
+            onContinue={() => setWizard((current) => ({ ...current, step: 'terms', acceptedTerms: false }))}
+          />
+        );
+
       case 'payment':
         return (
           <div className="p-3 bg-gray-50 border-t border-gray-100 space-y-2">
@@ -1034,6 +1095,11 @@ export default function ChatBot() {
 
           {/* Header */}
           <div className="bg-gradient-to-r from-[#1a1a2e] to-[#16213e] px-4 py-3 flex items-center gap-3">
+            {previousStep[wizard.step] && (
+              <button type="button" onClick={goBack} disabled={loading} aria-label="Back to previous step" className="rounded-full p-1.5 text-white/80 transition hover:bg-white/10 hover:text-white disabled:opacity-40">
+                <ChevronLeft size={18} />
+              </button>
+            )}
             <div className="w-9 h-9 rounded-full bg-[#C9A04C]/20 flex items-center justify-center">
               <Bot size={20} className="text-[#C9A04C]" />
             </div>

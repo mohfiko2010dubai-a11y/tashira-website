@@ -1,15 +1,15 @@
-import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
 import { loadStripe } from '@stripe/stripe-js/pure';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import {
-  CreditCard, Lock, CheckCircle, AlertCircle, Loader2,
+  CreditCard, Lock, AlertCircle, Loader2,
   Shield, Clock, FileText, ArrowLeft
 } from 'lucide-react';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 import { paymentViewState } from '@/lib/payment-view-state';
-import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
+import { PaymentSuccessExperience } from '@/components/shared/PaymentSuccessExperience';
 import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-preflight';
 import { trackVerifiedPaymentConversion } from '@/lib/google-conversion';
 
@@ -162,7 +162,6 @@ export default function PaymentPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
   const navigate = useNavigate();
   const [confirmed, setConfirmed] = useState(false);
-  const successHeadingRef = useRef<HTMLHeadingElement>(null);
 
   // Get application details
   const { data: app, isLoading, error } = trpc.application.getByReference.useQuery(
@@ -179,10 +178,6 @@ export default function PaymentPage() {
       : null,
     [readiness.data?.status],
   );
-  const canonicalPaymentConfirmed = app?.paymentStatus === 'paid' || confirmed;
-  useLayoutEffect(() => {
-    if (canonicalPaymentConfirmed) resetPaymentSuccessViewport(successHeadingRef.current, window);
-  }, [canonicalPaymentConfirmed]);
 
   // Debug: log any errors
   useEffect(() => {
@@ -252,23 +247,14 @@ export default function PaymentPage() {
   const viewState = paymentViewState({ paymentStatus: app.paymentStatus, browserConfirmed: confirmed, confirmationPending: false });
   if (viewState === 'confirmed') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#FAFAF7] to-white flex items-center justify-center px-6">
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-xl w-full text-center">
-          <CheckCircle size={56} className="text-emerald-500 mx-auto mb-4" />
-          <h1 ref={successHeadingRef} tabIndex={-1} className="text-2xl font-bold text-[#1A2332] outline-none">Payment Successful</h1>
-          <p className="text-gray-600 mt-2">Your application has been received and payment was successful. It is ready for the next processing stage.</p>
-          <div className="bg-gray-50 rounded-xl p-5 my-6 text-left space-y-2">
-            <p><span className="text-gray-500">Reference:</span> <span className="font-mono font-semibold">{referenceNumber}</span></p>
-            <p><span className="text-gray-500">Invoice:</span> <span className="font-mono font-semibold">{app.invoiceNumber || `INV-${referenceNumber}`}</span></p>
-            <p><span className="text-gray-500">Amount paid:</span> <span className="font-semibold">${amount.toFixed(2)}</span></p>
-            <p><span className="text-gray-500">Status:</span> <span className="font-semibold text-emerald-700">Paid / Ready for Processing</span></p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-3">
-            <a href={`/track?ref=${referenceNumber}`} className="px-5 py-3 bg-[#C9A04C] text-white rounded-lg">Track Application</a>
-            <button onClick={() => navigate('/')} className="px-5 py-3 border border-gray-200 rounded-lg">Back to Home</button>
-          </div>
-        </div>
-      </div>
+      <PaymentSuccessExperience
+        referenceNumber={referenceNumber!}
+        invoiceNumber={app.invoiceNumber || `INV-${referenceNumber}`}
+        amountPaid={amount}
+        currency="USD"
+        visaType={app.visaType}
+        processingType={app.processingType}
+      />
     );
   }
 

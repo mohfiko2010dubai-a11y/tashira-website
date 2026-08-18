@@ -8,6 +8,7 @@ import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
 import { trackGoogleEvent, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
+import { PaymentSuccessExperience } from './PaymentSuccessExperience';
 
 const cardStyle = {
   hidePostalCode: true,
@@ -332,6 +333,19 @@ export function PaymentSuccessModal({
     else if (uploaded > 0) setUploadState("partial");
     else setUploadState("failed");
   };
+
+  if (pendingFiles.length === 0) {
+    return (
+      <PaymentSuccessExperience
+        referenceNumber={referenceNumber}
+        invoiceNumber={invoiceNumber}
+        amountPaid={totalAmountUsd}
+        currency="USD"
+        visaType={applicantData.visaType}
+        processingType={applicantData.processingType}
+      />
+    );
+  }
 
   return (
     <div className="text-center space-y-4">
