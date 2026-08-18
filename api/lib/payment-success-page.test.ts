@@ -6,8 +6,20 @@ describe("final payment success presentation", () => {
     const source = await readFile(new URL("../../src/components/shared/PaymentSuccessExperience.tsx", import.meta.url), "utf8");
     expect(source).toContain("/invoices/${encodedInvoice}/view");
     expect(source).toContain("/invoices/${encodedInvoice}/download");
+    expect(source).toContain("credentials: 'same-origin'");
+    expect(source).toContain("URL.createObjectURL(invoicePdf)");
+    expect(source).toContain("src={invoicePreviewUrl}");
     expect(source).toContain("Invoice Preview");
     expect(source).not.toContain("Invoice Summary");
+  });
+
+  it("keeps explicit inline preview and attachment download dispositions", async () => {
+    const server = await readFile(new URL("../boot.ts", import.meta.url), "utf8");
+    expect(server).toContain('app.get("/invoices/:invoiceNumber/view"');
+    expect(server).toContain('Content-Disposition", `inline; filename="${result.fileName}"`');
+    expect(server).toContain('app.get("/invoices/:invoiceNumber/download"');
+    expect(server).toContain('Content-Disposition", `attachment; filename="${result.fileName}"`');
+    expect(server).toContain("authorizeInvoiceRequest(invoiceNumber, c.req.raw.headers)");
   });
 
   it("links paid tracking back to authoritative payment confirmation", async () => {
