@@ -34,6 +34,7 @@ type ApplicantInput = {
   fullName?: string;
   nationality?: string;
   passportNumber?: string;
+  passportType?: string;
   passportExpiry?: string;
   profession?: string;
   countryFrom?: string;
@@ -49,6 +50,8 @@ async function persistApplicant(applicationId: number, applicantIndex: number, i
   if (input.fullName !== undefined) values.fullName = input.fullName;
   if (input.nationality !== undefined) values.nationality = input.nationality;
   if (input.passportNumber !== undefined) values.passportNumber = input.passportNumber;
+  if (input.passportType !== undefined) values.passportType = input.passportType;
+  else if (existing && !existing.passportType) values.passportType = "ordinary";
   if (input.passportExpiry !== undefined) values.passportExpiry = input.passportExpiry;
   if (input.profession !== undefined) values.profession = input.profession;
   if (input.countryFrom !== undefined) values.travelingFrom = input.countryFrom;
@@ -68,6 +71,7 @@ async function persistApplicant(applicationId: number, applicantIndex: number, i
     fullName: input.fullName,
     nationality: input.nationality,
     passportNumber: input.passportNumber,
+    passportType: input.passportType ?? "ordinary",
     passportExpiry: input.passportExpiry,
     profession: input.profession,
     travelingFrom: input.countryFrom,
