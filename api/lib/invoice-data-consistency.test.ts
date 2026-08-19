@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { canonicalInvoiceCustomerIdentity, canonicalInvoiceCustomerName } from "./invoice-customer-identity";
-import { generateInvoicePDF, type InvoiceData } from "./invoice-pdf";
+import { generateInvoicePDF, invoicePaymentDetailRows, type InvoiceData } from "./invoice-pdf";
 
 const lead = {
   applicantIndex: 0,
@@ -30,6 +30,8 @@ const invoice = (overrides: Partial<InvoiceData> = {}): InvoiceData => ({
   exchangeRateToBase: 3.672,
   totalAmount: 170,
   currency: "USD",
+  payerName: lead.fullName,
+  payerRelationship: "Self",
   ...overrides,
 });
 
@@ -54,6 +56,34 @@ describe("canonical invoice customer identity", () => {
   it("never derives a missing canonical applicant name from contact data", () => {
     expect(() => canonicalInvoiceCustomerName([])).toThrow("Canonical applicant name is unavailable");
     expect(() => canonicalInvoiceCustomerName([{ ...lead, fullName: "   " }])).toThrow("Canonical applicant name is unavailable");
+  });
+
+  it("shows the recorded payer separately while preserving the lead applicant as BILL TO", () => {
+    const data = invoice({ customerName: "FATIMA AHMED HASSAN", payerName: "MOHAMMED AHMED HASSAN", payerRelationship: "Family Member" });
+    expect(data.customerName).toBe("FATIMA AHMED HASSAN");
+    expect(invoicePaymentDetailRows(data)).toContainEqual(["Paid by", "MOHAMMED AHMED HASSAN"]);
+    expect(invoicePaymentDetailRows(data)).toContainEqual(["Relationship", "Family Member"]);
+  });
+
+  it("shows the actual recorded payer name for self-payment", () => {
+    expect(invoicePaymentDetailRows(invoice())).toContainEqual(["Paid by", "MOHAMMED ZAKY"]);
+    expect(invoicePaymentDetailRows(invoice())).not.toContainEqual(["Relationship", "Self"]);
+  });
+
+  it("keeps the lead applicant as BILL TO for a family total", () => {
+    const data = invoice({ applicantCount: 3, totalAmount: 340, payerName: "FAMILY PAYER", payerRelationship: "Sponsor" });
+    expect(data.customerName).toBe(lead.fullName);
+    expect(data.applicantCount).toBe(3);
+    expect(data.totalAmount).toBe(340);
+    expect(invoicePaymentDetailRows(data)).toContainEqual(["Paid by", "FAMILY PAYER"]);
+  });
+
+  it("renders only safe card metadata when both brand and last4 are available", () => {
+    expect(invoicePaymentDetailRows(invoice({ cardBrand: "Visa", cardLast4: "4242" })))
+      .toContainEqual(["Card", "Visa •••• 4242"]);
+    expect(invoicePaymentDetailRows(invoice({ cardBrand: "Visa" }))).not.toEqual(expect.arrayContaining([expect.arrayContaining(["Card"])]));
+    expect(JSON.stringify(invoicePaymentDetailRows(invoice({ cardBrand: "Visa", cardLast4: "4242" }))))
+      .not.toMatch(/cvc|expir|4242\s*4242/u);
   });
 
   it.each([

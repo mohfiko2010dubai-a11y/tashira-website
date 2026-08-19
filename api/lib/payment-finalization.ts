@@ -8,6 +8,8 @@ import { hasTimelineEvent, recordTimelineEvent, type TimelineActorType } from ".
 import { activeBusinessSettings, getApplicationPriceSnapshot } from "./pricing-engine";
 import { sendPaymentSuccessEmail } from "./payment-success-email";
 import { getCanonicalInvoiceCustomerIdentity } from "./invoice-customer-name";
+import { getPayerEvidence } from "./payer-authorization";
+import { retrieveStripeTestCardSummary } from "./stripe";
 
 export async function finalizeStripeTestPayment(
   referenceNumber: string,
@@ -84,7 +86,12 @@ export async function finalizeStripeTestPayment(
   const invoiceEventExists = await hasTimelineEvent(application.id, "INVOICE_GENERATED");
   if (!application.invoicePdfPath || !invoiceEventExists) {
     try {
-      const customerIdentity = await getCanonicalInvoiceCustomerIdentity(application.id);
+      const [customerIdentity, payerEvidence, cardSummary] = await Promise.all([
+        getCanonicalInvoiceCustomerIdentity(application.id),
+        getPayerEvidence(application.id, payment.id),
+        retrieveStripeTestCardSummary(paymentIntentId).catch(() => null),
+      ]);
+      if (!payerEvidence) throw new Error("Verified payer authorization evidence is unavailable for invoice generation");
       const { pdfPath, pdfUrl } = saveInvoiceToDisk({
         invoiceNumber,
         referenceNumber,
@@ -105,6 +112,10 @@ export async function finalizeStripeTestPayment(
         totalAmount: Number(payment.amount),
         currency: payment.currency.toUpperCase(),
         stripePaymentIntentId: paymentIntentId,
+        payerName: payerEvidence.payerName,
+        payerRelationship: payerEvidence.relationship,
+        cardBrand: cardSummary?.brand,
+        cardLast4: cardSummary?.last4,
       });
       await db.update(applications).set({
         invoiceNumber,

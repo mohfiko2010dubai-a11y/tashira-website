@@ -10,8 +10,8 @@ import { Paths } from "@contracts/constants";
 import fs from "fs";
 import path from "path";
 import { getDb } from "./queries/connection";
-import { applications } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { applications, payments } from "@db/schema";
+import { desc, eq } from "drizzle-orm";
 import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
 import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
@@ -29,6 +29,8 @@ import {
 } from "./lib/stripe-webhook-idempotency";
 import { getCanonicalInvoiceCustomerIdentity } from "./lib/invoice-customer-name";
 import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { getPayerEvidence } from "./lib/payer-authorization";
+import { retrieveStripeTestCardSummary } from "./lib/stripe";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -182,10 +184,18 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
   try {
     const customerEmail = appRow.contactEmail || "customer@example.com";
-    const [customerIdentity, priceSnapshot] = await Promise.all([
+    const [customerIdentity, priceSnapshot, paymentRows] = await Promise.all([
       getCanonicalInvoiceCustomerIdentity(appRow.id),
       getApplicationPriceSnapshot(appRow.id),
+      getDb().select().from(payments).where(eq(payments.applicationId, appRow.id)).orderBy(desc(payments.createdAt)).limit(1),
     ]);
+    const payment = paymentRows[0];
+    if (!payment) throw new Error("Verified payment is unavailable for invoice generation");
+    const [payerEvidence, cardSummary] = await Promise.all([
+      getPayerEvidence(appRow.id, payment.id),
+      retrieveStripeTestCardSummary(payment.stripePaymentIntentId).catch(() => null),
+    ]);
+    if (!payerEvidence) throw new Error("Verified payer authorization evidence is unavailable for invoice generation");
     
     const invoiceData = {
       invoiceNumber,
@@ -207,6 +217,10 @@ async function getOrGeneratePdf(invoiceNumber: string) {
       totalAmount: Number(appRow.totalAmountUsd || appRow.stripeAmountUsd || 0),
       currency: priceSnapshot.currency.toUpperCase(),
       stripePaymentIntentId: appRow.stripePaymentIntentId || undefined,
+      payerName: payerEvidence.payerName,
+      payerRelationship: payerEvidence.relationship,
+      cardBrand: cardSummary?.brand,
+      cardLast4: cardSummary?.last4,
     };
 
     const doc = generateInvoicePDF(invoiceData);

@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
 import {
-  ArrowLeft, Receipt, Building2, RefreshCw,
+  ArrowLeft, Building2, RefreshCw,
   Users, DollarSign, ClipboardList, StickyNote, FolderOpen,
   History,
 } from "lucide-react";
 import { ViewInvoiceButton, DownloadInvoiceButton } from "@/components/shared/InvoiceButton";
-import { generateInvoicePDF } from "@/components/shared/InvoiceGenerator";
 import DocumentManager from "@/components/shared/DocumentManager";
 import type { ApplicationWithLegacyAmount } from "@/types/trpc";
 import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
@@ -98,31 +97,6 @@ export default function AdminApplicationDetail() {
   const exchangeRate = Number(a.exchangeRate || 0);
   const totalUsd = Number(a.totalAmountUsd || a.totalAmount || 0);
   const totalAed = Number(a.totalAmountAed || totalUsd * exchangeRate);
-
-  const handleGenerateInvoice = () => {
-    if (app.paymentStatus !== "paid") return;
-    const invoiceNumber = app.invoiceNumber || `INV-${app.referenceNumber}`;
-    const doc = generateInvoicePDF({
-      invoiceNumber,
-      referenceNumber: app.referenceNumber,
-      createdAt: app.createdAt ? new Date(app.createdAt).toISOString() : new Date().toISOString(),
-      customerName: mainApplicant?.fullName || app.contactEmail?.split("@")[0] || "Customer",
-      customerEmail: app.contactEmail || "",
-      customerPhone: app.contactPhone || "",
-      passportNumber: mainApplicant?.passportNumber || undefined,
-      nationality: mainApplicant?.nationality || undefined,
-      visaType: app.visaType || "",
-      processingType: app.processingType || "",
-      arrivalDate: app.arrivalDate || undefined,
-      totalAmountUsd: totalUsd,
-      exchangeRate,
-      stripePaymentIntentId: app.stripePaymentIntentId || undefined,
-    });
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -398,9 +372,6 @@ export default function AdminApplicationDetail() {
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button disabled={app.paymentStatus !== "paid"} onClick={handleGenerateInvoice} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm rounded-lg hover:shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50">
-                  <Receipt size={14} /> Generate Invoice
-                </button>
                 {app.invoiceNumber && (
                   <>
                     <ViewInvoiceButton

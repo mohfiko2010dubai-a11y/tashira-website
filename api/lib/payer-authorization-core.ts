@@ -7,6 +7,28 @@ import {
   type PayerRelationship,
 } from "@contracts/payer-authorization";
 
+export type PayerEvidence = {
+  payerName: string;
+  relationship: PayerRelationship;
+  acceptedAt: Date;
+  evidenceVersion: string;
+};
+
+export function payerEvidenceFromTimelineEvent(event: {
+  actorReference: string | null;
+  sanitizedCategory: string | null;
+  createdAt: Date;
+  policyVersion: string | null;
+} | undefined): PayerEvidence | null {
+  if (!event?.actorReference || !PAYER_RELATIONSHIPS.includes(event.sanitizedCategory as PayerRelationship)) return null;
+  return {
+    payerName: event.actorReference,
+    relationship: event.sanitizedCategory as PayerRelationship,
+    acceptedAt: event.createdAt,
+    evidenceVersion: event.policyVersion || PAYER_AUTHORIZATION_VERSION,
+  };
+}
+
 export type PayerAuthorizationEvidenceInput = {
   payerName: string;
   payerRelationship: PayerRelationship;

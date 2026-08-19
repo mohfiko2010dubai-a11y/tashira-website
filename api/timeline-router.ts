@@ -12,6 +12,8 @@ import {
 } from "./lib/application-timeline";
 import { sanitizePaymentFailureCategory } from "./lib/timeline-safety";
 import { hashEvidenceManifest } from "./lib/evidence-integrity";
+import { payerEvidenceFromTimelineEvent } from "./lib/payer-authorization-core";
+import { retrieveStripeTestCardSummary } from "./lib/stripe";
 
 const CLIENT_PAYMENT_EVENTS = [
   "CHECKOUT_OPENED", "PAYMENT_ELEMENT_LOADED", "PAYMENT_STARTED", "PAYMENT_FAILED",
@@ -128,9 +130,13 @@ export const timelineRouter = createRouter({
         }).from(applicants).where(eq(applicants.applicationId, application.id)).orderBy(asc(applicants.applicantIndex)).limit(1),
       ]);
       const payerAuthorization = eventRows.filter((event) => event.eventName === "PAYER_AUTHORIZATION_ACCEPTED").at(-1);
+      const payerEvidence = payerEvidenceFromTimelineEvent(payerAuthorization);
       const linkedPayment = payerAuthorization?.paymentId
         ? paymentRows.find((payment) => payment.id === payerAuthorization.paymentId)
         : undefined;
+      const cardSummary = linkedPayment
+        ? await retrieveStripeTestCardSummary(linkedPayment.stripePaymentIntentId).catch(() => null)
+        : null;
       const generatedAt = new Date().toISOString();
       const manifest = {
         version: "1",
@@ -144,18 +150,18 @@ export const timelineRouter = createRouter({
           updatedAt: application.updatedAt,
         },
         leadApplicant: leadApplicantRows[0] || null,
-        payerAuthorization: payerAuthorization ? {
-          payerName: payerAuthorization.actorReference,
-          relationship: payerAuthorization.sanitizedCategory,
+        payerAuthorization: payerAuthorization && payerEvidence ? {
+          payerName: payerEvidence.payerName,
+          relationship: payerEvidence.relationship,
           accepted: payerAuthorization.resultingState === "self" || payerAuthorization.resultingState === "third_party",
           thirdParty: payerAuthorization.resultingState === "third_party",
-          acceptedAt: payerAuthorization.createdAt,
-          evidenceVersion: payerAuthorization.policyVersion,
+          acceptedAt: payerEvidence.acceptedAt,
+          evidenceVersion: payerEvidence.evidenceVersion,
           paymentIntentId: linkedPayment?.stripePaymentIntentId || null,
           amount: linkedPayment?.amount || null,
           currency: linkedPayment?.currency || null,
-          cardBrand: null,
-          cardLast4: null,
+          cardBrand: cardSummary?.brand || null,
+          cardLast4: cardSummary?.last4 || null,
           threeDsResult: eventRows.some((event) => event.eventName === "THREE_DS_COMPLETED") ? "completed" : null,
         } : null,
         payments: paymentRows.map((payment) => ({

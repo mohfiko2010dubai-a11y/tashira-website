@@ -1,7 +1,8 @@
+import { and, desc, eq } from "drizzle-orm";
 import { applicationTimelineEvents } from "../../db/schema";
 import { PAYER_AUTHORIZATION_VERSION, type PayerRelationship } from "@contracts/payer-authorization";
 import { getDb } from "../queries/connection";
-import { payerAuthorizationEventId, validatePayerAuthorization } from "./payer-authorization-core";
+import { payerAuthorizationEventId, payerEvidenceFromTimelineEvent, validatePayerAuthorization } from "./payer-authorization-core";
 
 export type PayerAuthorizationInput = {
   applicationId: number;
@@ -12,6 +13,20 @@ export type PayerAuthorizationInput = {
   authorizationVersion: typeof PAYER_AUTHORIZATION_VERSION;
   leadApplicantName: string;
 };
+
+export async function getPayerEvidence(applicationId: number, paymentId: number) {
+  const [event] = await getDb().select({
+    actorReference: applicationTimelineEvents.actorReference,
+    sanitizedCategory: applicationTimelineEvents.sanitizedCategory,
+    createdAt: applicationTimelineEvents.createdAt,
+    policyVersion: applicationTimelineEvents.policyVersion,
+  }).from(applicationTimelineEvents).where(and(
+    eq(applicationTimelineEvents.applicationId, applicationId),
+    eq(applicationTimelineEvents.paymentId, paymentId),
+    eq(applicationTimelineEvents.eventName, "PAYER_AUTHORIZATION_ACCEPTED"),
+  )).orderBy(desc(applicationTimelineEvents.createdAt)).limit(1);
+  return payerEvidenceFromTimelineEvent(event);
+}
 
 function mysqlErrorCode(error: unknown) {
   let current: unknown = error;

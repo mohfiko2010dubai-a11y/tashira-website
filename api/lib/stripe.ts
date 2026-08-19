@@ -56,6 +56,30 @@ export function retrieveStripeTestIntent(paymentIntentId: string): Promise<Strip
   return stripeRequest(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(paymentIntentId)}`);
 }
 
+export type SafeCardSummary = {
+  brand: string;
+  last4: string;
+};
+
+export async function retrieveStripeTestCardSummary(paymentIntentId: string): Promise<SafeCardSummary | null> {
+  if (!/^pi_[a-zA-Z0-9_]+$/.test(paymentIntentId)) throw new Error("Invalid PaymentIntent identifier");
+  const url = new URL(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(paymentIntentId)}`);
+  url.searchParams.append("expand[]", "latest_charge");
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${stripeTestKey()}` } });
+  if (!response.ok) return null;
+  const intent = await response.json() as {
+    latest_charge?: string | {
+      payment_method_details?: { card?: { brand?: unknown; last4?: unknown } };
+    };
+  };
+  const card = typeof intent.latest_charge === "object"
+    ? intent.latest_charge.payment_method_details?.card
+    : undefined;
+  if (typeof card?.brand !== "string" || !/^[a-z0-9 _-]{1,30}$/iu.test(card.brand)) return null;
+  if (typeof card.last4 !== "string" || !/^\d{4}$/u.test(card.last4)) return null;
+  return { brand: card.brand, last4: card.last4 };
+}
+
 export function verifyStripeIntent(input: {
   intent: StripeIntent;
   paymentIntentId: string;

@@ -36,6 +36,20 @@ export interface InvoiceData {
   totalAmount: number;
   currency: string;
   stripePaymentIntentId?: string;
+  payerName: string;
+  payerRelationship: string;
+  cardBrand?: string;
+  cardLast4?: string;
+}
+
+export function invoicePaymentDetailRows(data: InvoiceData) {
+  return [
+    ["Paid by", data.payerName],
+    ...(data.payerRelationship === "Self" ? [] : [["Relationship", data.payerRelationship]]),
+    ...(data.cardBrand && data.cardLast4 ? [["Card", `${data.cardBrand} •••• ${data.cardLast4}`]] : []),
+    ["Payment Status", "Paid"],
+    ...(data.stripePaymentIntentId ? [["Payment Reference", data.stripePaymentIntentId]] : []),
+  ] as string[][];
 }
 
 function registerArabicFont(doc: jsPDF) {
@@ -161,7 +175,20 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   ];
   details.forEach((line, index) => doc.text(line, 115, 75 + index * 7));
 
-  const tableStartY = Math.max(118, billY + 5);
+  const paymentDetailsY = Math.max(113, billY + 5);
+  doc.setTextColor("#1A2332");
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("PAYMENT DETAILS", 15, paymentDetailsY);
+  doc.line(15, paymentDetailsY + 3, 94, paymentDetailsY + 3);
+  doc.setFontSize(9);
+  let paymentY = paymentDetailsY + 10;
+  for (const [label, value] of invoicePaymentDetailRows(data)) {
+    const lineCount = drawIdentityRow(doc, label, value, paymentY);
+    paymentY += Math.max(1, lineCount) * 5.2 + 1.5;
+  }
+
+  const tableStartY = Math.max(155, paymentY + 5);
   autoTable(doc, {
     startY: tableStartY,
     head: [["DESCRIPTION", "QTY", `UNIT PRICE (${data.baseCurrency})`, `AMOUNT (${data.currency})`]],
