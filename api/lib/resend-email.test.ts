@@ -13,11 +13,15 @@ describe("Resend staging provider", () => {
     const result = await new ResendEmailProvider(config, request).send({
       recipient: "owner@example.test",
       template: "PAYMENT_SUCCESS",
-      variables: { referenceNumber: "TSH-1", invoiceNumber: "INV-1", amountPaid: "170.00", currency: "USD", currentStatus: "Paid / Ready for Processing" },
+      variables: { referenceNumber: "TSH-1", invoiceNumber: "INV-1", amountPaid: "170.00", currency: "USD", currentStatus: "Paid / Ready for Processing", invoiceUrl: "https://staging.tashiraev.com/invoice-download/INV-1?expires=9999999999&signature=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
       idempotencyKey: "payment-success/1/1",
+      attachments: [{ filename: "INV-1.pdf", content: "JVBERi0=" }],
     });
     expect(result.reference).toBe("email_test");
     expect(JSON.parse(String(request.mock.calls[0][1]?.body)).subject).toContain("[STAGING]");
+    expect(JSON.parse(String(request.mock.calls[0][1]?.body)).attachments).toEqual([
+      { filename: "INV-1.pdf", content: "JVBERi0=" },
+    ]);
     expect(request.mock.calls[0][1]?.headers).toMatchObject({ "Idempotency-Key": "payment-success/1/1" });
   });
 

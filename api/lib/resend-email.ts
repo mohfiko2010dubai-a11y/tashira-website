@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { renderTransactionalEmail, type EmailTemplate, type TransactionalEmailProvider } from "./transactional-email";
+import { renderTransactionalEmail, type EmailTemplate, type TransactionalEmailAttachment, type TransactionalEmailProvider } from "./transactional-email";
 
 type ResendConfig = {
   apiKey: string;
@@ -22,7 +22,7 @@ export class ResendEmailProvider implements TransactionalEmailProvider {
     if (!config.enabled) throw new Error("Resend provider is not enabled for this environment");
   }
 
-  async send(input: { recipient: string; template: EmailTemplate; variables: Record<string, string>; idempotencyKey?: string }) {
+  async send(input: { recipient: string; template: EmailTemplate; variables: Record<string, string>; idempotencyKey?: string; attachments?: readonly TransactionalEmailAttachment[] }) {
     const recipient = input.recipient.trim().toLowerCase();
     if (this.config.restrictRecipients && !this.config.allowedRecipients.has(recipient)) throw new Error("Recipient is not approved for staging email UAT");
     const rendered = renderTransactionalEmail(input.template, input.variables);
@@ -39,6 +39,7 @@ export class ResendEmailProvider implements TransactionalEmailProvider {
         subject: `${this.config.subjectPrefix}${rendered.subject}`,
         text: rendered.body,
         ...(rendered.html ? { html: rendered.html } : {}),
+        ...(input.attachments?.length ? { attachments: input.attachments } : {}),
       }),
     });
     const payload = await response.json().catch(() => ({})) as { id?: string };

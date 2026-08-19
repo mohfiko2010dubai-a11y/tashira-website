@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createCustomerApplicationCookie, getCustomerApplicationReferences, hasCustomerApplicationAccess } from "./customer-session";
 
@@ -29,6 +30,20 @@ describe("customer application capability session", () => {
     const requestHeaders = new Headers({ cookie: `${cookiePair}tampered` });
 
     expect(getCustomerApplicationReferences(requestHeaders).size).toBe(0);
+  });
+
+  it("rejects expired capability cookies", () => {
+    const encodedPayload = Buffer.from(JSON.stringify({
+      references: ["TSH-OWNED"],
+      expiresAt: Math.floor(Date.now() / 1000) - 1,
+    }), "utf8").toString("base64url");
+    const signature = crypto.createHmac("sha256", process.env.CUSTOMER_SESSION_SECRET!)
+      .update(encodedPayload).digest("base64url");
+    const requestHeaders = new Headers({
+      cookie: `tashira_customer_session=${encodedPayload}.${signature}`,
+    });
+
+    expect(hasCustomerApplicationAccess(requestHeaders, "TSH-OWNED")).toBe(false);
   });
 
   it("uses secure, HttpOnly, Lax cookies outside localhost", () => {

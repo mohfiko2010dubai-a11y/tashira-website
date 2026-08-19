@@ -64,6 +64,7 @@ export async function finalizeStripeTestPayment(
   }
 
   const invoiceNumber = `INV-${referenceNumber}`;
+  let invoicePdfPath = application.invoicePdfPath || "";
   const [existingInvoice] = await db.select({ id: invoices.id }).from(invoices)
     .where(eq(invoices.applicationId, application.id)).limit(1);
   if (!existingInvoice) {
@@ -117,6 +118,7 @@ export async function finalizeStripeTestPayment(
         cardBrand: cardSummary?.brand,
         cardLast4: cardSummary?.last4,
       });
+      invoicePdfPath = pdfPath;
       await db.update(applications).set({
         invoiceNumber,
         invoicePdfPath: pdfPath,
@@ -147,6 +149,7 @@ export async function finalizeStripeTestPayment(
     invoiceNumber,
     amountPaid: Number(payment.amount),
     currency: payment.currency,
+    invoicePdfPath,
   });
 
   return {

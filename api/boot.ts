@@ -27,6 +27,7 @@ import {
   markStripeWebhookFailed,
   markStripeWebhookProcessed,
 } from "./lib/stripe-webhook-idempotency";
+import { verifyInvoiceDownloadToken } from "./lib/invoice-download-token";
 import { getCanonicalInvoiceCustomerIdentity } from "./lib/invoice-customer-name";
 import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { getPayerEvidence } from "./lib/payer-authorization";
@@ -256,6 +257,37 @@ async function authorizeInvoiceRequest(invoiceNumber: string, headers: Headers) 
   if (!canAccessInvoice(headers, application.referenceNumber)) return { status: 401 as const, application: null };
   return { status: 200 as const, application };
 }
+
+app.get("/invoice-download/:invoiceNumber", async (c) => {
+  const invoiceNumber = c.req.param("invoiceNumber");
+  if (!/^[A-Za-z0-9_-]+$/.test(invoiceNumber)) return c.json({ error: "Unauthorized" }, 401);
+  const application = await findApplicationByInvoice(invoiceNumber);
+  if (!application || !verifyInvoiceDownloadToken({
+    invoiceNumber,
+    referenceNumber: application.referenceNumber,
+    expiresValue: c.req.query("expires") || "",
+    providedSignature: c.req.query("signature") || "",
+  })) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const result = await getOrGeneratePdf(invoiceNumber);
+  if (!result) return c.json({ error: "Invoice not found" }, 404);
+  await recordTimelineEvent({
+    applicationId: application.id,
+    eventName: "INVOICE_DOWNLOADED",
+    eventSource: "INVOICE_EMAIL_LINK",
+    actorType: "CUSTOMER",
+    actorReference: invoiceNumber,
+    resultingState: "downloaded",
+    summary: "Invoice downloaded with short-lived email capability",
+  });
+  const pdfBuffer = fs.readFileSync(result.absolutePath);
+  c.header("Content-Type", "application/pdf");
+  c.header("Content-Disposition", `attachment; filename="${result.fileName}"`);
+  c.header("Content-Length", String(pdfBuffer.length));
+  c.header("Cache-Control", "private, no-store");
+  return c.body(pdfBuffer);
+});
 
 // VIEW route (inline) - NOT under /api/ to avoid catch-all conflict
 app.get("/invoices/:invoiceNumber/view", async (c) => {
