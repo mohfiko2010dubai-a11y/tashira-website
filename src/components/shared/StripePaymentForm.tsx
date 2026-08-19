@@ -148,7 +148,7 @@ function PaymentFormInner({
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
         <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Test Mode - No real charges</p>
-        <p className="text-[10px] text-amber-500">Use card: 4242 4242 4242 4242 | Any future date | Any 3 digits</p>
+        <p className="text-[10px] text-amber-500">Use an approved Stripe TEST payment method.</p>
       </div>
 
       <div className="bg-gradient-to-r from-[#C9A04C]/10 to-[#C9A04C]/5 border border-[#C9A04C]/20 rounded-xl p-4 text-center">

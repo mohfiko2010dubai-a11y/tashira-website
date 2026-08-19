@@ -29,8 +29,8 @@ The following alternatives were excluded with redacted/PAN-free checks:
 No application-code workaround can activate an inactive Stripe account
 capability. The Stripe account owner must complete/resolve Stripe's card-payment
 capability requirements in the Stripe Dashboard or with Stripe Support. After
-Stripe reports card payments active, staging must be retested with
-`4000 0025 0000 3155` and the owner must complete the interactive browser
+Stripe reports card payments active, staging must be retested with Stripe's
+documented authentication-required TEST PaymentMethod and the owner must complete the interactive browser
 challenge. Interactive 3DS completion is not claimed by this report.
 
 Production was not accessed or changed. Staging was not deployed because no
