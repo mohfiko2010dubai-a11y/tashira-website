@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { canonicalInvoiceCustomerIdentity, canonicalInvoiceCustomerName } from "./invoice-customer-identity";
 import { generateInvoicePDF, invoicePaymentDetailRows, type InvoiceData } from "./invoice-pdf";
+import { formatSafeCardBrand } from "./stripe";
 
 const lead = {
   applicantIndex: 0,
@@ -79,7 +80,8 @@ describe("canonical invoice customer identity", () => {
   });
 
   it("renders only safe card metadata when both brand and last4 are available", () => {
-    expect(invoicePaymentDetailRows(invoice({ cardBrand: "Visa", cardLast4: "4242" })))
+    expect(formatSafeCardBrand("visa")).toBe("Visa");
+    expect(invoicePaymentDetailRows(invoice({ cardBrand: formatSafeCardBrand("visa"), cardLast4: "4242" })))
       .toContainEqual(["Card", "Visa •••• 4242"]);
     expect(invoicePaymentDetailRows(invoice({ cardBrand: "Visa" }))).not.toEqual(expect.arrayContaining([expect.arrayContaining(["Card"])]));
     expect(JSON.stringify(invoicePaymentDetailRows(invoice({ cardBrand: "Visa", cardLast4: "4242" }))))
