@@ -12,6 +12,13 @@ import { paymentViewState } from '@/lib/payment-view-state';
 import { PaymentSuccessExperience } from '@/components/shared/PaymentSuccessExperience';
 import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-preflight';
 import { trackVerifiedPaymentConversion } from '@/lib/google-conversion';
+import { PayerAuthorizationFields } from '@/components/shared/PayerAuthorizationFields';
+import {
+  PAYER_AUTHORIZATION_VERSION,
+  isThirdPartyPayer,
+  payerRelationshipForCheckout,
+  type ThirdPartyPayerRelationship,
+} from '@contracts/payer-authorization';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 
@@ -26,6 +33,9 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [payerName, setPayerName] = useState(applicantName);
+  const [payerRelationship, setPayerRelationship] = useState<ThirdPartyPayerRelationship | ''>('');
+  const [payerAuthorizationAccepted, setPayerAuthorizationAccepted] = useState(false);
   const utils = trpc.useUtils();
   const paymentTimeline = usePaymentTimeline(referenceNumber);
   const { paymentElementLoaded } = paymentTimeline;
@@ -40,6 +50,16 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
+    const thirdParty = isThirdPartyPayer(payerName, applicantName);
+    if (!payerAuthorizationAccepted) {
+      setError('Please confirm that you are authorized to use this payment method.');
+      return;
+    }
+    if (thirdParty && !payerRelationship) {
+      setError("Please select the payer's relationship to the applicant.");
+      return;
+    }
+    const selectedPayerRelationship = payerRelationshipForCheckout(payerName, applicantName, payerRelationship);
 
     setLoading(true);
     setError('');
@@ -54,6 +74,10 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
         referenceNumber,
         amount: amountInCents,
         currency: 'usd',
+        payerName,
+        payerRelationship: selectedPayerRelationship,
+        payerAuthorizationAccepted: true,
+        payerAuthorizationVersion: PAYER_AUTHORIZATION_VERSION,
       });
 
       const clientSecret = result.clientSecret;
@@ -66,7 +90,7 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
         payment_method: {
           card: elements.getElement(CardElement)!,
           billing_details: {
-            name: applicantName,
+            name: payerName.trim(),
           },
         },
       });
@@ -130,6 +154,16 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
           />
         </div>
       </div>
+
+      <PayerAuthorizationFields
+        leadApplicantName={applicantName}
+        payerName={payerName}
+        onPayerNameChange={setPayerName}
+        relationship={payerRelationship}
+        onRelationshipChange={setPayerRelationship}
+        accepted={payerAuthorizationAccepted}
+        onAcceptedChange={setPayerAuthorizationAccepted}
+      />
 
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <Shield size={16} className="text-emerald-500" />
@@ -231,7 +265,7 @@ export default function PaymentPage() {
     : (typeof app.totalAmountAed === 'string' ? parseFloat(app.totalAmountAed) / 3.67 : 0);
   
   const amount = dbAmount > 0 ? dbAmount : calculatedAmount;
-  const applicantName = app.contactEmail ? app.contactEmail.split('@')[0] : 'Applicant';
+  const applicantName = app.applicants.find((applicant) => Number(applicant.applicantIndex) === 0)?.fullName || 'Applicant';
   const completionGroups = readiness.data?.status === 'INCOMPLETE'
     ? completionPanelGroups(readiness.data)
     : [];

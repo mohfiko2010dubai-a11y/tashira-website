@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { applicationAccessQuery, createRouter, paymentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { applications, payments, invoices } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { applications, applicants, payments, invoices } from "@db/schema";
+import { asc, eq } from "drizzle-orm";
 import { auditLog } from "./lib/audit-log";
 import { createStripeTestIntent } from "./lib/stripe";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
@@ -11,6 +11,9 @@ import { recordTimelineEvent } from "./lib/application-timeline";
 import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { TRPCError } from "@trpc/server";
 import { getApplicationReadiness } from "./lib/application-readiness";
+import { recordPayerAuthorization } from "./lib/payer-authorization";
+import { validatePayerAuthorization } from "./lib/payer-authorization-core";
+import { PAYER_AUTHORIZATION_VERSION, PAYER_RELATIONSHIPS } from "@contracts/payer-authorization";
 
 export const paymentRouter = createRouter({
   // Create payment intent
@@ -19,6 +22,10 @@ export const paymentRouter = createRouter({
       amount: z.number().optional(), // Legacy client hint; never trusted.
       currency: z.string().optional(), // Legacy client hint; never trusted.
       referenceNumber: z.string(),
+      payerName: z.string().min(2).max(100),
+      payerRelationship: z.enum(PAYER_RELATIONSHIPS),
+      payerAuthorizationAccepted: z.literal(true),
+      payerAuthorizationVersion: z.literal(PAYER_AUTHORIZATION_VERSION),
     }))
     .mutation(async ({ input, ctx }) => {
       try {
@@ -37,6 +44,19 @@ export const paymentRouter = createRouter({
             message: JSON.stringify({ code: "APPLICATION_INCOMPLETE", ...readiness }),
           });
         }
+
+        const [leadApplicant] = await db.select({ fullName: applicants.fullName }).from(applicants)
+          .where(eq(applicants.applicationId, app.id))
+          .orderBy(asc(applicants.applicantIndex))
+          .limit(1);
+        if (!leadApplicant) throw new Error("Lead applicant identity is unavailable");
+        validatePayerAuthorization({
+          payerName: input.payerName,
+          payerRelationship: input.payerRelationship,
+          authorizationAccepted: input.payerAuthorizationAccepted,
+          authorizationVersion: input.payerAuthorizationVersion,
+          leadApplicantName: leadApplicant.fullName,
+        });
 
         const priceSnapshot = await getApplicationPriceSnapshot(app.id);
         if (priceSnapshot.currency.toUpperCase() !== "USD") throw new Error("Stripe checkout requires a USD price snapshot");
@@ -65,6 +85,15 @@ export const paymentRouter = createRouter({
           }).$returningId();
           paymentId = createdPayment.id;
         }
+        await recordPayerAuthorization({
+          applicationId: app.id,
+          paymentId,
+          payerName: input.payerName,
+          payerRelationship: input.payerRelationship,
+          authorizationAccepted: input.payerAuthorizationAccepted,
+          authorizationVersion: input.payerAuthorizationVersion,
+          leadApplicantName: leadApplicant.fullName,
+        });
         await db.update(applications).set({
           stripePaymentIntentId: paymentIntent.id,
           stripeAmountUsd: serverAmountUsd.toFixed(2),

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { applications, documents, invoices, payments } from "@db/schema";
-import { desc, eq } from "drizzle-orm";
+import { applications, applicants, documents, invoices, payments } from "@db/schema";
+import { asc, desc, eq } from "drizzle-orm";
 import { adminQuery, applicationAccessQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { hasPrivilegedApplicationAccess } from "./lib/application-authorization";
@@ -111,7 +111,7 @@ export const timelineRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       const application = await applicationByReference(input.referenceNumber);
       const db = getDb();
-      const [eventRows, paymentRows, invoiceRows, documentRows] = await Promise.all([
+      const [eventRows, paymentRows, invoiceRows, documentRows, leadApplicantRows] = await Promise.all([
         listTimelineEvents(application.id),
         db.select().from(payments).where(eq(payments.applicationId, application.id)).orderBy(desc(payments.createdAt)),
         db.select().from(invoices).where(eq(invoices.applicationId, application.id)).orderBy(desc(invoices.createdAt)),
@@ -122,7 +122,15 @@ export const timelineRouter = createRouter({
           uploadStatus: documents.uploadStatus,
           createdAt: documents.createdAt,
         }).from(documents).where(eq(documents.applicationId, application.id)).orderBy(desc(documents.createdAt)),
+        db.select({
+          applicantIndex: applicants.applicantIndex,
+          fullName: applicants.fullName,
+        }).from(applicants).where(eq(applicants.applicationId, application.id)).orderBy(asc(applicants.applicantIndex)).limit(1),
       ]);
+      const payerAuthorization = eventRows.filter((event) => event.eventName === "PAYER_AUTHORIZATION_ACCEPTED").at(-1);
+      const linkedPayment = payerAuthorization?.paymentId
+        ? paymentRows.find((payment) => payment.id === payerAuthorization.paymentId)
+        : undefined;
       const generatedAt = new Date().toISOString();
       const manifest = {
         version: "1",
@@ -135,6 +143,21 @@ export const timelineRouter = createRouter({
           createdAt: application.createdAt,
           updatedAt: application.updatedAt,
         },
+        leadApplicant: leadApplicantRows[0] || null,
+        payerAuthorization: payerAuthorization ? {
+          payerName: payerAuthorization.actorReference,
+          relationship: payerAuthorization.sanitizedCategory,
+          accepted: payerAuthorization.resultingState === "self" || payerAuthorization.resultingState === "third_party",
+          thirdParty: payerAuthorization.resultingState === "third_party",
+          acceptedAt: payerAuthorization.createdAt,
+          evidenceVersion: payerAuthorization.policyVersion,
+          paymentIntentId: linkedPayment?.stripePaymentIntentId || null,
+          amount: linkedPayment?.amount || null,
+          currency: linkedPayment?.currency || null,
+          cardBrand: null,
+          cardLast4: null,
+          threeDsResult: eventRows.some((event) => event.eventName === "THREE_DS_COMPLETED") ? "completed" : null,
+        } : null,
         payments: paymentRows.map((payment) => ({
           id: payment.id,
           stripePaymentIntentId: payment.stripePaymentIntentId,

@@ -57,6 +57,10 @@ export default function AdminApplicationDetail() {
     { referenceNumber: referenceNumber || "" },
     { enabled: !!referenceNumber },
   );
+  const { data: timelineEvents } = trpc.timeline.list.useQuery(
+    { referenceNumber: referenceNumber || "" },
+    { enabled: !!referenceNumber },
+  );
   const assessRisk = trpc.risk.assess.useMutation({
     onSuccess: () => utils.risk.latest.invalidate({ referenceNumber: referenceNumber || "" }),
   });
@@ -88,7 +92,8 @@ export default function AdminApplicationDetail() {
     );
   }
 
-  const mainApplicant = app.applicants?.[0];
+  const mainApplicant = app.applicants?.find((applicant) => Number(applicant.applicantIndex) === 0);
+  const payerAuthorization = timelineEvents?.filter((event) => event.eventName === "PAYER_AUTHORIZATION_ACCEPTED").at(-1);
   const a: ApplicationWithLegacyAmount = app;
   const exchangeRate = Number(a.exchangeRate || 0);
   const totalUsd = Number(a.totalAmountUsd || a.totalAmount || 0);
@@ -359,6 +364,26 @@ export default function AdminApplicationDetail() {
                 </div>
               </div>
               <div className="space-y-2 text-sm">
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Applicant</span>
+                  <span>{mainApplicant?.fullName || "-"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Payer</span>
+                  <span>{payerAuthorization?.actorReference || "Not recorded"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Relationship</span>
+                  <span>{payerAuthorization?.sanitizedCategory || "-"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Card</span>
+                  <span>Not available</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Authorization</span>
+                  <span className={payerAuthorization ? "font-semibold text-emerald-700" : "text-gray-500"}>{payerAuthorization ? "Accepted ✓" : "Not recorded"}</span>
+                </div>
                 <div className="flex justify-between py-2 border-b border-gray-50">
                   <span className="text-gray-500">Invoice #</span>
                   <span className="font-mono">{app.invoiceNumber || `INV-${app.referenceNumber}`}</span>

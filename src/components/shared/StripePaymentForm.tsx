@@ -9,6 +9,13 @@ import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymen
 import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
 import { trackGoogleEvent, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
 import { PaymentSuccessExperience } from './PaymentSuccessExperience';
+import { PayerAuthorizationFields } from './PayerAuthorizationFields';
+import {
+  PAYER_AUTHORIZATION_VERSION,
+  isThirdPartyPayer,
+  payerRelationshipForCheckout,
+  type ThirdPartyPayerRelationship,
+} from '@contracts/payer-authorization';
 
 const cardStyle = {
   hidePostalCode: true,
@@ -43,6 +50,7 @@ interface PaymentFormInnerProps {
 function PaymentFormInner({
   amount,
   referenceNumber,
+  applicantData,
   onSuccess,
   onClose,
 }: PaymentFormInnerProps) {
@@ -51,6 +59,9 @@ function PaymentFormInner({
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [payerName, setPayerName] = useState(applicantData.customerName);
+  const [payerRelationship, setPayerRelationship] = useState<ThirdPartyPayerRelationship | ''>('');
+  const [payerAuthorizationAccepted, setPayerAuthorizationAccepted] = useState(false);
   const paymentTimeline = usePaymentTimeline(referenceNumber);
   const { paymentElementLoaded } = paymentTimeline;
 
@@ -67,6 +78,16 @@ function PaymentFormInner({
     // Google Ads: Begin checkout conversion
     trackGoogleEvent('begin_checkout', { value: amount, currency });
     if (!stripe || !elements || readiness.data?.status !== 'READY' || readiness.data.paymentStatus === 'paid') return;
+    const thirdParty = isThirdPartyPayer(payerName, applicantData.customerName);
+    if (!payerAuthorizationAccepted) {
+      setError('Please confirm that you are authorized to use this payment method.');
+      return;
+    }
+    if (thirdParty && !payerRelationship) {
+      setError("Please select the payer's relationship to the applicant.");
+      return;
+    }
+    const selectedPayerRelationship = payerRelationshipForCheckout(payerName, applicantData.customerName, payerRelationship);
 
     setLoading(true);
     setError('');
@@ -78,6 +99,10 @@ function PaymentFormInner({
         amount: amount * 100,
         currency: 'usd',
         referenceNumber,
+        payerName,
+        payerRelationship: selectedPayerRelationship,
+        payerAuthorizationAccepted: true,
+        payerAuthorizationVersion: PAYER_AUTHORIZATION_VERSION,
       });
 
       if (!intentResult.clientSecret) throw new Error('Failed to create payment intent');
@@ -87,7 +112,7 @@ function PaymentFormInner({
         {
           payment_method: {
             card: elements.getElement(CardElement)!,
-            billing_details: { name: 'Tashira Customer' },
+            billing_details: { name: payerName.trim() },
           },
         }
       );
@@ -141,6 +166,16 @@ function PaymentFormInner({
           <CardElement options={cardStyle} />
         </div>
       </div>
+
+      <PayerAuthorizationFields
+        leadApplicantName={applicantData.customerName}
+        payerName={payerName}
+        onPayerNameChange={setPayerName}
+        relationship={payerRelationship}
+        onRelationshipChange={setPayerRelationship}
+        accepted={payerAuthorizationAccepted}
+        onAcceptedChange={setPayerAuthorizationAccepted}
+      />
 
       <div className="flex items-center gap-2 text-xs text-gray-500">
         <Lock size={12} className="text-emerald-500" />
