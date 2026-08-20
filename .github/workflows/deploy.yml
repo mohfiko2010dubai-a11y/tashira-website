@@ -1,90 +1,139 @@
-name: Deploy to Production
+name: Manual Production Deployment
 
 on:
-  push:
-    branches:
-      - main
-      - master
-
   workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Exact approved 40-character release commit SHA
+        required: true
+        type: string
+      backup_manifest_path:
+        description: Absolute verified production backup manifest path
+        required: true
+        type: string
+      migration_status:
+        description: Confirm that the reviewed V1 migration wrapper completed
+        required: true
+        type: choice
+        options:
+          - NOT_APPROVED
+          - VERIFIED_COMPLETE
+      backup_verified:
+        description: Confirm DB, documents, config, Git and off-host backups
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
 
 concurrency:
-  group: deploy-production
-  cancel-in-progress: true
+  group: production-deployment
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy to VPS
+    name: Deploy exact approved SHA
     runs-on: ubuntu-latest
+    environment: production
+    if: inputs.backup_verified && inputs.migration_status == 'VERIFIED_COMPLETE'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Validate manual inputs
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          BACKUP_MANIFEST_PATH: ${{ inputs.backup_manifest_path }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$BACKUP_MANIFEST_PATH" == /var/backups/tashira/*/MANIFEST.env ]]
 
-      - name: Setup SSH Key
+      - name: Check out exact release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Verify release belongs to main
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+
+      - name: Configure SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
           log-public-key: false
 
-      - name: Add host to known_hosts
+      - name: Install pinned production host key
+        env:
+          SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.SERVER_PORT || '22' }} -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          set -euo pipefail
+          test -n "$SERVER_KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          install -m 600 /dev/null ~/.ssh/known_hosts
+          printf '%s\n' "$SERVER_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh-keygen -l -f ~/.ssh/known_hosts >/dev/null
 
-      - name: Deploy to VPS
+      - name: Deploy exact release
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_PORT: ${{ secrets.SERVER_PORT || '22' }}
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+          BACKUP_MANIFEST_PATH: ${{ inputs.backup_manifest_path }}
         run: |
-          set -e
-          echo "=== Deploying to $SERVER_HOST ==="
-          
-          ssh -p $SERVER_PORT $SERVER_USER@$SERVER_HOST << 'REMOTE_SCRIPT'
-            set -e
-            PROJECT_PATH="${PROJECT_PATH:-/var/www/tashira}"
-            cd "$PROJECT_PATH"
-            
-            echo "[1/6] Pulling latest code..."
-            git fetch origin
-            git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
-            
-            echo "[2/6] Checking if npm install is needed..."
-            if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
-              echo "Installing dependencies..."
-              npm ci
-            else
-              echo "Dependencies up to date."
-            fi
-            
-            echo "[3/6] Building project..."
-            npm run build
-            
-            echo "[4/6] Deploying built files..."
-            # Ensure dist directory exists
-            if [ ! -d "dist" ]; then
-              echo "ERROR: dist directory not found after build"
-              exit 1
-            fi
-            
-            echo "[5/6] Restarting PM2..."
-            pm2 restart tashira || pm2 start dist/boot.js --name tashira --cwd "$PROJECT_PATH"
-            
-            echo "[6/6] Saving PM2 config..."
-            pm2 save
-            
-            echo ""
-            echo "=== Deployment Complete ==="
-            echo "Status:"
-            pm2 status tashira
-          REMOTE_SCRIPT
+          set -euo pipefail
+          printf -v remote_command '%q ' \
+            env \
+            "PROJECT_PATH=${PROJECT_PATH:-/var/www/tashira}" \
+            "RELEASE_SHA=$RELEASE_SHA" \
+            "BACKUP_MANIFEST_PATH=$BACKUP_MANIFEST_PATH" \
+            bash -s
 
-      - name: Notify on success
-        if: success()
-        run: echo "✅ Deployment to production completed successfully!"
+          ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" "$remote_command" <<'REMOTE'
+          set -euo pipefail
+          test "$PROJECT_PATH" = "/var/www/tashira"
+          cd "$PROJECT_PATH"
+          test "$(pwd -P)" = "/var/www/tashira"
+          test -f "$BACKUP_MANIFEST_PATH"
+          ! crontab -l 2>/dev/null | grep -q '/var/www/tashira.*origin/main'
+          ! pm2 describe webhook >/dev/null 2>&1
+          ! systemctl is-active --quiet tashira-webhook.service
 
-      - name: Notify on failure
-        if: failure()
-        run: echo "❌ Deployment failed! Check the logs above."
+          git fetch --no-tags origin main
+          git cat-file -e "$RELEASE_SHA^{commit}"
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          git checkout --detach "$RELEASE_SHA"
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          git ls-files --error-unmatch scripts/production-migrate-v1.sh migrations/004_application_timeline.sql migrations/005_business_architecture.sql migrations/006_applicant_slot_uniqueness.sql migrations/007_stripe_webhook_idempotency.sql migrations/008_email_template_evidence.sql >/dev/null
+          git diff --quiet HEAD -- migrations scripts/production-migrate-v1.sh
+          git diff --cached --quiet -- migrations scripts/production-migrate-v1.sh
+
+          scripts/production-migrate-v1.sh verify \
+            --approved-sha "$RELEASE_SHA" \
+            --backup-manifest "$BACKUP_MANIFEST_PATH"
+
+          npm ci
+          VITE_STRIPE_PUBLISHABLE_KEY="$({ sed -n 's/^VITE_STRIPE_PUBLISHABLE_KEY=//p' .env || true; } | head -n 1)"
+          [[ "$VITE_STRIPE_PUBLISHABLE_KEY" == pk_live_* ]]
+          export VITE_STRIPE_PUBLISHABLE_KEY
+          npm run build
+
+          chmod 600 .env
+          install -d -m 700 .deployment
+          printf '%s\n' "$RELEASE_SHA" > .deployment/deployed-sha
+          chmod 600 .deployment/deployed-sha
+
+          pm2 restart tashira --update-env
+          test "$(pm2 pid tashira)" != "0"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/health)" = "200"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' https://tashiraev.com/)" = "200"
+          printf 'Deployed SHA: %s\n' "$RELEASE_SHA"
+          REMOTE
