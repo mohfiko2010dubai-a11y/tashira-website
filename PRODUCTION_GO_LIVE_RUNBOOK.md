@@ -1,6 +1,6 @@
 # TASHIRA Production Go-Live Runbook
 
-This runbook requires a separately approved maintenance window. It does not itself authorize production access, migration, deployment, cleanup, or secret changes. Rollback application commit: `b8ef154a4ab1aa8f5669702671b7d47a819a917c`.
+This runbook requires a separately approved maintenance window. It does not itself authorize production access, migration, deployment, cleanup, or secret changes. Production rollback and pre-migration baseline: `0083a32e8ee53a1f5e7c74219cd2c63a844b80df`. Reviewed V1 application release commit: `0782670deddf1aadf4b16bdb06ffd7b1ef78ceda`.
 
 ## Stop rule and approvals
 
@@ -178,7 +178,7 @@ Restore the verified database backup, then restore the application:
 ```bash
 cd /var/www/tashira
 git fetch --no-tags origin main
-git checkout --detach b8ef154a4ab1aa8f5669702671b7d47a819a917c
+git checkout --detach 0083a32e8ee53a1f5e7c74219cd2c63a844b80df
 npm ci
 npm run build
 pm2 restart tashira --update-env
