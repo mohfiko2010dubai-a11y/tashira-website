@@ -1,3 +1,5 @@
+import { stripeSecretKey } from "./stripe-runtime";
+
 type StripeIntent = {
   id: string;
   client_secret: string | null;
@@ -8,19 +10,11 @@ type StripeIntent = {
   metadata: Record<string, string>;
 };
 
-function stripeTestKey(): string {
-  const key = process.env.STRIPE_SECRET_KEY || "";
-  if (!key.startsWith("sk_test_")) {
-    throw new Error("Stripe test-mode secret key is not configured");
-  }
-  return key;
-}
-
 async function stripeRequest(url: string, init?: RequestInit): Promise<StripeIntent> {
   const response = await fetch(url, {
     ...init,
     headers: {
-      Authorization: `Bearer ${stripeTestKey()}`,
+      Authorization: `Bearer ${stripeSecretKey()}`,
       ...init?.headers,
     },
   });
@@ -79,7 +73,7 @@ export async function retrieveStripeTestCardSummary(paymentIntentId: string): Pr
   if (!/^pi_[a-zA-Z0-9_]+$/.test(paymentIntentId)) throw new Error("Invalid PaymentIntent identifier");
   const url = new URL(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(paymentIntentId)}`);
   url.searchParams.append("expand[]", "latest_charge");
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${stripeTestKey()}` } });
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${stripeSecretKey()}` } });
   if (!response.ok) return null;
   const intent = await response.json() as {
     latest_charge?: string | {

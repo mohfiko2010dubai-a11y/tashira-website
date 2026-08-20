@@ -26,6 +26,7 @@ process.env.ADMIN_PASSWORD = readSecret("admin_password");
 process.env.ADMIN_SESSION_SECRET = readSecret("admin_session_secret");
 process.env.CUSTOMER_SESSION_SECRET = readSecret("customer_session_secret");
 process.env.STORAGE_URL_SECRET = readSecret("storage_url_secret");
+process.env.STRIPE_MODE = "TEST";
 process.env.STRIPE_SECRET_KEY = readSecret("stripe_secret_key");
 process.env.STRIPE_WEBHOOK_SECRET = readSecret("stripe_webhook_secret");
 process.env.VITE_KIMI_API_KEY = readSecret("kimi_api_key");

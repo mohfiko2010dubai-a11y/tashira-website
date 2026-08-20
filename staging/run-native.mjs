@@ -25,6 +25,7 @@ const stagingConfig = readStagingConfig();
 const publishableKey = stagingConfig.VITE_STRIPE_PUBLISHABLE_KEY ?? "";
 if (!publishableKey.startsWith("pk_test_")) throw new Error("Staging requires a Stripe TEST publishable key");
 process.env.VITE_STRIPE_PUBLISHABLE_KEY = publishableKey;
+process.env.STRIPE_MODE = "TEST";
 process.env.STRIPE_SECRET_KEY = readSecret("stripe_secret_key");
 process.env.STRIPE_WEBHOOK_SECRET = readSecret("stripe_webhook_secret");
 for (const name of ["STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "FROM_NAME", "FROM_EMAIL", "PUBLIC_APP_URL"]) {

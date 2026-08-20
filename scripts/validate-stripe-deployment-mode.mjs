@@ -3,13 +3,18 @@ export function validateStripeDeploymentMode(input) {
   const publishableKey = input.publishableKey || "";
   const secretKey = input.secretKey || "";
   const webhookSecret = input.webhookSecret || "";
+  const hasCredentialClass = (value, prefix) => value.startsWith(prefix)
+    && value.length > prefix.length
+    && !/(placeholder|replace_with|example)/iu.test(value);
 
   if (mode !== "PRELIVE" && mode !== "LIVE") {
     throw new Error("deployment_mode must be explicitly PRELIVE or LIVE");
   }
 
   if (mode === "PRELIVE") {
-    if (!publishableKey.startsWith("pk_test_") || !secretKey.startsWith("sk_test_")) {
+    if (!hasCredentialClass(publishableKey, "pk_test_")
+      || !hasCredentialClass(secretKey, "sk_test_")
+      || !hasCredentialClass(webhookSecret, "whsec_")) {
       throw new Error("PRELIVE requires matching Stripe TEST credentials");
     }
     if (publishableKey.startsWith("pk_live_") || secretKey.startsWith("sk_live_")) {
@@ -18,7 +23,9 @@ export function validateStripeDeploymentMode(input) {
     return "PRELIVE";
   }
 
-  if (!publishableKey.startsWith("pk_live_") || !secretKey.startsWith("sk_live_") || !webhookSecret.startsWith("whsec_")) {
+  if (!hasCredentialClass(publishableKey, "pk_live_")
+    || !hasCredentialClass(secretKey, "sk_live_")
+    || !hasCredentialClass(webhookSecret, "whsec_")) {
     throw new Error("LIVE requires complete Stripe LIVE credentials");
   }
   if (publishableKey.startsWith("pk_test_") || secretKey.startsWith("sk_test_")) {

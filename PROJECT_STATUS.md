@@ -1,6 +1,6 @@
 # TASHIRA Project Status
 
-Last verified: 2026-08-19
+Last verified: 2026-08-21
 
 ## Current state
 
@@ -17,6 +17,7 @@ Last verified: 2026-08-19
 
 ## Completed capabilities
 
+- Stripe runtime mode is now explicit and fail-closed: the protected workflow maps `PRELIVE` to `TEST` and `LIVE` to `LIVE`, boot rejects incomplete or mixed credentials, LIVE webhook signatures/events are accepted only in LIVE mode, and the existing three-event allowlist, idempotency, amounts, and payment finalization behavior remain unchanged. Local gates passed with 181 tests and a production build; no LIVE credential was configured and no payment occurred.
 - Isolated native staging with separate checkout, MySQL database/user, filesystem storage, logs, port, and PM2 process.
 - Migration 005 reviewed, hardened, applied only to `tashira_staging`, and verified with 16 append-only triggers.
 - Server-authoritative versioned pricing and immutable price snapshots.

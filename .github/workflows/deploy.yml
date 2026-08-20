@@ -132,7 +132,12 @@ jobs:
           VITE_STRIPE_PUBLISHABLE_KEY="$({ sed -n 's/^VITE_STRIPE_PUBLISHABLE_KEY=//p' .env || true; } | head -n 1)"
           STRIPE_SECRET_KEY="$({ sed -n 's/^STRIPE_SECRET_KEY=//p' .env || true; } | head -n 1)"
           STRIPE_WEBHOOK_SECRET="$({ sed -n 's/^STRIPE_WEBHOOK_SECRET=//p' .env || true; } | head -n 1)"
-          export DEPLOYMENT_MODE VITE_STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET
+          if [[ "$DEPLOYMENT_MODE" == "PRELIVE" ]]; then
+            STRIPE_MODE=TEST
+          else
+            STRIPE_MODE=LIVE
+          fi
+          export DEPLOYMENT_MODE STRIPE_MODE VITE_STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET
           node scripts/validate-stripe-deployment-mode.mjs
           if [[ "$DEPLOYMENT_MODE" == "PRELIVE" ]]; then
             printf 'PRODUCTION APPLICATION — STRIPE TEST MODE\n'
