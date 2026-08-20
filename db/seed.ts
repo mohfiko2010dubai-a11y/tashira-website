@@ -3,6 +3,7 @@ import { getDb } from "../api/queries/connection";
 
 async function seed() {
   const db = getDb();
+  void db;
   console.log("Seeding database...");
 
   // TODO: insert seed data, e.g.

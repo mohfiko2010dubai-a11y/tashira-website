@@ -26,7 +26,7 @@ const pageMeta: Record<string, { title: string; desc: string }> = {
 };
 
 export default function Legal({ page }: LegalProps) {
-  const { t } = useTranslation('legal');
+  const { t, i18n } = useTranslation('legal');
 
   const title = t(`${page}.title`);
   const content = t(`${page}.content`);
@@ -56,6 +56,16 @@ export default function Legal({ page }: LegalProps) {
           className="prose prose-lg max-w-none legal-content"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
+        {page === 'terms' && (
+          <div className="prose prose-lg mt-6 max-w-none legal-content">
+            <h2>{i18n.language.startsWith('ar') ? 'ملحق تفويض الدافع - ساري من 19 أغسطس 2026' : 'Payer Authorization Addendum - Effective 19 August 2026'}</h2>
+            <p>
+              {i18n.language.startsWith('ar')
+                ? 'يجوز أن يتم الدفع بواسطة طرف ثالث مفوض نيابةً عن مقدم أو مقدمي الطلب. يؤكد الدافع أنه مخول باستخدام وسيلة الدفع وأنه يصرح بالدفع مقابل الخدمات المرتبطة بالطلب المحدد. لا يؤثر ذلك في حقوق المستهلك الإلزامية.'
+                : 'Payment may be made by an authorized third party on behalf of the applicant(s). The payer confirms authorization to use the payment method and authorizes payment for the services associated with the identified application. This does not limit mandatory consumer rights.'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
     </>

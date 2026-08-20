@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, chatQuery, createRouter, publicQuery, uploadQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { chatMessages, applications } from "@db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { storageUpload } from "./lib/local-storage";
+import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 
 // AI Chatbot using Kimi API
 const KIMI_API_KEY = process.env.VITE_KIMI_API_KEY || "";
@@ -154,33 +155,6 @@ function extractProcessingType(text: string): string | null {
   return null;
 }
 
-function extractContactInfo(text: string): { name?: string; email?: string; phone?: string } {
-  const lines = text.split(/\n|,|\//).map(l => l.trim()).filter(Boolean);
-  const result: { name?: string; email?: string; phone?: string } = {};
-  
-  for (const line of lines) {
-    // Email
-    const emailMatch = line.match(/[\w.-]+@[\w.-]+\.\w+/);
-    if (emailMatch && !result.email) result.email = emailMatch[0];
-    
-    // Phone
-    const phoneMatch = line.match(/\+?\d[\d\s-]{7,}/);
-    if (phoneMatch && !result.phone) result.phone = phoneMatch[0].replace(/\s/g, '');
-    
-    // Name (first non-email, non-phone line with letters)
-    if (!result.name && !emailMatch && !phoneMatch && /[a-zA-Z]{3,}/.test(line)) {
-      result.name = line;
-    }
-  }
-  
-  // If single line with name-like content
-  if (!result.name && lines.length === 1 && !result.email && !result.phone) {
-    result.name = lines[0];
-  }
-  
-  return result;
-}
-
 function generateReferenceNumber(): string {
   return "TSH-" + Math.floor(100000 + Math.random() * 900000);
 }
@@ -204,7 +178,7 @@ async function sendWhatsAppNotification(message: string) {
 
 export const chatRouter = createRouter({
   // Send message and get response
-  sendMessage: publicQuery
+  sendMessage: chatQuery
     .input(z.object({
       sessionId: z.string().min(1),
       message: z.string().min(1),
@@ -238,7 +212,7 @@ export const chatRouter = createRouter({
       
       // Process based on current step
       switch (session.step) {
-        case 0: // Select visa type
+        case 0: { // Select visa type
           const visaType = extractVisaType(input.message);
           if (visaType) {
             session.visaType = visaType;
@@ -250,8 +224,9 @@ export const chatRouter = createRouter({
               : "❌ I didn't understand. Please choose: 14 days, 30 days, 60 days, 90 days, or 96 hours transit";
           }
           break;
+        }
           
-        case 1: // Number of applicants
+        case 1: { // Number of applicants
           const count = extractApplicantCount(input.message);
           if (count && count > 0 && count <= 20) {
             session.applicantCount = count;
@@ -264,8 +239,9 @@ export const chatRouter = createRouter({
               : "❌ Invalid number. Please enter how many applicants (1-20)";
           }
           break;
+        }
           
-        case 2: // Document upload (handled separately via upload endpoint)
+        case 2: { // Document upload (handled separately via upload endpoint)
           // Check if enough documents uploaded
           const docCheck = validateDocuments(session.documents);
           if (docCheck.valid) {
@@ -279,8 +255,9 @@ export const chatRouter = createRouter({
               : `⚠️ Still need: ${missingList}\n\nPlease upload the required documents:`;
           }
           break;
+        }
           
-        case 3: // Processing type
+        case 3: { // Processing type
           const processingType = extractProcessingType(input.message);
           if (processingType) {
             session.processingType = processingType;
@@ -299,8 +276,9 @@ export const chatRouter = createRouter({
               : "❌ Please choose: 'Regular' or 'Express'";
           }
           break;
+        }
           
-        case 4: // Ask for full name
+        case 4: { // Ask for full name
           const name = input.message.trim();
           if (validateName(name)) {
             session.visitorName = name;
@@ -312,8 +290,9 @@ export const chatRouter = createRouter({
               : "❌ Invalid name. Please enter your real full name (letters only).";
           }
           break;
+        }
           
-        case 5: // Ask for email
+        case 5: { // Ask for email
           const email = input.message.trim();
           if (validateEmail(email)) {
             session.visitorEmail = email;
@@ -325,6 +304,7 @@ export const chatRouter = createRouter({
               : "❌ Invalid email. Please try again (e.g., name@example.com)";
           }
           break;
+        }
           
         case 6: { // Ask for phone - wrapped in block for scope
           const phone = input.message.trim();
@@ -334,30 +314,36 @@ export const chatRouter = createRouter({
             
             // Create application in database
             try {
-              const totalAmount = session.totalAmount || 170;
-              const exchangeRate = 3.6725;
-              const totalAmountAed = totalAmount * exchangeRate;
+              const processingType = session.processingType?.toLowerCase() === "express" ? "express" : "regular";
+              const quote = await quoteApplicationPrice({
+                serviceCode: session.visaType || "",
+                processingType,
+                applicantCount: 1,
+              });
+              if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
               
               // Generate reference number
-              session.referenceNumber = generateReferenceNumber();
+              const referenceNumber = generateReferenceNumber();
+              session.referenceNumber = referenceNumber;
               
-              await db.insert(applications).values({
-                referenceNumber: session.referenceNumber,
+              const [created] = await db.insert(applications).values({
+                referenceNumber,
                 baseType: "single",
                 residenceType: "non-gcc",
                 visaType: session.visaType || "30 Days",
-                processingType: (session.processingType || "Regular").toLowerCase(),
-                totalApplicants: session.applicantCount || 1,
-                contactEmail: session.visitorEmail,
-                contactPhone: session.visitorPhone,
-                totalAmountAed: String(totalAmountAed),
-                totalAmountUsd: String(totalAmount),
-                exchangeRate: String(exchangeRate),
+                processingType,
+                contactEmail: session.visitorEmail || "",
+                contactPhone: session.visitorPhone || "",
+                totalAmountAed: quote.totalInBaseCurrency.toFixed(2),
+                totalAmountUsd: quote.totalPrice.toFixed(2),
+                exchangeRate: quote.exchangeRateToBase.toFixed(4),
                 status: "documents_pending",
                 paymentStatus: "pending",
                 createdAt: new Date(),
                 updatedAt: new Date(),
-              });
+              }).$returningId();
+              await saveApplicationPriceSnapshot(created.id, quote);
+              session.totalAmount = quote.totalPrice;
             } catch (err) {
               console.error("[Chat] Failed to create application:", err);
             }
@@ -386,10 +372,11 @@ export const chatRouter = createRouter({
           break;
         }
           
-        default:
+        default: {
           // Fallback to AI
           const aiReply = await getAIResponse(input.message);
           reply = aiReply;
+        }
       }
       
       // Store bot response
@@ -406,7 +393,7 @@ export const chatRouter = createRouter({
     }),
 
   // Upload document via chat
-  uploadDocument: publicQuery
+  uploadDocument: uploadQuery
     .input(z.object({
       sessionId: z.string().min(1),
       documentType: z.string(),
@@ -482,7 +469,7 @@ export const chatRouter = createRouter({
     }),
 
   // Admin: List all sessions
-  listSessions: publicQuery
+  listSessions: adminQuery
     .input(z.object({
       status: z.enum(["all", "unread", "read"]).optional().default("all"),
       limit: z.number().optional().default(50),
@@ -509,7 +496,7 @@ export const chatRouter = createRouter({
     }),
 
   // Admin: Get conversation
-  getConversation: publicQuery
+  getConversation: adminQuery
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ input }) => {
       const db = getDb();
@@ -520,7 +507,7 @@ export const chatRouter = createRouter({
     }),
 
   // Admin: Reply
-  adminReply: publicQuery
+  adminReply: adminQuery
     .input(z.object({
       sessionId: z.string().min(1),
       content: z.string().min(1),
@@ -537,7 +524,7 @@ export const chatRouter = createRouter({
     }),
 
   // Admin: Mark as read
-  markAsRead: publicQuery
+  markAsRead: adminQuery
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ input }) => {
       const db = getDb();

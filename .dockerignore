@@ -3,3 +3,17 @@ dist
 .git
 *.swp
 *.log
+.env
+.env.*
+staging/.env
+staging/secrets
+staging/certs
+staging/data
+storage
+uploads
+*.pem
+*.key
+*.p12
+*.pfx
+PRODUCTION_*_REPORT.md
+PRODUCTION_ROOT_CRON_ROLLBACK.txt

@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, uploadQuery } from "./middleware";
+import type { JWTInput } from "google-auth-library";
+import { getErrorMessage } from "./lib/errors";
 
 // Only load googleapis on the server
 async function getDriveClient() {
@@ -20,7 +22,7 @@ async function getDriveClient() {
   }
 
   const auth = new google.auth.GoogleAuth({
-    credentials: credentials as any,
+    credentials: credentials as JWTInput,
     scopes: ["https://www.googleapis.com/auth/drive.file"],
   });
 
@@ -30,7 +32,7 @@ async function getDriveClient() {
 
 export const driveRouter = createRouter({
   // Upload base64 file to Google Drive
-  upload: publicQuery
+  upload: uploadQuery
     .input(z.object({
       fileName: z.string(),
       mimeType: z.string(),
@@ -76,14 +78,15 @@ export const driveRouter = createRouter({
           fileName: input.fileName,
           viewUrl: response.data.webViewLink || `https://drive.google.com/file/d/${fileId}/view`,
         };
-      } catch (err: any) {
-        console.error("Google Drive upload error:", err.message);
-        return { success: false, error: err.message || "Upload failed" };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, "Upload failed");
+        console.error("Google Drive upload error:", message);
+        return { success: false, error: message };
       }
     }),
 
   // List files in the drive folder
-  listFiles: publicQuery
+  listFiles: adminQuery
     .query(async () => {
       try {
         const { drive, folderId } = await getDriveClient();
@@ -98,9 +101,10 @@ export const driveRouter = createRouter({
           success: true,
           files: response.data.files || [],
         };
-      } catch (err: any) {
-        console.error("Google Drive list error:", err.message);
-        return { success: false, error: err.message || "List failed", files: [] };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, "List failed");
+        console.error("Google Drive list error:", message);
+        return { success: false, error: message, files: [] };
       }
     }),
 });

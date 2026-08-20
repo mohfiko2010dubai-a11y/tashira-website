@@ -1,6 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { trpc } from '@/providers/trpc';
-import { MessageCircle, X, Send, Bot, User, Paperclip, Lock, ArrowRight } from 'lucide-react';
+import { trpc } from '@/providers/trpc-client';
+import { MessageCircle, X, Send, Bot, User, Paperclip, Lock, ChevronLeft } from 'lucide-react';
+import { TERMS_POLICY_VERSION } from '@contracts/constants';
+import {
+  buildChatbotPaymentPath,
+  getChatbotApplicantResumeStep,
+  getChatbotVisaLabel,
+  getChatbotVisaServiceCode,
+  parseChatbotResumeMetadata,
+  upsertChatbotApplicant,
+  type ChatbotApplicant,
+} from '@/lib/chatbot-application';
+import { ChatbotReview } from './ChatbotReview';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -27,6 +38,7 @@ const RESIDENCE_OPTIONS = [
 ];
 
 const WHO_TRAVELING = ['Single Applicant', 'Family Application'];
+const CHATBOT_RESUME_KEY = 'tashira_chatbot_resume';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -79,6 +91,8 @@ interface Wizard {
   totalAmount: number;
   acceptedTerms: boolean;
   applicationId?: number;
+  applicantId?: number;
+  applicants: ChatbotApplicant[];
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────
@@ -102,14 +116,17 @@ function validateRequired(val: string): boolean {
   return val.trim().length >= 2;
 }
 
+function generateReferenceNumber(): string {
+  return `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ChatBot() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get('resume') === '1');
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sessionId] = useState(() => 'chat_' + Math.random().toString(36).slice(2));
   const [docStep, setDocStep] = useState(0); // 0=passport_copy, 1=passport_cover, 2=passport_photo
 
   const [wizard, setWizard] = useState<Wizard>({
@@ -134,9 +151,12 @@ export default function ChatBot() {
     paymentLink: '',
     totalAmount: 0,
     acceptedTerms: false,
+    applicants: [],
   });
 
   const wizardRef = useRef(wizard);
+  const resumeAppliedRef = useRef(false);
+  const [resumeMetadata] = useState(() => parseChatbotResumeMetadata(localStorage.getItem(CHATBOT_RESUME_KEY)));
 
   // Keep wizardRef in sync with wizard state
   useEffect(() => {
@@ -146,7 +166,124 @@ export default function ChatBot() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const sendMessage = trpc.chat.sendMessage.useMutation();
+  const startMutation = trpc.wizard.startApplication.useMutation();
+  const quoteMutation = trpc.wizard.quoteApplication.useMutation();
+  const updateMutation = trpc.wizard.updateApplication.useMutation();
+  const submitMutation = trpc.wizard.submitApplication.useMutation();
+  const uploadDocMutation = trpc.wizard.uploadDocuments.useMutation();
+  const replaceDocMutation = trpc.wizard.replaceDocument.useMutation();
+  const resumeQuery = trpc.wizard.getProgress.useQuery(
+    { referenceNumber: resumeMetadata?.referenceNumber ?? '' },
+    { enabled: Boolean(resumeMetadata), retry: false },
+  );
+  const reviewProgress = trpc.wizard.getProgress.useQuery(
+    { referenceNumber: wizard.referenceNumber },
+    { enabled: wizard.step === 'review' && Boolean(wizard.referenceNumber), retry: false },
+  );
+
+  useEffect(() => {
+    const progress = resumeQuery.data;
+    if (!progress || !resumeMetadata || resumeAppliedRef.current) return;
+
+    const completedApplicants: ChatbotApplicant[] = [];
+    let resumeIndex = 0;
+    let resumeStep: Step = 'full_name';
+    for (let index = 0; index < resumeMetadata.applicantCount; index += 1) {
+      const applicant = progress.applicants.find((item) => item.applicantIndex === index);
+      const applicantDocuments = applicant
+        ? progress.documents.filter((document) => document.applicantId === applicant.id && document.uploadStatus === 'uploaded')
+        : [];
+      const step = getChatbotApplicantResumeStep({
+        applicant,
+        isPrimary: index === 0,
+        arrivalDate: progress.application.arrivalDate,
+        contactEmail: progress.application.contactEmail,
+        contactPhone: progress.application.contactPhone,
+        passportUploads: applicantDocuments.filter((document) => document.documentType === 'passport').length,
+        photoUploads: applicantDocuments.filter((document) => document.documentType === 'photo').length,
+      });
+      if (
+        applicant
+        && applicant.nationality
+        && applicant.passportNumber
+        && applicant.passportExpiry
+        && applicant.profession
+        && applicant.travelingFrom
+      ) {
+        completedApplicants.push({
+          applicantId: applicant.id,
+          applicantIndex: index,
+          fullName: applicant.fullName,
+          nationality: applicant.nationality,
+          passportNumber: applicant.passportNumber,
+          passportExpiry: applicant.passportExpiry,
+          profession: applicant.profession,
+          countryFrom: applicant.travelingFrom,
+        });
+      }
+      if (step !== 'complete') {
+        resumeIndex = index;
+        resumeStep = step;
+        break;
+      }
+      resumeIndex = index;
+      resumeStep = index === resumeMetadata.applicantCount - 1 ? 'terms' : 'full_name';
+    }
+
+    const currentApplicant = progress.applicants.find((item) => item.applicantIndex === resumeIndex);
+    const visaLabel = getChatbotVisaLabel(progress.application.visaType) ?? progress.application.visaType;
+    const residenceStatus = {
+      'non-gcc': 'Non-GCC Resident',
+      'gcc-resident': 'GCC Resident',
+      'non-gcc-accompany': 'Accompanying GCC Citizen',
+      'gcc-accompany': 'GCC Citizen with Companion',
+    }[progress.application.residenceType];
+    const nextWizard: Partial<Wizard> = {
+      step: resumeStep,
+      whoTraveling: resumeMetadata.applicantCount > 1 ? 'Family' : 'Single',
+      applicantCount: resumeMetadata.applicantCount,
+      currentApplicant: resumeIndex + 1,
+      residenceStatus,
+      visaType: visaLabel,
+      processingType: progress.application.processingType === 'express' ? 'Express' : 'Regular',
+      fullName: currentApplicant?.fullName ?? '',
+      nationality: currentApplicant?.nationality ?? '',
+      passportNumber: currentApplicant?.passportNumber ?? '',
+      passportExpiry: currentApplicant?.passportExpiry ?? '',
+      profession: currentApplicant?.profession ?? '',
+      countryFrom: currentApplicant?.travelingFrom ?? '',
+      arrivalDate: progress.application.arrivalDate ?? '',
+      email: progress.application.contactEmail,
+      phone: progress.application.contactPhone,
+      referenceNumber: progress.application.referenceNumber,
+      applicationId: progress.application.id,
+      applicantId: currentApplicant?.id,
+      applicants: completedApplicants,
+    };
+    const resumeTimer = window.setTimeout(() => {
+      if (resumeAppliedRef.current) return;
+      resumeAppliedRef.current = true;
+      setWizard((current) => ({ ...current, ...nextWizard }));
+      if (resumeStep === 'upload_passport_cover') setDocStep(1);
+      else if (resumeStep === 'upload_passport_photo') setDocStep(2);
+      else setDocStep(0);
+      setMessages([{
+        role: 'assistant',
+        content: resumeStep === 'terms'
+          ? `Welcome back. All ${resumeMetadata.applicantCount} applicants are complete. Review and type **CONFIRM** to continue.`
+          : `Welcome back. Resuming **Applicant ${resumeIndex + 1} of ${resumeMetadata.applicantCount}** at the next incomplete step.`,
+      }]);
+      quoteMutation.mutate(
+        {
+          visaType: progress.application.visaType,
+          processingType: progress.application.processingType,
+          applicantCount: resumeMetadata.applicantCount,
+        },
+        { onSuccess: (quote) => setWizard((current) => ({ ...current, totalAmount: quote.totalPrice })) },
+      );
+    }, 0);
+    return () => window.clearTimeout(resumeTimer);
+  }, [quoteMutation, resumeMetadata, resumeQuery.data]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -173,8 +310,10 @@ export default function ChatBot() {
 
   // ─── Welcome ──────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (open && messages.length === 0) {
+  const handleToggle = () => {
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (nextOpen && messages.length === 0) {
       addBotMessage(
         '👋 Welcome to **TASHIRA Visa Portal**!\n\n' +
         'I am your professional visa assistant. I will guide you through your UAE visa application step by step.\n\n' +
@@ -185,7 +324,70 @@ export default function ChatBot() {
         setWizard(w => ({ ...w, step: 'who_traveling' }));
       }, 800);
     }
-  }, [open]);
+  };
+
+  const previousStep: Partial<Record<Step, Step>> = {
+    applicant_count: 'who_traveling', residence_status: 'who_traveling', visa_type: 'residence_status',
+    processing_type: 'visa_type', full_name: 'processing_type', nationality: 'full_name',
+    passport_number: 'nationality', passport_expiry: 'passport_number', profession: 'passport_expiry',
+    country_from: 'profession', arrival_date: 'country_from', email: 'arrival_date', phone: 'email',
+    upload_passport_copy: 'phone', upload_passport_cover: 'upload_passport_copy', upload_passport_photo: 'upload_passport_cover',
+    terms: 'review',
+  };
+
+  const goBack = () => {
+    const target = previousStep[wizard.step];
+    if (!target || loading) return;
+    setWizard((current) => ({ ...current, step: target }));
+    addBotMessage('You can update the previous answer. Your saved information has been preserved.');
+  };
+
+  const saveReviewedApplicant = async (index: number, changes: Pick<ChatbotApplicant, 'fullName' | 'nationality' | 'passportNumber' | 'passportExpiry' | 'profession' | 'countryFrom'>) => {
+    if (!wizard.referenceNumber || !validateName(changes.fullName) || !validatePassportNumber(changes.passportNumber)) throw new Error('Invalid applicant details');
+    await updateMutation.mutateAsync({ referenceNumber: wizard.referenceNumber, applicantIndex: index, ...changes });
+    setWizard((current) => ({
+      ...current,
+      applicants: current.applicants.map((applicant) => applicant.applicantIndex === index ? { ...applicant, ...changes } : applicant),
+      ...(current.currentApplicant - 1 === index ? changes : {}),
+    }));
+  };
+
+  const saveReviewedContact = async (email: string, phone: string) => {
+    if (!wizard.referenceNumber || !validateEmail(email) || !validatePhone(phone)) throw new Error('Invalid contact details');
+    await updateMutation.mutateAsync({ referenceNumber: wizard.referenceNumber, applicantIndex: 0, email, phone });
+    setWizard((current) => ({ ...current, email, phone }));
+  };
+
+  const saveReviewedService = async (visaType: string, processingType: string) => {
+    const serviceCode = getChatbotVisaServiceCode(visaType);
+    if (!wizard.referenceNumber || !serviceCode) throw new Error('Invalid service');
+    const quote = await quoteMutation.mutateAsync({ visaType: serviceCode, processingType, applicantCount: wizard.applicantCount });
+    await updateMutation.mutateAsync({ referenceNumber: wizard.referenceNumber, applicantIndex: 0, visaType: serviceCode, processingType, totalAmount: quote.totalPrice });
+    setWizard((current) => ({ ...current, visaType, processingType, totalAmount: quote.totalPrice, acceptedTerms: false }));
+  };
+
+  const replaceReviewedDocument = async (document: { id: number; applicantId: number | null; documentType: 'passport' | 'photo' | 'national_id' | 'supporting' | 'visa' | 'invoice' | 'gcc_residence' | 'sponsor_id' }, file: File) => {
+    const applicant = wizard.applicants.find((item) => item.applicantId === document.applicantId);
+    if (!wizard.applicationId || !document.applicantId || !applicant) throw new Error('Invalid document ownership');
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    await replaceDocMutation.mutateAsync({
+      applicationId: wizard.applicationId,
+      applicantId: document.applicantId,
+      applicantIndex: applicant.applicantIndex,
+      documentId: document.id,
+      documentType: document.documentType,
+      fileName: file.name,
+      mimeType: file.type,
+      fileSize: file.size,
+      base64Data,
+    });
+    await reviewProgress.refetch();
+  };
 
   // ─── Handle User Input ────────────────────────────────────────────────────
 
@@ -253,7 +455,7 @@ export default function ChatBot() {
         );
         if (match) {
           advance({ visaType: match.label, step: 'processing_type' },
-            `✅ Visa: **${match.emoji} ${match.label}** ($${match.price})\n\n**Choose processing type:**`);
+            `✅ Visa: **${match.emoji} ${match.label}**\n\n**Choose processing type:**`);
         } else {
           addBotMessage('❌ Please choose a valid visa type.');
           setLoading(false);
@@ -265,13 +467,30 @@ export default function ChatBot() {
       case 'processing_type': {
         const match = PROCESSING_OPTIONS.find(p => p.label.toLowerCase().includes(msg.toLowerCase()));
         if (match) {
-          const total = (VISA_OPTIONS.find(v => v.label === w.visaType)?.price || 170) + match.price;
-          advance({ processingType: match.label, totalAmount: total * w.applicantCount, step: 'full_name' },
-            `✅ Processing: **${match.emoji} ${match.label}** ${match.price > 0 ? '(+$' + match.price + ')' : ''}\n\n` +
-            `📋 **Step 4: Applicant ${w.currentApplicant} of ${w.applicantCount}**\n\n` +
-            `**Full Name** (as on passport):`);
+          const serviceCode = getChatbotVisaServiceCode(w.visaType);
+          if (!serviceCode) {
+            addBotMessage('Unable to identify the selected visa product. Please restart the application.');
+            setLoading(false);
+            break;
+          }
+          quoteMutation.mutate(
+            { visaType: serviceCode, processingType: match.label, applicantCount: w.applicantCount },
+            {
+              onSuccess: (quote) => advance(
+                { processingType: match.label, totalAmount: quote.totalPrice, step: 'full_name' },
+                `✅ Processing: **${match.emoji} ${match.label}**\n` +
+                `💰 Server quote for ${quote.applicantCount} applicant${quote.applicantCount > 1 ? 's' : ''}: **${quote.currency} ${quote.totalPrice}**\n\n` +
+                `📋 **Applicant ${w.currentApplicant} of ${w.applicantCount}**\n\n` +
+                '**Full Name** (as on passport):',
+              ),
+              onError: (error) => {
+                addBotMessage(`Unable to quote this application: ${error.message}`);
+                setLoading(false);
+              },
+            },
+          );
         } else {
-          addBotMessage('❌ Please choose:\n• **Regular** (3-4 days)\n• **Express** (24-36 hours, +$40)');
+          addBotMessage('❌ Please choose:\n• **Regular** (estimated 3–4 days)\n• **Express** (estimated 24–36 hours, +$40)\n\nTimes depend on complete documents, eligibility, authority review and system availability. Approval and exact timing are not guaranteed.');
           setLoading(false);
         }
         break;
@@ -280,7 +499,33 @@ export default function ChatBot() {
       // ─── Full Name ────────────────────────────────────────────────────────
       case 'full_name': {
         if (validateName(msg)) {
-          const refNum = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+          if (w.applicationId && w.referenceNumber) {
+            updateMutation.mutate(
+              {
+                referenceNumber: w.referenceNumber,
+                applicantIndex: w.currentApplicant - 1,
+                fullName: msg,
+              },
+              {
+                onSuccess: (result) => advance(
+                  { fullName: msg, applicantId: result.applicantId, step: 'nationality' },
+                  `✅ **Applicant ${w.currentApplicant} of ${w.applicantCount}: ${msg}**\n\n**Nationality:**`,
+                ),
+                onError: (error) => {
+                  addBotMessage(`Unable to save applicant ${w.currentApplicant}: ${error.message}`);
+                  setLoading(false);
+                },
+              },
+            );
+            break;
+          }
+          const refNum = generateReferenceNumber();
+          const serviceCode = getChatbotVisaServiceCode(w.visaType);
+          if (!serviceCode) {
+            addBotMessage('Unable to identify the selected visa product. Please restart the application.');
+            setLoading(false);
+            break;
+          }
           // Start application in DB
           startMutation.mutate(
             {
@@ -288,26 +533,30 @@ export default function ChatBot() {
               whoTraveling: w.whoTraveling,
               applicantCount: w.applicantCount,
               residenceStatus: w.residenceStatus,
-              visaType: w.visaType,
+              visaType: serviceCode,
               processingType: w.processingType,
               fullName: msg,
               totalAmount: w.totalAmount,
             },
             {
-              onSuccess: (result: any) => {
-                const appId = result?.applicationId || result?.data?.json?.applicationId;
+              onSuccess: (result) => {
+                const appId = result.applicationId;
+                localStorage.setItem(CHATBOT_RESUME_KEY, JSON.stringify({
+                  referenceNumber: refNum,
+                  applicantCount: w.applicantCount,
+                }));
                 advance({
                   fullName: msg,
                   referenceNumber: refNum,
                   applicationId: appId,
+                  applicantId: result.applicantId,
                   step: 'nationality',
                 },
                   `✅ Hello, **${msg}**!\n\n**Nationality:**`);
               },
-              onError: () => {
-                // Continue even if DB save fails
-                advance({ fullName: msg, step: 'nationality' },
-                  `✅ Hello, **${msg}**!\n\n**Nationality:**`);
+              onError: (error) => {
+                addBotMessage(`Unable to create your application: ${error.message}. Please try again before continuing.`);
+                setLoading(false);
               },
             },
           );
@@ -323,7 +572,7 @@ export default function ChatBot() {
         if (validateRequired(msg)) {
           // Update in DB if we have applicationId
           if (w.applicationId) {
-            updateMutation.mutate({ referenceNumber: w.referenceNumber, nationality: msg });
+            updateMutation.mutate({ referenceNumber: w.referenceNumber, applicantIndex: w.currentApplicant - 1, nationality: msg });
           }
           advance({ nationality: msg, step: 'passport_number' },
             `✅ Nationality: **${msg}**\n\n**Passport Number:**`);
@@ -337,7 +586,7 @@ export default function ChatBot() {
       // ─── Passport Number ──────────────────────────────────────────────────
       case 'passport_number': {
         if (validatePassportNumber(msg)) {
-          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, passportNumber: msg.toUpperCase() });
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, applicantIndex: w.currentApplicant - 1, passportNumber: msg.toUpperCase() });
           advance({ passportNumber: msg.toUpperCase(), step: 'passport_expiry' },
             `✅ Passport: **${msg.toUpperCase()}**\n\n**Passport Expiry Date** (YYYY-MM-DD):`);
         } else {
@@ -350,7 +599,7 @@ export default function ChatBot() {
       // ─── Passport Expiry ──────────────────────────────────────────────────
       case 'passport_expiry': {
         if (validateDate(msg)) {
-          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, passportExpiry: msg });
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, applicantIndex: w.currentApplicant - 1, passportExpiry: msg });
           advance({ passportExpiry: msg, step: 'profession' },
             `✅ Expiry: **${msg}**\n\n**Profession/Occupation:**`);
         } else {
@@ -363,7 +612,7 @@ export default function ChatBot() {
       // ─── Profession ───────────────────────────────────────────────────────
       case 'profession': {
         if (validateRequired(msg)) {
-          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, profession: msg });
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, applicantIndex: w.currentApplicant - 1, profession: msg });
           advance({ profession: msg, step: 'country_from' },
             `✅ Profession: **${msg}**\n\n**Country Traveling From:**`);
         } else {
@@ -376,9 +625,15 @@ export default function ChatBot() {
       // ─── Country From ─────────────────────────────────────────────────────
       case 'country_from': {
         if (validateRequired(msg)) {
-          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, countryFrom: msg });
-          advance({ countryFrom: msg, step: 'arrival_date' },
-            `✅ From: **${msg}**\n\n**Expected Arrival Date** (YYYY-MM-DD):`);
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, applicantIndex: w.currentApplicant - 1, countryFrom: msg });
+          if (w.currentApplicant > 1) {
+            advance({ countryFrom: msg, step: 'upload_passport_copy' },
+              `✅ From: **${msg}**\n\n📎 **Applicant ${w.currentApplicant} of ${w.applicantCount}: Documents**\n\nPlease upload **Passport Copy**.`);
+            setDocStep(0);
+          } else {
+            advance({ countryFrom: msg, step: 'arrival_date' },
+              `✅ From: **${msg}**\n\n**Expected Arrival Date** (YYYY-MM-DD):`);
+          }
         } else {
           addBotMessage('❌ Please enter the country you are traveling from.');
           setLoading(false);
@@ -389,7 +644,7 @@ export default function ChatBot() {
       // ─── Arrival Date ─────────────────────────────────────────────────────
       case 'arrival_date': {
         if (validateDate(msg)) {
-          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, arrivalDate: msg });
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, applicantIndex: 0, arrivalDate: msg });
           advance({ arrivalDate: msg, step: 'email' },
             `✅ Arrival: **${msg}**\n\n**Email Address:**`);
         } else {
@@ -402,7 +657,7 @@ export default function ChatBot() {
       // ─── Email ────────────────────────────────────────────────────────────
       case 'email': {
         if (validateEmail(msg)) {
-          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, email: msg });
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, applicantIndex: 0, email: msg });
           advance({ email: msg, step: 'phone' },
             `✅ Email: **${msg}**\n\n**Phone Number** (with country code, e.g. +971501234567):`);
         } else {
@@ -415,7 +670,7 @@ export default function ChatBot() {
       // ─── Phone ────────────────────────────────────────────────────────────
       case 'phone': {
         if (validatePhone(msg)) {
-          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, phone: msg });
+          if (w.applicationId) updateMutation.mutate({ referenceNumber: w.referenceNumber, applicantIndex: 0, phone: msg });
           advance({ phone: msg, step: 'upload_passport_copy' },
             `✅ Phone: **${msg}**\n\n` +
             `📎 **Step 6: Document Uploads**\n\n` +
@@ -439,23 +694,7 @@ export default function ChatBot() {
 
       // ─── Review ───────────────────────────────────────────────────────────
       case 'review': {
-        const total = w.totalAmount;
-        addBotMessage(
-          `📋 **Application Summary**\n\n` +
-          `**Travelers:** ${w.whoTraveling} (${w.applicantCount})\n` +
-          `**Residence:** ${w.residenceStatus}\n` +
-          `**Visa:** ${w.visaType}\n` +
-          `**Processing:** ${w.processingType}\n\n` +
-          `**Applicant ${w.currentApplicant}:**\n` +
-          `• Name: ${w.fullName}\n` +
-          `• Nationality: ${w.nationality}\n` +
-          `• Passport: ${w.passportNumber}\n` +
-          `• Email: ${w.email}\n` +
-          `• Phone: ${w.phone}\n\n` +
-          `**Total Amount: $${total}**\n\n` +
-          `Type **CONFIRM** to proceed to payment.`
-        );
-        setWizard(w => ({ ...w, step: 'terms' }));
+        addBotMessage('Use the Review Your Application panel below to verify or edit your information.');
         setLoading(false);
         break;
       }
@@ -463,47 +702,77 @@ export default function ChatBot() {
       // ─── Terms ────────────────────────────────────────────────────────────
       case 'terms': {
         if (msg.toLowerCase() === 'confirm') {
-          const refNum = w.referenceNumber || `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
-          const payLink = 'https://tashiraev.com/pay/' + refNum;
+          if (!w.acceptedTerms) {
+            addBotMessage('Please explicitly accept the Terms & Conditions, Privacy Policy, and Refund/Cancellation Policy before continuing.');
+            setLoading(false);
+            break;
+          }
+          const refNum = w.referenceNumber || generateReferenceNumber();
+          const payLink = `${window.location.origin}${buildChatbotPaymentPath(refNum)}`;
+          const serviceCode = getChatbotVisaServiceCode(w.visaType);
+          if (!serviceCode) {
+            addBotMessage('Unable to identify the selected visa product. Please restart the application.');
+            setLoading(false);
+            break;
+          }
 
           // Final submit to backend
+          const primaryApplicant = w.applicants[0];
+          if (!primaryApplicant || w.applicants.length !== w.applicantCount) {
+            addBotMessage('Applicant information is incomplete. Please resume the application before payment.');
+            setLoading(false);
+            break;
+          }
           submitMutation.mutate(
             {
               referenceNumber: refNum,
-              fullName: w.fullName,
-              nationality: w.nationality,
-              passportNumber: w.passportNumber,
-              passportExpiry: w.passportExpiry,
-              profession: w.profession,
-              countryFrom: w.countryFrom,
+              fullName: primaryApplicant.fullName,
+              nationality: primaryApplicant.nationality,
+              passportNumber: primaryApplicant.passportNumber,
+              passportExpiry: primaryApplicant.passportExpiry,
+              profession: primaryApplicant.profession,
+              countryFrom: primaryApplicant.countryFrom,
               arrivalDate: w.arrivalDate,
               email: w.email,
               phone: w.phone,
-              visaType: w.visaType,
+              visaType: serviceCode,
               processingType: w.processingType,
               residenceStatus: w.residenceStatus,
               whoTraveling: w.whoTraveling,
               applicantCount: w.applicantCount,
               totalAmount: w.totalAmount,
+              policyVersion: TERMS_POLICY_VERSION,
+              applicants: w.applicants.map((applicant) => ({
+                applicantIndex: applicant.applicantIndex,
+                fullName: applicant.fullName,
+                nationality: applicant.nationality,
+                passportNumber: applicant.passportNumber,
+                passportExpiry: applicant.passportExpiry,
+                profession: applicant.profession,
+                countryFrom: applicant.countryFrom,
+              })),
             },
             {
-              onSuccess: () => {
+              onSuccess: (result) => {
+                const authoritativeTotal = result.quote.totalPrice;
+                localStorage.removeItem(CHATBOT_RESUME_KEY);
                 advance(
                   {
                     step: 'payment',
                     referenceNumber: refNum,
                     paymentLink: payLink,
+                    totalAmount: authoritativeTotal,
                   },
                   `✅ Application confirmed and saved!\n\n` +
                     `📋 Reference: **${refNum}**\n` +
-                    `💰 Total: **$${w.totalAmount}**\n\n` +
+                    `💰 Total: **$${authoritativeTotal}**\n\n` +
                     `**Pay Now:**\n${payLink}`,
                 );
               },
-              onError: (err) => {
+              onError: () => {
                 addBotMessage(
-                  `❌ Failed to save application: ${err.message}\n\n` +
-                    `Please try again or contact support on WhatsApp +971 58 989 6644`,
+                  `❌ We couldn't save your application. Please try again. If the problem continues, contact TASHIRA support.\n\n` +
+                    `WhatsApp: +971 58 989 6644`,
                 );
                 setLoading(false);
               },
@@ -530,11 +799,12 @@ export default function ChatBot() {
     addUserMessage(`📎 Uploaded: ${file.name}`);
 
     // Upload to backend immediately
-    const doUpload = (docType: "passport" | "photo") => {
+    const doUpload = (docType: "passport" | "photo", afterUpload: () => void) => {
       const currentWizard = wizardRef.current;
       const appId = currentWizard.applicationId;
-      if (!appId) {
-        addBotMessage('⚠️ Document saved locally. Will upload when application is confirmed.');
+      const applicantId = currentWizard.applicantId;
+      if (!appId || !applicantId) {
+        addBotMessage('⚠️ The application was not confirmed, so this document was not uploaded. Please restart the application and try again.');
         return;
       }
 
@@ -548,6 +818,8 @@ export default function ChatBot() {
           uploadDocMutation.mutate(
             {
               applicationId: appId,
+              applicantId,
+              applicantIndex: currentWizard.currentApplicant - 1,
               documentType: docType,
               fileName: file.name,
               mimeType: file.type,
@@ -556,11 +828,12 @@ export default function ChatBot() {
             },
             {
               onSuccess: () => {
+                afterUpload();
                 addBotMessage(`✅ **${file.name}** uploaded to server successfully!`);
                 setLoading(false);
               },
               onError: (err) => {
-                addBotMessage(`⚠️ Upload failed: ${err.message}. Document saved locally.`);
+                addBotMessage(`⚠️ Upload failed: ${err.message}. Please select the file and try again.`);
                 setLoading(false);
               },
             }
@@ -580,44 +853,79 @@ export default function ChatBot() {
     const currentStep = wizardRef.current.step;
 
     if (currentStep === 'upload_passport_copy') {
-      doUpload('passport');
-      setTimeout(() => {
+      doUpload('passport', () => {
         addBotMessage('📎 Now upload **Passport Cover** (front cover of your passport).\n\nClick the 📎 button below.');
         setWizard(prev => ({ ...prev, step: 'upload_passport_cover' }));
         setDocStep(1);
-      }, 1200);
+      });
     } else if (currentStep === 'upload_passport_cover') {
-      doUpload('passport');
-      setTimeout(() => {
+      doUpload('passport', () => {
         addBotMessage('📎 Now upload **Passport Photo** (white background, face clearly visible).\n\nClick the 📎 button below.');
         setWizard(prev => ({ ...prev, step: 'upload_passport_photo' }));
         setDocStep(2);
-      }, 1200);
+      });
     } else if (currentStep === 'upload_passport_photo') {
-      doUpload('photo');
-      setTimeout(() => {
-        addBotMessage('✅ All documents received!\n\nReviewing your application...');
-        setTimeout(() => {
-          const cur = wizardRef.current;
+      doUpload('photo', () => {
+        const cur = wizardRef.current;
+        if (!cur.applicantId) {
+          addBotMessage('Unable to bind this document set to an applicant. Please retry.');
+          setLoading(false);
+          return;
+        }
+        const completedApplicant: ChatbotApplicant = {
+          applicantId: cur.applicantId,
+          applicantIndex: cur.currentApplicant - 1,
+          fullName: cur.fullName,
+          nationality: cur.nationality,
+          passportNumber: cur.passportNumber,
+          passportExpiry: cur.passportExpiry,
+          profession: cur.profession,
+          countryFrom: cur.countryFrom,
+        };
+        const completedApplicants = upsertChatbotApplicant(cur.applicants, completedApplicant);
+        if (cur.currentApplicant < cur.applicantCount) {
+          const nextApplicant = cur.currentApplicant + 1;
+          setWizard((prev) => ({
+            ...prev,
+            applicants: completedApplicants,
+            currentApplicant: nextApplicant,
+            applicantId: undefined,
+            fullName: '',
+            nationality: '',
+            passportNumber: '',
+            passportExpiry: '',
+            profession: '',
+            countryFrom: '',
+            uploads: [],
+            step: 'full_name',
+          }));
+          setDocStep(0);
           addBotMessage(
-            `📋 **Application Summary**\n\n` +
-            `**Travelers:** ${cur.whoTraveling} (${cur.applicantCount})\n` +
-            `**Residence:** ${cur.residenceStatus}\n` +
-            `**Visa:** ${cur.visaType}\n` +
-            `**Processing:** ${cur.processingType}\n\n` +
-            `**Applicant ${cur.currentApplicant}:**\n` +
-            `• Name: ${cur.fullName}\n` +
-            `• Nationality: ${cur.nationality}\n` +
-            `• Passport: ${cur.passportNumber}\n` +
-            `• Email: ${cur.email}\n` +
-            `• Phone: ${cur.phone}\n\n` +
-            `**Total Amount: $${cur.totalAmount}**\n\n` +
-            `Type **CONFIRM** to proceed to payment.`
+            `✅ Applicant ${cur.currentApplicant} documents received.\n\n` +
+            `📋 **Applicant ${nextApplicant} of ${cur.applicantCount}**\n\n` +
+            '**Full Name** (as on passport):',
           );
-          setWizard(prev => ({ ...prev, step: 'terms' }));
+          setLoading(false);
+          return;
+        }
+
+        addBotMessage('✅ All applicant documents received!\n\nReviewing your application...');
+        setWizard((prev) => ({ ...prev, applicants: completedApplicants }));
+        setTimeout(() => {
+          const latest = { ...wizardRef.current, applicants: completedApplicants };
+          const applicantSummary = completedApplicants.map((applicant) =>
+            `**Applicant ${applicant.applicantIndex + 1}:**\n` +
+            `• Name: ${applicant.fullName}\n` +
+            `• Nationality: ${applicant.nationality}\n` +
+            `• Passport: ${applicant.passportNumber}`,
+          ).join('\n\n');
+          void applicantSummary;
+          void latest;
+          addBotMessage('✅ All information and documents are ready. Please review every section before continuing.');
+          setWizard(prev => ({ ...prev, applicants: completedApplicants, step: 'review' }));
           setLoading(false);
         }, 800);
-      }, 1200);
+      });
     }
 
     e.target.value = '';
@@ -666,7 +974,7 @@ export default function ChatBot() {
                 <button key={v.label} onClick={() => { addUserMessage(`${v.emoji} ${v.label}`); setLoading(true); processInput(v.label); }}
                   className="flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-[#FFF8E7] hover:border-[#C9A04C] transition-all">
                   <span className="text-[13px]">{v.emoji} {v.label}</span>
-                  <span className="text-[13px] font-bold text-[#C9A04C]">${v.price}</span>
+                  <span className="text-[11px] font-semibold text-[#C9A04C]">Server quote</span>
                 </button>
               ))}
             </div>
@@ -682,7 +990,7 @@ export default function ChatBot() {
                 <button key={p.label} onClick={() => { addUserMessage(p.label); setLoading(true); processInput(p.label); }}
                   className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-[13px] hover:bg-[#FFF8E7] hover:border-[#C9A04C] transition-all">
                   <div>{p.emoji} {p.label}</div>
-                  <div className="text-[11px] text-gray-500">{p.price > 0 ? `+$${p.price}` : 'Standard'}</div>
+                  <div className="text-[11px] text-gray-500">Price verified by server</div>
                 </button>
               ))}
             </div>
@@ -708,12 +1016,46 @@ export default function ChatBot() {
       case 'terms':
         return (
           <div className="p-3 bg-gray-50 border-t border-gray-100 space-y-2">
+            <label className="flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700">
+              <input
+                type="checkbox"
+                checked={wizard.acceptedTerms}
+                onChange={(event) => setWizard((current) => ({ ...current, acceptedTerms: event.target.checked }))}
+                className="mt-0.5 h-4 w-4 shrink-0"
+              />
+              <span>
+                I have read and agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#C9A04C] underline">Terms & Conditions</a>,{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#C9A04C] underline">Privacy Policy</a>, and{' '}
+                <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-[#C9A04C] underline">Refund/Cancellation Policy</a>.
+              </span>
+            </label>
             <button onClick={() => { addUserMessage('CONFIRM'); setLoading(true); processInput('CONFIRM'); }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all font-bold">
+              disabled={!wizard.acceptedTerms}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all font-bold disabled:cursor-not-allowed disabled:opacity-50">
               <Lock size={18} />
               CONFIRM & PAY
             </button>
           </div>
+        );
+
+      case 'review':
+        return (
+          <ChatbotReview
+            applicants={wizard.applicants}
+            email={wizard.email}
+            phone={wizard.phone}
+            visaType={wizard.visaType}
+            processingType={wizard.processingType}
+            applicantCount={wizard.applicantCount}
+            totalAmount={wizard.totalAmount}
+            documents={reviewProgress.data?.documents ?? []}
+            onSaveApplicant={saveReviewedApplicant}
+            onSaveContact={saveReviewedContact}
+            onSaveService={saveReviewedService}
+            onReplaceDocument={replaceReviewedDocument}
+            onContinue={() => setWizard((current) => ({ ...current, step: 'terms', acceptedTerms: false }))}
+          />
         );
 
       case 'payment':
@@ -742,7 +1084,7 @@ export default function ChatBot() {
   return (
     <>
       {/* Chat Toggle */}
-      <button onClick={() => setOpen(!open)}
+      <button onClick={handleToggle}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
         {open ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
@@ -753,6 +1095,11 @@ export default function ChatBot() {
 
           {/* Header */}
           <div className="bg-gradient-to-r from-[#1a1a2e] to-[#16213e] px-4 py-3 flex items-center gap-3">
+            {previousStep[wizard.step] && (
+              <button type="button" onClick={goBack} disabled={loading} aria-label="Back to previous step" className="rounded-full p-1.5 text-white/80 transition hover:bg-white/10 hover:text-white disabled:opacity-40">
+                <ChevronLeft size={18} />
+              </button>
+            )}
             <div className="w-9 h-9 rounded-full bg-[#C9A04C]/20 flex items-center justify-center">
               <Bot size={20} className="text-[#C9A04C]" />
             </div>

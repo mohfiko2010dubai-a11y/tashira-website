@@ -1,11 +1,10 @@
 import { FileText, Download } from 'lucide-react';
-import { generateInvoicePDF } from './InvoiceGenerator';
 
 interface InvoiceButtonProps {
   invoiceNumber: string;
   referenceNumber: string;
   totalAmountUsd: number;
-  exchangeRate?: number;
+  exchangeRate: number;
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
@@ -17,25 +16,7 @@ interface InvoiceButtonProps {
 
 export function ViewInvoiceButton(props: InvoiceButtonProps) {
   const handleClick = () => {
-    const doc = generateInvoicePDF({
-      invoiceNumber: props.invoiceNumber,
-      referenceNumber: props.referenceNumber,
-      createdAt: new Date().toISOString(),
-      customerName: props.customerName || 'Customer',
-      customerEmail: props.customerEmail || '',
-      customerPhone: props.customerPhone || '',
-      visaType: props.visaType || '',
-      processingType: props.processingType || '',
-      arrivalDate: props.arrivalDate,
-      totalAmountUsd: props.totalAmountUsd,
-      exchangeRate: props.exchangeRate,
-      stripePaymentIntentId: props.stripePaymentIntentId,
-    });
-
-    const blob = doc.output('blob');
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    window.open(`/invoices/${encodeURIComponent(props.invoiceNumber)}/view`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -50,40 +31,13 @@ export function ViewInvoiceButton(props: InvoiceButtonProps) {
 }
 
 export function DownloadInvoiceButton(props: InvoiceButtonProps) {
-  const handleClick = () => {
-    const doc = generateInvoicePDF({
-      invoiceNumber: props.invoiceNumber,
-      referenceNumber: props.referenceNumber,
-      createdAt: new Date().toISOString(),
-      customerName: props.customerName || 'Customer',
-      customerEmail: props.customerEmail || '',
-      customerPhone: props.customerPhone || '',
-      visaType: props.visaType || '',
-      processingType: props.processingType || '',
-      arrivalDate: props.arrivalDate,
-      totalAmountUsd: props.totalAmountUsd,
-      exchangeRate: props.exchangeRate,
-      stripePaymentIntentId: props.stripePaymentIntentId,
-    });
-
-    const blob = doc.output('blob');
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${props.invoiceNumber}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  };
-
   return (
-    <button
-      onClick={handleClick}
+    <a
+      href={`/invoices/${encodeURIComponent(props.invoiceNumber)}/download`}
       className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-sm rounded-lg hover:bg-gray-50 transition-all"
     >
       <Download size={14} />
       Download
-    </button>
+    </a>
   );
 }

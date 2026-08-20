@@ -1,6 +1,6 @@
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 import { useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { LOGIN_PATH } from "@/const";
 
 type UseAuthOptions = {

@@ -82,8 +82,8 @@ export default function WhyChooseTashira() {
 
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
                 {isAr
-                  ? 'نحن شركة مرخصة من حكومة دبي نقدم خدمات تأشيرة إلكترونية سريعة وآمنة. فريقنا متخصص في مراجعة كل طلب بدقة لضمان أفضل نتيجة ممكنة.'
-                  : 'A Dubai Government licensed company providing fast, secure electronic visa services. Our team specializes in reviewing every application with care to ensure the best possible outcome.'}
+                  ? 'تأشيرة شركة خاصة مرخصة في منطقة ميدان الحرة بدبي، تقدم خدمات مراجعة طلبات التأشيرة. نحن لسنا الجهة الحكومية التي تتخذ قرار التأشيرة ولا نضمن الموافقة.'
+                  : 'TASHIRA is a private company licensed in Meydan Free Zone, Dubai, providing visa-application review services. We are not the government decision authority and do not guarantee approval.'}
               </p>
 
               {/* CTA */}

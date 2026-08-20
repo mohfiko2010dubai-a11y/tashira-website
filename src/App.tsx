@@ -1,5 +1,5 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HelmetProvider } from 'react-helmet-async';
 import './i18n';
@@ -8,28 +8,34 @@ import Footer from '@/components/shared/Footer';
 import ScrollToTop from '@/components/shared/ScrollToTop';
 import ChatBot from '@/components/shared/ChatBot';
 import AdminGuard from '@/components/shared/AdminGuard';
-import Home from '@/pages/Home';
-import Pricing from '@/pages/Pricing';
-import HowToApply from '@/pages/HowToApply';
-import Track from '@/pages/Track';
-import Legal from '@/pages/Legal';
-import PaymentPage from '@/pages/PaymentPage';
-import Dashboard from '@/pages/Dashboard';
-import Login from './pages/Login';
-import NotFound from './pages/NotFound';
-import AdminLogin from '@/pages/admin/AdminLogin';
-import AdminApplications from '@/pages/admin/AdminApplications';
-import AdminApplicationDetail from '@/pages/admin/AdminApplicationDetail';
-import AdminSuppliers from '@/pages/admin/AdminSuppliers';
-import AdminStaff from '@/pages/admin/AdminStaff';
-import AdminInvoices from '@/pages/admin/AdminInvoices';
-import AdminSupplierDashboard from '@/pages/admin/AdminSupplierDashboard';
-import AdminVat from '@/pages/admin/AdminVat';
-import AdminChat from '@/pages/admin/AdminChat';
-import StaffLogin from '@/pages/admin/StaffLogin';
-import StaffDashboard from '@/pages/admin/StaffDashboard';
-import StaffApplicationDetail from '@/pages/admin/StaffApplicationDetail';
 import StaffGuard from '@/components/shared/StaffGuard';
+import ChunkLoadErrorBoundary from '@/components/shared/ChunkLoadErrorBoundary';
+import { importWithStaleChunkRecovery } from '@/lib/lazy-import';
+
+const Home = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Home')));
+const Pricing = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Pricing')));
+const HowToApply = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/HowToApply')));
+const Track = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Track')));
+const Legal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Legal')));
+const Contact = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Contact')));
+const PaymentPage = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/PaymentPage')));
+const Recovery = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Recovery')));
+const Dashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Dashboard')));
+const Login = lazy(() => importWithStaleChunkRecovery(() => import('./pages/Login')));
+const NotFound = lazy(() => importWithStaleChunkRecovery(() => import('./pages/NotFound')));
+const AdminLogin = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminLogin')));
+const AdminApplications = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminApplications')));
+const AdminApplicationDetail = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminApplicationDetail')));
+const AdminSuppliers = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminSuppliers')));
+const AdminStaff = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminStaff')));
+const AdminInvoices = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminInvoices')));
+const AdminSupplierDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminSupplierDashboard')));
+const AdminVat = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminVat')));
+const AdminChat = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminChat')));
+const StaffLogin = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffLogin')));
+const StaffDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffDashboard')));
+const StaffApplicationDetail = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffApplicationDetail')));
+const AdminFinanceCockpit = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFinanceCockpit')));
 
 function AppContent() {
   const { i18n } = useTranslation();
@@ -47,36 +53,44 @@ function AppContent() {
     <div className={`min-h-screen bg-white ${i18n.language === 'ar' ? 'font-tajawal' : 'font-inter'}`}>
       {!isAdminRoute && <Header />}
       <main>
-        <Routes>
+        <ChunkLoadErrorBoundary>
+          <Suspense fallback={<div className="min-h-[40vh]" aria-label="Loading page" />}>
+          <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/visa-prices" element={<Pricing />} />
           <Route path="/how-to-apply" element={<HowToApply />} />
           <Route path="/track" element={<Track />} />
           <Route path="/pay/:referenceNumber" element={<PaymentPage />} />
+          <Route path="/recover" element={<Recovery />} />
           <Route path="/terms" element={<Legal page="terms" />} />
           <Route path="/privacy" element={<Legal page="privacy" />} />
           <Route path="/refund" element={<Legal page="refund" />} />
           <Route path="/cookies" element={<Legal page="cookies" />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/dashboard" element={<AdminGuard><Dashboard /></AdminGuard>} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/applications" element={<AdminApplications />} />
-          <Route path="/admin/applications/:referenceNumber" element={<AdminApplicationDetail />} />
-          <Route path="/admin/suppliers" element={<AdminSuppliers />} />
-          <Route path="/admin/staff" element={<AdminStaff />} />
-          <Route path="/admin/invoices" element={<AdminInvoices />} />
-          <Route path="/admin/supplier-dashboard" element={<AdminSupplierDashboard />} />
-          <Route path="/admin/vat" element={<AdminVat />} />
-          <Route path="/admin/chat" element={<AdminChat />} />
+          <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
+          <Route path="/admin/applications" element={<AdminGuard><AdminApplications /></AdminGuard>} />
+          <Route path="/admin/applications/:referenceNumber" element={<AdminGuard><AdminApplicationDetail /></AdminGuard>} />
+          <Route path="/admin/suppliers" element={<AdminGuard><AdminSuppliers /></AdminGuard>} />
+          <Route path="/admin/staff" element={<AdminGuard><AdminStaff /></AdminGuard>} />
+          <Route path="/admin/invoices" element={<AdminGuard><AdminInvoices /></AdminGuard>} />
+          <Route path="/admin/supplier-dashboard" element={<AdminGuard><AdminSupplierDashboard /></AdminGuard>} />
+          <Route path="/admin/vat" element={<AdminGuard><AdminVat /></AdminGuard>} />
+          <Route path="/admin/finance" element={<AdminGuard><AdminFinanceCockpit /></AdminGuard>} />
+          <Route path="/admin/chat" element={<AdminGuard><AdminChat /></AdminGuard>} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
           <Route path="*" element={<NotFound />} />
-        </Routes>
+          </Routes>
+          </Suspense>
+        </ChunkLoadErrorBoundary>
       </main>
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <ScrollToTop />}
-      {!isAdminRoute && <ChatBot />}
+      {!isAdminRoute && <ChatBot key={new URLSearchParams(location.search).get('resume') === '1' ? 'resume' : 'default'} />}
     </div>
     </HelmetProvider>
   );

@@ -16,7 +16,7 @@ import arHome from './locales/ar/home.json';
 import arPricing from './locales/ar/pricing.json';
 import arHowToApply from './locales/ar/howToApply.json';
 import arTrack from './locales/ar/track.json';
-import arLegal from './locales/ar/legal.json';
+import arLegal from './locales/ar/legal-v2.json';
 import arSaudiVisa from './locales/ar/saudiVisa.json';
 import arTravelDeals from './locales/ar/travelDeals.json';
 
@@ -44,7 +44,7 @@ const arResources = {
 };
 
 // All languages use English fallback for missing keys
-const resources: Record<string, any> = {
+const resources: Record<string, typeof enResources | typeof arResources> = {
   en: enResources,
   ar: arResources,
   // All other languages fallback to English

@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 import DocumentPreviewModal from "./DocumentPreviewModal";
+import type { DocumentListItem } from "@/types/trpc";
+import type { LucideIcon } from "lucide-react";
 import {
   FileText, Image, Search, Download, Trash2, RefreshCw,
-  Eye, Upload, AlertCircle, CheckCircle, X, FileWarning,
+  Eye, AlertCircle, CheckCircle, X, FileWarning,
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -28,7 +30,7 @@ const TYPE_COLORS: Record<string, string> = {
   sponsor_id: "bg-gray-50 text-gray-600",
 };
 
-const STATUS_ICONS: Record<string, any> = {
+const STATUS_ICONS: Record<string, LucideIcon> = {
   uploaded: CheckCircle,
   pending: AlertCircle,
   failed: FileWarning,
@@ -48,46 +50,37 @@ interface DocumentManagerProps {
 
 export default function DocumentManager({ applicationId }: DocumentManagerProps) {
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [typeFilter, setTypeFilter] = useState<"" | DocumentListItem["documentType"]>("");
+  const [previewDoc, setPreviewDoc] = useState<DocumentListItem | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const { data: docs, isLoading } = trpc.document.listByApplication.useQuery({
     applicationId,
     search: search || undefined,
-    documentType: typeFilter as any || undefined,
+    documentType: typeFilter || undefined,
     sortBy: "createdAt",
     sortOrder: "desc",
   });
 
   const { data: countData } = trpc.document.countByApplication.useQuery({ applicationId });
-
   const deleteDoc = trpc.document.delete.useMutation({
-    onSuccess: async (data) => {
-      // Also delete from Supabase Storage
-      if (data.success && data.storagePath) {
-        try {
-          await utils.storage.delete.fetch({ path: data.storagePath });
-        } catch (err) {
-          console.error("[Delete] Supabase storage delete failed:", err);
-        }
-      }
+    onSuccess: () => {
       utils.document.listByApplication.invalidate({ applicationId });
       utils.document.countByApplication.invalidate({ applicationId });
       setDeletingId(null);
     },
   });
 
-  const handleDelete = (doc: any) => {
+  const handleDelete = (doc: DocumentListItem) => {
     if (!confirm(`Delete "${doc.originalFileName}"? This cannot be undone.`)) return;
     setDeletingId(doc.id);
     deleteDoc.mutate({ id: doc.id });
   };
 
-  const handleDownload = async (doc: any) => {
+  const handleDownload = async (doc: DocumentListItem) => {
     try {
-      const result = await utils.storage.getSignedUrl.fetch({ path: doc.storagePath });
+      const result = await utils.storage.getSignedUrl.fetch({ documentId: doc.id });
       if (result?.signedUrl) {
         const a = document.createElement("a");
         a.href = result.signedUrl;
@@ -155,7 +148,7 @@ export default function DocumentManager({ applicationId }: DocumentManagerProps)
         </div>
         <select
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
+          onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white min-w-[150px]"
         >
           <option value="">All Types</option>
@@ -244,7 +237,6 @@ export default function DocumentManager({ applicationId }: DocumentManagerProps)
           documentId={previewDoc.id}
           fileName={previewDoc.originalFileName}
           mimeType={previewDoc.mimeType}
-          storagePath={previewDoc.storagePath}
           onClose={() => setPreviewDoc(null)}
         />
       )}

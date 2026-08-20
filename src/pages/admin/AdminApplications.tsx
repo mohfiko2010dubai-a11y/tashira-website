@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
 import SupplierCostModal from '@/components/shared/SupplierCostModal';
+import type { ApplicationWithLegacyAmount } from '@/types/trpc';
 import * as XLSX from 'xlsx';
 import {
   Search, Eye, LogOut, Filter, RefreshCw, Building2,
   Download, Calendar, DollarSign, Users, TrendingUp, UserCircle, Edit3,
-  FileText, Receipt, Percent, FolderOpen, MessageSquare,
+  Receipt, Percent, FolderOpen, MessageSquare,
 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
@@ -26,9 +27,8 @@ const statusColors: Record<string, string> = {
 
 export default function AdminApplications() {
   const { logout } = useAdminAuth();
-  const utils = trpc.useUtils();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'' | 'submitted' | 'payment_received' | 'documents_pending' | 'documents_received' | 'under_review' | 'visa_processing' | 'visa_received' | 'completed' | 'rejected' | 'cancelled'>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [costModalApp, setCostModalApp] = useState<number | null>(null);
@@ -42,11 +42,11 @@ export default function AdminApplications() {
 
   const { data: analytics } = trpc.application.analytics.useQuery();
 
-  const sorted = [...(applications || [])].sort((a: any, b: any) => {
+  const sorted = [...(applications || [])].sort((a, b) => {
     return (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0);
   });
 
-  const filtered = sorted.filter((app: any) => {
+  const filtered = sorted.filter((app) => {
     const q = search.toLowerCase();
     return (
       app.referenceNumber.toLowerCase().includes(q) ||
@@ -56,9 +56,9 @@ export default function AdminApplications() {
   });
 
   const handleExportExcel = () => {
-    const data = filtered.map((app: any) => {
-      const a = app as any;
-      const exchangeRate = Number(a.exchangeRate || 3.6725);
+    const data = filtered.map((app) => {
+      const a: ApplicationWithLegacyAmount = app;
+      const exchangeRate = Number(a.exchangeRate || 0);
       const totalAed = Number(a.totalAmountAed || a.totalAmount || 0);
       const totalUsd = Number(a.totalAmountUsd || a.stripeAmountUsd || totalAed / exchangeRate);
       const costAed = Number(a.supplierCostAed || 0);
@@ -109,6 +109,9 @@ export default function AdminApplications() {
           </Link>
           <Link to="/admin/vat" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Percent size={14} /> VAT
+          </Link>
+          <Link to="/admin/finance" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <TrendingUp size={14} /> Finance
           </Link>
           <Link to="/admin/suppliers" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Building2 size={14} /> Suppliers
@@ -164,7 +167,7 @@ export default function AdminApplications() {
             </div>
             <div className="relative min-w-[140px]">
               <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white w-full">
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)} className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white w-full">
                 <option value="">All Statuses</option>
                 <option value="submitted">Submitted</option><option value="payment_received">Payment Received</option>
                 <option value="documents_pending">Docs Pending</option><option value="documents_received">Docs Received</option>
@@ -211,9 +214,9 @@ export default function AdminApplications() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((app: any) => {
-                    const a = app as any;
-                    const exchangeRate = Number(a.exchangeRate || 3.6725);
+                  {filtered.map((app) => {
+                    const a: ApplicationWithLegacyAmount = app;
+                    const exchangeRate = Number(a.exchangeRate || 0);
                     const totalAed = Number(a.totalAmountAed || a.totalAmount || 0);
                     const totalUsd = Number(a.totalAmountUsd || a.stripeAmountUsd || totalAed / exchangeRate);
                     const costAed = Number(a.supplierCostAed || 0);

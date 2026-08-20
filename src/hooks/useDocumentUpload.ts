@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 
 export interface PendingFile {
   file: File;
@@ -60,7 +60,7 @@ export function useDocumentUpload() {
             return updated;
           });
 
-          // Upload to Supabase
+          // Upload to the active server-side storage provider.
           const result = await storageUpload.mutateAsync({
             applicationId,
             applicantId: applicantIds[pf.applicantIndex] || undefined,
@@ -99,8 +99,8 @@ export function useDocumentUpload() {
           });
 
           uploaded++;
-        } catch (err: any) {
-          console.error(`[Upload] Failed for ${pf.file.name}:`, err.message);
+        } catch (err: unknown) {
+          console.error(`[Upload] Failed for ${pf.file.name}:`, err instanceof Error ? err.message : 'Upload failed');
 
           setUploadProgress((prev) => {
             const updated = [...prev];

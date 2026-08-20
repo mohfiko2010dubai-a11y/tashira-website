@@ -9,7 +9,12 @@ import { staffRouter } from "./staff-router";
 import { storageRouter } from "./storage-router";
 import { documentRouter } from "./document-router";
 import { wizardRouter } from "./wizard-router";
+import { timelineRouter } from "./timeline-router";
+import { businessRouter } from "./business-router";
+import { retentionRouter } from "./retention-router";
+import { riskRouter } from "./risk-router";
 import { createRouter } from "./middleware";
+import { recoveryRouter } from "./recovery-router";
 
 export const appRouter = createRouter({
   auth: authRouter,
@@ -23,6 +28,11 @@ export const appRouter = createRouter({
   staff: staffRouter,
   storage: storageRouter,
   document: documentRouter,
+  timeline: timelineRouter,
+  business: businessRouter,
+  retention: retentionRouter,
+  risk: riskRouter,
+  recovery: recoveryRouter,
 });
 
 export type AppRouter = typeof appRouter;

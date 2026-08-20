@@ -1,0 +1,166 @@
+name: tashira-staging
+
+services:
+  staging-db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${STAGING_DATABASE_NAME:?Set STAGING_DATABASE_NAME}
+      MYSQL_USER: ${STAGING_DATABASE_USER:?Set STAGING_DATABASE_USER}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_app_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    secrets:
+      - mysql_app_password
+      - mysql_root_password
+    volumes:
+      - staging_mysql:/var/lib/mysql
+    networks:
+      - staging_backend
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root --password=$$(cat /run/secrets/mysql_root_password) --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  staging-storage-init:
+    image: alpine:3.21
+    command: ["sh", "-c", "mkdir -p /documents /invoices /public-invoices && chown -R 1000:1000 /documents /invoices /public-invoices"]
+    volumes:
+      - staging_documents:/documents
+      - staging_invoices:/invoices
+      - staging_public_invoices:/public-invoices
+    networks:
+      - staging_backend
+    restart: "no"
+
+  staging-migration:
+    build:
+      context: ..
+      dockerfile: staging/Dockerfile
+      target: migration
+    environment:
+      STAGING_RUNTIME: "true"
+      STAGING_DATABASE_NAME: ${STAGING_DATABASE_NAME:?Set STAGING_DATABASE_NAME}
+      STAGING_DATABASE_USER: ${STAGING_DATABASE_USER:?Set STAGING_DATABASE_USER}
+    secrets:
+      - mysql_app_password
+    depends_on:
+      staging-db:
+        condition: service_healthy
+    networks:
+      - staging_backend
+    restart: "no"
+
+  staging-app:
+    build:
+      context: ..
+      dockerfile: staging/Dockerfile
+      target: runtime
+      args:
+        VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:?Set a Stripe TEST publishable key}
+        VITE_APP_ID: ${VITE_APP_ID:-staging}
+        VITE_KIMI_AUTH_URL: ${VITE_KIMI_AUTH_URL:-https://unused.example.com}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      STAGING_RUNTIME: "true"
+      STAGING_DATABASE_NAME: ${STAGING_DATABASE_NAME:?Set STAGING_DATABASE_NAME}
+      STAGING_DATABASE_USER: ${STAGING_DATABASE_USER:?Set STAGING_DATABASE_USER}
+      STORAGE_ROOT: /staging/storage/documents
+      SMTP_HOST: staging-mail
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+    secrets:
+      - mysql_app_password
+      - app_secret
+      - admin_password
+      - admin_session_secret
+      - customer_session_secret
+      - storage_url_secret
+      - stripe_secret_key
+      - stripe_webhook_secret
+      - kimi_api_key
+    volumes:
+      - staging_documents:/staging/storage/documents
+      - staging_invoices:/app/storage/invoices
+      - staging_public_invoices:/app/dist/public/invoices
+    depends_on:
+      staging-db:
+        condition: service_healthy
+      staging-storage-init:
+        condition: service_completed_successfully
+      staging-migration:
+        condition: service_completed_successfully
+    networks:
+      - staging_frontend
+      - staging_backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+  staging-mail:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    networks:
+      - staging_backend
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  staging-nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    environment:
+      STAGING_HOSTNAME: ${STAGING_HOSTNAME:?Set STAGING_HOSTNAME}
+    volumes:
+      - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./certs:/etc/nginx/certs:ro
+    ports:
+      - "${STAGING_HTTP_PORT:-8080}:80"
+      - "${STAGING_HTTPS_PORT:-8443}:443"
+    depends_on:
+      staging-app:
+        condition: service_healthy
+    networks:
+      - staging_frontend
+
+networks:
+  staging_frontend:
+  staging_backend:
+    internal: true
+
+volumes:
+  staging_mysql:
+    name: tashira_staging_mysql
+  staging_documents:
+    name: tashira_staging_documents
+  staging_invoices:
+    name: tashira_staging_invoices
+  staging_public_invoices:
+    name: tashira_staging_public_invoices
+
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password
+  mysql_app_password:
+    file: ./secrets/mysql_app_password
+  app_secret:
+    file: ./secrets/app_secret
+  admin_password:
+    file: ./secrets/admin_password
+  admin_session_secret:
+    file: ./secrets/admin_session_secret
+  customer_session_secret:
+    file: ./secrets/customer_session_secret
+  storage_url_secret:
+    file: ./secrets/storage_url_secret
+  stripe_secret_key:
+    file: ./secrets/stripe_secret_key
+  stripe_webhook_secret:
+    file: ./secrets/stripe_webhook_secret
+  kimi_api_key:
+    file: ./secrets/kimi_api_key

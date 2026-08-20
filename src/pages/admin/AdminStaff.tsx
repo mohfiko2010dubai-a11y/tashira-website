@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
+import type { StaffListItem } from '@/types/trpc';
 import {
   ArrowLeft, Plus, Edit2, Trash2, LogOut, X, Save, Users, Eye, EyeOff,
 } from 'lucide-react';
@@ -69,7 +70,7 @@ export default function AdminStaff() {
     }
   };
 
-  const edit = (s: any) => {
+  const edit = (s: StaffListItem) => {
     setForm({
       id: s.id,
       username: s.username,

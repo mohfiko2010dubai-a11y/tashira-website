@@ -1,47 +1,15 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, createRouter, loginQuery, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { staffUsers } from "@db/schema";
 import { eq, desc } from "drizzle-orm";
-
-// Simple password hashing using Web Crypto API (no bcrypt dependency needed)
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + "tashira-staff-salt-2025");
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const computed = await hashPassword(password);
-  return computed === hash;
-}
-
-// In-memory session store (resets on server restart - acceptable for MVP)
-const staffSessions = new Map<string, { staffId: number; expiresAt: number }>();
-
-function generateToken(): string {
-  const arr = new Uint8Array(32);
-  crypto.getRandomValues(arr);
-  return Array.from(arr)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function cleanExpiredSessions() {
-  const now = Date.now();
-  for (const [token, session] of staffSessions.entries()) {
-    if (session.expiresAt < now) {
-      staffSessions.delete(token);
-    }
-  }
-}
+import { createStaffSession, deleteStaffSession, getStaffSession } from "./lib/staff-session";
+import { auditLog } from "./lib/audit-log";
+import { hashPassword, verifyPassword } from "./lib/password";
 
 export const staffRouter = createRouter({
   // Staff login - returns token
-  login: publicQuery
+  login: loginQuery
     .input(
       z.object({
         username: z.string().min(1),
@@ -57,21 +25,24 @@ export const staffRouter = createRouter({
         .limit(1);
 
       if (!staff || staff.isActive !== "active") {
+        auditLog("staff.login", "failure", "anonymous");
         throw new Error("Invalid username or password");
       }
 
-      const valid = await verifyPassword(input.password, staff.passwordHash);
-      if (!valid) {
+      const passwordResult = await verifyPassword(input.password, staff.passwordHash);
+      if (!passwordResult.valid) {
+        auditLog("staff.login", "failure", "anonymous");
         throw new Error("Invalid username or password");
+      }
+      if (passwordResult.needsUpgrade) {
+        await db.update(staffUsers)
+          .set({ passwordHash: await hashPassword(input.password) })
+          .where(eq(staffUsers.id, staff.id));
       }
 
       // Create session
-      cleanExpiredSessions();
-      const token = generateToken();
-      staffSessions.set(token, {
-        staffId: staff.id,
-        expiresAt: Date.now() + 8 * 60 * 60 * 1000, // 8 hours
-      });
+      const token = createStaffSession(staff.id);
+      auditLog("staff.login", "success", "staff");
 
       return {
         token,
@@ -89,9 +60,8 @@ export const staffRouter = createRouter({
   verify: publicQuery
     .input(z.object({ token: z.string() }))
     .query(async ({ input }) => {
-      cleanExpiredSessions();
-      const session = staffSessions.get(input.token);
-      if (!session || session.expiresAt < Date.now()) {
+      const session = getStaffSession(input.token);
+      if (!session) {
         return null;
       }
 
@@ -103,7 +73,7 @@ export const staffRouter = createRouter({
         .limit(1);
 
       if (!staff || staff.isActive !== "active") {
-        staffSessions.delete(input.token);
+        deleteStaffSession(input.token);
         return null;
       }
 
@@ -120,12 +90,14 @@ export const staffRouter = createRouter({
   logout: publicQuery
     .input(z.object({ token: z.string() }))
     .mutation(({ input }) => {
-      staffSessions.delete(input.token);
+      const hadSession = getStaffSession(input.token) !== null;
+      deleteStaffSession(input.token);
+      auditLog("staff.logout", "success", hadSession ? "staff" : "anonymous");
       return { success: true };
     }),
 
   // Admin-only: list all staff
-  list: publicQuery.query(async () => {
+  list: adminQuery.query(async () => {
     const db = getDb();
     return db
       .select({
@@ -143,7 +115,7 @@ export const staffRouter = createRouter({
   }),
 
   // Admin-only: create staff user
-  create: publicQuery
+  create: adminQuery
     .input(
       z.object({
         username: z.string().min(3).max(100),
@@ -169,7 +141,7 @@ export const staffRouter = createRouter({
     }),
 
   // Admin-only: update staff user
-  update: publicQuery
+  update: adminQuery
     .input(
       z.object({
         id: z.number(),
@@ -183,7 +155,7 @@ export const staffRouter = createRouter({
     )
     .mutation(async ({ input }) => {
       const db = getDb();
-      const update: any = {
+      const update: Partial<typeof staffUsers.$inferInsert> = {
         username: input.username,
         name: input.name,
         email: input.email || null,
@@ -199,7 +171,7 @@ export const staffRouter = createRouter({
     }),
 
   // Admin-only: delete staff user
-  delete: publicQuery
+  delete: adminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = getDb();

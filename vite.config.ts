@@ -5,6 +5,12 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
 
+const repositoryRoot = path.resolve(__dirname)
+const isNativeStaging = repositoryRoot === '/var/www/tashira-staging'
+if (isNativeStaging && !process.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_')) {
+  throw new Error('Native staging builds must use node staging/build-native.mjs')
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -24,7 +30,10 @@ export default defineConfig({
   envDir: path.resolve(__dirname),
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
-    emptyOutDir: true,
+    // Deployments build in place. Keep previously hashed chunks so browser
+    // tabs opened before a deployment can finish their lazy imports safely.
+    // A release-based deployment may replace this with atomic directory swaps.
+    emptyOutDir: false,
     minify: false,
   },
   optimizeDeps: {

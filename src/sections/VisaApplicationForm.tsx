@@ -1,12 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { UploadCloud, X, CheckCircle, User, Users, Globe, Building2, Crown, UsersRound, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { allCountries, allCountriesAr } from '@/data/countries';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import TrackApplication from './TrackApplication';
+import { TERMS_POLICY_VERSION } from '@contracts/constants';
 import FormDecorations from '@/components/shared/FormDecorations';
 import StripePaymentForm, { PaymentSuccessModal } from '@/components/shared/StripePaymentForm';
+import { useDocumentUpload, type PendingFile } from '@/hooks/useDocumentUpload';
+import type { ApplicationReadiness } from '../../api/lib/application-readiness';
+import { checkoutPreflightDecision, completionPanelGroups } from '@/lib/checkout-preflight';
 
 type BaseType = 'single' | 'family';
 type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';
@@ -85,8 +89,8 @@ export default function VisaApplicationForm() {
   const isAr = i18n.language === 'ar';
   const [dragOver, setDragOver] = useState<string | null>(null);
 
-  const [baseType, setBaseType] = useState<BaseType>('family');
-  const [residenceType, setResidenceType] = useState<ResidenceType>('gcc-resident');
+  const [baseType, setBaseType] = useState<BaseType | null>('family');
+  const [residenceType, setResidenceType] = useState<ResidenceType | null>('gcc-resident');
   const [numApplicants, setNumApplicants] = useState(2);
   const [currentApplicantIdx, setCurrentApplicantIdx] = useState(0);
 
@@ -99,12 +103,21 @@ export default function VisaApplicationForm() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
+  const [completionError, setCompletionError] = useState('');
+  const { uploadFiles, uploadProgress, isUploading } = useDocumentUpload();
+  const utils = trpc.useUtils();
+  const [readinessIssues, setReadinessIssues] = useState<ApplicationReadiness | null>(null);
+  const priceQuote = trpc.business.quote.useQuery({
+    serviceCode: visaType,
+    processingType,
+    applicantCount: applicants.length,
+  });
 
   const isGCC = residenceType === 'gcc-resident' || residenceType === 'gcc-accompany';
   const isFamily = baseType === 'family';
   const isAccompany = residenceType === 'gcc-accompany' || residenceType === 'non-gcc-accompany';
 
-  const updateApplicant = (idx: number, field: keyof ApplicantData, value: any) => {
+  const updateApplicant = <K extends keyof ApplicantData>(idx: number, field: K, value: ApplicantData[K]) => {
     setApplicants((prev) => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], [field]: value };
@@ -223,11 +236,24 @@ export default function VisaApplicationForm() {
   };
 
   const submitApplication = trpc.application.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setReferenceNumber(data.referenceNumber);
       setApplicationId(data.id);
+      const uploadResult = await uploadFiles(collectPendingFiles(), data.id, data.applicantIds, email);
       setLoading(false);
-      setShowPaymentModal(true); // Show payment after successful submit
+      if (!uploadResult.success) {
+        setCompletionError('Some required documents could not be uploaded. Please retry the application before proceeding to payment.');
+        return;
+      }
+      try {
+        const readiness = await utils.payment.readiness.fetch({ referenceNumber: data.referenceNumber });
+        const decision = checkoutPreflightDecision(readiness.status);
+        setReadinessIssues(decision.showCompletionPanel ? readiness : null);
+        setShowPaymentModal(decision.openPaymentUi);
+      } catch (error: unknown) {
+        setShowPaymentModal(false);
+        setCompletionError(error instanceof Error ? error.message : 'Unable to verify application readiness. Please try again.');
+      }
     },
     onError: (err) => {
       setLoading(false);
@@ -242,15 +268,16 @@ export default function VisaApplicationForm() {
   const [paymentInvoiceNumber, setPaymentInvoiceNumber] = useState('');
   const [applicationId, setApplicationId] = useState<number | null>(null);
   const allScreeningYes = true; // screening questions removed, form always visible
+  const calculateTotal = () => priceQuote.data?.totalPrice ?? 0;
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!termsAccepted || !allScreeningYes) return;
+    if (!termsAccepted || !allScreeningYes || !priceQuote.data) return;
     setLoading(true);
+    setCompletionError('');
+    setReadinessIssues(null);
+    setShowPaymentModal(false);
     const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
-    
-    const totalUsd = calculateTotal();
-    const exchangeRate = 3.6725; // Default rate - can be made editable
     
     submitApplication.mutate({
       referenceNumber: ref,
@@ -261,8 +288,7 @@ export default function VisaApplicationForm() {
       contactEmail: email,
       contactPhone: phone,
       arrivalDate,
-      exchangeRate,
-      totalAmountUsd: totalUsd,
+      policyVersion: TERMS_POLICY_VERSION,
       applicants: applicants.map((a) => ({
         fullName: a.fullName,
         nationality: a.nationality,
@@ -277,17 +303,10 @@ export default function VisaApplicationForm() {
         sponsorRelation: a.sponsorRelation,
       })),
     });
-  }, [termsAccepted, baseType, residenceType, visaType, processingType, email, phone, arrivalDate, applicants, isAr, submitApplication]);
-
-  const selectedVisaOption = visaOptions.find((v) => v.value === visaType);
-  const app = applicants[currentApplicantIdx];
-
-  const calculateTotal = () => {
-    const visaPrice = selectedVisaOption?.price || 0;
-    const baseTotal = visaPrice * applicants.length;
-    const expressFee = processingType === 'express' ? 40 * applicants.length : 0;
-    return baseTotal + expressFee;
   };
+
+  const app = applicants[currentApplicantIdx];
+  const completionGroups = readinessIssues ? completionPanelGroups(readinessIssues) : [];
 
   const renderDropZone = (idx: number, type: 'face' | 'passport' | 'cover' | 'gcc-front' | 'gcc-back' | 'gcc-permit' | 'sponsor-id', file: UploadedFile | null, label: string) => (
     <div className="space-y-1">
@@ -309,6 +328,21 @@ export default function VisaApplicationForm() {
       )}
     </div>
   );
+
+  if (submitted && paymentInvoiceNumber) {
+    return (
+      <PaymentSuccessModal
+        invoiceNumber={paymentInvoiceNumber}
+        referenceNumber={referenceNumber}
+        totalAmountUsd={calculateTotal()}
+        exchangeRate={priceQuote.data?.exchangeRateToBase ?? 0}
+        applicationId={applicationId || 0}
+        pendingFiles={[]}
+        applicantData={{ customerName: applicants[0]?.fullName || '', customerEmail: email, customerPhone: phone, visaType, processingType, arrivalDate }}
+        onClose={() => { setSubmitted(false); setPaymentInvoiceNumber(''); setBaseType(null); setResidenceType(null); setApplicants([emptyApplicant(0)]); setTermsAccepted(false); }}
+      />
+    );
+  }
 
   if (submitted) {
     return (
@@ -430,13 +464,13 @@ export default function VisaApplicationForm() {
           {/* ===== 2-COLUMN FORM ===== */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-5">
               {/* LEFT COLUMN */}
-              <div className="space-y-5">
+              <div id="documents-section" tabIndex={-1} className="space-y-5">
                 <div id="visa-type-field">
                   <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'نوع التأشيرة' : 'Visa Type'} <span className="text-red-500">*</span></label>
                   <select value={visaType} onChange={(e) => setVisaType(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:border-[#C9A04C] focus:ring-1 focus:ring-[#C9A04C] outline-none bg-white text-gray-800">
                     {visaOptions.map((v) => <option key={v.value} value={v.value}>{isAr ? v.labelAr : v.label}</option>)}
                   </select>
-                  {selectedVisaOption && <p className="text-xs text-gray-400 mt-1">{isAr ? 'السعر:' : 'Price:'} <span className="font-semibold text-[#C9A04C]">${selectedVisaOption.price}</span> {processingType === 'express' && <span className="text-gray-400">{isAr ? '(+ $40 سريع)' : '(+ $40 express)'}</span>}</p>}
+                  {priceQuote.data && <p className="text-xs text-gray-400 mt-1">{isAr ? 'السعر من الخادم:' : 'Server price:'} <span className="font-semibold text-[#C9A04C]">{priceQuote.data.currency} {priceQuote.data.unitPrice.toFixed(2)}</span></p>}
                 </div>
 
                 <div>
@@ -582,10 +616,11 @@ export default function VisaApplicationForm() {
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-1.5">{isAr ? 'نوع المعالجة' : 'Processing Type'} <span className="text-red-500">*</span></label>
                   <div className="flex gap-6 py-2">
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="regular" checked={processingType === 'regular'} onChange={() => setProcessingType('regular')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'عادي (3-4 أيام)' : 'Regular (3~4 days)'}</span></label>
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="express" checked={processingType === 'express'} onChange={() => setProcessingType('express')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'سريع (+$40)' : 'Express (+$40)'}</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="regular" checked={processingType === 'regular'} onChange={() => setProcessingType('regular')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'عادي (تقديرياً 3-4 أيام)' : 'Regular (estimated 3–4 days)'}</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="processing" value="express" checked={processingType === 'express'} onChange={() => setProcessingType('express')} className="w-4 h-4 text-[#C9A04C]" /><span className="text-sm text-gray-700">{isAr ? 'سريع (مدة تقديرية، +$40)' : 'Express (estimated timing, +$40)'}</span></label>
                   </div>
                 </div>
+                <p className="mt-2 text-xs text-gray-500">{isAr ? 'المدد تقديرية وتعتمد على اكتمال المستندات والأهلية ومراجعة الجهة وتوفر الأنظمة، ولا نضمن الموافقة أو توقيتاً دقيقاً.' : 'Times are estimates subject to complete documents, eligibility, authority review and system availability. Approval and exact timing are not guaranteed.'}</p>
 
                 {isFamily && applicants.length > 1 && (
                   <div className="flex items-center justify-between pt-2">
@@ -601,13 +636,39 @@ export default function VisaApplicationForm() {
           <div className="mt-6 pt-4 border-t border-gray-100">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 text-[#C9A04C] border-gray-300 rounded" required />
-                <span className="text-sm text-gray-600">{isAr ? 'لقد قرأت وأوافق على ' : 'I have read and agree to the '}<Link to="/terms" className="text-[#C9A04C] hover:underline">{isAr ? 'الشروط والأحكام' : 'Terms and Conditions'}</Link>. <span className="text-red-500">*</span></span>
+                <span className="text-sm text-gray-600">
+                  {isAr ? 'أقرأ وأوافق على ' : 'I have read and agree to the '}
+                  <Link to="/terms" target="_blank" className="text-[#C9A04C] hover:underline">{isAr ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link>
+                  {isAr ? '، و' : ', '}
+                  <Link to="/privacy" target="_blank" className="text-[#C9A04C] hover:underline">{isAr ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link>
+                  {isAr ? '، و' : ', and '}
+                  <Link to="/refund" target="_blank" className="text-[#C9A04C] hover:underline">{isAr ? 'سياسة الاسترداد والإلغاء' : 'Refund/Cancellation Policy'}</Link>. <span className="text-red-500">*</span>
+                </span>
               </label>
             </div>
 
           {/* Submit */}
-          <div className="mt-6 flex justify-center">
-            <button type="submit" disabled={loading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+          <div className="mt-6 flex flex-col items-center gap-3">
+            {readinessIssues?.status === 'INCOMPLETE' && (
+              <div role="alert" className="w-full max-w-2xl rounded-xl border border-amber-300 bg-amber-50 p-5 text-left text-amber-950">
+                <h3 className="font-semibold text-lg">Please complete the following before payment.</h3>
+                {completionGroups.map((group) => (
+                  <div key={group.heading} className="mt-3">
+                    <p className="font-medium">{group.heading}</p>
+                    {group.items.map((item) => <p key={item}>• {item}</p>)}
+                  </div>
+                ))}
+                <button type="button" onClick={() => {
+                  const first = readinessIssues.applicants.find((item) => item.missing.length > 0);
+                  if (first) setCurrentApplicantIdx(first.applicantIndex);
+                  document.getElementById('documents-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  document.getElementById('documents-section')?.focus({ preventScroll: true });
+                }} className="mt-4 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-900">Complete Documents</button>
+              </div>
+            )}
+            {completionError && <p role="alert" className="text-sm text-red-600">{completionError}</p>}
+            {isUploading && uploadProgress.length > 0 && <p className="text-sm text-gray-600">Uploading required documents…</p>}
+            <button type="submit" disabled={loading || isUploading} className="px-16 py-3.5 rounded-lg font-semibold text-white text-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] shadow-[0_2px_8px_rgba(201,160,76,0.25)] hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
               {loading ? (isAr ? 'جاري الإرسال...' : 'Submitting...') : (isAr ? 'إرسال الطلب' : 'Submit Application')}
             </button>
           </div>
@@ -628,9 +689,9 @@ export default function VisaApplicationForm() {
                 invoiceNumber={paymentInvoiceNumber}
                 referenceNumber={referenceNumber}
                 totalAmountUsd={calculateTotal()}
-                exchangeRate={3.6725}
+                exchangeRate={priceQuote.data?.exchangeRateToBase ?? 0}
                 applicationId={applicationId || 0}
-                pendingFiles={collectPendingFiles()}
+                pendingFiles={[]}
                 applicantData={{
                   customerName: applicants[0]?.fullName || '',
                   customerEmail: email,
@@ -639,7 +700,7 @@ export default function VisaApplicationForm() {
                   processingType: processingType,
                   arrivalDate: arrivalDate,
                 }}
-                onClose={() => { setShowPaymentModal(false); setSubmitted(true); }}
+                onClose={() => { setShowPaymentModal(false); setPaymentInvoiceNumber(''); setSubmitted(false); }}
               />
             ) : (
               <>
@@ -662,7 +723,7 @@ export default function VisaApplicationForm() {
                     processingType: processingType,
                     arrivalDate: arrivalDate,
                   }}
-                  onSuccess={(invoiceNumber) => setPaymentInvoiceNumber(invoiceNumber)}
+                  onSuccess={(invoiceNumber) => { setPaymentInvoiceNumber(invoiceNumber); setShowPaymentModal(false); setSubmitted(true); }}
                   onClose={() => setShowPaymentModal(false)}
                 />
               </>

@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS `application_timeline_events` (
+  `id` varchar(36) NOT NULL,
+  `application_id` bigint unsigned NOT NULL,
+  `payment_id` bigint unsigned NULL,
+  `session_reference` varchar(100) NULL,
+  `event_name` varchar(80) NOT NULL,
+  `event_source` varchar(40) NOT NULL,
+  `actor_type` enum('CUSTOMER','STAFF','ADMIN','SYSTEM','STRIPE') NOT NULL,
+  `actor_reference` varchar(100) NULL,
+  `sanitized_category` varchar(80) NULL,
+  `attempt_number` bigint unsigned NULL,
+  `resulting_state` varchar(50) NULL,
+  `policy_version` varchar(50) NULL,
+  `evidence_hash` varchar(64) NULL,
+  `summary` varchar(255) NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `timeline_application_created_idx` (`application_id`, `created_at`),
+  KEY `timeline_payment_idx` (`payment_id`),
+  CONSTRAINT `timeline_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `timeline_payment_fk` FOREIGN KEY (`payment_id`) REFERENCES `payments` (`id`) ON DELETE RESTRICT
+);

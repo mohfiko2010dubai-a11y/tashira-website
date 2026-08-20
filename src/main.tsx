@@ -10,7 +10,7 @@ const router = createBrowserRouter([
 ], {
   future: {
     v7_relativeSplatPath: true,
-  } as any,
+  },
 })
 
 createRoot(document.getElementById('root')!).render(

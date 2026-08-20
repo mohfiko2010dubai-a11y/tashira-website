@@ -10,14 +10,108 @@ import { Paths } from "@contracts/constants";
 import fs from "fs";
 import path from "path";
 import { getDb } from "./queries/connection";
-import { applications } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { applications, payments } from "@db/schema";
+import { desc, eq } from "drizzle-orm";
 import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
+import { getErrorMessage } from "./lib/errors";
+import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
+import { verifyStripeWebhook } from "./lib/stripe-webhook";
+import { finalizeStripeTestPayment, recordStripeTestPaymentFailure } from "./lib/payment-finalization";
+import { auditLog } from "./lib/audit-log";
+import { verifyAdminSession } from "./lib/admin-session";
+import { hasCustomerApplicationAccess } from "./lib/customer-session";
+import { getStaffSession } from "./lib/staff-session";
+import { hasTimelineEventReference, recordTimelineEvent } from "./lib/application-timeline";
+import {
+  claimStripeWebhookEvent,
+  markStripeWebhookFailed,
+  markStripeWebhookProcessed,
+} from "./lib/stripe-webhook-idempotency";
+import { verifyInvoiceDownloadToken } from "./lib/invoice-download-token";
+import { getCanonicalInvoiceCustomerIdentity } from "./lib/invoice-customer-name";
+import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { getPayerEvidence } from "./lib/payer-authorization";
+import { retrieveStripeTestCardSummary } from "./lib/stripe";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
 app.use(bodyLimit({ maxSize: 500 * 1024 * 1024 })); // 500MB total request
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
+
+app.post("/api/stripe/webhook", async (c) => {
+  let claimedEventId: string | null = null;
+  try {
+    const payload = await c.req.text();
+    if (Buffer.byteLength(payload, "utf8") > 1024 * 1024) throw new Error("Stripe webhook payload is too large");
+    const event = verifyStripeWebhook(payload, c.req.header("stripe-signature") || "");
+    if (["payment_intent.succeeded", "payment_intent.payment_failed", "payment_intent.requires_action"].includes(event.type)) {
+      const claim = await claimStripeWebhookEvent({
+        eventId: event.id,
+        eventType: event.type,
+        paymentIntentId: event.data.object.id,
+      });
+      if (claim === "duplicate") return c.json({ received: true, duplicate: true });
+      claimedEventId = event.id;
+      const referenceNumber = event.data.object.metadata.referenceNumber;
+      if (!referenceNumber) throw new Error("Stripe event is missing the application reference");
+      const [application] = await getDb().select({ id: applications.id }).from(applications)
+        .where(eq(applications.referenceNumber, referenceNumber)).limit(1);
+      if (!application) throw new Error("Application not found");
+      if (!await hasTimelineEventReference(application.id, "WEBHOOK_RECEIVED", event.id)) {
+        await recordTimelineEvent({
+          applicationId: application.id,
+          eventName: "WEBHOOK_RECEIVED",
+          eventSource: "STRIPE_WEBHOOK",
+          actorType: "STRIPE",
+          actorReference: event.id,
+          summary: "Stripe webhook received",
+        });
+      }
+      if (!await hasTimelineEventReference(application.id, "WEBHOOK_VERIFIED", event.id)) {
+        await recordTimelineEvent({
+          applicationId: application.id,
+          eventName: "WEBHOOK_VERIFIED",
+          eventSource: "STRIPE_WEBHOOK",
+          actorType: "SYSTEM",
+          actorReference: event.id,
+          summary: "Stripe webhook signature verified",
+        });
+      }
+      if (event.type === "payment_intent.requires_action") {
+        await recordTimelineEvent({
+          applicationId: application.id,
+          eventName: "THREE_DS_REQUIRED",
+          eventSource: "STRIPE_WEBHOOK",
+          actorType: "STRIPE",
+          actorReference: event.data.object.id,
+          resultingState: "requires_action",
+          summary: "Additional customer authentication required",
+        });
+      } else if (event.type === "payment_intent.succeeded") {
+        await finalizeStripeTestPayment(referenceNumber, event.data.object.id, {
+          actorType: "STRIPE",
+          eventSource: "STRIPE_WEBHOOK",
+        });
+      } else {
+        await recordStripeTestPaymentFailure(referenceNumber, event.data.object.id);
+      }
+      await markStripeWebhookProcessed(event.id);
+      auditLog("payment.confirm", "success", "system");
+    }
+    return c.json({ received: true });
+  } catch (error: unknown) {
+    if (claimedEventId) {
+      try {
+        await markStripeWebhookFailed(claimedEventId);
+      } catch (markError: unknown) {
+        console.error("[Stripe Webhook State]", getErrorMessage(markError));
+      }
+    }
+    auditLog("payment.confirm", "failure", "system");
+    console.error("[Stripe Webhook]", getErrorMessage(error));
+    return c.json({ error: "Invalid webhook" }, 400);
+  }
+});
 
 // ===== INVOICE PDF ROUTES (must be BEFORE /api/trpc and catch-all) =====
 
@@ -91,20 +185,43 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
   try {
     const customerEmail = appRow.contactEmail || "customer@example.com";
-    const customerName = customerEmail.split("@")[0] || "Customer";
+    const [customerIdentity, priceSnapshot, paymentRows] = await Promise.all([
+      getCanonicalInvoiceCustomerIdentity(appRow.id),
+      getApplicationPriceSnapshot(appRow.id),
+      getDb().select().from(payments).where(eq(payments.applicationId, appRow.id)).orderBy(desc(payments.createdAt)).limit(1),
+    ]);
+    const payment = paymentRows[0];
+    if (!payment) throw new Error("Verified payment is unavailable for invoice generation");
+    const [payerEvidence, cardSummary] = await Promise.all([
+      getPayerEvidence(appRow.id, payment.id),
+      retrieveStripeTestCardSummary(payment.stripePaymentIntentId).catch(() => null),
+    ]);
+    if (!payerEvidence) throw new Error("Verified payer authorization evidence is unavailable for invoice generation");
     
     const invoiceData = {
       invoiceNumber,
       referenceNumber: appRow.referenceNumber,
       createdAt: appRow.createdAt ? new Date(appRow.createdAt).toISOString() : new Date().toISOString(),
-      customerName,
+      customerName: customerIdentity.fullName,
       customerEmail,
       customerPhone: appRow.contactPhone || "",
+      nationality: customerIdentity.nationality,
+      passportNumber: customerIdentity.passportNumber,
+      passportExpiry: customerIdentity.passportExpiry,
       visaType: appRow.visaType || "",
       processingType: appRow.processingType || "",
       arrivalDate: appRow.arrivalDate || undefined,
-      totalAmount: Number(appRow.totalAmount) || 0,
+      applicantCount: priceSnapshot.applicantCount,
+      unitPriceInBaseCurrency: Number(priceSnapshot.unitPrice) * Number(priceSnapshot.exchangeRateToBase),
+      baseCurrency: priceSnapshot.baseCurrency.toUpperCase(),
+      exchangeRateToBase: Number(priceSnapshot.exchangeRateToBase),
+      totalAmount: Number(appRow.totalAmountUsd || appRow.stripeAmountUsd || 0),
+      currency: priceSnapshot.currency.toUpperCase(),
       stripePaymentIntentId: appRow.stripePaymentIntentId || undefined,
+      payerName: payerEvidence.payerName,
+      payerRelationship: payerEvidence.relationship,
+      cardBrand: cardSummary?.brand,
+      cardLast4: cardSummary?.last4,
     };
 
     const doc = generateInvoicePDF(invoiceData);
@@ -116,20 +233,67 @@ async function getOrGeneratePdf(invoiceNumber: string) {
     await db.update(applications).set({
       invoiceNumber,
       invoicePdfPath: absolutePath,
-      invoicePdfUrl: `/api/invoices/${invoiceNumber}/view`,
+      invoicePdfUrl: `/invoices/${invoiceNumber}/view`,
     }).where(eq(applications.id, appRow.id));
 
     console.log(`[Invoice] Regenerated and saved: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);
     return { absolutePath, fileName, regenerated: true };
-  } catch (err: any) {
-    console.error(`[Invoice] Regeneration failed: ${err.message}`);
+  } catch (err: unknown) {
+    console.error(`[Invoice] Regeneration failed: ${getErrorMessage(err)}`);
     return null;
   }
 }
 
+function canAccessInvoice(headers: Headers, referenceNumber: string) {
+  if (verifyAdminSession(headers) || hasCustomerApplicationAccess(headers, referenceNumber)) return true;
+  const staffToken = headers.get("x-staff-token") || "";
+  return Boolean(staffToken && getStaffSession(staffToken));
+}
+
+async function authorizeInvoiceRequest(invoiceNumber: string, headers: Headers) {
+  if (!/^[A-Za-z0-9_-]+$/.test(invoiceNumber)) return { status: 400 as const, application: null };
+  const application = await findApplicationByInvoice(invoiceNumber);
+  if (!application) return { status: 404 as const, application: null };
+  if (!canAccessInvoice(headers, application.referenceNumber)) return { status: 401 as const, application: null };
+  return { status: 200 as const, application };
+}
+
+app.get("/invoice-download/:invoiceNumber", async (c) => {
+  const invoiceNumber = c.req.param("invoiceNumber");
+  if (!/^[A-Za-z0-9_-]+$/.test(invoiceNumber)) return c.json({ error: "Unauthorized" }, 401);
+  const application = await findApplicationByInvoice(invoiceNumber);
+  if (!application || !verifyInvoiceDownloadToken({
+    invoiceNumber,
+    referenceNumber: application.referenceNumber,
+    expiresValue: c.req.query("expires") || "",
+    providedSignature: c.req.query("signature") || "",
+  })) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const result = await getOrGeneratePdf(invoiceNumber);
+  if (!result) return c.json({ error: "Invoice not found" }, 404);
+  await recordTimelineEvent({
+    applicationId: application.id,
+    eventName: "INVOICE_DOWNLOADED",
+    eventSource: "INVOICE_EMAIL_LINK",
+    actorType: "CUSTOMER",
+    actorReference: invoiceNumber,
+    resultingState: "downloaded",
+    summary: "Invoice downloaded with short-lived email capability",
+  });
+  const pdfBuffer = fs.readFileSync(result.absolutePath);
+  c.header("Content-Type", "application/pdf");
+  c.header("Content-Disposition", `attachment; filename="${result.fileName}"`);
+  c.header("Content-Length", String(pdfBuffer.length));
+  c.header("Cache-Control", "private, no-store");
+  return c.body(pdfBuffer);
+});
+
 // VIEW route (inline) - NOT under /api/ to avoid catch-all conflict
 app.get("/invoices/:invoiceNumber/view", async (c) => {
   const invoiceNumber = c.req.param("invoiceNumber");
+  const access = await authorizeInvoiceRequest(invoiceNumber, c.req.raw.headers);
+  if (!access.application) return c.json({ error: access.status === 400 ? "Invalid invoice" : access.status === 404 ? "Invoice not found" : "Unauthorized" }, access.status);
   const result = await getOrGeneratePdf(invoiceNumber);
 
   if (!result) {
@@ -142,8 +306,8 @@ app.get("/invoices/:invoiceNumber/view", async (c) => {
     c.header("Content-Disposition", `inline; filename="${result.fileName}"`);
     console.log(`[Invoice] Serving VIEW: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
     return c.body(pdfBuffer);
-  } catch (err: any) {
-    console.error(`[Invoice] Read error: ${err.message}`);
+  } catch (err: unknown) {
+    console.error(`[Invoice] Read error: ${getErrorMessage(err)}`);
     return c.json({ error: "Failed to read PDF" }, 500);
   }
 });
@@ -151,6 +315,8 @@ app.get("/invoices/:invoiceNumber/view", async (c) => {
 // DOWNLOAD route (attachment) - NOT under /api/ to avoid catch-all conflict
 app.get("/invoices/:invoiceNumber/download", async (c) => {
   const invoiceNumber = c.req.param("invoiceNumber");
+  const access = await authorizeInvoiceRequest(invoiceNumber, c.req.raw.headers);
+  if (!access.application) return c.json({ error: access.status === 400 ? "Invalid invoice" : access.status === 404 ? "Invoice not found" : "Unauthorized" }, access.status);
   const result = await getOrGeneratePdf(invoiceNumber);
 
   if (!result) {
@@ -164,20 +330,22 @@ app.get("/invoices/:invoiceNumber/download", async (c) => {
     c.header("Content-Length", String(pdfBuffer.length));
     console.log(`[Invoice] Serving DOWNLOAD: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
     return c.body(pdfBuffer);
-  } catch (err: any) {
-    console.error(`[Invoice] Read error: ${err.message}`);
+  } catch (err: unknown) {
+    console.error(`[Invoice] Read error: ${getErrorMessage(err)}`);
     return c.json({ error: "Failed to read PDF" }, 500);
   }
 });
 
 // ===== LOCAL FILE STORAGE ROUTES =====
-const STORAGE_ROOT = "/var/www/tashira/storage/documents";
 app.get("/storage/*", async (c) => {
   const filePath = c.req.path.replace("/storage/", "");
-  const fullPath = path.join(STORAGE_ROOT, filePath);
-
-  // Security: prevent path traversal
-  if (!fullPath.startsWith(STORAGE_ROOT)) {
+  if (!verifyStorageSignedUrl(filePath, c.req.query("expires") || "", c.req.query("signature") || "")) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  let fullPath: string;
+  try {
+    fullPath = resolveStoragePath(filePath);
+  } catch {
     return c.json({ error: "Invalid path" }, 400);
   }
 
@@ -209,12 +377,13 @@ app.use("/api/trpc/*", async (c) => {
       router: appRouter,
       createContext,
     });
-  } catch (err: any) {
-    console.error("[tRPC] Unhandled error in fetchRequestHandler:", err?.message || err);
+  } catch (err: unknown) {
+    const message = getErrorMessage(err);
+    console.error("[tRPC] Unhandled error in fetchRequestHandler:", message);
     return c.json(
       {
         error: "Internal Server Error",
-        message: env.isProduction ? "Something went wrong" : err?.message,
+        message: env.isProduction ? "Something went wrong" : message,
       },
       500,
     );
@@ -235,7 +404,8 @@ if (env.isProduction) {
   serveStaticFiles(app);
 
   const port = parseInt(process.env.PORT || "3000");
-  serve({ fetch: app.fetch, port }, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  const hostname = process.env.HOST || "0.0.0.0";
+  serve({ fetch: app.fetch, port, hostname }, () => {
+    console.log(`Server listening on ${hostname}:${port}`);
   });
 }

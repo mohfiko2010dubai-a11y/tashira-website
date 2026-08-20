@@ -1,9 +1,10 @@
 import { useParams, Link } from 'react-router-dom';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { ArrowLeft, Receipt, FileText } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from '@/components/shared/InvoiceButton';
 import { generateInvoicePDF } from '@/components/shared/InvoiceGenerator';
+import type { ApplicationWithLegacyAmount } from '@/types/trpc';
 
 const statusColors: Record<string, string> = {
   submitted: 'bg-gray-100 text-gray-700',
@@ -49,12 +50,13 @@ export default function StaffApplicationDetail() {
   }
 
   const mainApplicant = app.applicants?.[0];
-  const a = app as any;
-  const exchangeRate = Number(a.exchangeRate || 3.6725);
+  const a: ApplicationWithLegacyAmount = app;
+  const exchangeRate = Number(a.exchangeRate || 0);
   const totalUsd = Number(a.totalAmountUsd || a.totalAmount || 0);
   const totalAed = Number(a.totalAmountAed || totalUsd * exchangeRate);
 
   const handleGenerateInvoice = () => {
+    if (app.paymentStatus !== 'paid') return;
     const invoiceNumber = app.invoiceNumber || `INV-${app.referenceNumber}`;
     const doc = generateInvoicePDF({
       invoiceNumber,
@@ -224,7 +226,8 @@ export default function StaffApplicationDetail() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleGenerateInvoice}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm rounded-lg hover:shadow-md transition-all"
+                  disabled={app.paymentStatus !== 'paid'}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm rounded-lg hover:shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Receipt size={14} />
                   Generate Invoice
@@ -276,7 +279,7 @@ export default function StaffApplicationDetail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {(app.applicants || []).map((ap: any, i: number) => (
+                  {(app.applicants || []).map((ap, i) => (
                     <tr key={ap.id} className="hover:bg-gray-50/50">
                       <td className="px-3 py-2 text-gray-400">{i + 1}</td>
                       <td className="px-3 py-2 font-medium">{ap.fullName}</td>

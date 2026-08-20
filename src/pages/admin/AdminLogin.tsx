@@ -9,9 +9,9 @@ export default function AdminLogin() {
   const { login } = useAdminAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(password)) {
+    if (await login(password)) {
       navigate('/admin/applications');
     } else {
       setError('Invalid password');

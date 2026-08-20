@@ -1,161 +1,161 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { applicationAccessQuery, createRouter, paymentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { applications, payments, invoices } from "@db/schema";
-import { eq } from "drizzle-orm";
-import { saveInvoiceToDisk } from "./lib/invoice-pdf";
-
-// Stripe secret key from env
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
+import { applications, applicants, payments, invoices } from "@db/schema";
+import { asc, eq } from "drizzle-orm";
+import { auditLog } from "./lib/audit-log";
+import { createStripeTestIntent } from "./lib/stripe";
+import { assertApplicationReferenceAccess } from "./lib/application-access";
+import { finalizeStripeTestPayment } from "./lib/payment-finalization";
+import { recordTimelineEvent } from "./lib/application-timeline";
+import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { TRPCError } from "@trpc/server";
+import { getApplicationReadiness } from "./lib/application-readiness";
+import { recordPayerAuthorization } from "./lib/payer-authorization";
+import { validatePayerAuthorization } from "./lib/payer-authorization-core";
+import { PAYER_AUTHORIZATION_VERSION, PAYER_RELATIONSHIPS } from "@contracts/payer-authorization";
 
 export const paymentRouter = createRouter({
   // Create payment intent
-  createIntent: publicQuery
+  createIntent: paymentQuery
     .input(z.object({
-      amount: z.number(), // in cents
-      currency: z.string().default("usd"),
+      amount: z.number().optional(), // Legacy client hint; never trusted.
+      currency: z.string().optional(), // Legacy client hint; never trusted.
       referenceNumber: z.string(),
+      payerName: z.string().min(2).max(100),
+      payerRelationship: z.enum(PAYER_RELATIONSHIPS),
+      payerAuthorizationAccepted: z.literal(true),
+      payerAuthorizationVersion: z.literal(PAYER_AUTHORIZATION_VERSION),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
-        const response = await fetch("https://api.stripe.com/v1/payment_intents", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            amount: String(input.amount),
-            currency: input.currency,
-            "automatic_payment_methods[enabled]": "true",
-            "metadata[referenceNumber]": input.referenceNumber,
-          }),
-        });
-
-        if (!response.ok) {
-          const errData = await response.json() as { error?: { message?: string } };
-          throw new Error(errData.error?.message || "Stripe error");
-        }
-
-        const paymentIntent = await response.json() as { id: string; client_secret: string };
-        
-        // Store in DB
+        assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
         const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
-        
-        if (app) {
-          await db.insert(payments).values({
-            applicationId: app.id,
-            stripePaymentIntentId: paymentIntent.id,
-            amount: String(input.amount / 100),
-            currency: input.currency,
-            status: "pending",
+        if (!app) throw new Error("Application not found");
+        if (app.paymentStatus === "paid") {
+          throw new TRPCError({ code: "CONFLICT", message: "Application is already paid" });
+        }
+        const readiness = await getApplicationReadiness(app.id);
+        if (readiness.status !== "READY") {
+          auditLog("payment.readiness_rejected", "failure", "customer");
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: JSON.stringify({ code: "APPLICATION_INCOMPLETE", ...readiness }),
           });
-          
-          await db.update(applications).set({
-            stripePaymentIntentId: paymentIntent.id,
-          }).where(eq(applications.id, app.id));
         }
 
+        const [leadApplicant] = await db.select({ fullName: applicants.fullName }).from(applicants)
+          .where(eq(applicants.applicationId, app.id))
+          .orderBy(asc(applicants.applicantIndex))
+          .limit(1);
+        if (!leadApplicant) throw new Error("Lead applicant identity is unavailable");
+        validatePayerAuthorization({
+          payerName: input.payerName,
+          payerRelationship: input.payerRelationship,
+          authorizationAccepted: input.payerAuthorizationAccepted,
+          authorizationVersion: input.payerAuthorizationVersion,
+          leadApplicantName: leadApplicant.fullName,
+        });
+
+        const priceSnapshot = await getApplicationPriceSnapshot(app.id);
+        if (priceSnapshot.currency.toUpperCase() !== "USD") throw new Error("Stripe checkout requires a USD price snapshot");
+        const serverAmountUsd = Number(priceSnapshot.totalPrice);
+        if (!Number.isFinite(serverAmountUsd) || serverAmountUsd <= 0) {
+          throw new Error("Application amount is invalid");
+        }
+        const amountCents = Math.round(serverAmountUsd * 100);
+        const paymentIntent = await createStripeTestIntent({
+          amountCents,
+          referenceNumber: app.referenceNumber,
+          idempotencyKey: `tashira-application-${app.id}`,
+        });
+        if (!paymentIntent.client_secret) throw new Error("Stripe did not return a client secret");
+
+        const [existingPayment] = await db.select({ id: payments.id }).from(payments)
+          .where(eq(payments.stripePaymentIntentId, paymentIntent.id)).limit(1);
+        let paymentId = existingPayment?.id;
+        if (!paymentId) {
+          const [createdPayment] = await db.insert(payments).values({
+            applicationId: app.id,
+            stripePaymentIntentId: paymentIntent.id,
+            amount: serverAmountUsd.toFixed(2),
+            currency: "usd",
+            status: "pending",
+          }).$returningId();
+          paymentId = createdPayment.id;
+        }
+        await recordPayerAuthorization({
+          applicationId: app.id,
+          paymentId,
+          payerName: input.payerName,
+          payerRelationship: input.payerRelationship,
+          authorizationAccepted: input.payerAuthorizationAccepted,
+          authorizationVersion: input.payerAuthorizationVersion,
+          leadApplicantName: leadApplicant.fullName,
+        });
+        await db.update(applications).set({
+          stripePaymentIntentId: paymentIntent.id,
+          stripeAmountUsd: serverAmountUsd.toFixed(2),
+        }).where(eq(applications.id, app.id));
+        await recordTimelineEvent({
+          applicationId: app.id,
+          paymentId,
+          eventName: "PAYMENT_INTENT_CREATED",
+          eventSource: "PAYMENT_API",
+          actorType: "SYSTEM",
+          actorReference: paymentIntent.id,
+          resultingState: "pending",
+          summary: "Stripe PaymentIntent created",
+        });
+
+        auditLog("payment.intent_create", "success", "customer");
         return { clientSecret: paymentIntent.client_secret };
       } catch (err: unknown) {
+        auditLog("payment.intent_create", "failure", "customer");
+        if (err instanceof TRPCError) throw err;
         const msg = err instanceof Error ? err.message : "Payment error";
-        return { error: msg };
+        throw new TRPCError({ code: "BAD_REQUEST", message: msg });
       }
     }),
 
+  readiness: applicationAccessQuery
+    .input(z.object({ referenceNumber: z.string() }))
+    .query(async ({ input, ctx }) => {
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
+      const db = getDb();
+      const [app] = await db.select({ id: applications.id, paymentStatus: applications.paymentStatus })
+        .from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+      return { paymentStatus: app.paymentStatus, ...(await getApplicationReadiness(app.id)) };
+    }),
+
   // Confirm payment success
-  confirm: publicQuery
+  confirm: paymentQuery
     .input(z.object({
       referenceNumber: z.string(),
       paymentIntentId: z.string(),
     }))
-    .mutation(async ({ input }) => {
-      const db = getDb();
-      
-      // Update application payment status
-      await db.update(applications).set({
-        paymentStatus: "paid",
-        status: "payment_received",
-      }).where(eq(applications.referenceNumber, input.referenceNumber));
-
-      // Update payment status
-      await db.update(payments).set({
-        status: "succeeded",
-      }).where(eq(payments.stripePaymentIntentId, input.paymentIntentId));
-
-      // Generate invoice
-      const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
-      const [payment] = await db.select().from(payments).where(eq(payments.stripePaymentIntentId, input.paymentIntentId)).limit(1);
-      
-      if (app && payment) {
-        const invoiceNumber = `INV-${input.referenceNumber}`;
-        
-        // Insert invoice record - ensure paymentId is valid number
-        const paymentIdNum = typeof payment.id === 'bigint' ? Number(payment.id) : payment.id;
-        const appIdNum = typeof app.id === 'bigint' ? Number(app.id) : app.id;
-        
-        try {
-          await db.insert(invoices).values({
-            invoiceNumber,
-            applicationId: appIdNum,
-            paymentId: paymentIdNum,
-            amount: app.totalAmount,
-          });
-        } catch (invoiceErr: any) {
-          console.error("[Invoice Insert Error]", invoiceErr.message);
-          // Don't fail payment if invoice insert fails
-        }
-
-        // Auto-generate PDF server-side
-        try {
-          const { pdfPath, pdfUrl } = saveInvoiceToDisk({
-            invoiceNumber,
-            referenceNumber: input.referenceNumber,
-            createdAt: new Date().toISOString(),
-            customerName: app.contactEmail.split("@")[0] || "Customer",
-            customerEmail: app.contactEmail,
-            customerPhone: app.contactPhone,
-            visaType: app.visaType,
-            processingType: app.processingType,
-            arrivalDate: app.arrivalDate || undefined,
-            totalAmount: Number(app.totalAmount),
-            stripePaymentIntentId: input.paymentIntentId,
-          });
-
-          // Update application with invoice info
-          await db.update(applications).set({
-            invoiceNumber,
-            invoicePdfPath: pdfPath,
-            invoicePdfUrl: pdfUrl,
-          }).where(eq(applications.id, app.id));
-
-          console.log(`[Invoice] Generated: ${pdfPath}`);
-        } catch (pdfErr: any) {
-          console.error("[Invoice Auto-Gen Error]", pdfErr.message);
-          // Don't fail payment if invoice generation fails
-        }
-        
-        return { 
-          success: true, 
-          invoiceNumber,
-          referenceNumber: input.referenceNumber,
-          totalAmount: Number(app.totalAmount),
-          customerEmail: app.contactEmail,
-          customerPhone: app.contactPhone,
-          visaType: app.visaType,
-          processingType: app.processingType,
-          stripePaymentIntentId: input.paymentIntentId,
-        };
+    .mutation(async ({ input, ctx }) => {
+      try {
+        assertApplicationReferenceAccess(ctx, input.referenceNumber);
+        const result = await finalizeStripeTestPayment(input.referenceNumber, input.paymentIntentId, {
+          actorType: "CUSTOMER",
+          eventSource: "PAYMENT_CONFIRM_API",
+        });
+        auditLog("payment.confirm", "success", "customer");
+        return result;
+      } catch (error) {
+        auditLog("payment.confirm", "failure", "customer");
+        throw error;
       }
-
-      return { success: true };
     }),
 
   // Get invoice by reference
-  getInvoice: publicQuery
+  getInvoice: applicationAccessQuery
     .input(z.object({ referenceNumber: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
       const db = getDb();
       const [app] = await db.select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
       

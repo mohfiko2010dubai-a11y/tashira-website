@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
 import {
   Search, Eye, LogOut, RefreshCw, Calendar, DollarSign,
@@ -24,7 +24,7 @@ const statusColors: Record<string, string> = {
 export default function StaffDashboard() {
   const { logout, staff } = useStaffAuth();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'' | 'submitted' | 'payment_received' | 'documents_pending' | 'documents_received' | 'under_review' | 'visa_processing' | 'visa_received' | 'completed' | 'rejected' | 'cancelled'>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -35,11 +35,11 @@ export default function StaffDashboard() {
     limit: 500,
   });
 
-  const sorted = [...(applications || [])].sort((a: any, b: any) => {
+  const sorted = [...(applications || [])].sort((a, b) => {
     return (b.createdAt ? new Date(b.createdAt).getTime() : 0) - (a.createdAt ? new Date(a.createdAt).getTime() : 0);
   });
 
-  const filtered = sorted.filter((app: any) => {
+  const filtered = sorted.filter((app) => {
     const q = search.toLowerCase();
     return (
       app.referenceNumber.toLowerCase().includes(q) ||
@@ -80,19 +80,19 @@ export default function StaffDashboard() {
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">Total Revenue</p></div>
             <p className="text-2xl font-bold text-emerald-600">
-              ${filtered.reduce((sum: number, app: any) => sum + Number(app.totalAmount || 0), 0).toFixed(2)}
+              ${filtered.reduce((sum, app) => sum + Number(app.totalAmountUsd || 0), 0).toFixed(2)}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><FileText size={14} className="text-blue-500" /><p className="text-xs text-gray-500">Paid</p></div>
             <p className="text-2xl font-bold text-blue-600">
-              {filtered.filter((app: any) => app.paymentStatus === 'paid').length}
+              {filtered.filter((app) => app.paymentStatus === 'paid').length}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-purple-500" /><p className="text-xs text-gray-500">Pending</p></div>
             <p className="text-2xl font-bold text-purple-600">
-              {filtered.filter((app: any) => app.paymentStatus === 'pending').length}
+              {filtered.filter((app) => app.paymentStatus === 'pending').length}
             </p>
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function StaffDashboard() {
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ref, email, name..." className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none" />
             </div>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white min-w-[140px]">
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white min-w-[140px]">
               <option value="">All Statuses</option>
               <option value="submitted">Submitted</option><option value="payment_received">Payment Received</option>
               <option value="documents_pending">Docs Pending</option><option value="documents_received">Docs Received</option>
@@ -141,8 +141,9 @@ export default function StaffDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((app: any) => {
-                    const revenue = Number(app.totalAmount || 0);
+                  {filtered.map((app) => {
+                    const revenue = Number(app.totalAmountUsd || 0);
+                    const exchangeRate = Number(app.exchangeRate || 0);
                     return (
                       <tr key={app.id} className="hover:bg-gray-50/50">
                         <td className="px-3 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}</td>

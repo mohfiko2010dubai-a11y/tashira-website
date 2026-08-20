@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 
 const STAFF_AUTH_KEY = 'tashira_staff_auth';
 
@@ -12,69 +12,42 @@ interface StaffUser {
 }
 
 export function useStaffAuth() {
-  const [token, setToken] = useState<string | null>(null);
-  const [staff, setStaff] = useState<StaffUser | null>(null);
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(STAFF_AUTH_KEY));
+  const [sessionStaff, setSessionStaff] = useState<StaffUser | null>(null);
+  const logoutMutation = trpc.staff.logout.useMutation();
 
   const verifyQuery = trpc.staff.verify.useQuery(
     { token: token || '' },
     { enabled: !!token, retry: false }
   );
 
-  // Load token from localStorage on mount
+  // Keep invalid persisted sessions from surviving the next page load.
   useEffect(() => {
-    const saved = localStorage.getItem(STAFF_AUTH_KEY);
-    if (saved) {
-      setToken(saved);
-    } else {
-      // No token in localStorage, auth check is done
-      setInitialCheckDone(true);
-    }
-  }, []);
-
-  // When verify query finishes (success or error), mark initial check as done
-  useEffect(() => {
-    if (!token) return;
-    if (verifyQuery.isSuccess || verifyQuery.isError) {
-      setInitialCheckDone(true);
-    }
-  }, [verifyQuery.isSuccess, verifyQuery.isError, token]);
-
-  // Update staff state when verify query returns data
-  useEffect(() => {
-    if (verifyQuery.data) {
-      setStaff(verifyQuery.data);
-    } else if (verifyQuery.isError) {
-      // Token invalid, clear it
+    if (verifyQuery.isError) {
       localStorage.removeItem(STAFF_AUTH_KEY);
-      setToken(null);
-      setStaff(null);
     }
-  }, [verifyQuery.data, verifyQuery.isError]);
+  }, [verifyQuery.isError]);
+
+  const staff = sessionStaff ?? verifyQuery.data ?? null;
 
   const login = (newToken: string, staffData: StaffUser) => {
     localStorage.setItem(STAFF_AUTH_KEY, newToken);
     setToken(newToken);
-    setStaff(staffData);
+    setSessionStaff(staffData);
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem(STAFF_AUTH_KEY);
     setToken(null);
-    setStaff(null);
-    // Call server logout in background
-    if (token) {
-      try {
-        trpc.staff.logout.useMutation().mutate({ token });
-      } catch {
-        // ignore
-      }
+    setSessionStaff(null);
+    try {
+      if (token) await logoutMutation.mutateAsync({ token });
+    } finally {
+      window.location.href = '/staff/login';
     }
-    window.location.href = '/staff/login';
   };
 
-  // Loading: true if initial check not done, OR verify query is loading
-  const isLoading = !initialCheckDone || (verifyQuery.isLoading && !!token);
+  const isLoading = verifyQuery.isLoading && !!token && !sessionStaff;
 
   return {
     isAuthenticated: !!staff,

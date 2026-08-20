@@ -26,6 +26,12 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Staging runtime secrets and mutable data
+staging/.env
+staging/certs/
+staging/secrets/
+staging/data/
 # Database
 *.db
 *.sqlite

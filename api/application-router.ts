@@ -1,15 +1,25 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, applicationAccessQuery, applicationSubmissionQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
+import { getErrorMessage } from "./lib/errors";
+import { auditLog } from "./lib/audit-log";
+import { assertApplicationReferenceAccess } from "./lib/application-access";
+import { createCustomerApplicationCookie } from "./lib/customer-session";
+import { recordTimelineEvent, type TimelineEventName } from "./lib/application-timeline";
+import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
+import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { activeBusinessSettings } from "./lib/pricing-engine";
+import { canEnterApplicationState } from "./lib/processing-gate";
+import { TRPCError } from "@trpc/server";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
 const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
 
 export const applicationRouter = createRouter({
-  create: publicQuery
+  create: applicationSubmissionQuery
     .input(z.object({
       referenceNumber: z.string().min(1),
       baseType: z.enum(["single", "family"]),
@@ -19,9 +29,7 @@ export const applicationRouter = createRouter({
       contactEmail: z.string().email(),
       contactPhone: z.string(),
       arrivalDate: z.string().optional(),
-      exchangeRate: z.number().default(3.6725),
-      totalAmountUsd: z.number(),
-      totalAmountAed: z.number().optional(),
+      policyVersion: z.literal(TERMS_POLICY_VERSION),
       applicants: z.array(z.object({
         fullName: z.string(),
         nationality: z.string().optional(),
@@ -36,10 +44,16 @@ export const applicationRouter = createRouter({
         sponsorRelation: z.string().optional(),
       })),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
         const db = getDb();
-        const values: any = {
+        const quote = await quoteApplicationPrice({
+          serviceCode: input.visaType,
+          processingType: input.processingType,
+          applicantCount: input.applicants.length,
+        });
+        if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
+        const values: typeof applications.$inferInsert = {
           referenceNumber: input.referenceNumber,
           baseType: input.baseType,
           residenceType: input.residenceType,
@@ -48,17 +62,34 @@ export const applicationRouter = createRouter({
           contactEmail: input.contactEmail,
           contactPhone: input.contactPhone,
           arrivalDate: input.arrivalDate,
-          exchangeRate: String(input.exchangeRate),
-          totalAmountUsd: String(input.totalAmountUsd),
-          totalAmountAed: String(input.totalAmountAed || (input.totalAmountUsd * input.exchangeRate)),
+          exchangeRate: quote.exchangeRateToBase.toFixed(4),
+          totalAmountUsd: quote.totalPrice.toFixed(2),
+          totalAmountAed: quote.totalInBaseCurrency.toFixed(2),
         };
 
         const [app] = await db.insert(applications).values(values).$returningId();
 
         const appId = app.id;
+        await saveApplicationPriceSnapshot(appId, quote);
+        await recordTimelineEvent({
+          applicationId: appId,
+          eventName: "APPLICATION_CREATED",
+          eventSource: "APPLICATION_API",
+          actorType: "CUSTOMER",
+          summary: "Application created",
+        });
+        await recordTimelineEvent({
+          applicationId: appId,
+          eventName: "POLICY_ACCEPTED",
+          eventSource: "APPLICATION_API",
+          actorType: "CUSTOMER",
+          policyVersion: input.policyVersion,
+          summary: `${ACCEPTED_POLICY_TYPES.join(", ")} accepted; effective ${TERMS_POLICY_EFFECTIVE_DATE}`,
+        });
+        const applicantIds: number[] = [];
         for (let i = 0; i < input.applicants.length; i++) {
           const a = input.applicants[i];
-          await db.insert(applicants).values({
+          const [createdApplicant] = await db.insert(applicants).values({
             applicationId: appId,
             applicantIndex: i,
             fullName: a.fullName,
@@ -72,18 +103,38 @@ export const applicationRouter = createRouter({
             gccResidenceCountry: a.gccResidenceCountry || null,
             sponsorName: a.sponsorName || null,
             sponsorRelation: a.sponsorRelation || null,
+          }).$returningId();
+          applicantIds.push(createdApplicant.id);
+          await recordTimelineEvent({
+            applicationId: appId,
+            eventName: "APPLICANT_ADDED",
+            eventSource: "APPLICATION_API",
+            actorType: "CUSTOMER",
+            actorReference: `applicant:${i}`,
+            summary: `Applicant ${i + 1} added`,
           });
         }
-        return { id: appId, referenceNumber: input.referenceNumber };
-      } catch (err: any) {
-        console.error('[API ERROR]', err.message);
-        throw new Error(`Database error: ${err.message}`);
+        await recordTimelineEvent({
+          applicationId: appId,
+          eventName: "APPLICATION_SUBMITTED",
+          eventSource: "APPLICATION_API",
+          actorType: "CUSTOMER",
+          resultingState: "submitted",
+          summary: "Application submitted",
+        });
+        ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
+        return { id: appId, referenceNumber: input.referenceNumber, applicantIds };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error('[API ERROR]', message);
+        throw new Error(`Database error: ${message}`);
       }
     }),
 
-  getByReference: publicQuery
+  getByReference: applicationAccessQuery
     .input(z.object({ referenceNumber: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
       const db = getDb();
       const [app] = await db.select().from(applications)
         .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
@@ -92,9 +143,9 @@ export const applicationRouter = createRouter({
         .where(eq(applicants.applicationId, app.id));
       let supplier = null;
       try {
-        if ((app as any).supplierId) {
+        if (app.supplierId) {
           const [s] = await db.select().from(suppliers)
-            .where(eq(suppliers.id, (app as any).supplierId)).limit(1);
+            .where(eq(suppliers.id, app.supplierId)).limit(1);
           supplier = s || null;
         }
       } catch {
@@ -103,10 +154,10 @@ export const applicationRouter = createRouter({
       return { ...app, applicants: applicantList, supplier };
     }),
 
-  list: publicQuery
+  list: staffOrAdminQuery
     .input(z.object({
       search: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(STATUS_ENUM).optional(),
       dateFrom: z.string().optional(),
       dateTo: z.string().optional(),
       limit: z.number().min(1).max(500).default(100),
@@ -117,25 +168,25 @@ export const applicationRouter = createRouter({
       const limit = input?.limit || 100;
       const offset = input?.offset || 0;
 
-      let query = db.select().from(applications);
       const conditions = [];
 
-      if (input?.status) conditions.push(eq(applications.status, input.status as any));
+      if (input?.status) conditions.push(eq(applications.status, input.status));
       if (input?.dateFrom) conditions.push(gte(applications.createdAt, new Date(input.dateFrom)));
       if (input?.dateTo) conditions.push(lte(applications.createdAt, new Date(input.dateTo + 'T23:59:59')));
 
-      if (conditions.length > 0) query = query.where(and(...conditions)) as any;
-
-      const allApps = await query.orderBy(desc(applications.createdAt)).limit(limit).offset(offset);
+      const query = db.select().from(applications);
+      const allApps = conditions.length > 0
+        ? await query.where(and(...conditions)).orderBy(desc(applications.createdAt)).limit(limit).offset(offset)
+        : await query.orderBy(desc(applications.createdAt)).limit(limit).offset(offset);
 
       const result = await Promise.all(allApps.map(async (app) => {
         const applicantList = await db.select().from(applicants)
           .where(eq(applicants.applicationId, app.id));
         let supplier = null;
         try {
-          if ((app as any).supplierId) {
+          if (app.supplierId) {
             const [s] = await db.select().from(suppliers)
-              .where(eq(suppliers.id, (app as any).supplierId)).limit(1);
+              .where(eq(suppliers.id, app.supplierId)).limit(1);
             supplier = s || null;
           }
         } catch {
@@ -147,16 +198,44 @@ export const applicationRouter = createRouter({
       return result;
     }),
 
-  updateStatus: publicQuery
+  updateStatus: adminQuery
     .input(z.object({ id: z.number(), status: z.enum(STATUS_ENUM) }))
     .mutation(async ({ input }) => {
       const db = getDb();
+      const [application] = await db.select({ paymentStatus: applications.paymentStatus }).from(applications)
+        .where(eq(applications.id, input.id)).limit(1);
+      if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+      if (!canEnterApplicationState(application.paymentStatus, input.status)) {
+        auditLog("application.status_change", "failure", "admin");
+        throw new TRPCError({ code: "CONFLICT", message: "Verified payment is required before operational processing" });
+      }
       await db.update(applications).set({ status: input.status }).where(eq(applications.id, input.id));
+      const eventByStatus: Partial<Record<typeof input.status, TimelineEventName>> = {
+        under_review: "PROCESSING_STARTED",
+        visa_processing: "GOVERNMENT_PROCESSING",
+        visa_received: "VISA_ISSUED",
+        completed: "APPLICATION_COMPLETED",
+        cancelled: "APPLICATION_CANCELLED",
+        rejected: "APPLICATION_REJECTED",
+      };
+      const eventName = eventByStatus[input.status];
+      if (eventName) {
+        await recordTimelineEvent({
+          applicationId: input.id,
+          eventName,
+          eventSource: "ADMIN_STATUS",
+          actorType: "ADMIN",
+          actorReference: "admin",
+          resultingState: input.status,
+          summary: `Application status changed to ${input.status}`,
+        });
+      }
+      auditLog("application.status_change", "success", "admin");
       return { success: true };
     }),
 
   // Full supplier assignment with VAT details
-  assignSupplier: publicQuery
+  assignSupplier: adminQuery
     .input(z.object({
       id: z.number(),
       supplierId: z.number(),
@@ -171,7 +250,7 @@ export const applicationRouter = createRouter({
     .mutation(async ({ input }) => {
       const db = getDb();
       try {
-        const update: any = { supplierId: input.supplierId };
+        const update: Partial<typeof applications.$inferInsert> = { supplierId: input.supplierId };
         if (input.supplierCostAed !== undefined) update.supplierCostAed = String(input.supplierCostAed);
         if (input.supplierVatStatus) update.supplierVatStatus = input.supplierVatStatus;
         if (input.supplierPlaceOfSupply) update.supplierPlaceOfSupply = input.supplierPlaceOfSupply;
@@ -181,14 +260,17 @@ export const applicationRouter = createRouter({
         if (input.supplierNotes) update.supplierNotes = input.supplierNotes;
         await db.update(applications).set(update).where(eq(applications.id, input.id));
         return { success: true };
-      } catch (err: any) {
-        console.error('[API] assignSupplier failed:', err.message);
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error('[API] assignSupplier failed:', message);
+        return { success: false, error: message };
       }
     }),
 
-  analytics: publicQuery.query(async () => {
+  analytics: adminQuery.query(async () => {
     const db = getDb();
+    const settings = await activeBusinessSettings();
+    const usdToBaseRate = Number(settings.usdToBaseRate);
     const [total] = await db.select({ count: sql<number>`count(*)` }).from(applications);
     const [paid] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
 
@@ -218,11 +300,11 @@ export const applicationRouter = createRouter({
       totalApplications: total?.count || 0,
       paidApplications: paid?.count || 0,
       totalRevenueAed: revAed,
-      totalRevenueUsd: revAed / 3.6725,
+      totalRevenueUsd: settings.baseCurrency === "USD" ? revAed : revAed / usdToBaseRate,
       totalCostsAed: costAed,
-      totalCostsUsd: costAed / 3.6725,
+      totalCostsUsd: settings.baseCurrency === "USD" ? costAed : costAed / usdToBaseRate,
       profitAed: profitAed,
-      profitUsd: profitAed / 3.6725,
+      profitUsd: settings.baseCurrency === "USD" ? profitAed : profitAed / usdToBaseRate,
       profitMargin: revAed > 0 ? ((profitAed / revAed) * 100).toFixed(1) : '0',
       familyCount: familyCount?.count || 0,
     };

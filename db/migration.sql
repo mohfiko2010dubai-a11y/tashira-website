@@ -1,5 +1,6 @@
 -- Run this on the VPS MySQL to add missing columns
--- mysql -u tashira_user -p'Tashira2025Secure' tashira_db < migration.sql
+-- Supply credentials through an approved secret mechanism; never commit passwords.
+-- mysql --defaults-extra-file=/secure/path/mysql-client.cnf DATABASE_NAME < db/migration.sql
 
 ALTER TABLE applications
   ADD COLUMN IF NOT EXISTS supplier_id BIGINT UNSIGNED NULL AFTER total_amount,

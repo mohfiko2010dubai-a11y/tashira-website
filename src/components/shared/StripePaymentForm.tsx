@@ -1,25 +1,24 @@
-import { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js/pure';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import { CreditCard, Lock, CheckCircle, Upload, FolderOpen, AlertCircle, Loader2 } from 'lucide-react';
 import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
-
-// Google Ads Conversion Tracking
-function trackConversion(eventName: string, value?: number, currency?: string) {
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', eventName, {
-      send_to: 'AW-XXXXXXXXXX', // Replace with your Google Ads Conversion ID
-      value: value || 0,
-      currency: currency || 'USD',
-    });
-  }
-}
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
+import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
+import { trackGoogleEvent, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
+import { PaymentSuccessExperience } from './PaymentSuccessExperience';
+import { PayerAuthorizationFields } from './PayerAuthorizationFields';
+import {
+  PAYER_AUTHORIZATION_VERSION,
+  isThirdPartyPayer,
+  payerRelationshipForCheckout,
+  type ThirdPartyPayerRelationship,
+} from '@contracts/payer-authorization';
 
 const cardStyle = {
+  hidePostalCode: true,
   style: {
     base: {
       fontSize: '16px',
@@ -51,62 +50,95 @@ interface PaymentFormInnerProps {
 function PaymentFormInner({
   amount,
   referenceNumber,
+  applicantData,
   onSuccess,
   onClose,
 }: PaymentFormInnerProps) {
+  const currency = 'USD';
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [payerName, setPayerName] = useState(applicantData.customerName);
+  const [payerRelationship, setPayerRelationship] = useState<ThirdPartyPayerRelationship | ''>('');
+  const [payerAuthorizationAccepted, setPayerAuthorizationAccepted] = useState(false);
+  const paymentTimeline = usePaymentTimeline(referenceNumber);
+  const { paymentElementLoaded } = paymentTimeline;
 
   const createIntent = trpc.payment.createIntent.useMutation();
   const confirmPayment = trpc.payment.confirm.useMutation();
+  const readiness = trpc.payment.readiness.useQuery({ referenceNumber });
+
+  useEffect(() => {
+    if (stripe && elements) paymentElementLoaded();
+  }, [elements, paymentElementLoaded, stripe]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Google Ads: Begin checkout conversion
-    trackConversion('begin_checkout', amount, currency);
-    if (!stripe || !elements) return;
+    trackGoogleEvent('begin_checkout', { value: amount, currency });
+    if (!stripe || !elements || readiness.data?.status !== 'READY' || readiness.data.paymentStatus === 'paid') return;
+    const thirdParty = isThirdPartyPayer(payerName, applicantData.customerName);
+    if (!payerAuthorizationAccepted) {
+      setError('Please confirm that you are authorized to use this payment method.');
+      return;
+    }
+    if (thirdParty && !payerRelationship) {
+      setError("Please select the payer's relationship to the applicant.");
+      return;
+    }
+    const selectedPayerRelationship = payerRelationshipForCheckout(payerName, applicantData.customerName, payerRelationship);
 
     setLoading(true);
     setError('');
+    paymentTimeline.paymentStarted();
+    let failureRecorded = false;
 
     try {
       const intentResult = await createIntent.mutateAsync({
         amount: amount * 100,
         currency: 'usd',
         referenceNumber,
+        payerName,
+        payerRelationship: selectedPayerRelationship,
+        payerAuthorizationAccepted: true,
+        payerAuthorizationVersion: PAYER_AUTHORIZATION_VERSION,
       });
 
-      if (intentResult.error || !intentResult.clientSecret) {
-        throw new Error(intentResult.error || 'Failed to create payment intent');
-      }
+      if (!intentResult.clientSecret) throw new Error('Failed to create payment intent');
 
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
         intentResult.clientSecret,
         {
           payment_method: {
             card: elements.getElement(CardElement)!,
-            billing_details: { name: 'Tashira Customer' },
+            billing_details: { name: payerName.trim() },
           },
         }
       );
 
       if (stripeError) {
+        paymentTimeline.paymentFailed(safeStripeFailureCategory(stripeError.code));
+        failureRecorded = true;
         throw new Error(stripeError.message);
       }
 
       if (paymentIntent?.status === 'succeeded') {
-        await confirmPayment.mutateAsync({
+        const confirmedPayment = await confirmPayment.mutateAsync({
           referenceNumber,
           paymentIntentId: paymentIntent.id,
         });
-        // Google Ads: Purchase conversion (replace AW-XXXXXXXXXX with your real Conversion ID)
-        trackConversion('purchase', amount, currency);
+        paymentTimeline.paymentConfirmed();
+        trackVerifiedPaymentConversion({
+          transactionId: confirmedPayment.referenceNumber,
+          value: confirmedPayment.totalAmount,
+          currency: confirmedPayment.currency,
+        });
         onSuccess(`INV-${referenceNumber}`);
       }
-    } catch (err: any) {
-      setError(err.message || 'Payment failed. Please try again.');
+    } catch (err: unknown) {
+      if (!failureRecorded) paymentTimeline.paymentFailed('unknown');
+      setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -116,7 +148,7 @@ function PaymentFormInner({
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
         <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Test Mode - No real charges</p>
-        <p className="text-[10px] text-amber-500">Use card: 4242 4242 4242 4242 | Any future date | Any 3 digits</p>
+        <p className="text-[10px] text-amber-500">Use an approved Stripe TEST payment method.</p>
       </div>
 
       <div className="bg-gradient-to-r from-[#C9A04C]/10 to-[#C9A04C]/5 border border-[#C9A04C]/20 rounded-xl p-4 text-center">
@@ -131,9 +163,19 @@ function PaymentFormInner({
           Card Details
         </label>
         <div className="border border-gray-200 rounded-lg p-3 focus-within:border-[#C9A04C] focus-within:ring-1 focus-within:ring-[#C9A04C] transition-all">
-          <CardElement options={{ style: cardStyle.style }} />
+          <CardElement options={cardStyle} />
         </div>
       </div>
+
+      <PayerAuthorizationFields
+        leadApplicantName={applicantData.customerName}
+        payerName={payerName}
+        onPayerNameChange={setPayerName}
+        relationship={payerRelationship}
+        onRelationshipChange={setPayerRelationship}
+        accepted={payerAuthorizationAccepted}
+        onAcceptedChange={setPayerAuthorizationAccepted}
+      />
 
       <div className="flex items-center gap-2 text-xs text-gray-500">
         <Lock size={12} className="text-emerald-500" />
@@ -146,11 +188,21 @@ function PaymentFormInner({
         </div>
       )}
 
+      {readiness.data?.status === 'INCOMPLETE' && (
+        <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+          <p className="font-medium">{readiness.data.message}</p>
+          {readiness.data.applicationMissing.map((item) => <p key={item.code}>• {item.label}</p>)}
+          {readiness.data.applicants.filter((item) => item.missing.length > 0).map((applicant) => (
+            <div key={applicant.applicantId} className="mt-2"><p className="font-medium">{applicant.label}</p>{applicant.missing.map((item) => <p key={item.code}>• {item.label}</p>)}</div>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-3">
         <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
           Cancel
         </button>
-        <button type="submit" disabled={!stripe || loading} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50">
+        <button type="submit" disabled={!stripe || loading || readiness.isLoading || readiness.data?.status !== 'READY' || readiness.data?.paymentStatus === 'paid'} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50">
           {loading ? 'Processing...' : `Pay $${amount}`}
         </button>
       </div>
@@ -159,6 +211,18 @@ function PaymentFormInner({
 }
 
 export default function StripePaymentForm(props: PaymentFormInnerProps) {
+  const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+  const stripePromise = stripePublishableKey.startsWith('pk_test_')
+    ? loadStripe(stripePublishableKey)
+    : null;
+  if (!stripePromise) {
+    return (
+      <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+        Stripe TEST payments are not configured for this environment.
+      </div>
+    );
+  }
+
   return (
     <Elements stripe={stripePromise}>
       <PaymentFormInner {...props} />
@@ -195,6 +259,10 @@ export function PaymentSuccessModal({
   };
   onClose: () => void;
 }) {
+  const successHeadingRef = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    resetPaymentSuccessViewport(successHeadingRef.current, window);
+  }, []);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "success" | "partial" | "failed">("idle");
   const [progress, setProgress] = useState<UploadProgress[]>([]);
   const [uploadError, setUploadError] = useState("");
@@ -205,20 +273,25 @@ export function PaymentSuccessModal({
   const handleUploadDocuments = async () => {
     if (pendingFiles.length === 0) return;
 
+    const indexesToUpload = progress.length === 0
+      ? pendingFiles.map((_, index) => index)
+      : progress.flatMap((item, index) => item.status === "failed" ? [index] : []);
+    if (indexesToUpload.length === 0) return;
+
     setUploadState("uploading");
     setUploadError("");
-    setProgress(
-      pendingFiles.map((f) => ({
+    setProgress((current) => current.length > 0 ? current.map((item) => (
+      item.status === "failed" ? { ...item, status: "pending" as const, progress: 0 } : item
+    )) : pendingFiles.map((f) => ({
         fileName: f.file.name,
         status: "pending" as const,
         progress: 0,
-      })),
-    );
+      })));
 
-    let uploaded = 0;
+    let uploaded = progress.filter((item) => item.status === "success").length;
     let failed = 0;
 
-    for (let i = 0; i < pendingFiles.length; i++) {
+    for (const i of indexesToUpload) {
       const pf = pendingFiles[i];
 
       setProgress((prev) => {
@@ -237,7 +310,7 @@ export function PaymentSuccessModal({
           return updated;
         });
 
-        // Upload to Supabase
+        // Upload to the active server-side storage provider.
         const result = await storageUpload.mutateAsync({
           applicationId,
           documentType: pf.documentType,
@@ -274,9 +347,10 @@ export function PaymentSuccessModal({
         });
 
         uploaded++;
-      } catch (err: any) {
-        console.error(`[Upload] Failed for ${pf.file.name}:`, err.message);
-        setUploadError(err.message || "Upload failed. Please try again.");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Upload failed. Please try again.";
+        console.error(`[Upload] Failed for ${pf.file.name}:`, message);
+        setUploadError(message);
         setProgress((prev) => {
           const updated = [...prev];
           updated[i] = { fileName: pf.file.name, status: "failed", progress: 0 };
@@ -289,18 +363,32 @@ export function PaymentSuccessModal({
     if (failed === 0) {
       setUploadState("success");
       // Google Ads: Document upload conversion
-      trackConversion('submit_application');
+      trackGoogleEvent('documents_completed');
     }
     else if (uploaded > 0) setUploadState("partial");
     else setUploadState("failed");
   };
+
+  if (pendingFiles.length === 0) {
+    return (
+      <PaymentSuccessExperience
+        referenceNumber={referenceNumber}
+        invoiceNumber={invoiceNumber}
+        amountPaid={totalAmountUsd}
+        currency="USD"
+        visaType={applicantData.visaType}
+        processingType={applicantData.processingType}
+        onBackHome={onClose}
+      />
+    );
+  }
 
   return (
     <div className="text-center space-y-4">
       <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
         <CheckCircle size={32} className="text-emerald-500" />
       </div>
-      <h3 className="text-xl font-bold text-gray-900">Payment Successful!</h3>
+      <h3 ref={successHeadingRef} tabIndex={-1} className="text-xl font-bold text-gray-900 outline-none">Payment Successful!</h3>
       <p className="text-sm text-gray-500">
         Your application has been submitted and payment received.
       </p>
@@ -410,15 +498,21 @@ export function PaymentSuccessModal({
       {uploadState === "partial" && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
           <p className="text-sm text-amber-700">
-            Some uploads failed. You can retry from your application tracking page.
+            Some uploads failed. Successful documents were preserved.
           </p>
+          <button onClick={handleUploadDocuments} className="mt-2 text-sm font-semibold text-amber-800 underline">
+            Retry failed uploads
+          </button>
         </div>
       )}
       {uploadState === "failed" && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
           <p className="text-sm text-red-700">
-            Upload failed. Please retry from your application tracking page or contact support.
+            Upload failed. Your application is safe and you can retry without re-uploading successful files.
           </p>
+          <button onClick={handleUploadDocuments} className="mt-2 text-sm font-semibold text-red-800 underline">
+            Retry uploads
+          </button>
         </div>
       )}
 

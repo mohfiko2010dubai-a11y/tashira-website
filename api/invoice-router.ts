@@ -1,10 +1,13 @@
 import { z } from "zod";
-import { createRouter, publicQuery } from "./middleware";
+import { adminQuery, applicationAccessQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
+import { getErrorMessage } from "./lib/errors";
+import { assertApplicationReferenceAccess } from "./lib/application-access";
+import { recordTimelineEvent } from "./lib/application-timeline";
 
 // Resolve absolute invoices directory
 const INVOICES_DIR = path.resolve(process.cwd(), "dist/public/invoices");
@@ -16,15 +19,20 @@ if (!fs.existsSync(INVOICES_DIR)) {
 
 export const invoiceRouter = createRouter({
   // Save invoice PDF (base64) to disk
-  savePdf: publicQuery
+  savePdf: applicationAccessQuery
     .input(z.object({
-      invoiceNumber: z.string(),
-      referenceNumber: z.string(),
-      pdfBase64: z.string(),
+      invoiceNumber: z.string().regex(/^[A-Za-z0-9_-]+$/),
+      referenceNumber: z.string().min(1),
+      pdfBase64: z.string().min(1),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       try {
+        assertApplicationReferenceAccess(ctx, input.referenceNumber);
+        if (input.invoiceNumber !== `INV-${input.referenceNumber}`) throw new Error("Invoice does not match application");
         const pdfBuffer = Buffer.from(input.pdfBase64, "base64");
+        if (pdfBuffer.length > 10 * 1024 * 1024 || pdfBuffer.subarray(0, 4).toString() !== "%PDF") {
+          throw new Error("Invalid invoice PDF");
+        }
         const fileName = `${input.invoiceNumber}.pdf`;
         const absolutePath = path.join(INVOICES_DIR, fileName);
         const publicUrl = `/invoices/${fileName}`;
@@ -39,34 +47,46 @@ export const invoiceRouter = createRouter({
           invoicePdfPath: absolutePath,
           invoicePdfUrl: publicUrl,
         }).where(eq(applications.referenceNumber, input.referenceNumber));
+        const [application] = await db.select({ id: applications.id }).from(applications)
+          .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+        if (application) await recordTimelineEvent({
+          applicationId: application.id,
+          eventName: "INVOICE_GENERATED",
+          eventSource: "INVOICE_API",
+          actorType: ctx.isAdmin ? "ADMIN" : ctx.staffId ? "STAFF" : "CUSTOMER",
+          actorReference: input.invoiceNumber,
+          resultingState: "generated",
+          summary: "Invoice PDF saved",
+        });
 
         return {
           success: true,
           pdfUrl: publicUrl,
           absolutePath,
         };
-      } catch (err: any) {
-        console.error("[Invoice Save Error]", err.message);
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error("[Invoice Save Error]", message);
+        return { success: false, error: message };
       }
     }),
 
   // View invoice PDF (inline) - handled by Hono routes in boot.ts
-  view: publicQuery
+  view: applicationAccessQuery
     .input(z.object({ invoiceNumber: z.string() }))
     .query(async () => {
       return { message: "Use /invoices/:invoiceNumber/view route" };
     }),
 
   // Download invoice PDF (attachment) - handled by Hono routes in boot.ts
-  download: publicQuery
+  download: applicationAccessQuery
     .input(z.object({ invoiceNumber: z.string() }))
     .query(async () => {
       return { message: "Use /invoices/:invoiceNumber/download route" };
     }),
 
   // Regenerate invoice data for admin
-  regenerate: publicQuery
+  regenerate: adminQuery
     .input(z.object({
       referenceNumber: z.string(),
     }))
@@ -84,7 +104,7 @@ export const invoiceRouter = createRouter({
         return {
           success: true,
           invoiceNumber: app.invoiceNumber || `INV-${input.referenceNumber}`,
-          totalAmount: Number(app.totalAmount),
+          totalAmount: Number(app.totalAmountUsd || app.stripeAmountUsd || 0),
           customerEmail: app.contactEmail,
           customerPhone: app.contactPhone,
           visaType: app.visaType,
@@ -92,9 +112,10 @@ export const invoiceRouter = createRouter({
           referenceNumber: input.referenceNumber,
           stripePaymentIntentId: app.stripePaymentIntentId,
         };
-      } catch (err: any) {
-        console.error("[Invoice Regenerate Error]", err.message);
-        return { success: false, error: err.message };
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
+        console.error("[Invoice Regenerate Error]", message);
+        return { success: false, error: message };
       }
     }),
 });

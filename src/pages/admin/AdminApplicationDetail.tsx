@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { trpc } from "@/providers/trpc";
+import { trpc } from "@/providers/trpc-client";
 import {
-  ArrowLeft, Receipt, Building2, RefreshCw, FileText,
-  Users, DollarSign, ClipboardList, Clock, StickyNote, FolderOpen,
+  ArrowLeft, Building2, RefreshCw,
+  Users, DollarSign, ClipboardList, StickyNote, FolderOpen,
+  History,
 } from "lucide-react";
 import { ViewInvoiceButton, DownloadInvoiceButton } from "@/components/shared/InvoiceButton";
-import { generateInvoicePDF } from "@/components/shared/InvoiceGenerator";
 import DocumentManager from "@/components/shared/DocumentManager";
+import type { ApplicationWithLegacyAmount } from "@/types/trpc";
+import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
 
 const statusColors: Record<string, string> = {
   submitted: "bg-gray-100 text-gray-700",
@@ -27,6 +29,7 @@ const TABS = [
   { key: "applicants", label: "Applicants", icon: Users },
   { key: "payments", label: "Payments", icon: DollarSign },
   { key: "documents", label: "Documents", icon: FolderOpen },
+  { key: "timeline", label: "Timeline", icon: History },
   { key: "notes", label: "Notes", icon: StickyNote },
 ];
 
@@ -49,6 +52,17 @@ export default function AdminApplicationDetail() {
     { applicationId: app?.id || 0 },
     { enabled: !!app?.id },
   );
+  const { data: risk } = trpc.risk.latest.useQuery(
+    { referenceNumber: referenceNumber || "" },
+    { enabled: !!referenceNumber },
+  );
+  const { data: timelineEvents } = trpc.timeline.list.useQuery(
+    { referenceNumber: referenceNumber || "" },
+    { enabled: !!referenceNumber },
+  );
+  const assessRisk = trpc.risk.assess.useMutation({
+    onSuccess: () => utils.risk.latest.invalidate({ referenceNumber: referenceNumber || "" }),
+  });
 
   const updateStatus = trpc.application.updateStatus.useMutation({
     onSuccess: () => {
@@ -59,7 +73,7 @@ export default function AdminApplicationDetail() {
 
   const handleStatusChange = (newStatus: string) => {
     if (!app || !newStatus) return;
-    updateStatus.mutate({ id: app.id, status: newStatus as any });
+    updateStatus.mutate({ id: app.id, status: newStatus as typeof app.status });
   };
 
   if (isLoading) {
@@ -77,35 +91,12 @@ export default function AdminApplicationDetail() {
     );
   }
 
-  const mainApplicant = app.applicants?.[0];
-  const a = app as any;
-  const exchangeRate = Number(a.exchangeRate || 3.6725);
+  const mainApplicant = app.applicants?.find((applicant) => Number(applicant.applicantIndex) === 0);
+  const payerAuthorization = timelineEvents?.filter((event) => event.eventName === "PAYER_AUTHORIZATION_ACCEPTED").at(-1);
+  const a: ApplicationWithLegacyAmount = app;
+  const exchangeRate = Number(a.exchangeRate || 0);
   const totalUsd = Number(a.totalAmountUsd || a.totalAmount || 0);
   const totalAed = Number(a.totalAmountAed || totalUsd * exchangeRate);
-
-  const handleGenerateInvoice = () => {
-    const invoiceNumber = app.invoiceNumber || `INV-${app.referenceNumber}`;
-    const doc = generateInvoicePDF({
-      invoiceNumber,
-      referenceNumber: app.referenceNumber,
-      createdAt: app.createdAt ? new Date(app.createdAt).toISOString() : new Date().toISOString(),
-      customerName: mainApplicant?.fullName || app.contactEmail?.split("@")[0] || "Customer",
-      customerEmail: app.contactEmail || "",
-      customerPhone: app.contactPhone || "",
-      passportNumber: mainApplicant?.passportNumber || undefined,
-      nationality: mainApplicant?.nationality || undefined,
-      visaType: app.visaType || "",
-      processingType: app.processingType || "",
-      arrivalDate: app.arrivalDate || undefined,
-      totalAmountUsd: totalUsd,
-      exchangeRate,
-      stripePaymentIntentId: app.stripePaymentIntentId || undefined,
-    });
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -275,6 +266,19 @@ export default function AdminApplicationDetail() {
                   <p className="text-gray-400 text-sm">No supplier assigned.</p>
                 )}
               </div>
+              <div className="bg-white rounded-lg border border-gray-100 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Explainable Risk</h2>
+                  <button onClick={() => assessRisk.mutate({ referenceNumber: app.referenceNumber })} disabled={assessRisk.isPending} className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Assess</button>
+                </div>
+                {risk ? (
+                  <div className="mt-4 space-y-2 text-sm">
+                    <p><span className="text-gray-500">Level:</span> <strong>{risk.level}</strong></p>
+                    <p><span className="text-gray-500">Score:</span> {risk.score}/100</p>
+                    <p className="text-xs text-gray-400">Advisory only. It never automatically rejects an application.</p>
+                  </div>
+                ) : <p className="mt-4 text-sm text-gray-400">No assessment recorded.</p>}
+              </div>
             </div>
           )}
 
@@ -297,7 +301,7 @@ export default function AdminApplicationDetail() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {(app.applicants || []).map((ap: any, i: number) => (
+                    {(app.applicants || []).map((ap, i) => (
                       <tr key={ap.id} className="hover:bg-gray-50/50">
                         <td className="px-3 py-2 text-gray-400">{i + 1}</td>
                         <td className="px-3 py-2 font-medium">{ap.fullName}</td>
@@ -335,6 +339,26 @@ export default function AdminApplicationDetail() {
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Applicant</span>
+                  <span>{mainApplicant?.fullName || "-"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Payer</span>
+                  <span>{payerAuthorization?.actorReference || "Not recorded"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Relationship</span>
+                  <span>{payerAuthorization?.sanitizedCategory || "-"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Card</span>
+                  <span>Not available</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
+                  <span className="text-gray-500">Authorization</span>
+                  <span className={payerAuthorization ? "font-semibold text-emerald-700" : "text-gray-500"}>{payerAuthorization ? "Accepted ✓" : "Not recorded"}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-50">
                   <span className="text-gray-500">Invoice #</span>
                   <span className="font-mono">{app.invoiceNumber || `INV-${app.referenceNumber}`}</span>
                 </div>
@@ -348,9 +372,6 @@ export default function AdminApplicationDetail() {
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <button onClick={handleGenerateInvoice} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm rounded-lg hover:shadow-md transition-all">
-                  <Receipt size={14} /> Generate Invoice
-                </button>
                 {app.invoiceNumber && (
                   <>
                     <ViewInvoiceButton
@@ -387,6 +408,10 @@ export default function AdminApplicationDetail() {
               </h2>
               <DocumentManager applicationId={app.id} />
             </div>
+          )}
+
+          {activeTab === "timeline" && (
+            <ApplicationTimeline referenceNumber={app.referenceNumber} admin />
           )}
 
           {/* Notes Tab - Placeholder */}

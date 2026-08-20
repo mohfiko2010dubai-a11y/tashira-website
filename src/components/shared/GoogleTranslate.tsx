@@ -3,7 +3,14 @@ import { useEffect, useRef } from 'react';
 declare global {
   interface Window {
     googleTranslateElementInit?: () => void;
-    google?: any;
+    google?: {
+      translate: {
+        TranslateElement: {
+          new (options: Record<string, unknown>, elementId: string): unknown;
+          InlineLayout: { SIMPLE: string };
+        };
+      };
+    };
   }
 }
 

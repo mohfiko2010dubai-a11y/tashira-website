@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { trpc } from '@/providers/trpc';
+import { trpc } from '@/providers/trpc-client';
 import * as XLSX from 'xlsx';
+import type { ApplicationWithLegacyAmount } from '@/types/trpc';
 import {
-  ArrowLeft, Search, Download, Calendar, LogOut, Percent,
+  ArrowLeft, Download, Calendar, LogOut, Percent,
   DollarSign, TrendingUp, TrendingDown, Receipt, Building2,
 } from 'lucide-react';
 
@@ -13,35 +14,40 @@ export default function AdminVat() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const { data: applications, isLoading } = trpc.application.list.useQuery({
+  const { data: applications } = trpc.application.list.useQuery({
     status: undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
     limit: 500,
   });
+  const { data: financeSettings } = trpc.business.settings.useQuery();
+  const vatRate = financeSettings?.vatRegistered === 'yes' ? Number(financeSettings.vatRate) : 0;
+  const vatDivisor = 1 + vatRate / 100;
 
   // Calculate VAT data
-  const customerInvoices = (applications || []).filter((app: any) => app.paymentStatus === 'paid');
-  const supplierBills = (applications || []).filter((app: any) => (app as any).supplierId || app.supplier);
+  const customerInvoices = (applications || []).filter((app) => app.paymentStatus === 'paid');
+  const supplierBills = (applications || []).filter((app) => app.supplierId || app.supplier);
 
-  // VAT on sales (from customers) - always 5%
-  const vatOnSales = customerInvoices.reduce((sum: number, app: any) => {
-    const aed = Number((app as any).totalAmountAed || app.totalAmount || 0);
-    const vat = aed - (aed / 1.05);
+  // Operational estimate using the active configured rate; not a legal determination.
+  const vatOnSales = customerInvoices.reduce((sum, app) => {
+    const a: ApplicationWithLegacyAmount = app;
+    const aed = Number(a.totalAmountAed || a.totalAmount || 0);
+    const vat = aed - (aed / vatDivisor);
     return sum + vat;
   }, 0);
 
-  const totalSalesAed = customerInvoices.reduce((sum: number, app: any) => {
-    return sum + Number((app as any).totalAmountAed || app.totalAmount || 0);
+  const totalSalesAed = customerInvoices.reduce((sum, app) => {
+    const a: ApplicationWithLegacyAmount = app;
+    return sum + Number(a.totalAmountAed || a.totalAmount || 0);
   }, 0);
 
   // VAT on purchases (from suppliers)
-  const vatOnPurchases = supplierBills.reduce((sum: number, app: any) => {
-    return sum + Number((app as any).supplierVatAmount || 0);
+  const vatOnPurchases = supplierBills.reduce((sum, app) => {
+    return sum + Number(app.supplierVatAmount || 0);
   }, 0);
 
-  const totalPurchasesAed = supplierBills.reduce((sum: number, app: any) => {
-    return sum + Number((app as any).supplierTotalAed || (app as any).supplierCostAed || 0);
+  const totalPurchasesAed = supplierBills.reduce((sum, app) => {
+    return sum + Number(app.supplierTotalAed || app.supplierCostAed || 0);
   }, 0);
 
   // Net VAT
@@ -59,10 +65,10 @@ export default function AdminVat() {
     ];
 
     // Detailed breakdown
-    const details = customerInvoices.map((app: any) => {
-      const a = app as any;
-      const aed = Number(a.totalAmountAed || app.totalAmount || 0);
-      const subtotal = aed / 1.05;
+    const details = customerInvoices.map((app) => {
+      const a: ApplicationWithLegacyAmount = app;
+      const aed = Number(a.totalAmountAed || a.totalAmount || 0);
+      const subtotal = aed / vatDivisor;
       const vat = aed - subtotal;
       return {
         'Type': 'Sale',
@@ -70,13 +76,13 @@ export default function AdminVat() {
         'Date': app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-',
         'Customer': app.applicants?.[0]?.fullName || '-',
         'Subtotal (AED)': subtotal.toFixed(2),
-        'VAT 5% (AED)': vat.toFixed(2),
+        [`VAT ${vatRate}% (AED)`]: vat.toFixed(2),
         'Total (AED)': aed.toFixed(2),
       };
     });
 
-    const supplierDetails = supplierBills.map((app: any) => {
-      const a = app as any;
+    const supplierDetails = supplierBills.map((app) => {
+      const a: ApplicationWithLegacyAmount = app;
       const cost = Number(a.supplierCostAed || 0);
       const vat = Number(a.supplierVatAmount || 0);
       const total = Number(a.supplierTotalAed || cost);
@@ -111,7 +117,7 @@ export default function AdminVat() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-1"><Receipt size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">VAT on Sales (5%)</p></div>
+            <div className="flex items-center gap-2 mb-1"><Receipt size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">VAT on Sales ({vatRate}%)</p></div>
             <p className="text-2xl font-bold text-emerald-600">AED {vatOnSales.toFixed(2)}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
@@ -160,7 +166,7 @@ export default function AdminVat() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Sales (excl. VAT)</span>
-                <span className="font-medium">AED {(totalSalesAed / 1.05).toFixed(2)}</span>
+                <span className="font-medium">AED {(totalSalesAed / vatDivisor).toFixed(2)}</span>
               </div>
               <div className="border-t border-gray-100 pt-2 flex justify-between text-sm font-semibold">
                 <span className="text-emerald-600">VAT on Sales (5%)</span>
@@ -207,15 +213,15 @@ export default function AdminVat() {
                   <th className="text-left px-4 py-2 font-semibold">Date</th>
                   <th className="text-left px-4 py-2 font-semibold">Customer</th>
                   <th className="text-right px-4 py-2 font-semibold">Subtotal (AED)</th>
-                  <th className="text-right px-4 py-2 font-semibold">VAT 5% (AED)</th>
+                  <th className="text-right px-4 py-2 font-semibold">VAT {vatRate}% (AED)</th>
                   <th className="text-right px-4 py-2 font-semibold">Total (AED)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {customerInvoices.map((app: any) => {
-                  const a = app as any;
-                  const aed = Number(a.totalAmountAed || app.totalAmount || 0);
-                  const subtotal = aed / 1.05;
+                {customerInvoices.map((app) => {
+                  const a: ApplicationWithLegacyAmount = app;
+                  const aed = Number(a.totalAmountAed || a.totalAmount || 0);
+                  const subtotal = aed / vatDivisor;
                   const vat = aed - subtotal;
                   return (
                     <tr key={app.id} className="hover:bg-gray-50/50">
@@ -236,7 +242,7 @@ export default function AdminVat() {
                 <tfoot className="bg-gray-50 font-semibold text-gray-700">
                   <tr>
                     <td className="px-4 py-2" colSpan={3}>Total</td>
-                    <td className="px-4 py-2 text-right">AED {(totalSalesAed / 1.05).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-right">AED {(totalSalesAed / vatDivisor).toFixed(2)}</td>
                     <td className="px-4 py-2 text-right text-purple-600">AED {vatOnSales.toFixed(2)}</td>
                     <td className="px-4 py-2 text-right text-emerald-600">AED {totalSalesAed.toFixed(2)}</td>
                   </tr>
@@ -268,8 +274,8 @@ export default function AdminVat() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {supplierBills.map((app: any) => {
-                  const a = app as any;
+                {supplierBills.map((app) => {
+                  const a: ApplicationWithLegacyAmount = app;
                   const cost = Number(a.supplierCostAed || 0);
                   const vat = Number(a.supplierVatAmount || 0);
                   const total = Number(a.supplierTotalAed || cost + vat);
