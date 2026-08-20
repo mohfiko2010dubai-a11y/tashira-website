@@ -9,6 +9,7 @@ import { auditLog } from "./lib/audit-log";
 import { createRecoveryChallenge, hashRecoveryValue, recoveryExpiry, recoveryVerificationDecision, verifyRecoverySecret } from "./lib/customer-recovery";
 import { transactionalEmailProvider } from "./lib/email-provider";
 import { recipientHash } from "./lib/resend-email";
+import { publicAppOrigin } from "./lib/public-app-url";
 
 const genericResponse = { accepted: true, message: "If a matching application exists, recovery instructions will be sent." };
 
@@ -39,7 +40,7 @@ export const recoveryRouter = createRouter({
       const provider = transactionalEmailProvider();
       const template = input.channel === "MAGIC_LINK" ? "RESUME_LINK" : "RECOVERY_OTP";
       const variables: Record<string, string> = input.channel === "MAGIC_LINK"
-        ? { referenceNumber: application.referenceNumber, resumeUrl: `https://staging.tashiraev.com/recover?token=${encodeURIComponent(challenge.secret)}` }
+        ? { referenceNumber: application.referenceNumber, resumeUrl: `${publicAppOrigin()}/recover?token=${encodeURIComponent(challenge.secret)}` }
         : { referenceNumber: application.referenceNumber, otp: challenge.secret, expiresMinutes: "10" };
       try {
         const sent = await provider.send({ recipient: email, template, variables, idempotencyKey: `recovery/${challenge.id}` });

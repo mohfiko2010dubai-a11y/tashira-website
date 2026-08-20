@@ -7,6 +7,7 @@ import { transactionalEmailProvider } from "./email-provider";
 import { recipientHash } from "./resend-email";
 import { paymentSuccessEmailIdempotencyKey } from "./email-idempotency";
 import { createInvoiceDownloadUrl } from "./invoice-download-token";
+import { publicAppOrigin } from "./public-app-url";
 import { recordTimelineEvent } from "./application-timeline";
 
 type PaymentSuccessEmailInput = {
@@ -33,8 +34,7 @@ export async function sendPaymentSuccessEmail(input: PaymentSuccessEmailInput) {
   try {
     const provider = transactionalEmailProvider();
     providerName = provider.name;
-    const publicAppUrl = process.env.PUBLIC_APP_URL?.replace(/\/$/, "") || "";
-    if (!publicAppUrl) throw new Error("PUBLIC_APP_URL is required for secure invoice access");
+    const publicAppUrl = publicAppOrigin();
     if (!/^[A-Za-z0-9_-]+$/.test(input.invoiceNumber)) throw new Error("Invoice number is invalid");
     const invoicePdf = fs.readFileSync(input.invoicePdfPath);
     if (invoicePdf.length === 0 || invoicePdf.length > 20 * 1024 * 1024 || invoicePdf.subarray(0, 4).toString() !== "%PDF") {

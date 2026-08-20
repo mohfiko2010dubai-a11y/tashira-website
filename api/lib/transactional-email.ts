@@ -1,3 +1,5 @@
+import { requirePublicAppUrl } from "./public-app-url";
+
 export const EMAIL_TEMPLATES = [
   "APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED",
   "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP",
@@ -57,11 +59,9 @@ export function renderTransactionalEmail(template: EmailTemplate, variables: Rec
   };
   const rendered = content[template];
   if (template === "PAYMENT_SUCCESS") {
-    const invoiceUrl = new URL(variables.invoiceUrl);
+    const invoiceUrl = requirePublicAppUrl(variables.invoiceUrl);
     const expectedInvoicePath = `/invoice-download/${encodeURIComponent(variables.invoiceNumber)}`;
     if (
-      invoiceUrl.protocol !== "https:" ||
-      invoiceUrl.origin !== "https://staging.tashiraev.com" ||
       invoiceUrl.pathname !== expectedInvoicePath ||
       !/^\d+$/.test(invoiceUrl.searchParams.get("expires") || "") ||
       !/^[A-Za-z0-9_-]{43}$/.test(invoiceUrl.searchParams.get("signature") || "") ||
@@ -70,7 +70,7 @@ export function renderTransactionalEmail(template: EmailTemplate, variables: Rec
       invoiceUrl.username ||
       invoiceUrl.password
     ) {
-      throw new Error("Invoice email URL is not an approved authorized staging URL");
+      throw new Error("Invoice email URL is not an approved authorized application URL");
     }
     const escapedInvoiceUrl = escapeHtml(invoiceUrl.toString());
     const trackingLink = variables.trackingUrl
@@ -83,9 +83,9 @@ export function renderTransactionalEmail(template: EmailTemplate, variables: Rec
   }
   if (template !== "RESUME_LINK") return { ...rendered, html: undefined };
 
-  const resumeUrl = new URL(variables.resumeUrl);
-  if (resumeUrl.protocol !== "https:" || resumeUrl.origin !== "https://staging.tashiraev.com" || resumeUrl.pathname !== "/recover") {
-    throw new Error("Recovery email URL is not an approved staging URL");
+  const resumeUrl = requirePublicAppUrl(variables.resumeUrl);
+  if (resumeUrl.pathname !== "/recover") {
+    throw new Error("Recovery email URL is not an approved application URL");
   }
   const escapedUrl = escapeHtml(resumeUrl.toString());
   const escapedReference = escapeHtml(reference);

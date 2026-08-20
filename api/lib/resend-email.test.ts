@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ResendEmailProvider, recipientHash } from "./resend-email";
 
 const config = {
@@ -8,6 +8,8 @@ const config = {
 };
 
 describe("Resend staging provider", () => {
+  beforeEach(() => { process.env.PUBLIC_APP_URL = "https://staging.tashiraev.com"; });
+  afterEach(() => { delete process.env.PUBLIC_APP_URL; });
   it("sends a staging-labelled provider-independent template", async () => {
     const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "email_test" }), { status: 200 }));
     const result = await new ResendEmailProvider(config, request).send({
@@ -38,12 +40,12 @@ describe("Resend staging provider", () => {
     expect(payload.text).toContain("https://staging.tashiraev.com/recover?token=safe-token");
   });
 
-  it("rejects recovery links outside the approved staging origin", async () => {
+  it("rejects recovery links outside the configured application origin", async () => {
     await expect(new ResendEmailProvider(config).send({
       recipient: "owner@example.test",
       template: "RESUME_LINK",
       variables: { referenceNumber: "TSH-1", resumeUrl: "https://example.test/recover?token=unsafe" },
-    })).rejects.toThrow("not an approved staging URL");
+    })).rejects.toThrow("origin is not approved");
   });
 
   it("fails closed for missing keys and unapproved recipients", async () => {
