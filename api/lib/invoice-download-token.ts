@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { publicAppOrigin } from "./public-app-url";
 
 export const INVOICE_DOWNLOAD_EXPIRY_SECONDS = 60 * 60;
 
@@ -22,7 +23,9 @@ export function createInvoiceDownloadUrl(input: {
 }) {
   if (!/^[A-Za-z0-9_-]+$/.test(input.invoiceNumber)) throw new Error("Invoice number is invalid");
   const baseUrl = new URL(input.baseUrl);
-  if (baseUrl.origin !== "https://staging.tashiraev.com") throw new Error("Invoice download origin is not approved");
+  if (baseUrl.origin !== publicAppOrigin() || baseUrl.toString() !== `${baseUrl.origin}/`) {
+    throw new Error("Invoice download origin is not approved");
+  }
   const expires = (input.nowSeconds ?? Math.floor(Date.now() / 1000)) + INVOICE_DOWNLOAD_EXPIRY_SECONDS;
   const url = new URL(`/invoice-download/${encodeURIComponent(input.invoiceNumber)}`, baseUrl.origin);
   url.searchParams.set("expires", String(expires));

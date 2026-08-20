@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { paymentSuccessEmailIdempotencyKey } from "./email-idempotency";
 import { renderTransactionalEmail } from "./transactional-email";
 
 describe("payment success email", () => {
+  beforeEach(() => { process.env.PUBLIC_APP_URL = "https://staging.tashiraev.com"; });
+  afterEach(() => { delete process.env.PUBLIC_APP_URL; });
   it("uses one stable provider idempotency key per verified payment", () => {
     expect(paymentSuccessEmailIdempotencyKey({ applicationId: 37, paymentId: 91 }))
       .toBe("payment-success/37/91");
@@ -28,7 +30,7 @@ describe("payment success email", () => {
     expect(email.html).not.toContain("card");
   });
 
-  it("rejects invoice links outside the authorized staging route", () => {
+  it("rejects invoice links outside the configured authorized route", () => {
     const variables = {
       referenceNumber: "TSH-123456",
       invoiceNumber: "INV-TSH-123456",
@@ -39,10 +41,10 @@ describe("payment success email", () => {
     expect(() => renderTransactionalEmail("PAYMENT_SUCCESS", {
       ...variables,
       invoiceUrl: "https://example.com/invoice-download/INV-TSH-123456?expires=9999999999&signature=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    })).toThrow("not an approved authorized staging URL");
+    })).toThrow("origin is not approved");
     expect(() => renderTransactionalEmail("PAYMENT_SUCCESS", {
       ...variables,
       invoiceUrl: "https://staging.tashiraev.com/invoices/INV-TSH-123456.pdf?expires=9999999999&signature=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    })).toThrow("not an approved authorized staging URL");
+    })).toThrow("not an approved authorized application URL");
   });
 });
