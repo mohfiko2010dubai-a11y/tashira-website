@@ -147,8 +147,22 @@ jobs:
           chmod 600 .deployment/deployed-sha
 
           pm2 restart tashira --update-env
-          test "$(pm2 pid tashira)" != "0"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/health)" = "200"
-          test "$(curl -sS -o /dev/null -w '%{http_code}' https://tashiraev.com/)" = "200"
+          app_pid="$(pm2 pid tashira)"
+          [[ "$app_pid" =~ ^[1-9][0-9]*$ ]]
+
+          local_healthy=0
+          for attempt in $(seq 1 30); do
+            if [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 3 http://127.0.0.1:3000/api/health || true)" == "200" ]]; then
+              local_healthy=1
+              break
+            fi
+            sleep 1
+          done
+          test "$local_healthy" = "1"
+
+          sleep 5
+          test "$(pm2 pid tashira)" = "$app_pid"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:3000/api/health)" = "200"
+          test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 https://tashiraev.com/)" = "200"
           printf 'Deployed SHA: %s\n' "$RELEASE_SHA"
           REMOTE
