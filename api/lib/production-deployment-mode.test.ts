@@ -19,7 +19,7 @@ function validate(deploymentMode: string, publishableKey: string, secretKey: str
 
 describe("manual Production Stripe deployment mode", () => {
   it.each([
-    ["PRELIVE", "pk_test_review", "sk_test_review", ""],
+    ["PRELIVE", "pk_test_review", "sk_test_review", "whsec_review"],
     ["LIVE", "pk_live_review", "sk_live_review", "whsec_review"],
   ])("allows an explicitly matching %s configuration", (deploymentMode, publishableKey, secretKey, webhookSecret) => {
     expect(() => validate(deploymentMode, publishableKey, secretKey, webhookSecret)).not.toThrow();
@@ -27,6 +27,7 @@ describe("manual Production Stripe deployment mode", () => {
 
   it.each([
     ["PRELIVE", "pk_live_review", "sk_live_review", ""],
+    ["PRELIVE", "pk_test_review", "sk_test_review", ""],
     ["LIVE", "pk_test_review", "sk_test_review", "whsec_review"],
     ["INVALID", "pk_test_review", "sk_test_review", ""],
     ["", "pk_test_review", "sk_test_review", ""],

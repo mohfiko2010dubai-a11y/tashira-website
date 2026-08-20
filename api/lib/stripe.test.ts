@@ -13,11 +13,17 @@ const intent = {
 };
 
 beforeEach(() => {
+  process.env.STRIPE_MODE = "TEST";
+  process.env.VITE_STRIPE_PUBLISHABLE_KEY = "pk_test_review_only";
   process.env.STRIPE_SECRET_KEY = ["sk", "test", "review_only"].join("_");
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_review_only";
 });
 
 afterEach(() => {
+  delete process.env.STRIPE_MODE;
+  delete process.env.VITE_STRIPE_PUBLISHABLE_KEY;
   delete process.env.STRIPE_SECRET_KEY;
+  delete process.env.STRIPE_WEBHOOK_SECRET;
   vi.unstubAllGlobals();
 });
 
@@ -33,9 +39,9 @@ describe("Stripe test-mode boundary", () => {
     expect(String(init.body)).toContain("currency=usd");
   });
 
-  it("refuses non-test Stripe keys", async () => {
+  it("refuses a secret key that does not match TEST mode", async () => {
     process.env.STRIPE_SECRET_KEY = "not-a-test-key";
-    await expect(retrieveStripeTestIntent("pi_test_123")).rejects.toThrow("test-mode");
+    await expect(retrieveStripeTestIntent("pi_test_123")).rejects.toThrow("incomplete or inconsistent");
   });
 
   it("verifies status, identity, reference, amount, and currency", () => {

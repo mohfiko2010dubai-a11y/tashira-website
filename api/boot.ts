@@ -15,7 +15,7 @@ import { desc, eq } from "drizzle-orm";
 import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
 import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
-import { verifyStripeWebhook } from "./lib/stripe-webhook";
+import { isSupportedStripeWebhookEvent, verifyStripeWebhook } from "./lib/stripe-webhook";
 import { finalizeStripeTestPayment, recordStripeTestPaymentFailure } from "./lib/payment-finalization";
 import { auditLog } from "./lib/audit-log";
 import { verifyAdminSession } from "./lib/admin-session";
@@ -32,8 +32,10 @@ import { getCanonicalInvoiceCustomerIdentity } from "./lib/invoice-customer-name
 import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { getPayerEvidence } from "./lib/payer-authorization";
 import { retrieveStripeTestCardSummary } from "./lib/stripe";
+import { validateStripeRuntimeConfig } from "./lib/stripe-runtime";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
+validateStripeRuntimeConfig();
 
 app.use(bodyLimit({ maxSize: 500 * 1024 * 1024 })); // 500MB total request
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
@@ -44,7 +46,7 @@ app.post("/api/stripe/webhook", async (c) => {
     const payload = await c.req.text();
     if (Buffer.byteLength(payload, "utf8") > 1024 * 1024) throw new Error("Stripe webhook payload is too large");
     const event = verifyStripeWebhook(payload, c.req.header("stripe-signature") || "");
-    if (["payment_intent.succeeded", "payment_intent.payment_failed", "payment_intent.requires_action"].includes(event.type)) {
+    if (isSupportedStripeWebhookEvent(event.type)) {
       const claim = await claimStripeWebhookEvent({
         eventId: event.id,
         eventType: event.type,
