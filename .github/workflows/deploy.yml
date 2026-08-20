@@ -7,6 +7,10 @@ on:
         description: Exact approved 40-character release commit SHA
         required: true
         type: string
+      deployment_mode:
+        description: Explicit Stripe runtime mode for this Production deployment (PRELIVE or LIVE)
+        required: true
+        type: string
       backup_manifest_path:
         description: Absolute verified production backup manifest path
         required: true
@@ -43,10 +47,12 @@ jobs:
         env:
           RELEASE_SHA: ${{ inputs.release_sha }}
           BACKUP_MANIFEST_PATH: ${{ inputs.backup_manifest_path }}
+          DEPLOYMENT_MODE: ${{ inputs.deployment_mode }}
         run: |
           set -euo pipefail
           [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$BACKUP_MANIFEST_PATH" == /var/backups/tashira/*/MANIFEST.env ]]
+          [[ "$DEPLOYMENT_MODE" == "PRELIVE" || "$DEPLOYMENT_MODE" == "LIVE" ]]
 
       - name: Check out exact release
         uses: actions/checkout@v4
@@ -88,6 +94,7 @@ jobs:
           PROJECT_PATH: ${{ secrets.PROJECT_PATH }}
           RELEASE_SHA: ${{ inputs.release_sha }}
           BACKUP_MANIFEST_PATH: ${{ inputs.backup_manifest_path }}
+          DEPLOYMENT_MODE: ${{ inputs.deployment_mode }}
         run: |
           set -euo pipefail
           printf -v remote_command '%q ' \
@@ -95,6 +102,7 @@ jobs:
             "PROJECT_PATH=${PROJECT_PATH:-/var/www/tashira}" \
             "RELEASE_SHA=$RELEASE_SHA" \
             "BACKUP_MANIFEST_PATH=$BACKUP_MANIFEST_PATH" \
+            "DEPLOYMENT_MODE=$DEPLOYMENT_MODE" \
             bash -s
 
           ssh -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" "$remote_command" <<'REMOTE'
@@ -122,8 +130,15 @@ jobs:
 
           npm ci
           VITE_STRIPE_PUBLISHABLE_KEY="$({ sed -n 's/^VITE_STRIPE_PUBLISHABLE_KEY=//p' .env || true; } | head -n 1)"
-          [[ "$VITE_STRIPE_PUBLISHABLE_KEY" == pk_live_* ]]
-          export VITE_STRIPE_PUBLISHABLE_KEY
+          STRIPE_SECRET_KEY="$({ sed -n 's/^STRIPE_SECRET_KEY=//p' .env || true; } | head -n 1)"
+          STRIPE_WEBHOOK_SECRET="$({ sed -n 's/^STRIPE_WEBHOOK_SECRET=//p' .env || true; } | head -n 1)"
+          export DEPLOYMENT_MODE VITE_STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET
+          node scripts/validate-stripe-deployment-mode.mjs
+          if [[ "$DEPLOYMENT_MODE" == "PRELIVE" ]]; then
+            printf 'PRODUCTION APPLICATION — STRIPE TEST MODE\n'
+          else
+            printf 'PRODUCTION APPLICATION — STRIPE LIVE MODE\n'
+          fi
           npm run build
 
           chmod 600 .env
