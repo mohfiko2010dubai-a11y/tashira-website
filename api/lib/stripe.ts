@@ -1,6 +1,6 @@
 import { stripeSecretKey } from "./stripe-runtime";
 
-type StripeIntent = {
+export type StripeIntent = {
   id: string;
   client_secret: string | null;
   status: string;
@@ -54,6 +54,44 @@ export type SafeCardSummary = {
   brand: string;
   last4: string;
 };
+
+export function createSecurityDepositIntent(input: {
+  amountCents: number;
+  requestId: string;
+  applicationReference: string;
+  idempotencyKey: string;
+}): Promise<StripeIntent> {
+  if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) throw new Error("Deposit amount must be positive cents");
+  if (!/^[0-9a-f-]{36}$/u.test(input.requestId)) throw new Error("Invalid security-deposit request identifier");
+  return stripeRequest("https://api.stripe.com/v1/payment_intents", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Idempotency-Key": input.idempotencyKey,
+    },
+    body: new URLSearchParams({
+      amount: String(input.amountCents),
+      currency: "aed",
+      "automatic_payment_methods[enabled]": "true",
+      "metadata[securityDepositRequestId]": input.requestId,
+      "metadata[applicationReference]": input.applicationReference,
+    }),
+  });
+}
+
+export function verifySecurityDepositIntent(input: {
+  intent: StripeIntent;
+  paymentIntentId: string;
+  requestId: string;
+  expectedAmountCents: number;
+}) {
+  return input.intent.id === input.paymentIntentId
+    && input.intent.status === "succeeded"
+    && input.intent.currency === "aed"
+    && input.intent.amount === input.expectedAmountCents
+    && input.intent.amount_received === input.expectedAmountCents
+    && input.intent.metadata.securityDepositRequestId === input.requestId;
+}
 
 export type StripeRefundResult = {
   id: string;

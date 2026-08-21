@@ -74,6 +74,7 @@ export const applicationUploadQuery = t.procedure
   .use(requireApplicationAccess)
   .use(rateLimit("upload", 10));
 export const paymentQuery = t.procedure.use(rateLimit("payment", 10));
+export const securityDepositQuery = t.procedure.use(rateLimit("security-deposit", 10, 5 * 60_000));
 export const applicationSubmissionQuery = t.procedure.use(rateLimit("application", 30));
 export const recoveryRequestQuery = t.procedure.use(rateLimit("recovery-request", 5, 15 * 60_000));
 export const recoveryVerifyQuery = t.procedure.use(rateLimit("recovery-verify", 10, 15 * 60_000));

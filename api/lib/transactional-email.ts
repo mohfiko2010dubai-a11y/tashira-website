@@ -3,6 +3,7 @@ import { requirePublicAppUrl } from "./public-app-url";
 export const EMAIL_TEMPLATES = [
   "APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED",
   "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP",
+  "SECURITY_DEPOSIT_REQUEST",
 ] as const;
 
 export type EmailTemplate = typeof EMAIL_TEMPLATES[number];
@@ -35,6 +36,7 @@ export function validateTemplateVariables(template: EmailTemplate, variables: Re
     VISA_ISSUED: ["referenceNumber"],
     RESUME_LINK: ["referenceNumber", "resumeUrl"],
     RECOVERY_OTP: ["referenceNumber", "otp", "expiresMinutes"],
+    SECURITY_DEPOSIT_REQUEST: ["referenceNumber", "amount", "currency", "purpose", "depositUrl", "expiresAt"],
   };
   const missing = required[template].filter((key) => !variables[key]);
   if (missing.length) throw new Error(`Missing email template variables: ${missing.join(", ")}`);
@@ -56,6 +58,7 @@ export function renderTransactionalEmail(template: EmailTemplate, variables: Rec
     VISA_ISSUED: { subject: `Visa issued — ${reference}`, body: `The authoritative application status now records the visa as issued.` },
     RESUME_LINK: { subject: `Secure application resume link — ${reference}`, body: `Resume your application: ${variables.resumeUrl}\nThis single-use link expires shortly.` },
     RECOVERY_OTP: { subject: `Application recovery code — ${reference}`, body: `Your one-time code is ${variables.otp}. It expires in ${variables.expiresMinutes} minutes.` },
+    SECURITY_DEPOSIT_REQUEST: { subject: `Refundable security deposit request — ${reference}`, body: `TASHIRA requested a refundable security deposit of ${variables.amount} ${variables.currency} for application ${reference}. Purpose: ${variables.purpose}. Review and respond securely: ${variables.depositUrl}. This link expires at ${variables.expiresAt}. The deposit is separate from visa service fees.` },
   };
   const rendered = content[template];
   if (template === "PAYMENT_SUCCESS") {
@@ -79,6 +82,17 @@ export function renderTransactionalEmail(template: EmailTemplate, variables: Rec
     return {
       ...rendered,
       html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#172235;line-height:1.5"><h1 style="font-size:22px">Payment Successful</h1><p>Your payment has been authoritatively verified.</p><p>Application: <strong>${escapeHtml(reference)}</strong><br>Invoice: <strong>${escapeHtml(variables.invoiceNumber)}</strong><br>Amount paid: <strong>${escapeHtml(variables.amountPaid)} ${escapeHtml(variables.currency)}</strong><br>Status: <strong>${escapeHtml(variables.currentStatus)}</strong></p><p><a href="${escapedInvoiceUrl}" style="display:inline-block;background:#172235;color:#fff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:6px">View / Download Invoice</a></p><p>This invoice link requires your existing authorized application session.</p><p>Next step: TASHIRA will review the paid application. Payment confirmation does not mean government submission.</p>${trackingLink}</body></html>`,
+    };
+  }
+  if (template === "SECURITY_DEPOSIT_REQUEST") {
+    const depositUrl = requirePublicAppUrl(variables.depositUrl);
+    if (!/^\/deposit\/[A-Za-z0-9_-]{43}$/u.test(depositUrl.pathname) || depositUrl.search || depositUrl.hash) {
+      throw new Error("Security-deposit URL is not an approved capability URL");
+    }
+    const escapedUrl = escapeHtml(depositUrl.toString());
+    return {
+      ...rendered,
+      html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#172235;line-height:1.5"><h1 style="font-size:22px">Refundable Security Deposit Request</h1><p>Application: <strong>${escapeHtml(reference)}</strong></p><p>Amount: <strong>${escapeHtml(variables.amount)} ${escapeHtml(variables.currency)}</strong><br>Purpose: ${escapeHtml(variables.purpose)}<br>Link expires: ${escapeHtml(variables.expiresAt)}</p><p><a href="${escapedUrl}" style="display:inline-block;background:#d9ad55;color:#172235;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:6px">Review Security Deposit</a></p><p>This refundable deposit is separate from visa service fees. No card details are stored by TASHIRA.</p></body></html>`,
     };
   }
   if (template !== "RESUME_LINK") return { ...rendered, html: undefined };

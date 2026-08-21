@@ -123,6 +123,7 @@ export const refundRouter = createRouter({
 
     const refundCaseId = crypto.randomUUID();
     const preparedItems: Array<typeof refundItems.$inferInsert> = [];
+    const depositRequestIds: string[] = [];
     for (const item of input.items) {
       if (item.sourceType === "VISA_SERVICE") {
         assertRefundSource({ sourceType: item.sourceType, paymentId: item.paymentId });
@@ -154,6 +155,7 @@ export const refundRouter = createRouter({
         assertRefundSource({ sourceType: item.sourceType, securityDepositPaymentId: item.securityDepositPaymentId });
         const [deposit] = await tx.select({
           id: securityDepositPayments.id,
+          requestId: securityDepositPayments.requestId,
           amount: securityDepositPayments.amount,
           currency: securityDepositPayments.currency,
         }).from(securityDepositPayments).innerJoin(
@@ -185,6 +187,7 @@ export const refundRouter = createRouter({
           refundAmount: calculation.refundAmount.toFixed(2), currency: currency.parse(deposit.currency),
           idempotencyKey: `refund-${crypto.randomUUID()}`,
         });
+        depositRequestIds.push(deposit.requestId);
       }
     }
 
@@ -201,6 +204,10 @@ export const refundRouter = createRouter({
       requestedBy: actorReference(ctx),
     });
     await tx.insert(refundItems).values(preparedItems);
+    if (depositRequestIds.length > 0) {
+      await tx.update(securityDepositRequests).set({ status: "REFUND_PENDING" })
+        .where(inArray(securityDepositRequests.id, depositRequestIds));
+    }
     await tx.insert(financialEvents).values(preparedItems.map((item) => ({
       id: crypto.randomUUID(),
       applicationId: input.applicationId,
@@ -361,6 +368,26 @@ export const refundRouter = createRouter({
           sourceReference: item.stripeRefundId || claimed.refundCase.id,
           actorReference: actorReference(ctx),
         })));
+      }
+      for (const item of claimed.items.filter((entry) => entry.sourceType === "SECURITY_DEPOSIT" && entry.securityDepositPaymentId)) {
+        const [depositPayment] = await tx.select({
+          requestId: securityDepositPayments.requestId,
+          amount: securityDepositPayments.amount,
+        }).from(securityDepositPayments).where(eq(securityDepositPayments.id, item.securityDepositPaymentId!)).limit(1);
+        if (!depositPayment) continue;
+        const [refunded] = await tx.select({ total: sql<string>`coalesce(sum(${refundItems.refundAmount}), 0)` })
+          .from(refundItems).where(and(
+            eq(refundItems.securityDepositPaymentId, item.securityDepositPaymentId!),
+            eq(refundItems.status, "SUCCEEDED"),
+          ));
+        const refundedAmount = Number(refunded?.total || 0);
+        const depositStatus = refundedAmount >= Number(depositPayment.amount)
+          ? "REFUNDED"
+          : refundedAmount > 0
+            ? "PARTIALLY_REFUNDED"
+            : finalStatus === "PROCESSING" ? "REFUND_PENDING" : "PAID";
+        await tx.update(securityDepositRequests).set({ status: depositStatus })
+          .where(eq(securityDepositRequests.id, depositPayment.requestId));
       }
     });
     return { status: finalStatus, succeededItems: succeeded, totalItems: claimed.items.length };

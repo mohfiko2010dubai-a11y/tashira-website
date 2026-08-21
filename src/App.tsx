@@ -20,6 +20,7 @@ const Legal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Lega
 const Contact = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Contact')));
 const PaymentPage = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/PaymentPage')));
 const Recovery = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Recovery')));
+const SecurityDepositPage = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/SecurityDepositPage')));
 const Dashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Dashboard')));
 const Login = lazy(() => importWithStaleChunkRecovery(() => import('./pages/Login')));
 const NotFound = lazy(() => importWithStaleChunkRecovery(() => import('./pages/NotFound')));
@@ -62,6 +63,7 @@ function AppContent() {
           <Route path="/track" element={<Track />} />
           <Route path="/pay/:referenceNumber" element={<PaymentPage />} />
           <Route path="/recover" element={<Recovery />} />
+          <Route path="/deposit/:token" element={<SecurityDepositPage />} />
           <Route path="/terms" element={<Legal page="terms" />} />
           <Route path="/privacy" element={<Legal page="privacy" />} />
           <Route path="/refund" element={<Legal page="refund" />} />
