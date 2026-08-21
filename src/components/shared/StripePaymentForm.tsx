@@ -9,6 +9,7 @@ import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymen
 import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
 import { trackGoogleEvent, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
 import { PaymentSuccessExperience } from './PaymentSuccessExperience';
+import { validatedStripePublishableKey } from '@/lib/stripe-client-config';
 import { PayerAuthorizationFields } from './PayerAuthorizationFields';
 import {
   PAYER_AUTHORIZATION_VERSION,
@@ -211,14 +212,17 @@ function PaymentFormInner({
 }
 
 export default function StripePaymentForm(props: PaymentFormInnerProps) {
-  const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
-  const stripePromise = stripePublishableKey.startsWith('pk_test_')
+  const stripePublishableKey = validatedStripePublishableKey(
+    import.meta.env.STRIPE_MODE,
+    import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+  );
+  const stripePromise = stripePublishableKey
     ? loadStripe(stripePublishableKey)
     : null;
   if (!stripePromise) {
     return (
       <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
-        Stripe TEST payments are not configured for this environment.
+        Stripe payments are not configured correctly.
       </div>
     );
   }

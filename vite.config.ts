@@ -13,6 +13,11 @@ if (isNativeStaging && !process.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    // STRIPE_MODE is a non-secret deployment setting. Expose only that mode so
+    // the browser can fail closed when it does not match the publishable key.
+    'import.meta.env.STRIPE_MODE': JSON.stringify(process.env.STRIPE_MODE ?? ''),
+  },
   plugins: [
     devServer({ entry: "api/boot.ts", exclude: [/^\/(?!api\/).*$/] }),
     inspectAttr(), react()],

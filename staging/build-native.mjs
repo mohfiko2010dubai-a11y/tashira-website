@@ -10,7 +10,11 @@ if (!publishableKey.startsWith("pk_test_")) {
 
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const result = spawnSync(npmCommand, ["run", "build"], {
-  env: { ...process.env, VITE_STRIPE_PUBLISHABLE_KEY: publishableKey },
+  env: {
+    ...process.env,
+    STRIPE_MODE: "TEST",
+    VITE_STRIPE_PUBLISHABLE_KEY: publishableKey,
+  },
   stdio: "inherit",
 });
 if (result.status !== 0) process.exit(result.status ?? 1);

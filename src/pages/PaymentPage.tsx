@@ -12,6 +12,7 @@ import { paymentViewState } from '@/lib/payment-view-state';
 import { PaymentSuccessExperience } from '@/components/shared/PaymentSuccessExperience';
 import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-preflight';
 import { trackVerifiedPaymentConversion } from '@/lib/google-conversion';
+import { validatedStripePublishableKey } from '@/lib/stripe-client-config';
 import { PayerAuthorizationFields } from '@/components/shared/PayerAuthorizationFields';
 import {
   PAYER_AUTHORIZATION_VERSION,
@@ -20,7 +21,10 @@ import {
   type ThirdPartyPayerRelationship,
 } from '@contracts/payer-authorization';
 
-const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+const stripePublishableKey = validatedStripePublishableKey(
+  import.meta.env.STRIPE_MODE,
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+);
 
 function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
   referenceNumber: string;
@@ -207,7 +211,7 @@ export default function PaymentPage() {
     { enabled: !!referenceNumber && !!app },
   );
   const stripePromise = useMemo(
-    () => readiness.data?.status === 'READY' && stripePublishableKey.startsWith('pk_test_')
+    () => readiness.data?.status === 'READY' && stripePublishableKey
       ? loadStripe(stripePublishableKey)
       : null,
     [readiness.data?.status],
@@ -405,7 +409,7 @@ export default function PaymentPage() {
             </Elements>
           ) : (
             <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
-              Stripe TEST payments are not configured for this environment.
+              Stripe payments are not configured correctly.
             </div>
           )}
         </div>
