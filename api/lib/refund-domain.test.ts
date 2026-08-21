@@ -17,6 +17,7 @@ describe("refund domain", () => {
   it("rejects over-refunds and excessive deductions", () => {
     expect(() => calculateRefund({ paidAmount: 170, requestedAmount: 171, deduction: { type: "NONE" } })).toThrow();
     expect(() => calculateRefund({ paidAmount: 170, requestedAmount: 100, deduction: { type: "FIXED", value: 101 } })).toThrow();
+    expect(() => calculateRefund({ paidAmount: 170, requestedAmount: 100, deduction: { type: "FIXED", value: 100 } })).toThrow();
     expect(() => calculateRefund({ paidAmount: 170, requestedAmount: 100, deduction: { type: "PERCENTAGE", value: 101 } })).toThrow();
   });
 

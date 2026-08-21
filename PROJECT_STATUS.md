@@ -4,7 +4,7 @@ Last verified: 2026-08-21
 
 ## Current state
 
-- Refund/security-deposit program: Phase 1 domain and persistence foundation implemented on the non-production review branch. No migration has been applied and no Stripe refund or deposit request can execute yet.
+- Refund/security-deposit program: Phase 1 persistence plus admin request/review/approval APIs implemented on the non-production review branch. Approval requires administrator re-authentication, reserves refundable balances against duplicate cases, and records immutable timeline evidence. No migration has been applied and no Stripe refund or deposit request can execute yet.
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
 - Current verified implementation: final Payment Successful presentation on `devops/deployment-safety` (commit recorded in Git history).

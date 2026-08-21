@@ -44,6 +44,9 @@ export function calculateRefund(input: {
   if (deductionAmount > requestedAmount) {
     throw new Error("Deduction cannot exceed the requested refund");
   }
+  if (deductionAmount === requestedAmount) {
+    throw new Error("A refund must return a positive amount");
+  }
   return {
     requestedAmount: money(requestedAmount),
     deductionAmount,

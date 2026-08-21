@@ -78,5 +78,5 @@ CREATE TABLE IF NOT EXISTS `refund_items` (
   CONSTRAINT `refund_item_payment_fk` FOREIGN KEY (`payment_id`) REFERENCES `payments` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `refund_item_deposit_payment_fk` FOREIGN KEY (`security_deposit_payment_id`) REFERENCES `security_deposit_payments` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `refund_item_single_source_ck` CHECK ((`refund_source_type` = 'VISA_SERVICE' AND `payment_id` IS NOT NULL AND `security_deposit_payment_id` IS NULL) OR (`refund_source_type` = 'SECURITY_DEPOSIT' AND `payment_id` IS NULL AND `security_deposit_payment_id` IS NOT NULL)),
-  CONSTRAINT `refund_item_amounts_ck` CHECK (`original_amount` > 0 AND `requested_amount` > 0 AND `requested_amount` <= `original_amount` AND `refund_amount` >= 0 AND `refund_amount` <= `requested_amount`)
+  CONSTRAINT `refund_item_amounts_ck` CHECK (`original_amount` > 0 AND `requested_amount` > 0 AND `requested_amount` <= `original_amount` AND `refund_amount` > 0 AND `refund_amount` <= `requested_amount`)
 ) ENGINE=InnoDB;
