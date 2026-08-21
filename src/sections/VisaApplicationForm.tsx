@@ -46,6 +46,7 @@ interface UploadedFile {
 
 const visaOptions = [
   { value: '14days-single', label: '14 Days Visa', labelAr: 'تأشيرة 14 يوم', price: 165 },
+  { value: '14days-multiple', label: '14 Days Multiple', labelAr: 'تأشيرة 14 يوم متعدد', price: 265 },
   { value: '30days-single', label: '30 Days Visa', labelAr: 'تأشيرة 30 يوم', price: 185 },
   { value: '60days-single', label: '60 Days Visa', labelAr: 'تأشيرة 60 يوم', price: 295 },
   { value: '96hours-transit', label: '96 Hours Transit', labelAr: 'تأشيرة عبور 96 ساعة', price: 145 },
