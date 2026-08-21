@@ -10,6 +10,7 @@ import { ViewInvoiceButton, DownloadInvoiceButton } from "@/components/shared/In
 import DocumentManager from "@/components/shared/DocumentManager";
 import type { ApplicationWithLegacyAmount } from "@/types/trpc";
 import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
+import { RefundManager } from "@/components/admin/RefundManager";
 
 const statusColors: Record<string, string> = {
   submitted: "bg-gray-100 text-gray-700",
@@ -397,6 +398,7 @@ export default function AdminApplicationDetail() {
                   </>
                 )}
               </div>
+              <RefundManager applicationId={app.id} />
             </div>
           )}
 

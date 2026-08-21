@@ -55,6 +55,51 @@ export type SafeCardSummary = {
   last4: string;
 };
 
+export type StripeRefundResult = {
+  id: string;
+  payment_intent: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "requires_action" | "succeeded" | "failed" | "canceled";
+};
+
+export async function createStripeRefund(input: {
+  paymentIntentId: string;
+  amountCents: number;
+  idempotencyKey: string;
+  metadata: { refundCaseId: string; refundItemId: string; sourceType: string };
+}): Promise<StripeRefundResult> {
+  if (!/^pi_[a-zA-Z0-9_]+$/.test(input.paymentIntentId)) throw new Error("Invalid PaymentIntent identifier");
+  if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) throw new Error("Refund amount must be positive cents");
+  if (!/^refund-[0-9a-f-]{36}$/u.test(input.idempotencyKey)) throw new Error("Invalid refund idempotency key");
+
+  const response = await fetch("https://api.stripe.com/v1/refunds", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${stripeSecretKey()}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Idempotency-Key": input.idempotencyKey,
+    },
+    body: new URLSearchParams({
+      payment_intent: input.paymentIntentId,
+      amount: String(input.amountCents),
+      "metadata[refundCaseId]": input.metadata.refundCaseId,
+      "metadata[refundItemId]": input.metadata.refundItemId,
+      "metadata[sourceType]": input.metadata.sourceType,
+    }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({})) as { error?: { code?: string; type?: string } };
+    const category = data.error?.code || data.error?.type || `http_${response.status}`;
+    throw new Error(`Stripe refund failed: ${category}`);
+  }
+  const refund = await response.json() as StripeRefundResult;
+  if (!/^re_[a-zA-Z0-9_]+$/.test(refund.id) || refund.payment_intent !== input.paymentIntentId) {
+    throw new Error("Stripe refund response could not be verified");
+  }
+  return refund;
+}
+
 export function formatSafeCardBrand(brand: string) {
   const normalized = brand.trim().toLocaleLowerCase("en-US");
   const known: Record<string, string> = {
