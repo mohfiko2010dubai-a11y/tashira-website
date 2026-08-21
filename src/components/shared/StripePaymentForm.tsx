@@ -7,7 +7,7 @@ import { ViewInvoiceButton, DownloadInvoiceButton } from './InvoiceButton';
 import type { PendingFile, UploadProgress } from '@/hooks/useDocumentUpload';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 import { resetPaymentSuccessViewport } from '@/hooks/usePaymentSuccessViewport';
-import { trackGoogleEvent, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
+import { trackFunnelEventOnce, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
 import { PaymentSuccessExperience } from './PaymentSuccessExperience';
 import { validatedStripePublishableKey } from '@/lib/stripe-client-config';
 import { PayerAuthorizationFields } from './PayerAuthorizationFields';
@@ -74,10 +74,14 @@ function PaymentFormInner({
     if (stripe && elements) paymentElementLoaded();
   }, [elements, paymentElementLoaded, stripe]);
 
+  useEffect(() => {
+    if (readiness.data?.status === 'READY' && readiness.data.paymentStatus !== 'paid') {
+      trackFunnelEventOnce('begin_checkout', referenceNumber, { value: amount, currency });
+    }
+  }, [amount, currency, readiness.data?.paymentStatus, readiness.data?.status, referenceNumber]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Google Ads: Begin checkout conversion
-    trackGoogleEvent('begin_checkout', { value: amount, currency });
     if (!stripe || !elements || readiness.data?.status !== 'READY' || readiness.data.paymentStatus === 'paid') return;
     const thirdParty = isThirdPartyPayer(payerName, applicantData.customerName);
     if (!payerAuthorizationAccepted) {
@@ -131,7 +135,8 @@ function PaymentFormInner({
         });
         paymentTimeline.paymentConfirmed();
         trackVerifiedPaymentConversion({
-          transactionId: confirmedPayment.referenceNumber,
+          paymentStatus: 'succeeded',
+          transactionId: confirmedPayment.stripePaymentIntentId,
           value: confirmedPayment.totalAmount,
           currency: confirmedPayment.currency,
         });
@@ -366,8 +371,6 @@ export function PaymentSuccessModal({
 
     if (failed === 0) {
       setUploadState("success");
-      // Google Ads: Document upload conversion
-      trackGoogleEvent('documents_completed');
     }
     else if (uploaded > 0) setUploadState("partial");
     else setUploadState("failed");

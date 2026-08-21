@@ -1,6 +1,7 @@
-import { verifiedPaymentConversionParameters } from "./google-conversion-decision";
+import { claimAnalyticsEvent, GA4_MEASUREMENT_ID, safeFunnelParameters, verifiedPaymentConversionParameters, type VerifiedPurchaseInput } from "./google-conversion-decision";
 
 type GoogleEventParameters = Record<string, string | number>;
+type FunnelEvent = "begin_application" | "application_submitted" | "begin_checkout";
 
 declare global {
   interface Window {
@@ -9,42 +10,46 @@ declare global {
   }
 }
 
-const googleTagId = import.meta.env.VITE_GOOGLE_TAG_ID?.trim() || "";
-const adsConversionId = import.meta.env.VITE_GOOGLE_ADS_CONVERSION_ID?.trim() || "";
-const adsPurchaseLabel = import.meta.env.VITE_GOOGLE_ADS_PURCHASE_LABEL?.trim() || "";
+const configuredMeasurementId = import.meta.env.VITE_GOOGLE_TAG_ID?.trim() || "";
 let initialized = false;
 
-function isSupportedGoogleTagId(value: string) {
-  return /^(G|AW)-[A-Z0-9]+$/.test(value);
-}
-
-function initializeGoogleTag() {
-  if (initialized || typeof window === "undefined" || !isSupportedGoogleTagId(googleTagId)) return false;
+export function initializeGoogleAnalytics() {
+  if (initialized) return true;
+  if (typeof window === "undefined" || configuredMeasurementId !== GA4_MEASUREMENT_ID) return false;
   initialized = true;
   window.dataLayer = window.dataLayer || [];
   window.gtag = window.gtag || ((...args: unknown[]) => window.dataLayer?.push(args));
 
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleTagId)}`;
-  document.head.appendChild(script);
+  if (!document.querySelector(`script[data-tashira-ga4="${GA4_MEASUREMENT_ID}"]`)) {
+    const script = document.createElement("script");
+    script.async = true;
+    script.dataset.tashiraGa4 = GA4_MEASUREMENT_ID;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA4_MEASUREMENT_ID)}`;
+    document.head.appendChild(script);
+  }
   window.gtag("js", new Date());
-  window.gtag("config", googleTagId, { send_page_view: 1 });
+  window.gtag("config", GA4_MEASUREMENT_ID, { send_page_view: 1 });
   return true;
 }
 
-export function trackGoogleEvent(eventName: string, parameters: GoogleEventParameters = {}) {
-  if (!initializeGoogleTag() || !window.gtag) return false;
-  window.gtag("event", eventName, parameters);
+function once(storage: Storage, key: string, send: () => void) {
+  if (!claimAnalyticsEvent(storage, key)) return false;
+  send();
   return true;
 }
 
-export function trackVerifiedPaymentConversion(input: { transactionId: string; value: number; currency: string }) {
-  const parameters = verifiedPaymentConversionParameters({ conversionId: adsConversionId, purchaseLabel: adsPurchaseLabel }, input);
-  if (!parameters) return false;
-  const storageKey = `tashira_google_purchase_${input.transactionId}`;
-  if (sessionStorage.getItem(storageKey) === "sent") return false;
-  const sent = trackGoogleEvent("purchase", parameters);
-  if (sent) sessionStorage.setItem(storageKey, "sent");
-  return sent;
+export function trackFunnelEventOnce(eventName: FunnelEvent, journeyKey: string, parameters: GoogleEventParameters = {}) {
+  if (!initializeGoogleAnalytics() || !window.gtag) return false;
+  const safeParameters = safeFunnelParameters(eventName, parameters);
+  return once(sessionStorage, `tashira_ga4_${eventName}_${journeyKey}`, () => {
+    window.gtag?.("event", eventName, safeParameters);
+  });
+}
+
+export function trackVerifiedPaymentConversion(input: VerifiedPurchaseInput) {
+  const parameters = verifiedPaymentConversionParameters(input);
+  if (!parameters || !initializeGoogleAnalytics() || !window.gtag) return false;
+  return once(localStorage, `tashira_ga4_purchase_${input.transactionId}`, () => {
+    window.gtag?.("event", "purchase", parameters);
+  });
 }

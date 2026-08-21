@@ -11,6 +11,7 @@ import StripePaymentForm, { PaymentSuccessModal } from '@/components/shared/Stri
 import { useDocumentUpload, type PendingFile } from '@/hooks/useDocumentUpload';
 import type { ApplicationReadiness } from '../../api/lib/application-readiness';
 import { checkoutPreflightDecision, completionPanelGroups } from '@/lib/checkout-preflight';
+import { trackFunnelEventOnce } from '@/lib/google-conversion';
 
 type BaseType = 'single' | 'family';
 type ResidenceType = 'non-gcc' | 'gcc-resident' | 'gcc-accompany' | 'non-gcc-accompany';
@@ -208,6 +209,7 @@ export default function VisaApplicationForm() {
   };
 
   const handleBaseTypeChange = (type: BaseType) => {
+    trackFunnelEventOnce('begin_application', 'primary-form');
     setBaseType(type);
     if (type === 'family') {
       setNumApplicants(2);
@@ -238,6 +240,10 @@ export default function VisaApplicationForm() {
 
   const submitApplication = trpc.application.create.useMutation({
     onSuccess: async (data) => {
+      trackFunnelEventOnce('application_submitted', data.referenceNumber, {
+        applicant_count: applicants.length,
+        application_type: baseType || 'single',
+      });
       setReferenceNumber(data.referenceNumber);
       setApplicationId(data.id);
       const uploadResult = await uploadFiles(collectPendingFiles(), data.id, data.applicantIds, email);

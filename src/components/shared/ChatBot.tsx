@@ -12,6 +12,7 @@ import {
   type ChatbotApplicant,
 } from '@/lib/chatbot-application';
 import { ChatbotReview } from './ChatbotReview';
+import { trackFunnelEventOnce } from '@/lib/google-conversion';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -409,9 +410,11 @@ export default function ChatBot() {
       case 'who_traveling': {
         const choice = msg.toLowerCase();
         if (choice.includes('single') || choice.includes('1') || choice === 's') {
+          trackFunnelEventOnce('begin_application', 'chatbot');
           advance({ whoTraveling: 'Single', applicantCount: 1, step: 'residence_status' },
             '**What is your residence status?**');
         } else if (choice.includes('family') || choice.includes('multiple') || choice === 'f') {
+          trackFunnelEventOnce('begin_application', 'chatbot');
           advance({ whoTraveling: 'Family', step: 'applicant_count' },
             '**How many applicants?** (2-20)');
         } else {
@@ -755,6 +758,10 @@ export default function ChatBot() {
             {
               onSuccess: (result) => {
                 const authoritativeTotal = result.quote.totalPrice;
+                trackFunnelEventOnce('application_submitted', refNum, {
+                  applicant_count: w.applicantCount,
+                  application_type: w.whoTraveling.toLowerCase(),
+                });
                 localStorage.removeItem(CHATBOT_RESUME_KEY);
                 advance(
                   {
