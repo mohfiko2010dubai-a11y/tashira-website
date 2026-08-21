@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import {
   applicationPriceSnapshots, applications, businessSettingsVersions, financialEvents,
   payments, pricingRules, applicationTimelineEvents, applicants,
@@ -121,6 +121,8 @@ export const businessRouter = createRouter({
 
   cockpit: adminQuery.query(async () => {
     const db = getDb();
+    const liveOnly = eq(applications.dataClassification, "LIVE");
+    const livePaid = and(liveOnly, eq(applications.paymentStatus, "paid"));
     const [sales, paymentCounts, eventCounts, settings, abandonmentRows, visaRows, countryRows, monthlyTrend] = await Promise.all([
       db.select({
         revenue: sql<number>`coalesce(sum(${applicationPriceSnapshots.totalInBaseCurrency}), 0)`,
@@ -129,23 +131,29 @@ export const businessRouter = createRouter({
         orders: sql<number>`count(*)`,
       }).from(applicationPriceSnapshots)
         .innerJoin(applications, eq(applicationPriceSnapshots.applicationId, applications.id))
-        .where(eq(applications.paymentStatus, "paid")).then((rows) => rows[0]),
-      db.select({ status: payments.status, count: sql<number>`count(*)` }).from(payments).groupBy(payments.status),
-      db.select({ type: financialEvents.eventType, count: sql<number>`count(*)` }).from(financialEvents).groupBy(financialEvents.eventType),
+        .where(livePaid).then((rows) => rows[0]),
+      db.select({ status: payments.status, count: sql<number>`count(*)` }).from(payments)
+        .innerJoin(applications, eq(payments.applicationId, applications.id))
+        .where(liveOnly).groupBy(payments.status),
+      db.select({ type: financialEvents.eventType, count: sql<number>`count(*)` }).from(financialEvents)
+        .leftJoin(applications, eq(financialEvents.applicationId, applications.id))
+        .where(or(isNull(financialEvents.applicationId), liveOnly)).groupBy(financialEvents.eventType),
       activeBusinessSettings(),
       db.select({ count: sql<number>`count(*)` }).from(applicationTimelineEvents)
-        .where(eq(applicationTimelineEvents.eventName, "CHECKOUT_ABANDONED")),
+        .innerJoin(applications, eq(applicationTimelineEvents.applicationId, applications.id))
+        .where(and(liveOnly, eq(applicationTimelineEvents.eventName, "CHECKOUT_ABANDONED"))),
       db.select({ label: applications.visaType, count: sql<number>`count(*)` }).from(applications)
-        .groupBy(applications.visaType).orderBy(desc(sql`count(*)`)).limit(10),
+        .where(liveOnly).groupBy(applications.visaType).orderBy(desc(sql`count(*)`)).limit(10),
       db.select({ label: applicants.nationality, count: sql<number>`count(*)` }).from(applicants)
-        .groupBy(applicants.nationality).orderBy(desc(sql`count(*)`)).limit(10),
+        .innerJoin(applications, eq(applicants.applicationId, applications.id))
+        .where(liveOnly).groupBy(applicants.nationality).orderBy(desc(sql`count(*)`)).limit(10),
       db.select({
         month: sql<string>`date_format(${applications.createdAt}, '%Y-%m')`,
         revenue: sql<number>`coalesce(sum(${applicationPriceSnapshots.totalInBaseCurrency}), 0)`,
         orders: sql<number>`count(*)`,
       }).from(applicationPriceSnapshots)
         .innerJoin(applications, eq(applicationPriceSnapshots.applicationId, applications.id))
-        .where(eq(applications.paymentStatus, "paid"))
+        .where(livePaid)
         .groupBy(sql`date_format(${applications.createdAt}, '%Y-%m')`)
         .orderBy(sql`date_format(${applications.createdAt}, '%Y-%m')`),
     ]);

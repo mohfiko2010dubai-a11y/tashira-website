@@ -168,16 +168,15 @@ export const applicationRouter = createRouter({
       const limit = input?.limit || 100;
       const offset = input?.offset || 0;
 
-      const conditions = [];
+      const conditions = [eq(applications.dataClassification, "LIVE")];
 
       if (input?.status) conditions.push(eq(applications.status, input.status));
       if (input?.dateFrom) conditions.push(gte(applications.createdAt, new Date(input.dateFrom)));
       if (input?.dateTo) conditions.push(lte(applications.createdAt, new Date(input.dateTo + 'T23:59:59')));
 
       const query = db.select().from(applications);
-      const allApps = conditions.length > 0
-        ? await query.where(and(...conditions)).orderBy(desc(applications.createdAt)).limit(limit).offset(offset)
-        : await query.orderBy(desc(applications.createdAt)).limit(limit).offset(offset);
+      const allApps = await query.where(and(...conditions))
+        .orderBy(desc(applications.createdAt)).limit(limit).offset(offset);
 
       const result = await Promise.all(allApps.map(async (app) => {
         const applicantList = await db.select().from(applicants)
@@ -271,26 +270,29 @@ export const applicationRouter = createRouter({
     const db = getDb();
     const settings = await activeBusinessSettings();
     const usdToBaseRate = Number(settings.usdToBaseRate);
-    const [total] = await db.select({ count: sql<number>`count(*)` }).from(applications);
-    const [paid] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+    const liveOnly = eq(applications.dataClassification, "LIVE");
+    const livePaid = and(liveOnly, eq(applications.paymentStatus, "paid"));
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(liveOnly);
+    const [paid] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(livePaid);
 
     // Revenue in AED
     let revenueAed;
     try {
-      [revenueAed] = await db.select({ total: sql<number>`coalesce(sum(total_amount_aed),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+      [revenueAed] = await db.select({ total: sql<number>`coalesce(sum(total_amount_aed),0)` }).from(applications).where(livePaid);
     } catch {
-      [revenueAed] = await db.select({ total: sql<number>`coalesce(sum(total_amount),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+      [revenueAed] = await db.select({ total: sql<number>`coalesce(sum(total_amount),0)` }).from(applications).where(livePaid);
     }
 
     // Costs in AED
     let costsAed;
     try {
-      [costsAed] = await db.select({ total: sql<number>`coalesce(sum(supplier_cost_aed),0)` }).from(applications).where(eq(applications.paymentStatus, "paid"));
+      [costsAed] = await db.select({ total: sql<number>`coalesce(sum(supplier_cost_aed),0)` }).from(applications).where(livePaid);
     } catch {
       costsAed = { total: 0 };
     }
 
-    const [familyCount] = await db.select({ count: sql<number>`count(*)` }).from(applications).where(eq(applications.baseType, "family"));
+    const [familyCount] = await db.select({ count: sql<number>`count(*)` }).from(applications)
+      .where(and(liveOnly, eq(applications.baseType, "family")));
 
     const revAed = Number(revenueAed?.total || 0);
     const costAed = Number(costsAed?.total || 0);
