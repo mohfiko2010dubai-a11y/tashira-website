@@ -11,7 +11,7 @@ import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymen
 import { paymentViewState } from '@/lib/payment-view-state';
 import { PaymentSuccessExperience } from '@/components/shared/PaymentSuccessExperience';
 import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-preflight';
-import { trackVerifiedPaymentConversion } from '@/lib/google-conversion';
+import { trackFunnelEventOnce, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
 import { validatedStripePublishableKey } from '@/lib/stripe-client-config';
 import { PayerAuthorizationFields } from '@/components/shared/PayerAuthorizationFields';
 import {
@@ -50,6 +50,10 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
   useEffect(() => {
     if (stripe && elements) paymentElementLoaded();
   }, [elements, paymentElementLoaded, stripe]);
+
+  useEffect(() => {
+    trackFunnelEventOnce('begin_checkout', referenceNumber, { value: amount, currency: 'USD' });
+  }, [amount, referenceNumber]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +118,8 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
         });
         paymentTimeline.paymentConfirmed();
         trackVerifiedPaymentConversion({
-          transactionId: confirmedPayment.referenceNumber,
+          paymentStatus: 'succeeded',
+          transactionId: confirmedPayment.stripePaymentIntentId,
           value: confirmedPayment.totalAmount,
           currency: confirmedPayment.currency,
         });

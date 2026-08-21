@@ -4,6 +4,9 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { TRPCProvider } from '@/providers/trpc'
 import './index.css'
 import App from './App'
+import { initializeGoogleAnalytics } from './lib/google-conversion'
+
+initializeGoogleAnalytics()
 
 const router = createBrowserRouter([
   { path: '*', element: <App /> }
