@@ -17,6 +17,7 @@ Last verified: 2026-08-21
 
 ## Completed capabilities
 
+- Production test data can now be retained as immutable evidence while being excluded from normal operations through an explicit `LIVE`/`TEST` application classification. Administrative and staff application lists, headline analytics, invoices/VAT consumers, and the finance cockpit filter to `LIVE` records server-side. Migration 009 is non-destructive and defaults every new application to `LIVE`; marking the inventoried pre-launch Production applications as `TEST` remains a separately authorized guarded database operation after deployment.
 - Stripe runtime mode is now explicit and fail-closed: the protected workflow maps `PRELIVE` to `TEST` and `LIVE` to `LIVE`, boot rejects incomplete or mixed credentials, LIVE webhook signatures/events are accepted only in LIVE mode, and the existing three-event allowlist, idempotency, amounts, and payment finalization behavior remain unchanged. Local gates passed with 181 tests and a production build; no LIVE credential was configured and no payment occurred.
 - Isolated native staging with separate checkout, MySQL database/user, filesystem storage, logs, port, and PM2 process.
 - Migration 005 reviewed, hardened, applied only to `tashira_staging`, and verified with 16 append-only triggers.

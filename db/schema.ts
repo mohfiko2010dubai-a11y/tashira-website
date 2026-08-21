@@ -54,6 +54,7 @@ export const applications = mysqlTable("applications", {
   invoiceNumber: varchar("invoice_number", { length: 50 }),
   invoicePdfPath: varchar("invoice_pdf_path", { length: 255 }),
   invoicePdfUrl: varchar("invoice_pdf_url", { length: 255 }),
+  dataClassification: mysqlEnum("data_classification", ["LIVE", "TEST"]).default("LIVE").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
 });
