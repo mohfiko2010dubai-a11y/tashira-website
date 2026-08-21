@@ -277,6 +277,89 @@ export const financialEvents = mysqlTable("financial_events", {
   foreignKey({ name: "financial_event_payment_fk", columns: [table.paymentId], foreignColumns: [payments.id] }).onDelete("restrict"),
 ]);
 
+export const securityDepositRequests = mysqlTable("security_deposit_requests", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  status: mysqlEnum("security_deposit_status", [
+    "DRAFT", "SENT", "ACCEPTED", "DECLINED", "PAYMENT_PENDING", "PAID",
+    "REFUND_PENDING", "PARTIALLY_REFUNDED", "REFUNDED", "CANCELLED", "EXPIRED",
+  ]).default("DRAFT").notNull(),
+  purpose: varchar("purpose", { length: 255 }).notNull(),
+  accessTokenHash: varchar("access_token_hash", { length: 64 }).notNull().unique(),
+  expiresAt: datetime("expires_at").notNull(),
+  requestedBy: varchar("requested_by", { length: 100 }).notNull(),
+  sentAt: datetime("sent_at"),
+  acceptedAt: datetime("accepted_at"),
+  declinedAt: datetime("declined_at"),
+  paidAt: datetime("paid_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  index("security_deposit_application_idx").on(table.applicationId, table.createdAt),
+  foreignKey({ name: "security_deposit_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
+]);
+
+export const securityDepositPayments = mysqlTable("security_deposit_payments", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  requestId: varchar("request_id", { length: 36 }).notNull(),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 100 }).notNull().unique(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  status: mysqlEnum("security_deposit_payment_status", ["PENDING", "SUCCEEDED", "FAILED"]).default("PENDING").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  uniqueIndex("security_deposit_payment_request_uq").on(table.requestId),
+  foreignKey({ name: "security_deposit_payment_request_fk", columns: [table.requestId], foreignColumns: [securityDepositRequests.id] }).onDelete("restrict"),
+]);
+
+export const refundCases = mysqlTable("refund_cases", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
+  status: mysqlEnum("refund_case_status", [
+    "DRAFT", "PENDING_APPROVAL", "APPROVED", "PROCESSING", "PARTIALLY_REFUNDED",
+    "REFUNDED", "FAILED", "CANCELLED",
+  ]).default("DRAFT").notNull(),
+  reason: varchar("reason", { length: 500 }).notNull(),
+  policyVersion: varchar("policy_version", { length: 50 }).notNull(),
+  requestedBy: varchar("requested_by", { length: 100 }).notNull(),
+  approvedBy: varchar("approved_by", { length: 100 }),
+  approvedAt: datetime("approved_at"),
+  completedAt: datetime("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  index("refund_case_application_idx").on(table.applicationId, table.createdAt),
+  foreignKey({ name: "refund_case_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
+]);
+
+export const refundItems = mysqlTable("refund_items", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  refundCaseId: varchar("refund_case_id", { length: 36 }).notNull(),
+  sourceType: mysqlEnum("refund_source_type", ["VISA_SERVICE", "SECURITY_DEPOSIT"]).notNull(),
+  paymentId: bigint("payment_id", { mode: "number", unsigned: true }),
+  securityDepositPaymentId: varchar("security_deposit_payment_id", { length: 36 }),
+  originalAmount: decimal("original_amount", { precision: 12, scale: 2 }).notNull(),
+  requestedAmount: decimal("requested_amount", { precision: 12, scale: 2 }).notNull(),
+  deductionType: mysqlEnum("refund_deduction_type", ["NONE", "PERCENTAGE", "FIXED", "ACTUAL_COSTS"]).notNull(),
+  deductionValue: decimal("deduction_value", { precision: 12, scale: 4 }).notNull(),
+  refundAmount: decimal("refund_amount", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull(),
+  status: mysqlEnum("refund_item_status", ["PENDING", "PROCESSING", "SUCCEEDED", "FAILED", "CANCELLED"]).default("PENDING").notNull(),
+  stripeRefundId: varchar("stripe_refund_id", { length: 100 }).unique(),
+  idempotencyKey: varchar("idempotency_key", { length: 100 }).notNull().unique(),
+  failureCategory: varchar("failure_category", { length: 80 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+}, (table) => [
+  index("refund_item_case_idx").on(table.refundCaseId, table.createdAt),
+  foreignKey({ name: "refund_item_case_fk", columns: [table.refundCaseId], foreignColumns: [refundCases.id] }).onDelete("restrict"),
+  foreignKey({ name: "refund_item_payment_fk", columns: [table.paymentId], foreignColumns: [payments.id] }).onDelete("restrict"),
+  foreignKey({ name: "refund_item_deposit_payment_fk", columns: [table.securityDepositPaymentId], foreignColumns: [securityDepositPayments.id] }).onDelete("restrict"),
+]);
+
 export const applicationRiskAssessments = mysqlTable("application_risk_assessments", {
   id: varchar("id", { length: 36 }).primaryKey(),
   applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),

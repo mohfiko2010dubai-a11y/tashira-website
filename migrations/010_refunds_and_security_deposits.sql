@@ -1,0 +1,82 @@
+CREATE TABLE IF NOT EXISTS `security_deposit_requests` (
+  `id` varchar(36) NOT NULL,
+  `application_id` bigint unsigned NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `currency` varchar(3) NOT NULL,
+  `security_deposit_status` enum('DRAFT','SENT','ACCEPTED','DECLINED','PAYMENT_PENDING','PAID','REFUND_PENDING','PARTIALLY_REFUNDED','REFUNDED','CANCELLED','EXPIRED') NOT NULL DEFAULT 'DRAFT',
+  `purpose` varchar(255) NOT NULL,
+  `access_token_hash` varchar(64) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `requested_by` varchar(100) NOT NULL,
+  `sent_at` datetime NULL,
+  `accepted_at` datetime NULL,
+  `declined_at` datetime NULL,
+  `paid_at` datetime NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `security_deposit_access_token_uq` (`access_token_hash`),
+  KEY `security_deposit_application_idx` (`application_id`,`created_at`),
+  CONSTRAINT `security_deposit_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `security_deposit_payments` (
+  `id` varchar(36) NOT NULL,
+  `request_id` varchar(36) NOT NULL,
+  `stripe_payment_intent_id` varchar(100) NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `currency` varchar(3) NOT NULL,
+  `security_deposit_payment_status` enum('PENDING','SUCCEEDED','FAILED') NOT NULL DEFAULT 'PENDING',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `security_deposit_payment_request_uq` (`request_id`),
+  UNIQUE KEY `security_deposit_payment_intent_uq` (`stripe_payment_intent_id`),
+  CONSTRAINT `security_deposit_payment_request_fk` FOREIGN KEY (`request_id`) REFERENCES `security_deposit_requests` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `refund_cases` (
+  `id` varchar(36) NOT NULL,
+  `application_id` bigint unsigned NOT NULL,
+  `refund_case_status` enum('DRAFT','PENDING_APPROVAL','APPROVED','PROCESSING','PARTIALLY_REFUNDED','REFUNDED','FAILED','CANCELLED') NOT NULL DEFAULT 'DRAFT',
+  `reason` varchar(500) NOT NULL,
+  `policy_version` varchar(50) NOT NULL,
+  `requested_by` varchar(100) NOT NULL,
+  `approved_by` varchar(100) NULL,
+  `approved_at` datetime NULL,
+  `completed_at` datetime NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `refund_case_application_idx` (`application_id`,`created_at`),
+  CONSTRAINT `refund_case_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `refund_items` (
+  `id` varchar(36) NOT NULL,
+  `refund_case_id` varchar(36) NOT NULL,
+  `refund_source_type` enum('VISA_SERVICE','SECURITY_DEPOSIT') NOT NULL,
+  `payment_id` bigint unsigned NULL,
+  `security_deposit_payment_id` varchar(36) NULL,
+  `original_amount` decimal(12,2) NOT NULL,
+  `requested_amount` decimal(12,2) NOT NULL,
+  `refund_deduction_type` enum('NONE','PERCENTAGE','FIXED','ACTUAL_COSTS') NOT NULL,
+  `deduction_value` decimal(12,4) NOT NULL,
+  `refund_amount` decimal(12,2) NOT NULL,
+  `currency` varchar(3) NOT NULL,
+  `refund_item_status` enum('PENDING','PROCESSING','SUCCEEDED','FAILED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+  `stripe_refund_id` varchar(100) NULL,
+  `idempotency_key` varchar(100) NOT NULL,
+  `failure_category` varchar(80) NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `refund_item_stripe_refund_uq` (`stripe_refund_id`),
+  UNIQUE KEY `refund_item_idempotency_uq` (`idempotency_key`),
+  KEY `refund_item_case_idx` (`refund_case_id`,`created_at`),
+  CONSTRAINT `refund_item_case_fk` FOREIGN KEY (`refund_case_id`) REFERENCES `refund_cases` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `refund_item_payment_fk` FOREIGN KEY (`payment_id`) REFERENCES `payments` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `refund_item_deposit_payment_fk` FOREIGN KEY (`security_deposit_payment_id`) REFERENCES `security_deposit_payments` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `refund_item_single_source_ck` CHECK ((`refund_source_type` = 'VISA_SERVICE' AND `payment_id` IS NOT NULL AND `security_deposit_payment_id` IS NULL) OR (`refund_source_type` = 'SECURITY_DEPOSIT' AND `payment_id` IS NULL AND `security_deposit_payment_id` IS NOT NULL)),
+  CONSTRAINT `refund_item_amounts_ck` CHECK (`original_amount` > 0 AND `requested_amount` > 0 AND `requested_amount` <= `original_amount` AND `refund_amount` >= 0 AND `refund_amount` <= `requested_amount`)
+) ENGINE=InnoDB;
