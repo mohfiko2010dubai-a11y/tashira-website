@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { applications, outboundEmailEvents, refundCases, refundItems } from "../../db/schema";
 import { getDb } from "../queries/connection";
 import { transactionalEmailProvider } from "./email-provider";
@@ -28,35 +28,18 @@ export async function sendRefundOutcomeEmail(refundCaseId: string) {
   for (const item of succeededItems) totals.set(item.currency, (totals.get(item.currency) || 0) + Number(item.amount));
   const refundSummary = [...totals].map(([currency, amount]) => `${currency} ${amount.toFixed(2)}`).join(" and ");
   const sourceReference = refundOutcomeEmailIdempotencyKey(refundCaseId);
-  const claimId = crypto.randomUUID();
-  await db.insert(outboundEmailEvents).values({
-    id: claimId,
-    applicationId: details.applicationId,
-    template: "REFUND_COMPLETED",
-    sourceReference,
-    recipientHash: recipientHash(details.recipient),
-    provider: "pending",
-    status: "QUEUED",
-  }).onDuplicateKeyUpdate({ set: { id: sql`${outboundEmailEvents.id}` } });
-
-  const [claim] = await db.select({ id: outboundEmailEvents.id, status: outboundEmailEvents.status })
+  const [alreadySent] = await db.select({ id: outboundEmailEvents.id })
     .from(outboundEmailEvents).where(and(
       eq(outboundEmailEvents.template, "REFUND_COMPLETED"),
       eq(outboundEmailEvents.sourceReference, sourceReference),
+      eq(outboundEmailEvents.status, "SENT"),
     )).limit(1);
-  if (!claim) throw new Error("Refund email claim was not recorded");
-  if (claim.id !== claimId) {
-    if (claim.status === "SENT") return { status: "ALREADY_SENT" as const };
-    if (claim.status === "QUEUED") return { status: "IN_PROGRESS" as const };
-    const reclaimed = await db.update(outboundEmailEvents).set({ status: "QUEUED", failureCategory: null })
-      .where(and(eq(outboundEmailEvents.id, claim.id), inArray(outboundEmailEvents.status, ["FAILED", "SUPPRESSED"])));
-    if (Number(reclaimed[0].affectedRows) !== 1) return { status: "IN_PROGRESS" as const };
-  }
+  if (alreadySent) return { status: "ALREADY_SENT" as const };
 
+  let providerName = "unavailable";
   try {
     const provider = transactionalEmailProvider();
-    await db.update(outboundEmailEvents).set({ provider: provider.name })
-      .where(and(eq(outboundEmailEvents.id, claim.id), eq(outboundEmailEvents.status, "QUEUED")));
+    providerName = provider.name;
     const sent = await provider.send({
       recipient: details.recipient,
       template: "REFUND_COMPLETED",
@@ -67,12 +50,28 @@ export async function sendRefundOutcomeEmail(refundCaseId: string) {
         statusLabel: details.status === "REFUNDED" ? "Refunded" : "Partially Refunded",
       },
     });
-    await db.update(outboundEmailEvents).set({ status: "SENT", providerReference: sent.reference, failureCategory: null })
-      .where(and(eq(outboundEmailEvents.id, claim.id), eq(outboundEmailEvents.status, "QUEUED")));
+    try {
+      await db.insert(outboundEmailEvents).values({
+        id: crypto.randomUUID(), applicationId: details.applicationId, template: "REFUND_COMPLETED",
+        sourceReference, recipientHash: recipientHash(details.recipient), provider: provider.name,
+        status: "SENT", providerReference: sent.reference,
+      });
+    } catch {
+      const [concurrentSent] = await db.select({ id: outboundEmailEvents.id }).from(outboundEmailEvents).where(and(
+        eq(outboundEmailEvents.template, "REFUND_COMPLETED"),
+        eq(outboundEmailEvents.sourceReference, sourceReference),
+        eq(outboundEmailEvents.status, "SENT"),
+      )).limit(1);
+      if (concurrentSent) return { status: "ALREADY_SENT" as const };
+      throw new Error("Refund email evidence could not be recorded");
+    }
     return { status: "SENT" as const };
   } catch {
-    await db.update(outboundEmailEvents).set({ status: "FAILED", failureCategory: "refund_delivery_failed" })
-      .where(and(eq(outboundEmailEvents.id, claim.id), eq(outboundEmailEvents.status, "QUEUED")));
+    await db.insert(outboundEmailEvents).values({
+      id: crypto.randomUUID(), applicationId: details.applicationId, template: "REFUND_COMPLETED",
+      sourceReference, recipientHash: recipientHash(details.recipient), provider: providerName,
+      status: "FAILED", failureCategory: "refund_delivery_failed",
+    });
     return { status: "FAILED" as const };
   }
 }

@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { refundOutcomeEmailIdempotencyKey } from "./email-idempotency";
 import { renderTransactionalEmail } from "./transactional-email";
@@ -17,5 +18,13 @@ describe("refund outcome email", () => {
     expect(email.body).toContain("AED 2450.00");
     expect(email.body).toContain("Refunded");
     expect(email.body).not.toMatch(/card|passport|CVC|expiry/iu);
+  });
+
+  it("keeps email evidence append-only while deduplicating only successful sends", async () => {
+    const source = await readFile(new URL("./refund-outcome-email.ts", import.meta.url), "utf8");
+    const migration = await readFile(new URL("../../migrations/013_refund_email_append_only_idempotency.sql", import.meta.url), "utf8");
+    expect(source).not.toContain("update(outboundEmailEvents)");
+    expect(migration).toContain("CASE WHEN `email_status` = 'SENT'");
+    expect(migration).toContain("outbound_email_template_sent_source_uq");
   });
 });

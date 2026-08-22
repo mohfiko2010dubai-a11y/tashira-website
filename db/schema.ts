@@ -450,7 +450,6 @@ export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("outbound_email_application_idx").on(table.applicationId, table.createdAt),
-  uniqueIndex("outbound_email_template_source_uq").on(table.template, table.sourceReference),
   foreignKey({ name: "outbound_email_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
 ]);
 
