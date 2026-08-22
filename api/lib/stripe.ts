@@ -138,6 +138,24 @@ export async function createStripeRefund(input: {
   return refund;
 }
 
+export async function retrieveStripeRefund(refundId: string, expectedPaymentIntentId: string): Promise<StripeRefundResult> {
+  if (!/^re_[a-zA-Z0-9_]+$/u.test(refundId)) throw new Error("Invalid Stripe refund identifier");
+  if (!/^pi_[a-zA-Z0-9_]+$/u.test(expectedPaymentIntentId)) throw new Error("Invalid PaymentIntent identifier");
+  const response = await fetch(`https://api.stripe.com/v1/refunds/${encodeURIComponent(refundId)}`, {
+    headers: { Authorization: `Bearer ${stripeSecretKey()}` },
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({})) as { error?: { code?: string; type?: string } };
+    const category = data.error?.code || data.error?.type || `http_${response.status}`;
+    throw new Error(`Stripe refund retrieval failed: ${category}`);
+  }
+  const refund = await response.json() as StripeRefundResult;
+  if (refund.id !== refundId || refund.payment_intent !== expectedPaymentIntentId) {
+    throw new Error("Stripe refund ownership could not be verified");
+  }
+  return refund;
+}
+
 export function formatSafeCardBrand(brand: string) {
   const normalized = brand.trim().toLocaleLowerCase("en-US");
   const known: Record<string, string> = {

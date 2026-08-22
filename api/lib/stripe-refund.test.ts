@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./stripe-runtime", () => ({ stripeSecretKey: () => "sk_test_fixture" }));
 
-import { createStripeRefund } from "./stripe";
+import { createStripeRefund, retrieveStripeRefund } from "./stripe";
+import { reconcileRefundStatus } from "./refund-domain";
 
 describe("Stripe refund request", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -35,5 +36,22 @@ describe("Stripe refund request", () => {
       metadata: { refundCaseId: "case", refundItemId: "item", sourceType: "VISA_SERVICE" },
     })).rejects.toThrow("Invalid PaymentIntent");
     expect(request).not.toHaveBeenCalled();
+  });
+
+  it("retrieves only the expected Stripe refund owner", async () => {
+    const request = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      id: "re_fixture", payment_intent: "pi_fixture", amount: 980, currency: "aed", status: "pending",
+    }), { status: 200 })));
+    vi.stubGlobal("fetch", request);
+    await expect(retrieveStripeRefund("re_fixture", "pi_fixture")).resolves.toMatchObject({ status: "pending" });
+    await expect(retrieveStripeRefund("re_fixture", "pi_other")).rejects.toThrow("ownership");
+  });
+
+  it("maps every Stripe refund outcome without treating pending as complete", () => {
+    expect(reconcileRefundStatus("succeeded")).toBe("SUCCEEDED");
+    expect(reconcileRefundStatus("pending")).toBe("PROCESSING");
+    expect(reconcileRefundStatus("requires_action")).toBe("PROCESSING");
+    expect(reconcileRefundStatus("failed")).toBe("FAILED");
+    expect(reconcileRefundStatus("canceled")).toBe("FAILED");
   });
 });

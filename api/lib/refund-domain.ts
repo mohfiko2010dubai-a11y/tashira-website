@@ -68,3 +68,9 @@ export function assertRefundSource(input: {
     throw new Error("Security-deposit refunds require only the deposit payment");
   }
 }
+
+export function reconcileRefundStatus(status: "pending" | "requires_action" | "succeeded" | "failed" | "canceled") {
+  if (status === "succeeded") return "SUCCEEDED" as const;
+  if (status === "pending" || status === "requires_action") return "PROCESSING" as const;
+  return "FAILED" as const;
+}
