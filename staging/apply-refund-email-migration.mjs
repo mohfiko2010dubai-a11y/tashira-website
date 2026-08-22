@@ -22,7 +22,7 @@ try {
   }
 
   const [templateRows] = await connection.query(
-    "SELECT column_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND column_name = 'email_template'",
+    "SELECT COLUMN_TYPE AS column_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND column_name = 'email_template'",
   );
   const [sourceRows] = await connection.query(
     "SELECT COUNT(*) AS column_count FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND column_name = 'source_reference'",
@@ -43,7 +43,7 @@ try {
   }
 
   const [verifiedTemplateRows] = await connection.query(
-    "SELECT column_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND column_name = 'email_template'",
+    "SELECT COLUMN_TYPE AS column_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND column_name = 'email_template'",
   );
   const [verifiedSourceRows] = await connection.query(
     "SELECT COUNT(*) AS column_count FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND column_name = 'source_reference'",
