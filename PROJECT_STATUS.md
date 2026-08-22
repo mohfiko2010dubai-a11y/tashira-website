@@ -8,12 +8,12 @@ Last verified: 2026-08-22
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
 - Current verified implementation: final Payment Successful presentation on `devops/deployment-safety` (commit recorded in Git history).
-- CI: refund-reconciliation commit `2903e56` is GREEN; local quality gates are GREEN for the customer refund-notification phase and review-branch CI will run after its commit.
-- Tests: 209/209 passing across 50 files.
+- CI: latest refund-notification evidence commit `e0f52fc` is GREEN (`32567440238`).
+- Tests: 210/210 passing across 50 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
-- Verified launch readiness: 92%.
+- Verified launch readiness: 96%.
 - Classification: C — Not Launch Candidate.
 
 ## Completed capabilities
@@ -24,7 +24,8 @@ Last verified: 2026-08-22
 - Isolated staging migrations 009–011 are applied after a root-only database/code rollback snapshot at `/var/backups/tashira-staging/20260822T000824Z`. The canonical staging deployment passed, both Production and staging remained HTTP 200, and the staging document fingerprint remained unchanged. Synthetic UAT `TSH-DEPOSIT-UAT-1787357952121` verified one allowed-recipient deposit email, an exact AED 10.00 TEST deposit, a transparent 2% deduction, one AED 9.80 TEST refund, replay rejection, and single-instance evidence.
 - Signed Stripe webhooks now finalize security deposits independently of the customer's browser return. The handler resolves ownership from the deposit request, re-retrieves the PaymentIntent, verifies exact AED amount and request metadata, records failure safely, and shares an idempotent finalizer with the customer confirmation API. Focused staging UAT `TSH-DEPOSIT-UAT-1787358318791` passed webhook finalization, duplicate-event rejection, customer confirmation replay, and the subsequent single-instance refund.
 - Administrators can now safely reconcile asynchronous Stripe refund outcomes that remain `PROCESSING`. Reconciliation requires re-authentication and an explicit confirmation phrase, verifies every Stripe refund still belongs to its original PaymentIntent, preserves pending states, records final timeline/financial evidence once, and synchronizes the associated security-deposit state without duplicating a refund.
-- Completed and partially completed refunds now produce one idempotent customer notification per refund case. A durable source-scoped email claim prevents concurrent duplicates, failed delivery is recorded and retryable, mixed-currency cases are summarized without storing payment-card data, and email failure remains isolated from authoritative Stripe/refund truth. Migration 012 adds only the refund template and source-scoped evidence key; it is not applied outside isolated staging.
+- Completed and partially completed refunds now produce one idempotent customer notification per refund case. Immutable append-only delivery evidence records final `SENT` or retryable `FAILED` attempts without updating historical rows, while a generated sent-only uniqueness key prevents duplicate successful delivery. Migrations 012 and 013 are applied only to isolated staging after a verified backup at `/var/backups/tashira-staging/20260822T095902Z-refund-email`; the exact deployed commit is `e0f52fc`.
+- Focused staging refund-notification UAT for `TSH-DEPOSIT-UAT-1787358318791` verified one final `SENT` evidence row with a provider reference, preserved the earlier historical `QUEUED` attempt, and returned `ALREADY_SENT` on replay. Production and staging remained HTTP 200, and the staging document fingerprint remained unchanged.
 
 - Production test data can now be retained as immutable evidence while being excluded from normal operations through an explicit `LIVE`/`TEST` application classification. Administrative and staff application lists, headline analytics, invoices/VAT consumers, and the finance cockpit filter to `LIVE` records server-side. Migration 009 is non-destructive and defaults every new application to `LIVE`; marking the inventoried pre-launch Production applications as `TEST` remains a separately authorized guarded database operation after deployment.
 - Stripe runtime mode is now explicit and fail-closed: the protected workflow maps `PRELIVE` to `TEST` and `LIVE` to `LIVE`, boot rejects incomplete or mixed credentials, LIVE webhook signatures/events are accepted only in LIVE mode, and the existing three-event allowlist, idempotency, amounts, and payment finalization behavior remain unchanged. Local gates passed with 181 tests and a production build; no LIVE credential was configured and no payment occurred.
@@ -92,4 +93,4 @@ Last verified: 2026-08-22
 
 ## Next highest-priority task
 
-Deploy migrations/code for refund reconciliation and idempotent customer notification to isolated staging, then perform focused authenticated Admin browser review and synthetic notification evidence verification without changing Production. Production remains read-only and online. Optional dependency and bundle work is deferred to `POST_LAUNCH_ROADMAP.md`.
+Complete the short authenticated Admin visual review of the refund/security-deposit controls on isolated staging. Automated API, Stripe TEST, migration, email-evidence, replay, quality-gate, and CI verification are complete; the current browser-control connection is unavailable, so no credential bypass is permitted. Production remains read-only and online. Optional dependency and bundle work is deferred to `POST_LAUNCH_ROADMAP.md`.
