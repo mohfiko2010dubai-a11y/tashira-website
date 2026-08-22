@@ -40,6 +40,11 @@ export function RefundManager({ applicationId }: { applicationId: number }) {
     setAdminPassword("");
     await refresh();
   }});
+  const reconcileCase = trpc.refund.reconcileCase.useMutation({ onError: mutationError, onSuccess: async (result) => {
+    setMessage(`Stripe reconciliation result: ${result.status}.`);
+    setAdminPassword("");
+    await refresh();
+  }});
 
   const deduction = deductionType === "NONE"
     ? { type: "NONE" as const }
@@ -113,11 +118,12 @@ export function RefundManager({ applicationId }: { applicationId: number }) {
                 </p>
               ))}
             </div>
-            {(refundCase.status === "PENDING_APPROVAL" || refundCase.status === "APPROVED") && (
+            {(refundCase.status === "PENDING_APPROVAL" || refundCase.status === "APPROVED" || refundCase.status === "PROCESSING") && (
               <div className="mt-3 flex flex-wrap gap-2">
                 <input className="min-w-48 rounded-lg border border-gray-200 p-2" type="password" autoComplete="current-password" placeholder="Admin password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} />
                 {refundCase.status === "PENDING_APPROVAL" && <button className="rounded-lg border border-emerald-600 px-3 py-2 font-semibold text-emerald-700 disabled:opacity-50" disabled={!adminPassword || approveCase.isPending} onClick={() => approveCase.mutate({ refundCaseId: refundCase.id, adminPassword })}>Approve</button>}
                 {refundCase.status === "APPROVED" && <button className="rounded-lg bg-red-600 px-3 py-2 font-semibold text-white disabled:opacity-50" disabled={!adminPassword || executeCase.isPending} onClick={() => executeCase.mutate({ refundCaseId: refundCase.id, adminPassword, confirmation: "EXECUTE REFUND" })}>Execute Stripe refund</button>}
+                {refundCase.status === "PROCESSING" && <button className="rounded-lg border border-blue-600 px-3 py-2 font-semibold text-blue-700 disabled:opacity-50" disabled={!adminPassword || reconcileCase.isPending} onClick={() => reconcileCase.mutate({ refundCaseId: refundCase.id, adminPassword, confirmation: "RECONCILE REFUND" })}>Reconcile Stripe status</button>}
               </div>
             )}
           </div>

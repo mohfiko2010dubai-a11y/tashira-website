@@ -74,3 +74,11 @@ export function reconcileRefundStatus(status: "pending" | "requires_action" | "s
   if (status === "pending" || status === "requires_action") return "PROCESSING" as const;
   return "FAILED" as const;
 }
+
+export function deriveRefundCaseStatus(statuses: Array<"PROCESSING" | "SUCCEEDED" | "FAILED">) {
+  if (statuses.length === 0) throw new Error("Refund case must contain at least one item");
+  if (statuses.every((status) => status === "SUCCEEDED")) return "REFUNDED" as const;
+  if (statuses.some((status) => status === "PROCESSING")) return "PROCESSING" as const;
+  if (statuses.some((status) => status === "SUCCEEDED")) return "PARTIALLY_REFUNDED" as const;
+  return "FAILED" as const;
+}

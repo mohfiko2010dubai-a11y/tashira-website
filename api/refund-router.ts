@@ -15,8 +15,8 @@ import {
 import { adminQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
 import { verifyAdminPassword } from "./lib/admin-session";
-import { assertRefundSource, calculateRefund, type RefundDeduction } from "./lib/refund-domain";
-import { createStripeRefund } from "./lib/stripe";
+import { assertRefundSource, calculateRefund, deriveRefundCaseStatus, reconcileRefundStatus, type RefundDeduction } from "./lib/refund-domain";
+import { createStripeRefund, retrieveStripeRefund } from "./lib/stripe";
 
 const currency = z.string().regex(/^[A-Za-z]{3}$/u).transform((value) => value.toUpperCase());
 const deduction = z.discriminatedUnion("type", [
@@ -391,5 +391,118 @@ export const refundRouter = createRouter({
       }
     });
     return { status: finalStatus, succeededItems: succeeded, totalItems: claimed.items.length };
+  }),
+
+  reconcileCase: adminQuery.input(z.object({
+    refundCaseId: z.string().uuid(),
+    adminPassword: z.string().min(1).max(500),
+    confirmation: z.literal("RECONCILE REFUND"),
+  })).mutation(async ({ input, ctx }) => {
+    if (!verifyAdminPassword(input.adminPassword)) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "Administrator re-authentication failed" });
+    }
+
+    const db = getDb();
+    const [refundCase] = await db.select().from(refundCases)
+      .where(eq(refundCases.id, input.refundCaseId)).limit(1);
+    if (!refundCase || refundCase.status !== "PROCESSING") {
+      throw new TRPCError({ code: "CONFLICT", message: "Refund case is not awaiting Stripe reconciliation" });
+    }
+    const pendingItems = await db.select({
+      id: refundItems.id,
+      sourceType: refundItems.sourceType,
+      paymentId: refundItems.paymentId,
+      securityDepositPaymentId: refundItems.securityDepositPaymentId,
+      refundAmount: refundItems.refundAmount,
+      currency: refundItems.currency,
+      stripeRefundId: refundItems.stripeRefundId,
+      paymentIntentId: sql<string>`coalesce(${payments.stripePaymentIntentId}, ${securityDepositPayments.stripePaymentIntentId})`,
+    }).from(refundItems)
+      .leftJoin(payments, eq(payments.id, refundItems.paymentId))
+      .leftJoin(securityDepositPayments, eq(securityDepositPayments.id, refundItems.securityDepositPaymentId))
+      .where(and(eq(refundItems.refundCaseId, refundCase.id), eq(refundItems.status, "PROCESSING")));
+    if (pendingItems.length === 0) {
+      throw new TRPCError({ code: "CONFLICT", message: "Refund case has no processing items" });
+    }
+    if (pendingItems.some((item) => !item.stripeRefundId || !item.paymentIntentId)) {
+      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Stripe refund reference is incomplete" });
+    }
+
+    const newlySucceeded: typeof pendingItems = [];
+    for (const item of pendingItems) {
+      try {
+        const stripeRefund = await retrieveStripeRefund(item.stripeRefundId!, item.paymentIntentId);
+        const status = reconcileRefundStatus(stripeRefund.status);
+        const update = await db.update(refundItems).set({
+          status,
+          failureCategory: status === "FAILED" ? "stripe_refund_failed" : null,
+        }).where(and(eq(refundItems.id, item.id), eq(refundItems.status, "PROCESSING")));
+        if (status === "SUCCEEDED" && Number(update[0].affectedRows) === 1) newlySucceeded.push(item);
+      } catch (error: unknown) {
+        const category = error instanceof Error ? error.message.replace(/^Stripe refund retrieval failed: /u, "").slice(0, 80) : "unknown";
+        await db.update(refundItems).set({ failureCategory: category })
+          .where(and(eq(refundItems.id, item.id), eq(refundItems.status, "PROCESSING")));
+      }
+    }
+
+    const allItems = await db.select({ status: refundItems.status }).from(refundItems)
+      .where(eq(refundItems.refundCaseId, refundCase.id));
+    const finalStatus = deriveRefundCaseStatus(allItems.map((item) => {
+      if (item.status === "SUCCEEDED" || item.status === "PROCESSING" || item.status === "FAILED") return item.status;
+      return "FAILED";
+    }));
+
+    await db.transaction(async (tx) => {
+      if (finalStatus !== "PROCESSING") {
+        const update = await tx.update(refundCases).set({
+          status: finalStatus,
+          completedAt: finalStatus === "REFUNDED" ? new Date() : null,
+        }).where(and(eq(refundCases.id, refundCase.id), eq(refundCases.status, "PROCESSING")));
+        if (Number(update[0].affectedRows) === 1) {
+          await tx.insert(applicationTimelineEvents).values({
+            id: crypto.randomUUID(),
+            applicationId: refundCase.applicationId,
+            eventName: finalStatus === "REFUNDED" ? "REFUND_COMPLETED" : "REFUND_FAILED",
+            eventSource: "ADMIN_DASHBOARD",
+            actorType: "ADMIN",
+            actorReference: actorReference(ctx),
+            resultingState: finalStatus,
+            summary: finalStatus === "REFUNDED" ? "Stripe refund status reconciled successfully" : "Stripe refund reconciliation requires administrative review",
+          });
+        }
+      }
+      for (const item of newlySucceeded) {
+        const [existing] = await tx.select({ id: financialEvents.id }).from(financialEvents)
+          .where(eq(financialEvents.sourceReference, item.stripeRefundId!)).limit(1);
+        if (!existing) {
+          await tx.insert(financialEvents).values({
+            id: crypto.randomUUID(),
+            applicationId: refundCase.applicationId,
+            paymentId: item.paymentId,
+            eventType: "REFUND_COMPLETED",
+            amount: item.refundAmount,
+            currency: item.currency,
+            sourceReference: item.stripeRefundId,
+            actorReference: actorReference(ctx),
+          });
+        }
+      }
+      for (const item of pendingItems.filter((entry) => entry.sourceType === "SECURITY_DEPOSIT" && entry.securityDepositPaymentId)) {
+        const [depositPayment] = await tx.select({ requestId: securityDepositPayments.requestId, amount: securityDepositPayments.amount })
+          .from(securityDepositPayments).where(eq(securityDepositPayments.id, item.securityDepositPaymentId!)).limit(1);
+        if (!depositPayment) continue;
+        const [refunded] = await tx.select({ total: sql<string>`coalesce(sum(${refundItems.refundAmount}), 0)` })
+          .from(refundItems).where(and(eq(refundItems.securityDepositPaymentId, item.securityDepositPaymentId!), eq(refundItems.status, "SUCCEEDED")));
+        const refundedAmount = Number(refunded?.total || 0);
+        const depositStatus = refundedAmount >= Number(depositPayment.amount)
+          ? "REFUNDED"
+          : refundedAmount > 0
+            ? "PARTIALLY_REFUNDED"
+            : finalStatus === "PROCESSING" ? "REFUND_PENDING" : "PAID";
+        await tx.update(securityDepositRequests).set({ status: depositStatus })
+          .where(eq(securityDepositRequests.id, depositPayment.requestId));
+      }
+    });
+    return { status: finalStatus, reconciledItems: pendingItems.length, newlySucceededItems: newlySucceeded.length };
   }),
 });

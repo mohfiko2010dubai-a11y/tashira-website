@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertRefundSource, calculateRefund } from "./refund-domain";
+import { assertRefundSource, calculateRefund, deriveRefundCaseStatus, reconcileRefundStatus } from "./refund-domain";
 
 describe("refund domain", () => {
   it("calculates a full refund without a deduction", () => {
@@ -26,5 +26,15 @@ describe("refund domain", () => {
     expect(() => assertRefundSource({ sourceType: "SECURITY_DEPOSIT", securityDepositPaymentId: "deposit-payment" })).not.toThrow();
     expect(() => assertRefundSource({ sourceType: "VISA_SERVICE", paymentId: 1, securityDepositPaymentId: "mixed" })).toThrow();
     expect(() => assertRefundSource({ sourceType: "SECURITY_DEPOSIT", paymentId: 1 })).toThrow();
+  });
+
+  it("maps Stripe and aggregate refund states without hiding pending work", () => {
+    expect(reconcileRefundStatus("succeeded")).toBe("SUCCEEDED");
+    expect(reconcileRefundStatus("requires_action")).toBe("PROCESSING");
+    expect(reconcileRefundStatus("failed")).toBe("FAILED");
+    expect(deriveRefundCaseStatus(["SUCCEEDED", "SUCCEEDED"])).toBe("REFUNDED");
+    expect(deriveRefundCaseStatus(["SUCCEEDED", "PROCESSING"])).toBe("PROCESSING");
+    expect(deriveRefundCaseStatus(["SUCCEEDED", "FAILED"])).toBe("PARTIALLY_REFUNDED");
+    expect(deriveRefundCaseStatus(["FAILED"])).toBe("FAILED");
   });
 });
