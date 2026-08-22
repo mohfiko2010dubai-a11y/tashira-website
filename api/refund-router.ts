@@ -17,6 +17,7 @@ import { getDb } from "./queries/connection";
 import { verifyAdminPassword } from "./lib/admin-session";
 import { assertRefundSource, calculateRefund, deriveRefundCaseStatus, reconcileRefundStatus, type RefundDeduction } from "./lib/refund-domain";
 import { createStripeRefund, retrieveStripeRefund } from "./lib/stripe";
+import { sendRefundOutcomeEmail } from "./lib/refund-outcome-email";
 
 const currency = z.string().regex(/^[A-Za-z]{3}$/u).transform((value) => value.toUpperCase());
 const deduction = z.discriminatedUnion("type", [
@@ -390,7 +391,8 @@ export const refundRouter = createRouter({
           .where(eq(securityDepositRequests.id, depositPayment.requestId));
       }
     });
-    return { status: finalStatus, succeededItems: succeeded, totalItems: claimed.items.length };
+    const email = await sendRefundOutcomeEmail(claimed.refundCase.id).catch(() => ({ status: "FAILED" as const }));
+    return { status: finalStatus, succeededItems: succeeded, totalItems: claimed.items.length, emailStatus: email.status };
   }),
 
   reconcileCase: adminQuery.input(z.object({
@@ -503,6 +505,7 @@ export const refundRouter = createRouter({
           .where(eq(securityDepositRequests.id, depositPayment.requestId));
       }
     });
-    return { status: finalStatus, reconciledItems: pendingItems.length, newlySucceededItems: newlySucceeded.length };
+    const email = await sendRefundOutcomeEmail(refundCase.id).catch(() => ({ status: "FAILED" as const }));
+    return { status: finalStatus, reconciledItems: pendingItems.length, newlySucceededItems: newlySucceeded.length, emailStatus: email.status };
   }),
 });

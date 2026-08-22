@@ -36,12 +36,12 @@ export function RefundManager({ applicationId }: { applicationId: number }) {
     await refresh();
   }});
   const executeCase = trpc.refund.executeCase.useMutation({ onError: mutationError, onSuccess: async (result) => {
-    setMessage(`Stripe refund result: ${result.status}.`);
+    setMessage(`Stripe refund result: ${result.status}. Customer email: ${result.emailStatus}.`);
     setAdminPassword("");
     await refresh();
   }});
   const reconcileCase = trpc.refund.reconcileCase.useMutation({ onError: mutationError, onSuccess: async (result) => {
-    setMessage(`Stripe reconciliation result: ${result.status}.`);
+    setMessage(`Stripe reconciliation result: ${result.status}. Customer email: ${result.emailStatus}.`);
     setAdminPassword("");
     await refresh();
   }});

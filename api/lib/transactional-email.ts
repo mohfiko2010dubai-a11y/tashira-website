@@ -3,7 +3,7 @@ import { requirePublicAppUrl } from "./public-app-url";
 export const EMAIL_TEMPLATES = [
   "APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED",
   "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP",
-  "SECURITY_DEPOSIT_REQUEST",
+  "SECURITY_DEPOSIT_REQUEST", "REFUND_COMPLETED",
 ] as const;
 
 export type EmailTemplate = typeof EMAIL_TEMPLATES[number];
@@ -37,6 +37,7 @@ export function validateTemplateVariables(template: EmailTemplate, variables: Re
     RESUME_LINK: ["referenceNumber", "resumeUrl"],
     RECOVERY_OTP: ["referenceNumber", "otp", "expiresMinutes"],
     SECURITY_DEPOSIT_REQUEST: ["referenceNumber", "amount", "currency", "purpose", "depositUrl", "expiresAt"],
+    REFUND_COMPLETED: ["referenceNumber", "refundSummary", "statusLabel"],
   };
   const missing = required[template].filter((key) => !variables[key]);
   if (missing.length) throw new Error(`Missing email template variables: ${missing.join(", ")}`);
@@ -59,6 +60,7 @@ export function renderTransactionalEmail(template: EmailTemplate, variables: Rec
     RESUME_LINK: { subject: `Secure application resume link — ${reference}`, body: `Resume your application: ${variables.resumeUrl}\nThis single-use link expires shortly.` },
     RECOVERY_OTP: { subject: `Application recovery code — ${reference}`, body: `Your one-time code is ${variables.otp}. It expires in ${variables.expiresMinutes} minutes.` },
     SECURITY_DEPOSIT_REQUEST: { subject: `Refundable security deposit request — ${reference}`, body: `TASHIRA requested a refundable security deposit of ${variables.amount} ${variables.currency} for application ${reference}. Purpose: ${variables.purpose}. Review and respond securely: ${variables.depositUrl}. This link expires at ${variables.expiresAt}. The deposit is separate from visa service fees.` },
+    REFUND_COMPLETED: { subject: `Refund completed — ${reference}`, body: `Your refund for application ${reference} has been processed. Refund: ${variables.refundSummary}. Status: ${variables.statusLabel}. Your bank may require additional time to display the credit.` },
   };
   const rendered = content[template];
   if (template === "PAYMENT_SUCCESS") {

@@ -440,7 +440,8 @@ export const customerRecoveryChallenges = mysqlTable("customer_recovery_challeng
 export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
   applicationId: bigint("email_application_id", { mode: "number", unsigned: true }),
-  template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP", "SECURITY_DEPOSIT_REQUEST"]).notNull(),
+  template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP", "SECURITY_DEPOSIT_REQUEST", "REFUND_COMPLETED"]).notNull(),
+  sourceReference: varchar("source_reference", { length: 100 }),
   recipientHash: varchar("recipient_hash", { length: 64 }).notNull(),
   provider: varchar("email_provider", { length: 50 }).notNull(),
   status: mysqlEnum("email_status", ["QUEUED", "SENT", "FAILED", "SUPPRESSED"]).notNull(),
@@ -449,6 +450,7 @@ export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("outbound_email_application_idx").on(table.applicationId, table.createdAt),
+  uniqueIndex("outbound_email_template_source_uq").on(table.template, table.sourceReference),
   foreignKey({ name: "outbound_email_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
 ]);
 
