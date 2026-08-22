@@ -1,8 +1,14 @@
 import { readFile } from "node:fs/promises";
 import mysql from "mysql2/promise";
 
+if (process.env.STAGING_MIGRATION_SOCKET !== "true") {
+  throw new Error("Refund-email migration requires the explicit staging migration socket gate");
+}
+
 const connection = await mysql.createConnection({
-  uri: process.env.DATABASE_URL,
+  socketPath: "/var/run/mysqld/mysqld.sock",
+  user: "root",
+  database: "tashira_staging",
   multipleStatements: false,
 });
 
@@ -11,7 +17,7 @@ try {
     "SELECT DATABASE() AS database_name, SUBSTRING_INDEX(CURRENT_USER(), '@', 1) AS database_user",
   );
   const identity = identityRows[0];
-  if (identity?.database_name !== "tashira_staging" || identity?.database_user !== "tashira_staging_app") {
+  if (identity?.database_name !== "tashira_staging" || identity?.database_user !== "root") {
     throw new Error("Refund-email migration refused: staging database identity mismatch");
   }
 
