@@ -18,6 +18,16 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
     },
     onError: () => setMessage("Security-deposit request was not created. Review the values and try again."),
   });
+  const resendRequest = trpc.securityDeposit.resend.useMutation({
+    onSuccess: async (result) => {
+      setMessage(result.status === "SENT" ? "Security-deposit request resent with a new secure link." : "Email delivery failed again. The request remains safe to retry.");
+      await Promise.all([
+        utils.securityDeposit.listByApplication.invalidate({ applicationId }),
+        utils.timeline.list.invalidate(),
+      ]);
+    },
+    onError: () => setMessage("The request could not be resent. Refresh its status before retrying."),
+  });
 
   return (
     <section className="border-t border-gray-100 pt-5 space-y-4">
@@ -47,7 +57,15 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
         {requests.data?.map((request) => (
           <div key={request.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 p-3 text-xs">
             <span>{request.currency} {Number(request.amount).toFixed(2)} — {request.purpose}</span>
-            <span className="font-semibold">{request.status}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">{request.status}</span>
+              {request.status === "DRAFT" && (
+                <button className="rounded border border-[#C9A04C] px-2 py-1 font-semibold text-[#8B6B2E] disabled:opacity-50" disabled={resendRequest.isPending} onClick={() => resendRequest.mutate({
+                  requestId: request.id,
+                  expiresInDays: Number(expiresInDays),
+                })}>Retry email</button>
+              )}
+            </div>
           </div>
         ))}
       </div>

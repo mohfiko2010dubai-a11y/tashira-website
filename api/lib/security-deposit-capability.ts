@@ -10,3 +10,7 @@ export function newSecurityDepositCapability() {
   const token = crypto.randomBytes(32).toString("base64url");
   return { token, hash: securityDepositTokenHash(token) };
 }
+
+export function securityDepositRetryIdempotencyKey(requestId: string, tokenHash: string) {
+  return `security-deposit/${requestId}/${tokenHash}`;
+}

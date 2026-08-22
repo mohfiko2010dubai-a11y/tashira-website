@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { renderTransactionalEmail } from "./transactional-email";
 import { verifySecurityDepositIntent } from "./stripe";
-import { securityDepositTokenHash } from "./security-deposit-capability";
+import { securityDepositRetryIdempotencyKey, securityDepositTokenHash } from "./security-deposit-capability";
 
 describe("security deposit capability", () => {
   beforeEach(() => { process.env.PUBLIC_APP_URL = "https://staging.tashiraev.com"; });
@@ -29,6 +29,15 @@ describe("security deposit capability", () => {
     const token = "b".repeat(43);
     expect(securityDepositTokenHash(token)).toMatch(/^[a-f0-9]{64}$/u);
     expect(securityDepositTokenHash(token)).not.toContain(token);
+  });
+
+  it("uses the rotated token hash to isolate each safe retry", () => {
+    const firstHash = securityDepositTokenHash("b".repeat(43));
+    const secondHash = securityDepositTokenHash("c".repeat(43));
+    const first = securityDepositRetryIdempotencyKey("request-id", firstHash);
+    const second = securityDepositRetryIdempotencyKey("request-id", secondHash);
+    expect(first).not.toBe(second);
+    expect(first).not.toContain("b".repeat(43));
   });
 
   it("verifies the exact AED amount and request ownership", () => {
