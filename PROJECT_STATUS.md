@@ -1,15 +1,15 @@
 # TASHIRA Project Status
 
-Last verified: 2026-08-21
+Last verified: 2026-08-22
 
 ## Current state
 
-- Refund/security-deposit program: Phase 1 persistence plus admin request/review/approval APIs implemented on the non-production review branch. Approval requires administrator re-authentication, reserves refundable balances against duplicate cases, and records immutable timeline evidence. No migration has been applied and no Stripe refund or deposit request can execute yet.
+- Refund/security-deposit program: Phase 1 is implemented and verified end to end on isolated staging. Administrator re-authentication, duplicate-balance reservation, safe capability delivery/retry, Stripe TEST deposit collection, approved Stripe TEST refund execution, replay prevention, and immutable evidence all passed focused synthetic UAT. No Production migration, deployment, payment, refund, or data change occurred.
 - Phase: Phase 9 — launch-blocker closure.
 - Branch: `devops/deployment-safety`.
 - Current verified implementation: final Payment Successful presentation on `devops/deployment-safety` (commit recorded in Git history).
-- CI: local quality gates GREEN; review-branch CI pending the final UX push.
-- Tests: 128/128 passing across 39 files.
+- CI: local quality gates GREEN; review-branch CI is running for the final staging-UAT tool commit.
+- Tests: 204/204 passing across 49 files.
 - TypeScript: PASS.
 - ESLint: PASS.
 - Build: PASS.
@@ -21,6 +21,7 @@ Last verified: 2026-08-21
 - Refund Phase 1 now provides a unified visa-payment/security-deposit case model, available-balance protection, transparent full/percentage/fixed/actual-cost calculations, separate administrator approval and execution re-authentication, Stripe idempotency, immutable timeline/financial evidence, and an Admin Application Details workflow. This remains isolated to the review branch and is not deployed to Production.
 - Security-deposit Phase 1 now supports an administrator-selected AED amount per application, a hashed 256-bit expiring customer capability, idempotent Resend delivery evidence, explicit accept/decline, an isolated Stripe PaymentIntent, authoritative amount/request verification, separate PAID evidence, and automatic refund-state integration. It remains review-branch only pending isolated staging migrations and UAT.
 - Failed security-deposit email delivery can now be retried against the same request without creating a duplicate financial obligation. Each retry atomically rotates and invalidates the prior capability, uses a retry-specific provider idempotency key, records delivery evidence, and refuses concurrent or post-delivery retries. This remains review-branch only pending isolated staging migrations and UAT.
+- Isolated staging migrations 009–011 are applied after a root-only database/code rollback snapshot at `/var/backups/tashira-staging/20260822T000824Z`. The canonical staging deployment passed, both Production and staging remained HTTP 200, and the staging document fingerprint remained unchanged. Synthetic UAT `TSH-DEPOSIT-UAT-1787357952121` verified one allowed-recipient deposit email, an exact AED 10.00 TEST deposit, a transparent 2% deduction, one AED 9.80 TEST refund, replay rejection, and single-instance evidence.
 
 - Production test data can now be retained as immutable evidence while being excluded from normal operations through an explicit `LIVE`/`TEST` application classification. Administrative and staff application lists, headline analytics, invoices/VAT consumers, and the finance cockpit filter to `LIVE` records server-side. Migration 009 is non-destructive and defaults every new application to `LIVE`; marking the inventoried pre-launch Production applications as `TEST` remains a separately authorized guarded database operation after deployment.
 - Stripe runtime mode is now explicit and fail-closed: the protected workflow maps `PRELIVE` to `TEST` and `LIVE` to `LIVE`, boot rejects incomplete or mixed credentials, LIVE webhook signatures/events are accepted only in LIVE mode, and the existing three-event allowlist, idempotency, amounts, and payment finalization behavior remain unchanged. Local gates passed with 181 tests and a production build; no LIVE credential was configured and no payment occurred.
@@ -88,4 +89,4 @@ Last verified: 2026-08-21
 
 ## Next highest-priority task
 
-Apply reviewed migrations 010–011 only to the verified `tashira_staging` database, deploy through `node staging/deploy-native.mjs`, and perform focused synthetic refund/security-deposit UAT. Production remains read-only and online. Optional dependency and bundle work is deferred to `POST_LAUNCH_ROADMAP.md`.
+Add refund/deposit reconciliation and customer notification for asynchronous Stripe outcomes, then perform focused authenticated Admin browser review without changing Production. Production remains read-only and online. Optional dependency and bundle work is deferred to `POST_LAUNCH_ROADMAP.md`.
