@@ -28,7 +28,7 @@ try {
     "SELECT COUNT(*) AS column_count FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND column_name = 'source_reference'",
   );
   const [indexRows] = await connection.query(
-    "SELECT index_name, GROUP_CONCAT(column_name ORDER BY seq_in_index) AS indexed_columns FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND index_name IN ('outbound_email_template_source_uq','outbound_email_template_sent_source_uq') GROUP BY index_name",
+    "SELECT INDEX_NAME AS index_name, GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS indexed_columns FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'outbound_email_events' AND index_name IN ('outbound_email_template_source_uq','outbound_email_template_sent_source_uq') GROUP BY INDEX_NAME",
   );
   const templateReady = String(templateRows[0]?.column_type || "").includes("'REFUND_COMPLETED'");
   const sourceReady = Number(sourceRows[0]?.column_count || 0) === 1;
