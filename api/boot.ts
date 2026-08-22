@@ -33,6 +33,11 @@ import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { getPayerEvidence } from "./lib/payer-authorization";
 import { retrieveStripeTestCardSummary } from "./lib/stripe";
 import { validateStripeRuntimeConfig } from "./lib/stripe-runtime";
+import {
+  finalizeSecurityDepositPayment,
+  getSecurityDepositWebhookContext,
+  recordSecurityDepositPaymentFailure,
+} from "./lib/security-deposit-finalization";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 validateStripeRuntimeConfig();
@@ -54,11 +59,16 @@ app.post("/api/stripe/webhook", async (c) => {
       });
       if (claim === "duplicate") return c.json({ received: true, duplicate: true });
       claimedEventId = event.id;
+      const depositRequestId = event.data.object.metadata.securityDepositRequestId;
       const referenceNumber = event.data.object.metadata.referenceNumber;
-      if (!referenceNumber) throw new Error("Stripe event is missing the application reference");
-      const [application] = await getDb().select({ id: applications.id }).from(applications)
-        .where(eq(applications.referenceNumber, referenceNumber)).limit(1);
-      if (!application) throw new Error("Application not found");
+      const context = depositRequestId
+        ? await getSecurityDepositWebhookContext(depositRequestId)
+        : referenceNumber
+          ? await getDb().select({ applicationId: applications.id, referenceNumber: applications.referenceNumber })
+            .from(applications).where(eq(applications.referenceNumber, referenceNumber)).limit(1).then(([row]) => row)
+          : null;
+      if (!context) throw new Error("Stripe event is missing a recognized payment owner");
+      const application = { id: context.applicationId };
       if (!await hasTimelineEventReference(application.id, "WEBHOOK_RECEIVED", event.id)) {
         await recordTimelineEvent({
           applicationId: application.id,
@@ -90,12 +100,17 @@ app.post("/api/stripe/webhook", async (c) => {
           summary: "Additional customer authentication required",
         });
       } else if (event.type === "payment_intent.succeeded") {
-        await finalizeStripeTestPayment(referenceNumber, event.data.object.id, {
-          actorType: "STRIPE",
-          eventSource: "STRIPE_WEBHOOK",
-        });
+        if (depositRequestId) {
+          await finalizeSecurityDepositPayment(event.data.object.id, depositRequestId);
+        } else {
+          await finalizeStripeTestPayment(context.referenceNumber, event.data.object.id, {
+            actorType: "STRIPE",
+            eventSource: "STRIPE_WEBHOOK",
+          });
+        }
       } else {
-        await recordStripeTestPaymentFailure(referenceNumber, event.data.object.id);
+        if (depositRequestId) await recordSecurityDepositPaymentFailure(event.data.object.id, depositRequestId);
+        else await recordStripeTestPaymentFailure(context.referenceNumber, event.data.object.id);
       }
       await markStripeWebhookProcessed(event.id);
       auditLog("payment.confirm", "success", "system");

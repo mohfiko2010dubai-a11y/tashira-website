@@ -14,8 +14,9 @@ import { getDb } from "./queries/connection";
 import { transactionalEmailProvider } from "./lib/email-provider";
 import { recipientHash } from "./lib/resend-email";
 import { publicAppOrigin } from "./lib/public-app-url";
-import { createSecurityDepositIntent, retrieveStripeTestIntent, verifySecurityDepositIntent } from "./lib/stripe";
+import { createSecurityDepositIntent, retrieveStripeTestIntent } from "./lib/stripe";
 import { newSecurityDepositCapability, securityDepositRetryIdempotencyKey, securityDepositTokenHash, securityDepositTokenPattern } from "./lib/security-deposit-capability";
+import { finalizeSecurityDepositPayment } from "./lib/security-deposit-finalization";
 
 function actorReference(ctx: { user?: { id: number } }) {
   return ctx.user?.id ? `user:${ctx.user.id}` : "admin-session";
@@ -265,36 +266,18 @@ export const securityDepositRouter = createRouter({
     token: z.string().regex(securityDepositTokenPattern),
     paymentIntentId: z.string().regex(/^pi_[A-Za-z0-9_]+$/u),
   })).mutation(async ({ input }) => {
-    const db = getDb();
-    const [payment] = await db.select({
-      id: securityDepositPayments.id,
-      status: securityDepositPayments.status,
+    const [payment] = await getDb().select({
       requestId: securityDepositPayments.requestId,
-      amount: securityDepositPayments.amount,
-      applicationId: securityDepositRequests.applicationId,
     }).from(securityDepositPayments).innerJoin(securityDepositRequests, and(
       eq(securityDepositRequests.id, securityDepositPayments.requestId),
       eq(securityDepositRequests.accessTokenHash, securityDepositTokenHash(input.token)),
     )).where(eq(securityDepositPayments.stripePaymentIntentId, input.paymentIntentId)).limit(1);
     if (!payment) throw new TRPCError({ code: "UNAUTHORIZED", message: "Security-deposit payment is not authorized" });
-    if (payment.status === "SUCCEEDED") return { status: "PAID" as const };
-    const intent = await retrieveStripeTestIntent(input.paymentIntentId);
-    if (!verifySecurityDepositIntent({
-      intent, paymentIntentId: input.paymentIntentId, requestId: payment.requestId,
-      expectedAmountCents: Math.round(Number(payment.amount) * 100),
-    })) throw new TRPCError({ code: "BAD_REQUEST", message: "Security-deposit payment verification failed" });
-
-    await db.transaction(async (tx) => {
-      await tx.update(securityDepositPayments).set({ status: "SUCCEEDED" })
-        .where(eq(securityDepositPayments.id, payment.id));
-      await tx.update(securityDepositRequests).set({ status: "PAID", paidAt: new Date() })
-        .where(eq(securityDepositRequests.id, payment.requestId));
-      await tx.insert(applicationTimelineEvents).values({
-        id: crypto.randomUUID(), applicationId: payment.applicationId, eventName: "SECURITY_DEPOSIT_PAID",
-        eventSource: "PAYMENT_CONFIRM_API", actorType: "STRIPE", actorReference: input.paymentIntentId,
-        resultingState: "PAID", summary: "Refundable security deposit payment verified",
-      });
-    });
-    return { status: "PAID" as const };
+    try {
+      const result = await finalizeSecurityDepositPayment(input.paymentIntentId, payment.requestId, "PAYMENT_CONFIRM_API");
+      return { status: result.status };
+    } catch {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Security-deposit payment verification failed" });
+    }
   }),
 });

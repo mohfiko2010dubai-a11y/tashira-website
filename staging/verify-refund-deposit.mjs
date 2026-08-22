@@ -20,7 +20,8 @@ if (recipients.length !== 1 || staging.STAGING_EMAIL_MODE !== "resend") {
 }
 if (!runtime.ADMIN_PASSWORD || !runtime.DATABASE_URL) throw new Error("Staging runtime configuration is incomplete");
 const stripeKey = fs.readFileSync("staging/secrets/stripe_secret_key", "utf8").trim();
-if (!stripeKey.startsWith("sk_test_")) throw new Error("Stripe TEST configuration is required");
+const webhookSecret = fs.readFileSync("staging/secrets/stripe_webhook_secret", "utf8").trim();
+if (!stripeKey.startsWith("sk_test_") || !webhookSecret.startsWith("whsec_")) throw new Error("Stripe TEST configuration is required");
 
 const baseUrl = "http://127.0.0.1:3002";
 const cookies = new Map();
@@ -69,6 +70,31 @@ async function confirmStripeTestIntent(paymentIntentId) {
   });
   const payload = await response.json();
   if (!response.ok || payload.status !== "succeeded") throw new Error("Stripe TEST deposit confirmation failed");
+}
+async function sendDepositWebhook(paymentIntentId, requestId, eventId) {
+  const body = JSON.stringify({
+    id: eventId,
+    object: "event",
+    type: "payment_intent.succeeded",
+    livemode: false,
+    data: {
+      object: {
+        id: paymentIntentId,
+        status: "succeeded",
+        livemode: false,
+        metadata: { securityDepositRequestId: requestId },
+      },
+    },
+  });
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = crypto.createHmac("sha256", webhookSecret).update(`${timestamp}.${body}`).digest("hex");
+  const response = await fetch(`${baseUrl}/api/stripe/webhook`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "stripe-signature": `t=${timestamp},v1=${signature}` },
+    body,
+  });
+  if (!response.ok) throw new Error(`Deposit webhook failed with HTTP ${response.status}`);
+  return response.json();
 }
 
 const db = await mysql.createConnection(runtime.DATABASE_URL);
@@ -124,6 +150,10 @@ try {
   const payment = await trpc("securityDeposit.createPayment", { token });
   const paymentIntentId = payment.clientSecret.split("_secret_", 1)[0];
   await confirmStripeTestIntent(paymentIntentId);
+  const webhookEventId = `evt_deposit_uat_${crypto.randomUUID().replaceAll("-", "")}`;
+  const webhook = await sendDepositWebhook(paymentIntentId, requestId, webhookEventId);
+  const webhookReplay = await sendDepositWebhook(paymentIntentId, requestId, webhookEventId);
+  assert(webhook.received === true && webhookReplay.duplicate === true, "Deposit webhook replay protection failed");
   const confirmed = await trpc("securityDeposit.confirmPayment", { token, paymentIntentId });
   assert(confirmed.status === "PAID", "Security deposit was not authoritatively confirmed");
 
@@ -174,6 +204,7 @@ try {
     emailRequest: "PASS",
     secureCapability: "PASS",
     depositPayment: "PASS",
+    webhookRecovery: "PASS",
     refundAmount: "AED 9.80",
     refundExecution: "PASS",
     replayProtection: "PASS",
