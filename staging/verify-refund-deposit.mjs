@@ -62,7 +62,10 @@ async function confirmStripeTestIntent(paymentIntentId) {
   const response = await fetch(`https://api.stripe.com/v1/payment_intents/${paymentIntentId}/confirm`, {
     method: "POST",
     headers: { Authorization: `Bearer ${stripeKey}`, "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ payment_method: "pm_card_visa" }),
+    body: new URLSearchParams({
+      payment_method: "pm_card_visa",
+      return_url: "https://staging.tashiraev.com/deposit/uat",
+    }),
   });
   const payload = await response.json();
   if (!response.ok || payload.status !== "succeeded") throw new Error("Stripe TEST deposit confirmation failed");
