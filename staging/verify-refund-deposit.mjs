@@ -83,7 +83,7 @@ try {
     processingType: "regular",
     contactEmail: recipients[0],
     contactPhone: "+971500000000",
-    policyVersion: "terms-2026-08-11",
+    policyVersion: "legal-bundle-2026-08-19-v2",
     applicants: [{
       fullName: "Synthetic Deposit Applicant",
       nationality: "Testland",
