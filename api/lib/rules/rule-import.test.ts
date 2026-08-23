@@ -7,6 +7,7 @@ function fixture() {
     version: 1,
     status: "DRAFT",
     classification: "OFFICIAL",
+    layer: "BASE_ROUTE",
     researchStatus: "VALIDATED",
     routeCode: "SYNTHETIC_ROUTE",
     profileCode: "SYNTHETIC_PROFILE",
@@ -23,6 +24,7 @@ function fixture() {
     outcome: {
       eligibility: "ELIGIBLE",
       requirementCodes: ["SYNTHETIC_PASSPORT"],
+      conditionalDocuments: [],
       explanationCode: "SYNTHETIC_ELIGIBLE",
     },
   };
@@ -58,5 +60,11 @@ describe("visa rule import boundary", () => {
 
   it("rejects an invalid effective interval", () => {
     expect(() => validateVisaRuleImport({ ...fixture(), effectiveTo: "2025-12-31T00:00:00.000Z" })).toThrow();
+  });
+
+  it("rejects an operational eligibility override before persistence", () => {
+    const value = fixture();
+    value.classification = "OPERATIONAL";
+    expect(() => validateVisaRuleImport(value)).toThrow(/Only OFFICIAL rules/i);
   });
 });

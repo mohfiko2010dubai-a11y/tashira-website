@@ -2,6 +2,10 @@ import { z } from "zod";
 
 export const ruleClassificationSchema = z.enum(["OFFICIAL", "OPERATIONAL", "CONDITIONAL", "INTERNAL"]);
 export const ruleResearchStatusSchema = z.enum(["VALIDATED", "NOT_RESEARCHED", "MANUAL_REVIEW_REQUIRED"]);
+export const ruleLayerSchema = z.enum([
+  "BASE_ROUTE", "NATIONALITY_OVERLAY", "RESIDENCE_OVERLAY", "GCC_OVERLAY",
+  "AGE_MINOR_OVERLAY", "FAMILY_OVERLAY", "OPERATIONAL_OVERLAY",
+]);
 
 const sourceSchema = z.object({
   authority: z.string().min(1).max(255),
@@ -22,6 +26,7 @@ export const visaRuleImportSchema = z.object({
   version: z.number().int().positive(),
   status: z.literal("DRAFT"),
   classification: ruleClassificationSchema,
+  layer: ruleLayerSchema,
   researchStatus: ruleResearchStatusSchema,
   routeCode: z.string().min(1).max(80),
   profileCode: z.string().min(1).max(80),
@@ -30,8 +35,12 @@ export const visaRuleImportSchema = z.object({
   source: sourceSchema,
   conditions: z.array(conditionSchema),
   outcome: z.object({
-    eligibility: z.enum(["ELIGIBLE", "INELIGIBLE", "HUMAN_REVIEW_REQUIRED"]),
+    eligibility: z.enum(["NO_CHANGE", "ELIGIBLE", "INELIGIBLE", "HUMAN_REVIEW_REQUIRED"]),
     requirementCodes: z.array(z.string().min(1).max(80)),
+    conditionalDocuments: z.array(z.object({
+      code: z.string().min(1).max(80),
+      reason: z.string().min(1).max(500),
+    })).default([]),
     explanationCode: z.string().min(1).max(100),
   }),
 }).superRefine((rule, context) => {
@@ -43,6 +52,13 @@ export const visaRuleImportSchema = z.object({
       code: "custom",
       path: ["outcome", "eligibility"],
       message: "Unvalidated research must require human review",
+    });
+  }
+  if (rule.classification !== "OFFICIAL" && rule.outcome.eligibility !== "NO_CHANGE") {
+    context.addIssue({
+      code: "custom",
+      path: ["outcome", "eligibility"],
+      message: "Only OFFICIAL rules may decide eligibility",
     });
   }
 });
