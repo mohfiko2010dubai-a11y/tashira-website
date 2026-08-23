@@ -20,7 +20,7 @@ The corresponding read-only Case Workspace renders, in order: Case Overview, App
 
 ## Controlled action layer design
 
-No action below is implemented or activated in this milestone. Each future action must be a separate command, never an extension of the read query:
+The five action-domain commands are implemented as inactive contracts, not API endpoints. Each command is separate and never extends the read query:
 
 | Command | Required permission | Required controls | Immutable evidence |
 | --- | --- | --- | --- |
@@ -32,6 +32,10 @@ No action below is implemented or activated in this milestone. Each future actio
 | Request re-evaluation | `rule.review` | reason, selected route, current snapshot ownership | new evaluation run; never overwrite |
 
 Every command must use a unique idempotency key, optimistic concurrency/version precondition, server timestamp, actor identity, authorization decision, before/after references, reason and audit event. Commands must reject stale evaluation or requirement IDs and must not infer cross-applicant ownership.
+
+The inactive implementation enforces these controls centrally and keeps finance fields immutable. Human review and document review validate controlled outcomes and case prerequisites; assignment supports assign/claim/reassign with team and workload checks; status uses the enumerated transition map only; re-evaluation evaluates server-supplied registry rules into a new immutable snapshot and append-only selection. Idempotency is scoped per application and is checked before replay-sensitive state validation.
+
+No HTTP mutation handler, client button, database adapter or enabled feature flag exists. A future persistence adapter must execute case-version update, audit append and re-evaluation snapshot/selection append in one database transaction.
 
 ## Activation sequence
 
