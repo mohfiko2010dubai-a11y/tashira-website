@@ -26,17 +26,34 @@ describe("eligibility evidence", () => {
       rules: [rule],
       evaluatedAt,
     });
-    const evidence = createEvaluationEvidence({ routeCode: "SYNTHETIC_ROUTE", evaluatedAt, result });
+    const evidence = createEvaluationEvidence({
+      evaluationId: "eval-1", applicationId: 10, applicantId: 20,
+      selectedRoute: "SYNTHETIC_ROUTE", evaluatedAt, result,
+    });
     expect(verifyEvaluationEvidence(evidence)).toBe(true);
     expect(JSON.stringify(evidence)).not.toContain("DO_NOT_PERSIST");
     expect(evidence.evidenceSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(evidence).toMatchObject({
+      evaluationId: "eval-1",
+      applicationId: 10,
+      applicantId: 20,
+      selectedRoute: "SYNTHETIC_ROUTE",
+      eligibilityState: "ELIGIBLE",
+      matchedRuleIds: ["SYNTHETIC-BASE"],
+      matchedRuleVersions: [{ ruleId: "SYNTHETIC-BASE", version: 2 }],
+      sourceAuthorities: ["Synthetic Authority"],
+      evidenceIntegrityReference: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
   });
 
   it("detects evidence modification", () => {
     const result = evaluateEligibility({
       profile: { routeCode: "SYNTHETIC_ROUTE", attributes: {} }, rules: [rule], evaluatedAt,
     });
-    const evidence = createEvaluationEvidence({ routeCode: "SYNTHETIC_ROUTE", evaluatedAt, result });
+    const evidence = createEvaluationEvidence({
+      evaluationId: "eval-1", applicationId: 10, applicantId: 20,
+      selectedRoute: "SYNTHETIC_ROUTE", evaluatedAt, result,
+    });
     expect(verifyEvaluationEvidence({ ...evidence, reason: "Modified" })).toBe(false);
   });
 });
