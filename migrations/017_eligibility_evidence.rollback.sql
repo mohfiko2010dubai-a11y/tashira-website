@@ -1,0 +1,9 @@
+DROP TRIGGER IF EXISTS `visa_rule_evaluation_conflict_no_delete`;
+DROP TRIGGER IF EXISTS `visa_rule_evaluation_conflict_no_update`;
+DROP TRIGGER IF EXISTS `visa_rule_evaluation_match_no_delete`;
+DROP TRIGGER IF EXISTS `visa_rule_evaluation_match_no_update`;
+DROP TRIGGER IF EXISTS `visa_rule_evaluation_run_no_delete`;
+DROP TRIGGER IF EXISTS `visa_rule_evaluation_run_no_update`;
+DROP TABLE IF EXISTS `visa_rule_evaluation_conflicts`;
+DROP TABLE IF EXISTS `visa_rule_evaluation_matches`;
+DROP TABLE IF EXISTS `visa_rule_evaluation_runs`;
