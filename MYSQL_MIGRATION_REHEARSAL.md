@@ -24,7 +24,7 @@ Synthetic credentials exist only in the disposable container environment and are
 
 The discovered Operations OS chain is:
 
-`014 → 015 → 016 → 017 → 018 → 019 → 020 → 021`
+`014 → 015 → 016 → 017 → 018 → 019 → 020 → 021 → 022`
 
 The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B therefore use the committed synthetic pre-Operations-OS fixture, while the application-startup database is created from `db/schema.ts` before applying the Operations chain.
 
@@ -37,6 +37,7 @@ The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B ther
 | Legacy records preserved | PASS | Counts remained `2 / 5 / 5 / 1 / 1`; application/document checksums recorded during rehearsal |
 | Legacy compatibility | PASS | Zero fabricated evaluations and zero fabricated relationships |
 | Rule Registry | PASS | Direct ACTIVE import rejected; unapproved activation rejected; approved activation accepted; evidence mutation rejected |
+| Rule layer persistence | PASS | Authoritative precedence layer persisted for new versions; unresolved legacy versions remain NULL and cannot be approved/activated; no fabricated backfill |
 | Evaluation immutability | PASS | V1 retained; V2 appended/superseded/selected; direct V1 mutation rejected |
 | Family persistence | PASS | Mixed-nationality relationship graph stored applicant-by-applicant |
 | Dynamic requirements | PASS | Two applicants retained different evaluation/requirement instances without leakage |
@@ -54,6 +55,7 @@ The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B ther
 
 1. Migration `016` used a unique index on a 1000-character `utf8mb4` URL, exceeding InnoDB's 3072-byte key limit. The complete URL is retained and uniqueness now uses a stored 32-byte SHA-256 digest.
 2. Raw SQL could import a Rule Version directly as ACTIVE and could modify version evidence. Additive migration `021` now rejects direct ACTIVE imports, requires an APPROVED review before activation, protects immutable version content, and makes source snapshots/reviews append-only.
+3. The validated import contract required `rule layer`, but migration `016` did not persist it. Additive migration `022` stores the exact seven-value precedence enum, requires it for every new Rule Version, freezes it as evidence, and blocks unresolved historical versions from APPROVED/ACTIVE states without inventing a backfill.
 
 ## Recovery and failure behavior
 
