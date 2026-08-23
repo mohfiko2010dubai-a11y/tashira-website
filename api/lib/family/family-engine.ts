@@ -21,7 +21,13 @@ export type ApplicantRequirementSet = {
   ruleVersions: EvaluationEvidenceSnapshot["matchedRuleVersions"];
   eligibilityState: EligibilityState;
   requiredDocuments: readonly { applicantId: number; code: string; evaluationId: string }[];
-  conditionalDocuments: readonly { applicantId: number; code: string; reason: string; evaluationId: string }[];
+  conditionalDocuments: readonly {
+    applicantId: number;
+    code: string;
+    reason: string;
+    evaluationId: string;
+    when?: { questionCode: string; operator: "EQUALS" | "IN"; value: string | readonly string[] };
+  }[];
   warnings: readonly string[];
 };
 
@@ -89,6 +95,7 @@ export function aggregateFamilyEvaluations(input: {
           code: document.code,
           reason: document.reason,
           evaluationId: snapshot.evaluationId,
+          when: document.when,
         })),
         warnings: snapshot.warnings,
       };

@@ -20,6 +20,11 @@ export type EligibilityCondition = {
 export type ConditionalDocument = {
   code: string;
   reason: string;
+  when?: {
+    questionCode: string;
+    operator: "EQUALS" | "IN";
+    value: string | readonly string[];
+  };
 };
 
 export type EligibilityRule = {
@@ -123,7 +128,7 @@ function buildResult(
     requiredDocuments: uniqueSorted(ordered.flatMap((rule) => rule.requiredDocuments)),
     conditionalDocuments: [...new Map(ordered
       .flatMap((rule) => rule.conditionalDocuments)
-      .map((document) => [`${document.code}\u0000${document.reason}`, document])).values()]
+      .map((document) => [`${document.code}\u0000${document.reason}\u0000${JSON.stringify(document.when ?? null)}`, document])).values()]
       .sort((left, right) => left.code.localeCompare(right.code) || left.reason.localeCompare(right.reason)),
     manualReviewReason,
   };
