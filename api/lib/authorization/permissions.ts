@@ -37,11 +37,11 @@ export type RoleTemplate =
 export const ROLE_TEMPLATES: Readonly<Record<RoleTemplate, readonly Permission[]>> = {
   OPERATIONS_EMPLOYEE: [
     "case.read_assigned", "case.transition", "applicant.read", "document.read",
-    "document.review", "supplier.read_operational",
+    "document.review", "supplier.read_operational", "rule.read",
   ],
   OPERATIONS_MANAGER: [
     "case.read", "case.assign", "case.transition", "applicant.read", "document.read",
-    "document.review", "supplier.read_operational",
+    "document.review", "supplier.read_operational", "rule.read",
   ],
   FINANCE_MANAGER: [
     "finance.read_revenue", "finance.read_cost", "finance.read_margin",

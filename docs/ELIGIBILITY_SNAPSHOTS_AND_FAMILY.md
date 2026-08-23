@@ -47,3 +47,5 @@ The inactive repository adapter follows the same event model: relationship corre
 ## Current limitations
 
 The repository implementations in this milestone are inactive domain contracts. SQL persistence contracts exist in migrations `017`–`019`, but no migration has been applied and no existing API/UI route uses them. Customer-facing dynamic behavior remains intentionally disabled.
+
+The Operations-only canonical case read model and its future controlled-action design are documented in `OPERATIONS_READ_GATE_AND_ACTION_DESIGN.md`.
