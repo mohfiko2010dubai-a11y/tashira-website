@@ -5,6 +5,7 @@ Last verified: 2026-08-23
 ## Current state
 
 - Visa Operations OS V1: Phase A repository discovery is complete on the dedicated feature branch `codex/visa-operations-os-v1` at baseline `21288ad37f00f6c1c1b4b7df03ddc6a99a8de959`. The evidence-based architecture audit and controlled Phase B–L implementation/migration plan are documented under `docs/`. No schema, application behavior, Production system, Stripe, Resend, payment, pricing or document flow was changed.
+- Visa Operations OS Phase B has started with pure, inactive foundations: a typed permission catalog, fail-closed resource-scope evaluator, supplier finance-safe projection, and a DRAFT-only visa-rule import contract that requires HTTPS source evidence and forces unresolved research to human review. Twelve focused tests pass; these modules are not wired into existing runtime routes and change no current behavior.
 
 - Refund/security-deposit program: Phase 1 is implemented and verified end to end on isolated staging. Administrator re-authentication, duplicate-balance reservation, safe capability delivery/retry, Stripe TEST deposit collection, approved Stripe TEST refund execution, replay prevention, and immutable evidence all passed focused synthetic UAT. No Production migration, deployment, payment, refund, or data change occurred.
 - Phase: Phase 9 — launch-blocker closure.
