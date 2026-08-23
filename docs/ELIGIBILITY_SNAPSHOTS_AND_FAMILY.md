@@ -1,7 +1,7 @@
 # Eligibility Snapshots and Family Aggregation
 
 Status: inactive Phase C/D domain foundation  
-Feature flag: `VISA_RULES_EVALUATION`, closed by default  
+Feature flags: `VISA_RULES_EVALUATION`, `DYNAMIC_REQUIREMENTS`, and `FAMILY_ENGINE`, closed by default
 Production impact: none
 
 ## Snapshot invariant
@@ -30,8 +30,18 @@ Current selections can be queried by matched stable rule ID to identify affected
 - Missing current evaluations block aggregate readiness with human review.
 - No member's rule or document set is copied into another member.
 
-Aggregate state fails safely in this order: `RULE_CONFLICT`, `HUMAN_REVIEW_REQUIRED`, `INELIGIBLE`, then `ELIGIBLE`.
+Aggregate eligibility fails safely in this order: `RULE_CONFLICT`, `HUMAN_REVIEW_REQUIRED`, `INELIGIBLE`, then `ELIGIBLE`.
+
+## Family readiness contract
+
+Eligibility and submission readiness are separate. Each applicant independently resolves to `READY`, `WAITING_FOR_DOCUMENTS`, `MANUAL_REVIEW_REQUIRED`, `NOT_ELIGIBLE`, `VISA_NOT_REQUIRED`, `VISA_ON_ARRIVAL`, or `CONDITIONAL`. Family readiness is never an average or percentage.
+
+The family is `READY_FOR_SUBMISSION` only when every visa-requiring applicant is `READY`. Missing or unvalidated required documents, unresolved conditional requirements, rule conflicts, human review, route incompatibility, and ineligibility make the family `NOT_READY`. A legitimate `VISA_NOT_REQUIRED` or `VISA_ON_ARRIVAL` outcome remains visible but does not block other members.
+
+The result identifies blocking applicant IDs and reasons, applicant-scoped customer actions, manual-review state, route warnings, and every member's evaluation ID. Requirement ownership mismatch is rejected rather than reassigned.
+
+Migration `019` additively models append-only relationship events, evaluation-bound applicant requirement instances and events, and immutable family-readiness snapshots. It does not backfill or rewrite legacy applications. The legacy adapter selects the lowest applicant index as lead and labels every other relationship `OTHER`; it never guesses spouse/child relationships and emits an explicit review warning.
 
 ## Current limitations
 
-The repository implementations in this milestone are in-memory domain test adapters. SQL persistence contracts exist in migrations `017` and `018`, but no migration has been applied and no existing API/UI route uses them. Relationship graphs and dynamic question/requirement persistence are the next Phase D slice.
+The repository implementations in this milestone are inactive domain contracts. SQL persistence contracts exist in migrations `017`–`019`, but no migration has been applied and no existing API/UI route uses them. Customer-facing dynamic behavior remains intentionally disabled.

@@ -10,6 +10,10 @@ const globalFlag: FeatureFlagRecord = {
 };
 
 describe("Operations OS feature flags", () => {
+  it("keeps the family engine closed unless explicitly enabled", () => {
+    expect(isOperationsFlagEnabled("FAMILY_ENGINE", { environment: "STAGING" }, [])).toBe(false);
+  });
+
   it("fails closed when a flag has no matching record", () => {
     expect(isOperationsFlagEnabled("VISA_RULES_EVALUATION", { environment: "STAGING" }, [])).toBe(false);
   });

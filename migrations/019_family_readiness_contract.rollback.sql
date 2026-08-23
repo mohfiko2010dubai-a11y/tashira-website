@@ -1,0 +1,12 @@
+DROP TRIGGER IF EXISTS `family_readiness_snapshots_no_delete`;
+DROP TRIGGER IF EXISTS `family_readiness_snapshots_no_update`;
+DROP TRIGGER IF EXISTS `applicant_requirement_events_no_delete`;
+DROP TRIGGER IF EXISTS `applicant_requirement_events_no_update`;
+DROP TRIGGER IF EXISTS `applicant_requirement_instances_no_delete`;
+DROP TRIGGER IF EXISTS `applicant_requirement_instances_no_update`;
+DROP TRIGGER IF EXISTS `family_relationship_events_no_delete`;
+DROP TRIGGER IF EXISTS `family_relationship_events_no_update`;
+DROP TABLE IF EXISTS `family_readiness_snapshots`;
+DROP TABLE IF EXISTS `applicant_requirement_events`;
+DROP TABLE IF EXISTS `applicant_requirement_instances`;
+DROP TABLE IF EXISTS `family_relationship_events`;
