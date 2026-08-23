@@ -16,6 +16,8 @@ Operations roles may read the rule version used as evidence, but have no rule mu
 
 The service exposes only a query. It cannot change eligibility, rules, requirements, relationships, supplier, status, documents or evaluation selection. It is unavailable unless the environment-scoped `OPERATIONS_CASE_READ_MODEL` flag is explicitly enabled.
 
+The corresponding read-only Case Workspace renders, in order: Case Overview, Applicants and family relationships, Requirements, Documents, Evaluation History, Family Readiness and customer actions, Timeline, and Supplier. It accepts the authorized read-model DTO and has no buttons, callbacks or mutation client. It renders nothing while the same feature flag is closed. Supplier rendering uses an explicit operational-field allowlist even if a finance-capable DTO is supplied.
+
 ## Controlled action layer design
 
 No action below is implemented or activated in this milestone. Each future action must be a separate command, never an extension of the read query:
