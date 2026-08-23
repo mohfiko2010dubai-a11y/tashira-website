@@ -47,7 +47,7 @@ The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B ther
 | Finance isolation | PASS | Supplier cost was unchanged before/after Operations commands |
 | Application startup | PASS | Full Drizzle schema + `014–021`; local process healthy on `127.0.0.1:3102`, HTTP 200, then stopped |
 | Feature flags | PASS | Operations flags remain closed/fail-closed by default |
-| Persistent RBAC/API runtime wiring | **BLOCKED** | Schema/domain tests exist, but the default router intentionally still has an unavailable actor provider/executor |
+| Persistent RBAC/API runtime wiring | PARTIAL | Default router now loads trusted actors, persisted permissions/scopes and fail-closed flags from MySQL; the persistent executor remains deliberately unavailable |
 | Controlled Write UI | NOT STARTED | Correctly blocked until persistent RBAC/API integration passes |
 
 ## Defects found and corrected
@@ -64,4 +64,6 @@ The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B ther
 
 ## Next gate
 
-Implement and prove the MySQL-backed server actor/flag provider and controlled-write executor, including wrong-team/scope denial and real internal API transactions. Only after that gate passes may Controlled Write UI work begin.
+The MySQL-backed access provider is now proven against the disposable database. It derives administrator/staff identity only from the trusted server context, loads current role grants and scopes from MySQL, ignores unknown permission/flag values, treats missing/malformed/inaccessible flags as disabled, and sanitizes provider errors. The default router uses this provider; no permissive or in-memory actor fallback remains.
+
+Next, implement and prove the MySQL-backed controlled-write executor, including wrong-team/scope denial and real internal API transactions. Only after that gate passes may Controlled Write UI work begin.

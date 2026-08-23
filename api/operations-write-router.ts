@@ -4,6 +4,8 @@ import type { TrpcContext } from "./context";
 import type { AuthorizationActor } from "./lib/authorization/policy";
 import type { FeatureFlagContext, FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
 import { isOperationsFlagEnabled } from "./lib/feature-flags/feature-flags";
+import { MysqlOperationsAccessProvider, OperationsAccessError } from "./lib/operations/mysql-access-provider";
+import { defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import type { ApplicationStatus, DocumentReviewOutcome, HumanReviewOutcome, WriteResult } from "./lib/operations/controlled-write-repository";
 import { createRouter, staffOrAdminQuery } from "./middleware";
 
@@ -30,17 +32,24 @@ export type OperationsWriteExecutor = {
 
 type Dependencies = {
   actorForContext(ctx: TrpcContext): Promise<AuthorizationActor>;
-  flagContextForContext(ctx: TrpcContext): FeatureFlagContext;
+  flagContextForContext(ctx: TrpcContext): FeatureFlagContext | Promise<FeatureFlagContext>;
   flagsForContext(ctx: TrpcContext): Promise<readonly FeatureFlagRecord[]>;
   executor: OperationsWriteExecutor;
 };
 
 async function authorized(deps: Dependencies, ctx: TrpcContext): Promise<AuthorizationActor> {
   const flags = await deps.flagsForContext(ctx);
-  if (!isOperationsFlagEnabled("OPERATIONS_CONTROLLED_WRITES", deps.flagContextForContext(ctx), flags)) {
+  if (!isOperationsFlagEnabled("OPERATIONS_CONTROLLED_WRITES", await deps.flagContextForContext(ctx), flags)) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Operations controlled writes are disabled" });
   }
-  return deps.actorForContext(ctx);
+  try {
+    return await deps.actorForContext(ctx);
+  } catch (error) {
+    if (error instanceof OperationsAccessError) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Operations access denied" });
+    }
+    throw error;
+  }
 }
 
 export function createOperationsWriteRouter(deps: Dependencies) {
@@ -54,8 +63,14 @@ export function createOperationsWriteRouter(deps: Dependencies) {
 }
 
 const unavailable = async (): Promise<never> => { throw new Error("Controlled write executor is unavailable"); };
+let defaultAccessProvider: MysqlOperationsAccessProvider | undefined;
+function accessProvider(): MysqlOperationsAccessProvider {
+  defaultAccessProvider ??= new MysqlOperationsAccessProvider(defaultOperationsSqlClient());
+  return defaultAccessProvider;
+}
 export const operationsWriteRouter = createOperationsWriteRouter({
-  actorForContext: async () => { throw new TRPCError({ code: "FORBIDDEN", message: "Operations actor provider is unavailable" }); },
-  flagContextForContext: () => ({ environment: "PRODUCTION" }), flagsForContext: async () => [],
+  actorForContext: (ctx) => accessProvider().actorForContext(ctx),
+  flagContextForContext: (ctx) => accessProvider().flagContextForContext(ctx),
+  flagsForContext: () => accessProvider().featureFlags(),
   executor: { humanReview: unavailable, documentReview: unavailable, assignment: unavailable, statusTransition: unavailable, requestReevaluation: unavailable },
 });
