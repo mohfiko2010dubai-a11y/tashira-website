@@ -42,6 +42,8 @@ The result identifies blocking applicant IDs and reasons, applicant-scoped custo
 
 Migration `019` additively models append-only relationship events, evaluation-bound applicant requirement instances and events, and immutable family-readiness snapshots. It does not backfill or rewrite legacy applications. The legacy adapter selects the lowest applicant index as lead and labels every other relationship `OTHER`; it never guesses spouse/child relationships and emits an explicit review warning.
 
+The inactive repository adapter follows the same event model: relationship corrections append revocation events, requirement progress appends chronological state events, and re-evaluation creates new evaluation-bound instances while preserving the old set. Reads require the application, applicant, and evaluation identity together.
+
 ## Current limitations
 
 The repository implementations in this milestone are inactive domain contracts. SQL persistence contracts exist in migrations `017`–`019`, but no migration has been applied and no existing API/UI route uses them. Customer-facing dynamic behavior remains intentionally disabled.
