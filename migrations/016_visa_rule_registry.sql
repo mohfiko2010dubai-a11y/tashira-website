@@ -3,11 +3,12 @@ CREATE TABLE IF NOT EXISTS `visa_rule_sources` (
   `authority` varchar(255) NOT NULL,
   `title` varchar(500) NOT NULL,
   `source_url` varchar(1000) NOT NULL,
+  `source_url_sha256` binary(32) GENERATED ALWAYS AS (UNHEX(SHA2(`source_url`,256))) STORED,
   `classification` enum('OFFICIAL','OPERATIONAL','CONDITIONAL','INTERNAL') NOT NULL,
   `is_active` enum('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `visa_rule_source_url_uq` (`source_url`)
+  UNIQUE KEY `visa_rule_source_url_uq` (`source_url_sha256`)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `visa_rule_source_snapshots` (

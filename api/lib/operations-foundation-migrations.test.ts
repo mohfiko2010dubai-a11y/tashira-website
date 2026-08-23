@@ -48,3 +48,13 @@ describe("Operations OS foundation migrations", () => {
     expect(sql).toMatch(/DROP TABLE IF EXISTS/i);
   });
 });
+
+describe("Visa Rule Registry MySQL compatibility", () => {
+  it("keeps complete source URLs while indexing a fixed-width digest", async () => {
+    const sql = await readFile(migration("016_visa_rule_registry.sql"), "utf8");
+    expect(sql).toContain("`source_url` varchar(1000) NOT NULL");
+    expect(sql).toContain("`source_url_sha256` binary(32) GENERATED ALWAYS AS");
+    expect(sql).toContain("UNIQUE KEY `visa_rule_source_url_uq` (`source_url_sha256`)");
+    expect(sql).not.toContain("UNIQUE KEY `visa_rule_source_url_uq` (`source_url`)");
+  });
+});
