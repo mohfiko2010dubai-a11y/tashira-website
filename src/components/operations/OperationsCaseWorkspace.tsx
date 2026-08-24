@@ -1,8 +1,11 @@
 import type { OperationsCaseReadModel } from "../../../api/lib/operations/case-read-model";
+import { OperationsControlledWritePanelLive } from "./OperationsControlledWritePanel";
 
 type Props = {
   enabled: boolean;
   model: OperationsCaseReadModel;
+  writesEnabled?: boolean;
+  onRefresh?: () => Promise<void>;
 };
 
 function Section(props: { id: string; title: string; children: React.ReactNode }) {
@@ -18,7 +21,7 @@ function StateBadge({ children }: { children: React.ReactNode }) {
   return <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{children}</span>;
 }
 
-export default function OperationsCaseWorkspace({ enabled, model }: Props) {
+export default function OperationsCaseWorkspace({ enabled, model, writesEnabled = false, onRefresh }: Props) {
   if (!enabled) return null;
   const memberState = new Map(model.familyReadiness.member_states.map((member) => [member.applicant_id, member.readiness_state]));
 
@@ -50,6 +53,8 @@ export default function OperationsCaseWorkspace({ enabled, model }: Props) {
             ["timeline", "Timeline"], ["supplier", "Supplier"],
           ].map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-full border bg-white px-3 py-1.5">{label}</a>)}
         </nav>
+
+        {writesEnabled && onRefresh && <OperationsControlledWritePanelLive enabled model={model} onRefresh={onRefresh} />}
 
         <Section id="overview" title="Case Overview">
           <dl className="grid gap-4 sm:grid-cols-3">

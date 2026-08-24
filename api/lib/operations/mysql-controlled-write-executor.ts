@@ -3,6 +3,7 @@ import type { Pool, PoolConnection } from "mysql2/promise";
 import { z } from "zod";
 import type { OperationsWriteExecutor } from "../../operations-write-router";
 import type { AuthorizationActor } from "../authorization/policy";
+import { authorize } from "../authorization/policy";
 import type { EvaluationEvidenceSnapshot } from "../eligibility/evaluation-evidence";
 import type { EligibilityRule } from "../eligibility/eligibility-engine";
 import { InMemoryEligibilitySnapshotRepository } from "../eligibility/snapshot-repository";
@@ -10,6 +11,7 @@ import { isOperationsFlagEnabled, type FeatureFlagRecord } from "../feature-flag
 import { ruleClassificationSchema, ruleLayerSchema } from "../rules/rule-import";
 import { MysqlOperationsAccessProvider, runtimeFlagEnvironment } from "./mysql-access-provider";
 import { assignCase, recordHumanReview, requestReevaluation, reviewDocument, transitionCaseStatus } from "./controlled-actions";
+import { CONTROLLED_STATUS_TRANSITIONS } from "./controlled-state-machine";
 import { InMemoryControlledWriteRepository, type ApplicationStatus, type ControlledAuditEvent, type WriteResult } from "./controlled-write-repository";
 
 type SqlValue = string | number | bigint | boolean | Date | null | Buffer | Uint8Array;
@@ -55,6 +57,22 @@ export class OperationsWriteError extends Error {
     this.code = code;
   }
 }
+
+export type OperationsWriteCapabilities = {
+  applicationId: number;
+  version: number;
+  status: ApplicationStatus;
+  currentActorId: string;
+  assignedActorId: string | null;
+  teamId: number | null;
+  humanReview: boolean;
+  documentReview: boolean;
+  assignmentModes: readonly ("ASSIGN" | "CLAIM" | "REASSIGN")[];
+  validStatusTransitions: readonly ApplicationStatus[];
+  reevaluationApplicantIds: readonly number[];
+  documents: readonly { documentId: number; applicantId: number; version: number }[];
+  permittedAssignees: readonly { actorId: string; displayName: string }[];
+};
 
 async function rows(connection: PoolConnection, sql: string, parameters: readonly SqlValue[] = []): Promise<readonly object[]> {
   const [result] = await connection.execute(sql, [...parameters]);
@@ -126,6 +144,56 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
   constructor(pool: Pool, access: MysqlOperationsAccessProvider) {
     this.pool = pool;
     this.access = access;
+  }
+
+  async capabilities(applicationId: number, actor: AuthorizationActor): Promise<OperationsWriteCapabilities> {
+    const trustedActor = await this.access.refreshTrustedActor(actor.id);
+    const flags = await this.access.featureFlags();
+    if (!isOperationsFlagEnabled("OPERATIONS_CONTROLLED_WRITES", this.flagContext(trustedActor), flags)) throw new OperationsWriteError("FEATURE_DISABLED");
+    const connection = await this.pool.getConnection();
+    try {
+      const cases = await rows(connection,
+        `SELECT c.version,c.assigned_staff_user_id AS assignedStaffId,c.team_id AS teamId,t.department_id AS departmentId,a.status
+           FROM operations_case_controls c JOIN applications a ON a.id=c.application_id
+           LEFT JOIN operations_teams t ON t.id=c.team_id WHERE c.application_id=?`, [applicationId]);
+      const value = cases[0];
+      const version=value?numberField(value,"version"):null, status=applicationStatusSchema.safeParse(value?stringField(value,"status"):null);
+      if (!value || version===null || !status.success) throw new OperationsWriteError("NOT_FOUND");
+      const assignedStaffId=numberField(value,"assignedStaffId"), teamId=numberField(value,"teamId"), departmentId=numberField(value,"departmentId");
+      const resource={assignedActorId:assignedStaffId===null?undefined:`staff:${assignedStaffId}`,teamId:teamId??undefined,departmentId:departmentId??undefined};
+      const canRead=authorize(trustedActor,trustedActor.permissions.has("case.read")?"case.read":"case.read_assigned",resource).allowed;
+      if(!canRead) throw new OperationsWriteError("OUT_OF_SCOPE");
+      const can=(permission: Parameters<typeof authorize>[1])=>authorize(trustedActor,permission,resource).allowed;
+      const terminal=["completed","rejected","cancelled"].includes(status.data);
+      const documents=await rows(connection,
+        `SELECT d.id AS documentId,d.applicant_id AS applicantId,COALESCE(dc.version,0) AS version
+           FROM documents d LEFT JOIN operations_document_controls dc ON dc.document_id=d.id WHERE d.application_id=?`,[applicationId]);
+      const applicants=await rows(connection,
+        `SELECT a.id AS applicantId, EXISTS(SELECT 1 FROM visa_rule_evaluation_selections s WHERE s.application_id=a.application_id AND s.applicant_id=a.id) AS evaluated
+           FROM applicants a WHERE a.application_id=?`,[applicationId]);
+      const assignmentModes:("ASSIGN"|"CLAIM"|"REASSIGN")[]=[];
+      if(!terminal && can("case.assign")) assignmentModes.push(assignedStaffId===null?"ASSIGN":"REASSIGN");
+      if(!terminal && assignedStaffId===null && can("case.read_assigned") && trustedActor.id!=="admin") assignmentModes.push("CLAIM");
+      const assignees=teamId===null||!can("case.assign")?[]:await rows(connection,
+        `SELECT DISTINCT s.id,s.name FROM staff_users s
+           JOIN operations_scope_grants sg ON sg.staff_user_id=s.id AND sg.team_id=? AND sg.revoked_at IS NULL
+           JOIN operations_staff_workload_limits wl ON wl.staff_user_id=s.id
+          WHERE s.is_active='active' AND (SELECT COUNT(*) FROM operations_case_controls c WHERE c.assigned_staff_user_id=s.id)<wl.workload_limit
+          ORDER BY s.name,s.id`,[teamId]);
+      return {
+        applicationId,version,status:status.data,currentActorId:trustedActor.id,
+        assignedActorId:assignedStaffId===null?null:`staff:${assignedStaffId}`,teamId,
+        humanReview:can("case.transition")&&["documents_received","under_review"].includes(status.data),
+        documentReview:can("document.review")&&["documents_pending","documents_received","under_review"].includes(status.data),
+        assignmentModes,
+        validStatusTransitions:can("case.transition")?CONTROLLED_STATUS_TRANSITIONS[status.data]:[],
+        reevaluationApplicantIds:can("rule.review")?applicants.flatMap((row)=>{const applicantId=numberField(row,"applicantId");return numberField(row,"evaluated")===1&&applicantId!==null?[applicantId]:[]}):[],
+        documents:documents.flatMap((row)=>{const documentId=numberField(row,"documentId"),applicantId=numberField(row,"applicantId"),documentVersion=numberField(row,"version");return documentId===null||applicantId===null||documentVersion===null?[]:[{documentId,applicantId,version:documentVersion}]}),
+        permittedAssignees:assignees.flatMap((row)=>{const id=numberField(row,"id"),name=stringField(row,"name");return id===null||!name?[]:[{actorId:`staff:${id}`,displayName:name}]}),
+      };
+    } catch(error) {
+      throw mappedError(error);
+    } finally { connection.release(); }
   }
 
   humanReview(input: Parameters<OperationsWriteExecutor["humanReview"]>[0], actor: AuthorizationActor): Promise<WriteResult> {

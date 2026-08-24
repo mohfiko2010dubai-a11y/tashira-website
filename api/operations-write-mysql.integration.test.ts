@@ -104,10 +104,18 @@ integration("persistent Operations executor and internal API", () => {
 
     provider = new MysqlOperationsAccessProvider(new MysqlOperationsSqlClient(pool));
     executor = new MysqlControlledWriteExecutor(pool, provider);
-    caller = createOperationsWriteRouter({ actorForContext: (ctx) => provider.actorForContext(ctx), flagContextForContext: (ctx) => provider.flagContextForContext(ctx), flagsForContext: () => provider.featureFlags(), executor }).createCaller(context(staff1));
+    caller = createOperationsWriteRouter({ actorForContext: (ctx) => provider.actorForContext(ctx), flagContextForContext: (ctx) => provider.flagContextForContext(ctx), flagsForContext: () => provider.featureFlags(), executor, capabilities: (application, actor) => executor.capabilities(application, actor) }).createCaller(context(staff1));
   });
 
   afterAll(async () => { if (pool) await pool.end(); });
+
+  it("returns authoritative minimized capabilities", async () => {
+    const capabilities = await caller.capabilities({ applicationId });
+    expect(capabilities).toMatchObject({ version: 0, status: "documents_received", humanReview: true, documentReview: true });
+    expect(capabilities.validStatusTransitions).toEqual(["under_review", "documents_pending", "cancelled", "rejected"]);
+    expect(capabilities.documents).toContainEqual({ documentId: document1, applicantId: applicant1, version: 0 });
+    expect(JSON.stringify(capabilities)).not.toMatch(/supplierCost|internalCost|margin|markup|profit|stripe|payout/i);
+  });
 
   it("persists human review, audit, and restart-safe idempotency", async () => {
     const input = { applicationId, expectedVersion: 0, idempotencyKey: "human-review-001", reason: "Synthetic evidence reviewed", outcome: "APPROVED_FOR_NEXT_STEP" as const };
@@ -115,7 +123,8 @@ integration("persistent Operations executor and internal API", () => {
     expect(first).toMatchObject({ status: "APPLIED", version: 1 });
     expect(await caller.humanReview(input)).toMatchObject({ status: "IDEMPOTENT_REPLAY", auditEventId: first.auditEventId });
     const provider = new MysqlOperationsAccessProvider(new MysqlOperationsSqlClient(pool));
-    const restarted = createOperationsWriteRouter({ actorForContext: (ctx) => provider.actorForContext(ctx), flagContextForContext: (ctx) => provider.flagContextForContext(ctx), flagsForContext: () => provider.featureFlags(), executor: new MysqlControlledWriteExecutor(pool, provider) }).createCaller(context(staff1));
+    const restartedExecutor = new MysqlControlledWriteExecutor(pool, provider);
+    const restarted = createOperationsWriteRouter({ actorForContext: (ctx) => provider.actorForContext(ctx), flagContextForContext: (ctx) => provider.flagContextForContext(ctx), flagsForContext: () => provider.featureFlags(), executor: restartedExecutor, capabilities: (application, actor) => restartedExecutor.capabilities(application, actor) }).createCaller(context(staff1));
     expect(await restarted.humanReview(input)).toMatchObject({ status: "IDEMPOTENT_REPLAY", auditEventId: first.auditEventId });
     expect(await scalar("SELECT COUNT(*) value FROM operations_action_events WHERE application_id=? AND action_type='HUMAN_REVIEW'", [applicationId])).toBe(1);
     expect(await scalar("SELECT COUNT(*) value FROM operations_audit_events WHERE resource_reference=? AND event_type='OPERATIONS_HUMAN_REVIEW'", [String(applicationId)])).toBe(1);
@@ -124,7 +133,8 @@ integration("persistent Operations executor and internal API", () => {
 
   it("rejects wrong-team and cross-applicant document writes without partial evidence", async () => {
     const provider = new MysqlOperationsAccessProvider(new MysqlOperationsSqlClient(pool));
-    const wrongCaller = createOperationsWriteRouter({ actorForContext: (ctx) => provider.actorForContext(ctx), flagContextForContext: (ctx) => provider.flagContextForContext(ctx), flagsForContext: () => provider.featureFlags(), executor: new MysqlControlledWriteExecutor(pool, provider) }).createCaller(context(wrongTeamStaff));
+    const wrongExecutor = new MysqlControlledWriteExecutor(pool, provider);
+    const wrongCaller = createOperationsWriteRouter({ actorForContext: (ctx) => provider.actorForContext(ctx), flagContextForContext: (ctx) => provider.flagContextForContext(ctx), flagsForContext: () => provider.featureFlags(), executor: wrongExecutor, capabilities: (application, actor) => wrongExecutor.capabilities(application, actor) }).createCaller(context(wrongTeamStaff));
     await expect(wrongCaller.humanReview({ applicationId, expectedVersion: 1, idempotencyKey: "wrong-team-001", reason: "Wrong team attempt", outcome: "NEEDS_CORRECTION" })).rejects.toMatchObject({ message: "OUT_OF_SCOPE" });
     await expect(caller.documentReview({ applicationId, expectedVersion: 1, applicantId: applicant2, documentId: document1, expectedDocumentVersion: 0, idempotencyKey: "wrong-owner-001", reason: "Wrong applicant document", outcome: "REJECTED" })).rejects.toMatchObject({ message: "PRECONDITION_FAILED" });
     expect(await scalar("SELECT version value FROM operations_case_controls WHERE application_id=?", [applicationId])).toBe(1);

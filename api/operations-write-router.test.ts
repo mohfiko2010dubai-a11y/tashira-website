@@ -15,7 +15,9 @@ function dependencies(overrides: Partial<{ actorForContext: () => Promise<Author
     humanReview: vi.fn(async () => result), documentReview: vi.fn(async () => result), assignment: vi.fn(async () => result),
     statusTransition: vi.fn(async () => result), requestReevaluation: vi.fn(async () => result),
   };
-  return { actorForContext: async () => actor, flagContextForContext: () => ({ environment: "TEST" as const }), flagsForContext: async () => [enabledFlag], executor, ...overrides };
+  return { actorForContext: async () => actor, flagContextForContext: () => ({ environment: "TEST" as const }), flagsForContext: async () => [enabledFlag], executor,
+    capabilities: async () => ({ applicationId: 41, version: 2, status: "documents_received" as const, currentActorId: actor.id, assignedActorId: actor.id, teamId: 4,
+      humanReview: true, documentReview: true, assignmentModes: ["REASSIGN" as const], validStatusTransitions: ["under_review" as const], reevaluationApplicantIds: [11], documents: [{ documentId: 19, applicantId: 11, version: 1 }], permittedAssignees: [{ actorId: "staff:8", displayName: "Staff Eight" }] }), ...overrides };
 }
 
 describe("Operations controlled-write internal API gate", () => {
@@ -51,6 +53,14 @@ describe("Operations controlled-write internal API gate", () => {
     await caller.statusTransition({ applicationId: 41, expectedVersion: 2, idempotencyKey: "status-001", reason: "Review started", to: "under_review" });
     await caller.requestReevaluation({ applicationId: 41, applicantId: 11, expectedCurrentEvaluationId: "evaluation-1", expectedVersion: 2, idempotencyKey: "reevaluate-001", reason: "Official rule changed" });
     for (const method of Object.values(deps.executor)) expect(method).toHaveBeenCalledWith(expect.any(Object), actor);
+  });
+
+  it("returns only server-derived write capabilities", async () => {
+    const deps = dependencies();
+    const caller = createOperationsWriteRouter(deps).createCaller(context(7));
+    const capabilities = await caller.capabilities({ applicationId: 41 });
+    expect(capabilities.validStatusTransitions).toEqual(["under_review"]);
+    expect(JSON.stringify(capabilities)).not.toMatch(/supplierCost|internalCost|margin|profit|stripe/i);
   });
 
   it("maps deterministic write conflicts without exposing persistence details", async () => {

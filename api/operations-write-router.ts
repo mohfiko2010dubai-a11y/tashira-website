@@ -5,7 +5,7 @@ import type { AuthorizationActor } from "./lib/authorization/policy";
 import type { FeatureFlagContext, FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
 import { isOperationsFlagEnabled } from "./lib/feature-flags/feature-flags";
 import { MysqlOperationsAccessProvider, OperationsAccessError } from "./lib/operations/mysql-access-provider";
-import { MysqlControlledWriteExecutor, OperationsWriteError } from "./lib/operations/mysql-controlled-write-executor";
+import { MysqlControlledWriteExecutor, OperationsWriteError, type OperationsWriteCapabilities } from "./lib/operations/mysql-controlled-write-executor";
 import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import type { ApplicationStatus, DocumentReviewOutcome, HumanReviewOutcome, WriteResult } from "./lib/operations/controlled-write-repository";
 import { createRouter, staffOrAdminQuery } from "./middleware";
@@ -36,6 +36,7 @@ type Dependencies = {
   flagContextForContext(ctx: TrpcContext): FeatureFlagContext | Promise<FeatureFlagContext>;
   flagsForContext(ctx: TrpcContext): Promise<readonly FeatureFlagRecord[]>;
   executor: OperationsWriteExecutor;
+  capabilities(applicationId: number, actor: AuthorizationActor): Promise<OperationsWriteCapabilities>;
 };
 
 async function authorized(deps: Dependencies, ctx: TrpcContext): Promise<AuthorizationActor> {
@@ -54,7 +55,7 @@ async function authorized(deps: Dependencies, ctx: TrpcContext): Promise<Authori
 }
 
 export function createOperationsWriteRouter(deps: Dependencies) {
-  const execute = async (work: () => Promise<WriteResult>): Promise<WriteResult> => {
+  const execute = async <Result>(work: () => Promise<Result>): Promise<Result> => {
     try {
       return await work();
     } catch (error) {
@@ -69,6 +70,8 @@ export function createOperationsWriteRouter(deps: Dependencies) {
     }
   };
   return createRouter({
+    capabilities: staffOrAdminQuery.input(z.object({ applicationId: z.number().int().positive() }).strict()).query(async ({ input, ctx }) =>
+      execute(async () => deps.capabilities(input.applicationId, await authorized(deps, ctx)))),
     humanReview: staffOrAdminQuery.input(humanReviewInput).mutation(async ({ input, ctx }) => execute(async () => deps.executor.humanReview(input, await authorized(deps, ctx)))),
     documentReview: staffOrAdminQuery.input(documentReviewInput).mutation(async ({ input, ctx }) => execute(async () => deps.executor.documentReview(input, await authorized(deps, ctx)))),
     assignment: staffOrAdminQuery.input(assignmentInput).mutation(async ({ input, ctx }) => execute(async () => deps.executor.assignment(input, await authorized(deps, ctx)))),
@@ -91,6 +94,7 @@ export const operationsWriteRouter = createOperationsWriteRouter({
   actorForContext: (ctx) => accessProvider().actorForContext(ctx),
   flagContextForContext: (ctx) => accessProvider().flagContextForContext(ctx),
   flagsForContext: () => accessProvider().featureFlags(),
+  capabilities: (applicationId, actor) => executor().capabilities(applicationId, actor),
   executor: {
     humanReview: (input, actor) => executor().humanReview(input, actor),
     documentReview: (input, actor) => executor().documentReview(input, actor),
