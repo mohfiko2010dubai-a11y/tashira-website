@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./context";
 import type { AuthorizationActor } from "./lib/authorization/policy";
 import type { FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
+import { OperationsWriteError } from "./lib/operations/mysql-controlled-write-executor";
 import { createOperationsWriteRouter, type OperationsWriteExecutor } from "./operations-write-router";
 
 const context = (staffId?: number): TrpcContext => ({ req: new Request("https://internal.invalid/api/trpc"), resHeaders: new Headers(), isAdmin: false, staffId, customerApplicationReferences: new Set() });
@@ -50,5 +51,21 @@ describe("Operations controlled-write internal API gate", () => {
     await caller.statusTransition({ applicationId: 41, expectedVersion: 2, idempotencyKey: "status-001", reason: "Review started", to: "under_review" });
     await caller.requestReevaluation({ applicationId: 41, applicantId: 11, expectedCurrentEvaluationId: "evaluation-1", expectedVersion: 2, idempotencyKey: "reevaluate-001", reason: "Official rule changed" });
     for (const method of Object.values(deps.executor)) expect(method).toHaveBeenCalledWith(expect.any(Object), actor);
+  });
+
+  it("maps deterministic write conflicts without exposing persistence details", async () => {
+    const deps = dependencies();
+    deps.executor.humanReview = vi.fn(async () => { throw new OperationsWriteError("CONCURRENCY_CONFLICT"); });
+    const caller = createOperationsWriteRouter(deps).createCaller(context(7));
+    await expect(caller.humanReview({ applicationId: 41, expectedVersion: 2, idempotencyKey: "review-conflict-001", reason: "Evidence reviewed", outcome: "APPROVED_FOR_NEXT_STEP" }))
+      .rejects.toMatchObject({ code: "CONFLICT", message: "CONCURRENCY_CONFLICT" });
+  });
+
+  it("sanitizes unexpected persistence failures", async () => {
+    const deps = dependencies();
+    deps.executor.humanReview = vi.fn(async () => { throw new OperationsWriteError("PERSISTENCE_FAILURE", new Error("synthetic raw database detail")); });
+    const caller = createOperationsWriteRouter(deps).createCaller(context(7));
+    await expect(caller.humanReview({ applicationId: 41, expectedVersion: 2, idempotencyKey: "review-failure-001", reason: "Evidence reviewed", outcome: "APPROVED_FOR_NEXT_STEP" }))
+      .rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR", message: "PERSISTENCE_FAILURE" });
   });
 });

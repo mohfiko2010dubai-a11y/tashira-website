@@ -5,7 +5,8 @@ import type { AuthorizationActor } from "./lib/authorization/policy";
 import type { FeatureFlagContext, FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
 import { isOperationsFlagEnabled } from "./lib/feature-flags/feature-flags";
 import { MysqlOperationsAccessProvider, OperationsAccessError } from "./lib/operations/mysql-access-provider";
-import { defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
+import { MysqlControlledWriteExecutor, OperationsWriteError } from "./lib/operations/mysql-controlled-write-executor";
+import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import type { ApplicationStatus, DocumentReviewOutcome, HumanReviewOutcome, WriteResult } from "./lib/operations/controlled-write-repository";
 import { createRouter, staffOrAdminQuery } from "./middleware";
 
@@ -53,24 +54,48 @@ async function authorized(deps: Dependencies, ctx: TrpcContext): Promise<Authori
 }
 
 export function createOperationsWriteRouter(deps: Dependencies) {
+  const execute = async (work: () => Promise<WriteResult>): Promise<WriteResult> => {
+    try {
+      return await work();
+    } catch (error) {
+      if (!(error instanceof OperationsWriteError)) throw error;
+      if (error.code === "UNAUTHENTICATED") throw new TRPCError({ code: "UNAUTHORIZED", message: error.code });
+      if (["FORBIDDEN", "OUT_OF_SCOPE", "FEATURE_DISABLED"].includes(error.code)) throw new TRPCError({ code: "FORBIDDEN", message: error.code });
+      if (error.code === "NOT_FOUND") throw new TRPCError({ code: "NOT_FOUND", message: error.code });
+      if (["CONCURRENCY_CONFLICT", "IDEMPOTENCY_CONFLICT"].includes(error.code)) throw new TRPCError({ code: "CONFLICT", message: error.code });
+      if (error.code === "PRECONDITION_FAILED") throw new TRPCError({ code: "PRECONDITION_FAILED", message: error.code });
+      if (error.code === "INVALID_STATE_TRANSITION") throw new TRPCError({ code: "BAD_REQUEST", message: error.code });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "PERSISTENCE_FAILURE" });
+    }
+  };
   return createRouter({
-    humanReview: staffOrAdminQuery.input(humanReviewInput).mutation(async ({ input, ctx }) => deps.executor.humanReview(input, await authorized(deps, ctx))),
-    documentReview: staffOrAdminQuery.input(documentReviewInput).mutation(async ({ input, ctx }) => deps.executor.documentReview(input, await authorized(deps, ctx))),
-    assignment: staffOrAdminQuery.input(assignmentInput).mutation(async ({ input, ctx }) => deps.executor.assignment(input, await authorized(deps, ctx))),
-    statusTransition: staffOrAdminQuery.input(statusTransitionInput).mutation(async ({ input, ctx }) => deps.executor.statusTransition(input, await authorized(deps, ctx))),
-    requestReevaluation: staffOrAdminQuery.input(reevaluationInput).mutation(async ({ input, ctx }) => deps.executor.requestReevaluation(input, await authorized(deps, ctx))),
+    humanReview: staffOrAdminQuery.input(humanReviewInput).mutation(async ({ input, ctx }) => execute(async () => deps.executor.humanReview(input, await authorized(deps, ctx)))),
+    documentReview: staffOrAdminQuery.input(documentReviewInput).mutation(async ({ input, ctx }) => execute(async () => deps.executor.documentReview(input, await authorized(deps, ctx)))),
+    assignment: staffOrAdminQuery.input(assignmentInput).mutation(async ({ input, ctx }) => execute(async () => deps.executor.assignment(input, await authorized(deps, ctx)))),
+    statusTransition: staffOrAdminQuery.input(statusTransitionInput).mutation(async ({ input, ctx }) => execute(async () => deps.executor.statusTransition(input, await authorized(deps, ctx)))),
+    requestReevaluation: staffOrAdminQuery.input(reevaluationInput).mutation(async ({ input, ctx }) => execute(async () => deps.executor.requestReevaluation(input, await authorized(deps, ctx)))),
   });
 }
 
-const unavailable = async (): Promise<never> => { throw new Error("Controlled write executor is unavailable"); };
 let defaultAccessProvider: MysqlOperationsAccessProvider | undefined;
 function accessProvider(): MysqlOperationsAccessProvider {
   defaultAccessProvider ??= new MysqlOperationsAccessProvider(defaultOperationsSqlClient());
   return defaultAccessProvider;
 }
+let persistentExecutor: MysqlControlledWriteExecutor | undefined;
+function executor(): MysqlControlledWriteExecutor {
+  persistentExecutor ??= new MysqlControlledWriteExecutor(defaultOperationsPool(), accessProvider());
+  return persistentExecutor;
+}
 export const operationsWriteRouter = createOperationsWriteRouter({
   actorForContext: (ctx) => accessProvider().actorForContext(ctx),
   flagContextForContext: (ctx) => accessProvider().flagContextForContext(ctx),
   flagsForContext: () => accessProvider().featureFlags(),
-  executor: { humanReview: unavailable, documentReview: unavailable, assignment: unavailable, statusTransition: unavailable, requestReevaluation: unavailable },
+  executor: {
+    humanReview: (input, actor) => executor().humanReview(input, actor),
+    documentReview: (input, actor) => executor().documentReview(input, actor),
+    assignment: (input, actor) => executor().assignment(input, actor),
+    statusTransition: (input, actor) => executor().statusTransition(input, actor),
+    requestReevaluation: (input, actor) => executor().requestReevaluation(input, actor),
+  },
 });

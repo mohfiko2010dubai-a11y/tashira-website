@@ -60,6 +60,11 @@ export class InMemoryControlledWriteRepository {
 
   workload(actorId: string): number { return this.#workload.get(actorId) ?? 0; }
 
+  seedWorkload(actorId: string, count: number): void {
+    if (!actorId.trim() || !Number.isSafeInteger(count) || count < 0) throw new Error("INVALID_WORKLOAD_EVIDENCE");
+    this.#workload.set(actorId, count);
+  }
+
   audit(applicationId: number): readonly ControlledAuditEvent[] {
     return this.#audit.filter((event) => event.applicationId === applicationId).map((event) => structuredClone(event));
   }

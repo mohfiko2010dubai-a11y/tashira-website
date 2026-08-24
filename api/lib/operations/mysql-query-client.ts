@@ -21,11 +21,15 @@ export class MysqlOperationsSqlClient implements OperationsSqlClient {
 
 let defaultPool: Pool | undefined;
 
-export function defaultOperationsSqlClient(): OperationsSqlClient {
+export function defaultOperationsPool(): Pool {
   defaultPool ??= createPool({
     uri: env.databaseUrl,
     connectionLimit: 5,
     enableKeepAlive: true,
   });
-  return new MysqlOperationsSqlClient(defaultPool);
+  return defaultPool;
+}
+
+export function defaultOperationsSqlClient(): OperationsSqlClient {
+  return new MysqlOperationsSqlClient(defaultOperationsPool());
 }

@@ -24,7 +24,7 @@ Synthetic credentials exist only in the disposable container environment and are
 
 The discovered Operations OS chain is:
 
-`014 → 015 → 016 → 017 → 018 → 019 → 020 → 021 → 022`
+`014 → 015 → 016 → 017 → 018 → 019 → 020 → 021 → 022 → 023`
 
 The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B therefore use the committed synthetic pre-Operations-OS fixture, while the application-startup database is created from `db/schema.ts` before applying the Operations chain.
 
@@ -32,7 +32,7 @@ The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B ther
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
-| Clean DB | PASS | Baseline plus `014–021` applied in order |
+| Clean DB | PASS | Baseline plus `014–023` applied in order |
 | Legacy DB | PASS | Same chain applied over synthetic applications/applicants/documents/payment/invoice |
 | Legacy records preserved | PASS | Counts remained `2 / 5 / 5 / 1 / 1`; application/document checksums recorded during rehearsal |
 | Legacy compatibility | PASS | Zero fabricated evaluations and zero fabricated relationships |
@@ -46,16 +46,18 @@ The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B ther
 | Idempotency | PASS | Replay evidence stable; conflicting reuse rejected |
 | Audit atomicity | PASS | Forced duplicate audit failure rolled back version and business event |
 | Finance isolation | PASS | Supplier cost was unchanged before/after Operations commands |
-| Application startup | PASS | Full Drizzle schema + `014–021`; local process healthy on `127.0.0.1:3102`, HTTP 200, then stopped |
+| Persistent executor/API | PASS | Five controlled actions, server-side RBAC, feature flags, concurrency, restart-safe idempotency, rollback-on-audit-failure and finance isolation verified against disposable MySQL 8.4 |
+| Application startup | PASS | Full Drizzle schema + `014–023`; local process healthy on `127.0.0.1:3102`, HTTP 200, then stopped |
 | Feature flags | PASS | Operations flags remain closed/fail-closed by default |
-| Persistent RBAC/API runtime wiring | PARTIAL | Default router now loads trusted actors, persisted permissions/scopes and fail-closed flags from MySQL; the persistent executor remains deliberately unavailable |
-| Controlled Write UI | NOT STARTED | Correctly blocked until persistent RBAC/API integration passes |
+| Persistent RBAC/API runtime wiring | PASS | Default router loads trusted actors, persisted permissions/scopes, fail-closed flags and the verified transactional MySQL executor |
+| Controlled Write UI | NOT STARTED | Executor/API prerequisite now passes; UI remains closed and requires its own next milestone |
 
 ## Defects found and corrected
 
 1. Migration `016` used a unique index on a 1000-character `utf8mb4` URL, exceeding InnoDB's 3072-byte key limit. The complete URL is retained and uniqueness now uses a stored 32-byte SHA-256 digest.
 2. Raw SQL could import a Rule Version directly as ACTIVE and could modify version evidence. Additive migration `021` now rejects direct ACTIVE imports, requires an APPROVED review before activation, protects immutable version content, and makes source snapshots/reviews append-only.
 3. The validated import contract required `rule layer`, but migration `016` did not persist it. Additive migration `022` stores the exact seven-value precedence enum, requires it for every new Rule Version, freezes it as evidence, and blocks unresolved historical versions from APPROVED/ACTIVE states without inventing a backfill.
+4. Persistent document concurrency and explicit staff capacity required durable preconditions. Additive migration `023` adds document-version controls, explicitly configured workload limits, and team evidence on immutable action events without backfilling or changing legacy application data.
 
 ## Recovery and failure behavior
 
@@ -68,4 +70,4 @@ The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B ther
 
 The MySQL-backed access provider is now proven against the disposable database. It derives administrator/staff identity only from the trusted server context, loads current role grants and scopes from MySQL, ignores unknown permission/flag values, treats missing/malformed/inaccessible flags as disabled, and sanitizes provider errors. The default router uses this provider; no permissive or in-memory actor fallback remains.
 
-Next, implement and prove the MySQL-backed controlled-write executor, including wrong-team/scope denial and real internal API transactions. Only after that gate passes may Controlled Write UI work begin.
+Next, implement the Controlled Write UI against the now-verified internal API while keeping every control behind the closed feature flag. No activation, external migration or deployment is implied by this rehearsal.

@@ -46,6 +46,18 @@ const flagSet = new Set<string>(OPERATIONS_FLAGS);
 const environments = new Set<string>(["DEVELOPMENT", "TEST", "STAGING", "PRODUCTION"] satisfies FlagEnvironment[]);
 const flagScopes = new Set<string>(["GLOBAL", "TEAM", "STAFF", "APPLICATION"] satisfies FlagScope[]);
 
+function isFlagEnvironment(value: string): value is FlagEnvironment {
+  return environments.has(value);
+}
+
+function isOperationsFlag(value: string): value is OperationsFlag {
+  return flagSet.has(value);
+}
+
+function isFlagScope(value: string): value is FlagScope {
+  return flagScopes.has(value);
+}
+
 export class OperationsAccessError extends Error {
   readonly code: "ACTOR_REQUIRED" | "ACTOR_ACCESS_DENIED" | "ACCESS_PROVIDER_UNAVAILABLE";
 
@@ -68,7 +80,7 @@ function isAdminContext(ctx: TrpcContext): boolean {
 
 export function runtimeFlagEnvironment(nodeEnvironment = process.env.NODE_ENV, appEnvironment = process.env.APP_ENV): FlagEnvironment {
   const candidate = (appEnvironment || nodeEnvironment || "DEVELOPMENT").toUpperCase();
-  return environments.has(candidate) ? candidate as FlagEnvironment : "DEVELOPMENT";
+  return isFlagEnvironment(candidate) ? candidate : "DEVELOPMENT";
 }
 
 export class MysqlOperationsAccessProvider {
@@ -80,16 +92,32 @@ export class MysqlOperationsAccessProvider {
 
   async actorForContext(ctx: TrpcContext): Promise<AuthorizationActor> {
     if (isAdminContext(ctx)) {
-      return {
-        id: "admin",
-        permissions: new Set(PERMISSIONS),
-        scopes: ["ALL"],
-        teamIds: new Set(),
-        departmentIds: new Set(),
-      };
+      return this.adminActor();
     }
     if (!ctx.staffId) throw new OperationsAccessError("ACTOR_REQUIRED");
+    return this.staffActor(ctx.staffId);
+  }
 
+  async refreshTrustedActor(actorId: string): Promise<AuthorizationActor> {
+    if (actorId === "admin") return this.adminActor();
+    const match = /^staff:([1-9]\d*)$/.exec(actorId);
+    if (!match) throw new OperationsAccessError("ACTOR_REQUIRED");
+    const staffId = Number(match[1]);
+    if (!Number.isSafeInteger(staffId)) throw new OperationsAccessError("ACTOR_REQUIRED");
+    return this.staffActor(staffId);
+  }
+
+  private adminActor(): AuthorizationActor {
+    return {
+      id: "admin",
+      permissions: new Set(PERMISSIONS),
+      scopes: ["ALL"],
+      teamIds: new Set(),
+      departmentIds: new Set(),
+    };
+  }
+
+  private async staffActor(staffId: number): Promise<AuthorizationActor> {
     try {
       const [permissions, scopes] = await Promise.all([
         this.sql.query(
@@ -102,13 +130,13 @@ export class MysqlOperationsAccessProvider {
               AND sr.revoked_at IS NULL
               AND sr.valid_from <= UTC_TIMESTAMP()
               AND (sr.valid_to IS NULL OR sr.valid_to > UTC_TIMESTAMP())`,
-          [ctx.staffId],
+          [staffId],
         ),
         this.sql.query(
           `SELECT scope_type AS scopeType, team_id AS teamId, department_id AS departmentId
              FROM operations_scope_grants
             WHERE staff_user_id = ? AND revoked_at IS NULL`,
-          [ctx.staffId],
+          [staffId],
         ),
       ]);
 
@@ -134,7 +162,7 @@ export class MysqlOperationsAccessProvider {
         throw new OperationsAccessError("ACTOR_ACCESS_DENIED");
       }
       return {
-        id: `staff:${ctx.staffId}`,
+        id: `staff:${staffId}`,
         permissions: new Set(validPermissions),
         scopes: [...new Set(validScopes)],
         teamIds: new Set(scopeRows.map((row) => numericId(row.teamId)).filter((id): id is number => id !== null)),
@@ -163,14 +191,14 @@ export class MysqlOperationsAccessProvider {
           ? [] : [{ flagKey, environment, enabled, scopeType, scopeReference }];
       });
       return rows.flatMap((row): FeatureFlagRecord[] => {
-        if (!flagSet.has(row.flagKey) || !environments.has(row.environment) || !flagScopes.has(row.scopeType)) return [];
+        if (!isOperationsFlag(row.flagKey) || !isFlagEnvironment(row.environment) || !isFlagScope(row.scopeType)) return [];
         if (row.enabled !== "YES" && row.enabled !== "NO") return [];
         if ((row.scopeType === "GLOBAL") !== (row.scopeReference === "")) return [];
         return [{
-          flagKey: row.flagKey as OperationsFlag,
-          environment: row.environment as FlagEnvironment,
+          flagKey: row.flagKey,
+          environment: row.environment,
           enabled: row.enabled === "YES",
-          scopeType: row.scopeType as FlagScope,
+          scopeType: row.scopeType,
           scopeReference: row.scopeReference,
         }];
       });
