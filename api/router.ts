@@ -18,6 +18,7 @@ import { recoveryRouter } from "./recovery-router";
 import { refundRouter } from "./refund-router";
 import { securityDepositRouter } from "./security-deposit-router";
 import { operationsWriteRouter } from "./operations-write-router";
+import { operationsReadRouter } from "./operations-read-router";
 
 export const appRouter = createRouter({
   auth: authRouter,
@@ -39,6 +40,7 @@ export const appRouter = createRouter({
   refund: refundRouter,
   securityDeposit: securityDepositRouter,
   operationsWrite: operationsWriteRouter,
+  operationsRead: operationsReadRouter,
 });
 
 export type AppRouter = typeof appRouter;

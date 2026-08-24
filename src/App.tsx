@@ -36,6 +36,7 @@ const AdminChat = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/
 const StaffLogin = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffLogin')));
 const StaffDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffDashboard')));
 const StaffApplicationDetail = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffApplicationDetail')));
+const StaffOperationsCase = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationsCase')));
 const AdminFinanceCockpit = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFinanceCockpit')));
 
 function AppContent() {
@@ -85,6 +86,7 @@ function AppContent() {
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
+          <Route path="/staff/operations/:referenceNumber" element={<StaffGuard><StaffOperationsCase /></StaffGuard>} />
           <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

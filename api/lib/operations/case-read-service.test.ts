@@ -130,9 +130,11 @@ describe("read-only Operations case gate", () => {
     expect(supplier).not.toHaveProperty("internalCost");
   });
 
-  it("returns finance supplier fields only with explicit finance permission", () => {
+  it("never returns finance supplier fields through the Operations read model", () => {
     const permissions = [...ROLE_TEMPLATES.OPERATIONS_MANAGER, "supplier.read_financial" as const];
-    expect(read({ actor: actor({ permissions, scopes: ["TEAM"] }) }).supplier).toHaveProperty("effectiveCost", "100");
+    const supplier = read({ actor: actor({ permissions, scopes: ["TEAM"] }) }).supplier;
+    expect(supplier).not.toHaveProperty("effectiveCost");
+    expect(supplier).not.toHaveProperty("internalCost");
   });
 
   it("renders legacy applications without inventing evaluations or relationships", () => {

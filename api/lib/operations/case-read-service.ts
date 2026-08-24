@@ -1,4 +1,4 @@
-import { authorize, projectSupplierForActor, type AuthorizationActor } from "../authorization/policy";
+import { authorize, type AuthorizationActor } from "../authorization/policy";
 import type { Permission } from "../authorization/permissions";
 import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from "../feature-flags/feature-flags";
 import { InMemoryEligibilitySnapshotRepository } from "../eligibility/snapshot-repository";
@@ -30,6 +30,11 @@ export function readOperationsCase(input: {
     source: input.source,
     snapshots: input.snapshots,
     family: input.family,
-    supplierProjection: input.source.supplier ? projectSupplierForActor(input.actor, input.source.supplier) : null,
+    supplierProjection: input.source.supplier && input.actor.permissions.has("supplier.read_operational") ? {
+      id: input.source.supplier.id,
+      name: input.source.supplier.name,
+      slaHours: input.source.supplier.slaHours,
+      reliabilityScore: input.source.supplier.reliabilityScore,
+    } : null,
   });
 }

@@ -31,7 +31,7 @@ export type OperationsCaseSource = {
     code: string;
     readiness: "MISSING" | "UPLOADED" | "VALIDATED" | "REJECTED";
   }[];
-  supplier: SupplierFinancialView | null;
+  supplier: SupplierOperationalView | SupplierFinancialView | null;
   operationalHistory: readonly { id: string; event: string; actorType: string; occurredAt: string }[];
 };
 
