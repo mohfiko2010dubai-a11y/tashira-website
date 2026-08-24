@@ -47,7 +47,7 @@ The repository has no zero-to-current `001/002` SQL baseline. Rehearsal A/B ther
 | Audit atomicity | PASS | Forced duplicate audit failure rolled back version and business event |
 | Finance isolation | PASS | Supplier cost was unchanged before/after Operations commands |
 | Persistent executor/API | PASS | Five controlled actions, server-side RBAC, feature flags, concurrency, restart-safe idempotency, rollback-on-audit-failure and finance isolation verified against disposable MySQL 8.4 |
-| Application startup | PASS | Full Drizzle schema + `014–023`; local process healthy on `127.0.0.1:3102`, HTTP 200, then stopped |
+| Application startup | PASS (prior gate) | Full Drizzle schema + `014–021`; local process healthy on `127.0.0.1:3102`, HTTP 200, then stopped. Migration `023` is separately proven by clean/legacy and executor/API integration gates. |
 | Feature flags | PASS | Operations flags remain closed/fail-closed by default |
 | Persistent RBAC/API runtime wiring | PASS | Default router loads trusted actors, persisted permissions/scopes, fail-closed flags and the verified transactional MySQL executor |
 | Controlled Write UI | NOT STARTED | Executor/API prerequisite now passes; UI remains closed and requires its own next milestone |
