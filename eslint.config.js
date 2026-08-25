@@ -6,7 +6,16 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Runtime data and retained deployment artifacts are not application source.
+  // Excluding them keeps `eslint .` deterministic without weakening source rules.
+  globalIgnores([
+    'dist',
+    'dist.previous/**',
+    'dist.previous-preflight/**',
+    'storage/**',
+    'backups/**',
+    '.pnpm-store/**',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
