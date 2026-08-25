@@ -2,6 +2,16 @@
 
 Date: 2026-08-25. Scope: authorized Staging work only.
 
+## Travel Party / Submission Scheduler runtime gate
+
+- Verified predeployment backup: `/var/backups/tashira-staging/20260825T124842Z-travel-scheduler-runtime-predeploy-verified`; root-only mode `700`, gzip/hash verification PASS.
+- Exact deployed SHA: `996fc8b65a84602d648a6e95802cd96e56716845` through `staging/deploy-native.mjs`.
+- Runtime policy: due-soon 14 days and urgent 3 days, recorded as Staging operational policy rather than official eligibility rules.
+- Activation: `TRAVEL_PARTY_ENGINE` and `SUBMISSION_SCHEDULER` are ON only for synthetic Teams 7 and 13. No global, customer-facing or Production activation occurred.
+- Synthetic Team 13 runtime E2E: authorized read PASS, wrong-team denial PASS, two applicant-isolated travel members PASS, one shared booking with two explicit links PASS, scheduler state `SCHEDULED_FOR_SUBMISSION`, Upcoming Submissions category `FUTURE`, finance/storage non-disclosure PASS.
+- Unauthenticated queue access returned HTTP 403. Staging local/public and read-only Production public health remained HTTP 200.
+- Protected counts remained 65 applications, 76 applicants and 121 documents before deployment; no customer record or document was modified by the runtime read gate.
+
 ## Travel Party / Submission Scheduler migration 024
 
 - Local rehearsal: MySQL 8.4.11 clean and legacy chains `014–024` PASS; rollback/reapply PASS.
