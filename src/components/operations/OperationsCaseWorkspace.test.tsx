@@ -48,6 +48,14 @@ function model(legacy = false): OperationsCaseReadModel {
     },
     supplier: { id: 5, name: "Synthetic Supplier", slaHours: 24, reliabilityScore: 95 },
     operationalHistory: [{ id: "event-1", event: "CASE_CREATED", actorType: "SYSTEM", occurredAt: "2026-06-01" }],
+    travelGroups: legacy ? [] : [{ id: "trip-a", reference: "Travel Group A", arrangement: "TOGETHER", primaryTravellerId: 11,
+      accompanyingAdultId: 11, applicantIds: [11, 12], origin: "CAI", destination: "DXB", plannedArrivalDate: "2026-12-20",
+      plannedDepartureDate: "2026-12-30", ticketStatus: "CONFIRMED", sharedDocuments: [{ documentId: 101, applicantIds: [11, 12], documentType: "FAMILY_BOOKING" }],
+      currentSchedule: { evaluationId: "schedule-a", evaluatedAt: "2026-08-25", travelGroupId: "trip-a", routeCode: "FAMILY",
+        plannedArrivalDate: "2026-12-20", earliestSafeSubmissionDate: "2026-11-20", targetSubmissionDate: "2026-12-12",
+        latestSafeSubmissionDate: "2026-12-15", state: "SCHEDULED_FOR_SUBMISSION", reason: "SUBMISSION_WINDOW_NOT_OPEN",
+        blockingReasons: [], recalculationReason: "INITIAL_EVALUATION", ruleVersions: [], sourceEvidenceReferences: [], evidenceSha256: "a".repeat(64) },
+      scheduleHistory: [] }],
     legacyWarnings: legacy ? ["LEGACY_RELATIONSHIP_GRAPH_INFERRED"] : [],
   };
 }
@@ -59,11 +67,19 @@ describe("Operations Case Workspace", () => {
 
   it("renders the approved read-only section order", () => {
     const html = renderToStaticMarkup(<OperationsCaseWorkspace enabled model={model()} />);
-    const headings = ["Case Overview", "Applicants", "Requirements", "Documents", "Evaluation History", "Family Readiness", "Timeline", "Supplier"];
+    const headings = ["Case Overview", "Applicants", "Requirements", "Travel Party", "Submission Schedule", "Documents", "Evaluation History", "Family Readiness", "Timeline", "Supplier"];
     for (let index = 1; index < headings.length; index += 1) {
       expect(html.indexOf(headings[index - 1])).toBeLessThan(html.indexOf(headings[index]));
     }
     expect(html).not.toContain("<button");
+  });
+
+  it("renders travel party and scheduler evidence without financial fields", () => {
+    const html = renderToStaticMarkup(<OperationsCaseWorkspace enabled model={model()} />);
+    expect(html).toContain("Travel Group A");
+    expect(html).toContain("SCHEDULED_FOR_SUBMISSION");
+    expect(html).toContain("2026-12-12");
+    expect(html).toContain("Shared booking links: 1");
   });
 
   it("keeps applicant requirements and documents visibly isolated", () => {

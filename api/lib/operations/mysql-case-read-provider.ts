@@ -4,7 +4,8 @@ import { ELIGIBILITY_ENGINE_VERSION } from "../eligibility/evaluation-evidence";
 import { InMemoryEligibilitySnapshotRepository } from "../eligibility/snapshot-repository";
 import { InMemoryFamilyPersistenceRepository } from "../family/family-persistence";
 import type { OperationsSqlClient } from "./mysql-access-provider";
-import type { OperationsCaseSource } from "./case-read-model";
+import type { OperationsCaseSource, OperationsTravelGroup } from "./case-read-model";
+import type { SubmissionScheduleState } from "../travel/submission-scheduler";
 
 type Row = Record<string, unknown>;
 
@@ -70,7 +71,8 @@ export class MysqlOperationsCaseReadProvider {
     const applicationId = number(application, "id");
 
     const [applicantRows, documentRows, evaluationRows, matchRows, selectionRows, relationshipRows,
-      requirementRows, requirementEventRows, timelineRows, supplierRows] = await Promise.all([
+      requirementRows, requirementEventRows, timelineRows, supplierRows, travelGroupRows, travelMemberRows,
+      travelDocumentRows, scheduleRows] = await Promise.all([
       this.sql.query(`SELECT id, applicant_index AS applicantIndex, full_name AS displayName,
                             nationality, gcc_residence_country AS residenceCountry
                        FROM applicants WHERE application_id=? ORDER BY applicant_index,id`, [applicationId]),
@@ -109,6 +111,26 @@ export class MysqlOperationsCaseReadProvider {
                        FROM application_timeline_events WHERE application_id=? ORDER BY created_at,id`, [applicationId]),
       nullableNumber(application, "supplierId") === undefined ? Promise.resolve([]) : this.sql.query(
         `SELECT id, name FROM suppliers WHERE id=? AND is_active='active' LIMIT 1`, [nullableNumber(application, "supplierId") ?? 0]),
+      this.sql.query(`SELECT id, travel_group_reference AS reference, arrangement,
+                            primary_traveller_id AS primaryTravellerId, accompanying_adult_id AS accompanyingAdultId,
+                            origin, destination, planned_arrival_date AS plannedArrivalDate,
+                            planned_departure_date AS plannedDepartureDate, ticket_status AS ticketStatus
+                       FROM travel_groups WHERE application_id=? ORDER BY planned_arrival_date,id`, [applicationId]),
+      this.sql.query(`SELECT travel_group_id AS travelGroupId, applicant_id AS applicantId
+                       FROM travel_group_applicants WHERE application_id=? ORDER BY travel_group_id,applicant_id`, [applicationId]),
+      this.sql.query(`SELECT document_id AS documentId, applicant_id AS applicantId, document_type AS documentType
+                       FROM travel_document_applicant_links WHERE application_id=? ORDER BY document_id,applicant_id`, [applicationId]),
+      this.sql.query(`SELECT id, travel_group_id AS travelGroupId, route_code AS routeCode,
+                            planned_arrival_date AS plannedArrivalDate,
+                            earliest_safe_submission_date AS earliestSafeSubmissionDate,
+                            target_submission_date AS targetSubmissionDate,
+                            latest_safe_submission_date AS latestSafeSubmissionDate,
+                            schedule_state AS state, reason, blocking_reasons_json AS blockingReasons,
+                            recalculation_reason AS recalculationReason, rule_versions_json AS ruleVersions,
+                            source_evidence_references_json AS sourceEvidenceReferences,
+                            evaluator_version AS evaluatorVersion, evidence_sha256 AS evidenceSha256,
+                            evaluated_at AS evaluatedAt
+                       FROM submission_schedule_snapshots WHERE application_id=? ORDER BY evaluated_at,id`, [applicationId]),
     ]);
 
     const applicants = applicantRows.map((row) => ({
@@ -196,6 +218,52 @@ export class MysqlOperationsCaseReadProvider {
       id: number(supplierRow, "id"), name: text(supplierRow, "name"), slaHours: null,
       reliabilityScore: null,
     } : null;
+    const travelMembers = new Map<string, number[]>();
+    for (const row of travelMemberRows) {
+      const applicantId = number(row, "applicantId");
+      if (!applicantIds.has(applicantId)) throw new Error("TRAVEL_GROUP_APPLICANT_OWNERSHIP_MISMATCH");
+      const groupId = text(row, "travelGroupId");
+      travelMembers.set(groupId, [...(travelMembers.get(groupId) ?? []), applicantId]);
+    }
+    const linkedDocuments = new Map<number, { documentType: string; applicantIds: number[] }>();
+    for (const row of travelDocumentRows) {
+      const applicantId = number(row, "applicantId");
+      if (!applicantIds.has(applicantId)) throw new Error("TRAVEL_DOCUMENT_APPLICANT_OWNERSHIP_MISMATCH");
+      const documentId = number(row, "documentId");
+      const link = linkedDocuments.get(documentId) ?? { documentType: text(row, "documentType"), applicantIds: [] };
+      link.applicantIds.push(applicantId); linkedDocuments.set(documentId, link);
+    }
+    const schedules = new Map<string, OperationsTravelGroup["scheduleHistory"][number][]>();
+    for (const row of scheduleRows) {
+      const groupId = text(row, "travelGroupId");
+      const item = {
+        evaluationId: text(row, "id"), evaluatedAt: text(row, "evaluatedAt"), travelGroupId: groupId,
+        routeCode: text(row, "routeCode"), plannedArrivalDate: text(row, "plannedArrivalDate"),
+        earliestSafeSubmissionDate: nullableText(row, "earliestSafeSubmissionDate"),
+        targetSubmissionDate: nullableText(row, "targetSubmissionDate"), latestSafeSubmissionDate: nullableText(row, "latestSafeSubmissionDate"),
+        state: text(row, "state") as SubmissionScheduleState, reason: text(row, "reason"),
+        blockingReasons: json(row, "blockingReasons", []), recalculationReason: text(row, "recalculationReason"),
+        ruleVersions: json(row, "ruleVersions", []), sourceEvidenceReferences: json(row, "sourceEvidenceReferences", []),
+        evidenceSha256: text(row, "evidenceSha256"),
+      };
+      schedules.set(groupId, [...(schedules.get(groupId) ?? []), item]);
+    }
+    const travelGroups = travelGroupRows.map((row) => {
+      const id = text(row, "id"); const members = travelMembers.get(id) ?? [];
+      const primaryTravellerId = number(row, "primaryTravellerId");
+      if (!applicantIds.has(primaryTravellerId) || members.some((member) => !applicantIds.has(member))) {
+        throw new Error("TRAVEL_GROUP_APPLICANT_OWNERSHIP_MISMATCH");
+      }
+      const history = schedules.get(id) ?? [];
+      return { id, reference: text(row, "reference"), arrangement: text(row, "arrangement") as "TOGETHER" | "SEPARATELY",
+        primaryTravellerId, accompanyingAdultId: nullableNumber(row, "accompanyingAdultId") ?? null,
+        applicantIds: members, origin: text(row, "origin"), destination: text(row, "destination"),
+        plannedArrivalDate: text(row, "plannedArrivalDate"), plannedDepartureDate: nullableText(row, "plannedDepartureDate"),
+        ticketStatus: text(row, "ticketStatus") as "NOT_BOOKED" | "RESERVED" | "CONFIRMED",
+        sharedDocuments: [...linkedDocuments.entries()].filter(([, link]) => link.applicantIds.some((id) => members.includes(id)))
+          .map(([documentId, link]) => ({ documentId, documentType: link.documentType, applicantIds: [...link.applicantIds].sort((a, b) => a - b) })),
+        currentSchedule: history.at(-1) ?? null, scheduleHistory: history.slice(0, -1) };
+    });
     return {
       source: {
         summary: { applicationId, reference: text(application, "reference"), status: text(application, "status"),
@@ -205,7 +273,7 @@ export class MysqlOperationsCaseReadProvider {
           legacy: selectionRows.length === 0 },
         applicants, documents, supplier,
         operationalHistory: timelineRows.map((row) => ({ id: text(row, "id"), event: text(row, "event"),
-          actorType: text(row, "actorType"), occurredAt: text(row, "occurredAt") })),
+          actorType: text(row, "actorType"), occurredAt: text(row, "occurredAt") })), travelGroups,
       }, snapshots, family,
     };
   }

@@ -4,6 +4,25 @@ import { InMemoryEligibilitySnapshotRepository } from "../eligibility/snapshot-r
 import { adaptLegacyFamily } from "../family/legacy-family-adapter";
 import { deriveFamilyReadiness, type FamilyReadinessResult, type TravelOutcome } from "../family/family-readiness";
 import { InMemoryFamilyPersistenceRepository, type FamilyRelationshipEvent } from "../family/family-persistence";
+import type { SubmissionScheduleSnapshot, SubmissionScheduleState } from "../travel/submission-scheduler";
+import type { TicketStatus, TravelArrangement } from "../travel/travel-party";
+
+export type OperationsTravelGroup = {
+  id: string;
+  reference: string;
+  arrangement: TravelArrangement;
+  primaryTravellerId: number;
+  accompanyingAdultId: number | null;
+  applicantIds: readonly number[];
+  origin: string;
+  destination: string;
+  plannedArrivalDate: string;
+  plannedDepartureDate: string | null;
+  ticketStatus: TicketStatus;
+  sharedDocuments: readonly { documentId: number; applicantIds: readonly number[]; documentType: string }[];
+  currentSchedule: (Omit<SubmissionScheduleSnapshot, "state"> & { state: SubmissionScheduleState }) | null;
+  scheduleHistory: readonly (Omit<SubmissionScheduleSnapshot, "state"> & { state: SubmissionScheduleState })[];
+};
 
 export type OperationsCaseSource = {
   summary: {
@@ -33,6 +52,7 @@ export type OperationsCaseSource = {
   }[];
   supplier: SupplierOperationalView | SupplierFinancialView | null;
   operationalHistory: readonly { id: string; event: string; actorType: string; occurredAt: string }[];
+  travelGroups?: readonly OperationsTravelGroup[];
 };
 
 export type OperationsCaseReadModel = {
@@ -61,6 +81,7 @@ export type OperationsCaseReadModel = {
   familyReadiness: FamilyReadinessResult;
   supplier: SupplierOperationalView | SupplierFinancialView | null;
   operationalHistory: OperationsCaseSource["operationalHistory"];
+  travelGroups?: readonly OperationsTravelGroup[];
   legacyWarnings: readonly string[];
 };
 
@@ -144,6 +165,7 @@ export function buildOperationsCaseReadModel(input: {
     familyReadiness,
     supplier: input.supplierProjection,
     operationalHistory: structuredClone(input.source.operationalHistory),
+    travelGroups: structuredClone(input.source.travelGroups ?? []),
     legacyWarnings: legacyGraph?.warnings ?? [],
   };
 }

@@ -7,6 +7,8 @@ import { MysqlOperationsAccessProvider, OperationsAccessError } from "./lib/oper
 import { MysqlOperationsCaseReadProvider, type MysqlOperationsCaseBundle } from "./lib/operations/mysql-case-read-provider";
 import { readOperationsCase } from "./lib/operations/case-read-service";
 import { defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
+import { MysqlSubmissionQueueProvider } from "./lib/operations/mysql-submission-queue-provider";
+import { buildUpcomingSubmissionsQueue, type SubmissionQueueCandidate, type SubmissionQueuePolicy } from "./lib/operations/submission-queue";
 import { createRouter, staffOrAdminQuery } from "./middleware";
 
 type Dependencies = {
@@ -14,6 +16,8 @@ type Dependencies = {
   flagContextForContext(ctx: TrpcContext): FeatureFlagContext | Promise<FeatureFlagContext>;
   flagsForContext(ctx: TrpcContext): Promise<readonly FeatureFlagRecord[]>;
   load(reference: string): Promise<MysqlOperationsCaseBundle | null>;
+  loadUpcoming?(): Promise<SubmissionQueueCandidate[]>;
+  submissionQueuePolicy?(): SubmissionQueuePolicy;
 };
 
 export function createOperationsReadRouter(deps: Dependencies) {
@@ -39,17 +43,45 @@ export function createOperationsReadRouter(deps: Dependencies) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Operations case unavailable" });
         }
       }),
+    upcomingSubmissions: staffOrAdminQuery
+      .input(z.object({}).strict())
+      .query(async ({ ctx }) => {
+        if (!ctx.staffId) throw new TRPCError({ code: "FORBIDDEN", message: "Operations access denied" });
+        if (!deps.loadUpcoming || !deps.submissionQueuePolicy) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Submission queue unavailable" });
+        try {
+          const [actor, context, flags, candidates] = await Promise.all([
+            deps.actorForContext(ctx), deps.flagContextForContext(ctx), deps.flagsForContext(ctx), deps.loadUpcoming(),
+          ]);
+          return buildUpcomingSubmissionsQueue({ actor, context, flags, candidates, policy: deps.submissionQueuePolicy(), now: new Date() });
+        } catch (error) {
+          if (error instanceof TRPCError) throw error;
+          if (error instanceof OperationsAccessError || error instanceof Error && error.message === "SUBMISSION_QUEUE_DISABLED") {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Operations access denied" });
+          }
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Submission queue unavailable" });
+        }
+      }),
   });
 }
 
 let access: MysqlOperationsAccessProvider | undefined;
 let reader: MysqlOperationsCaseReadProvider | undefined;
+let submissionQueue: MysqlSubmissionQueueProvider | undefined;
 function accessProvider() { return access ??= new MysqlOperationsAccessProvider(defaultOperationsSqlClient()); }
 function readProvider() { return reader ??= new MysqlOperationsCaseReadProvider(defaultOperationsSqlClient()); }
+function queueProvider() { return submissionQueue ??= new MysqlSubmissionQueueProvider(defaultOperationsSqlClient()); }
+function queuePolicy(): SubmissionQueuePolicy {
+  const dueSoonDays = Number(process.env.OPERATIONS_SUBMISSION_DUE_SOON_DAYS);
+  const urgentDays = Number(process.env.OPERATIONS_SUBMISSION_URGENT_DAYS);
+  if (!Number.isSafeInteger(dueSoonDays) || !Number.isSafeInteger(urgentDays)) throw new Error("SUBMISSION_QUEUE_POLICY_NOT_CONFIGURED");
+  return { dueSoonDays, urgentDays };
+}
 
 export const operationsReadRouter = createOperationsReadRouter({
   actorForContext: (ctx) => accessProvider().actorForContext(ctx),
   flagContextForContext: (ctx) => accessProvider().flagContextForContext(ctx),
   flagsForContext: () => accessProvider().featureFlags(),
   load: (reference) => readProvider().load(reference),
+  loadUpcoming: () => queueProvider().list(),
+  submissionQueuePolicy: queuePolicy,
 });

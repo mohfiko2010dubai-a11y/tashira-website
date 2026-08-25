@@ -21,6 +21,7 @@ function StateBadge({ children }: { children: React.ReactNode }) {
 export default function OperationsCaseWorkspace({ enabled, model }: Props) {
   if (!enabled) return null;
   const memberState = new Map(model.familyReadiness.member_states.map((member) => [member.applicant_id, member.readiness_state]));
+  const travelGroups = model.travelGroups ?? [];
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
@@ -46,6 +47,7 @@ export default function OperationsCaseWorkspace({ enabled, model }: Props) {
         <nav aria-label="Case workspace sections" className="flex flex-wrap gap-2 text-sm">
           {[
             ["overview", "Case Overview"], ["applicants", "Applicants"], ["requirements", "Requirements"],
+            ["travel-party", "Travel Party"], ["submission-schedule", "Submission Schedule"],
             ["documents", "Documents"], ["history", "Evaluation History"], ["readiness", "Family Readiness"],
             ["timeline", "Timeline"], ["supplier", "Supplier"],
           ].map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-full border bg-white px-3 py-1.5">{label}</a>)}
@@ -57,6 +59,38 @@ export default function OperationsCaseWorkspace({ enabled, model }: Props) {
             <div><dt className="text-xs text-slate-500">Status</dt><dd className="font-medium">{model.summary.status}</dd></div>
             <div><dt className="text-xs text-slate-500">Created</dt><dd className="font-medium">{model.summary.createdAt}</dd></div>
           </dl>
+        </Section>
+
+        <Section id="travel-party" title="Travel Party">
+          {travelGroups.length === 0 ? <p className="text-sm text-slate-500">NOT_EVALUATED — no travel group has been recorded.</p> : (
+            <div className="grid gap-4 lg:grid-cols-2">{travelGroups.map((group) => (
+              <article key={group.id} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex justify-between gap-3"><h3 className="font-semibold">{group.reference}</h3><StateBadge>{group.arrangement}</StateBadge></div>
+                <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div><dt className="text-slate-500">Travellers</dt><dd>{group.applicantIds.map((id) => model.applicants.find((item) => item.applicantId === id)?.displayName ?? `Applicant ${id}`).join(", ")}</dd></div>
+                  <div><dt className="text-slate-500">Ticket</dt><dd>{group.ticketStatus}</dd></div>
+                  <div><dt className="text-slate-500">Planned arrival</dt><dd>{group.plannedArrivalDate}</dd></div>
+                  <div><dt className="text-slate-500">Planned departure</dt><dd>{group.plannedDepartureDate ?? "Not recorded"}</dd></div>
+                </dl>
+                {group.sharedDocuments.length > 0 && <p className="mt-3 text-xs text-slate-500">Shared booking links: {group.sharedDocuments.length}</p>}
+              </article>
+            ))}</div>
+          )}
+        </Section>
+
+        <Section id="submission-schedule" title="Submission Schedule">
+          <div className="space-y-4">{travelGroups.map((group) => (
+            <article key={group.id} className="rounded-xl bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{group.reference}</h3><StateBadge>{group.currentSchedule?.state ?? "NOT_EVALUATED"}</StateBadge></div>
+              {group.currentSchedule && <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+                <div><dt className="text-slate-500">Target submission</dt><dd>{group.currentSchedule.targetSubmissionDate ?? "Not established"}</dd></div>
+                <div><dt className="text-slate-500">Latest safe date</dt><dd>{group.currentSchedule.latestSafeSubmissionDate ?? "Not established"}</dd></div>
+                <div><dt className="text-slate-500">Blocking issues</dt><dd>{group.currentSchedule.blockingReasons.join(", ") || "None"}</dd></div>
+                <div className="sm:col-span-3"><dt className="text-slate-500">Reason</dt><dd>{group.currentSchedule.reason}</dd></div>
+                <div className="sm:col-span-3"><dt className="text-slate-500">Previous evaluations</dt><dd>{group.scheduleHistory.length}</dd></div>
+              </dl>}
+            </article>
+          ))}</div>
         </Section>
 
         <Section id="applicants" title="Applicants">
