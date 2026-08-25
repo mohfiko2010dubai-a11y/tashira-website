@@ -8,7 +8,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Eligibility Engine / precedence | DONE | Yes | Persistence | Real rule content remains human-approved |
 | Immutable evaluations | DONE | Yes | Yes | None in engineering scope |
 | Family Engine / readiness | DONE | Yes | Read Model | Customer activation remains off |
-| Dynamic Questions / Requirements / Documents | PARTIAL | Yes | Persistence | Customer UI and approved catalogs |
+| Dynamic Questions / Requirements / Documents | PARTIAL | Yes | Persistence | Customer review UI and deterministic plan complete behind closed flags; approved production catalogs/runtime wiring remain |
 | AI Document Pre-Screening | PARTIAL | Yes | No | External provider adapter; human remains final authority |
 | Human / Document Review | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
 | Assignment / State Machine / Re-evaluation | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
@@ -22,7 +22,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Audit Trail | DONE | Yes | Yes | Monitoring/retention decision |
 | Operations Dashboard / Manager Dashboard | PARTIAL | Yes | Case workspace only | Queues, workloads and team analytics UI |
 | Case Workspace | DONE | Yes | Yes | Controlled UI browser sign-off |
-| Customer Pre-Check | NOT STARTED | No | No | Approved public rule subset and UX |
+| Customer Pre-Check | PARTIAL | Yes | No | Safe guidance contract is complete behind a closed flag; approved public rule subset, route/UI wiring and Staging UAT remain |
 | Trust Center | PARTIAL | Existing legal UI | Existing app | Final legal owner review |
 | Customer Portal Timeline | PARTIAL | Yes | Existing timeline | Canonical Operations status adapter wiring |
 | Visa Assistant | PARTIAL | Yes | No | Runtime adapter and approved knowledge content |

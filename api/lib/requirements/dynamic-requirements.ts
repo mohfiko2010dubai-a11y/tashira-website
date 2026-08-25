@@ -4,6 +4,7 @@ export type DocumentDefinition = {
   code: string;
   label: string;
   category: "IDENTITY" | "TRAVEL" | "RELATIONSHIP" | "RESIDENCE" | "SUPPORTING";
+  classification?: "AUTHORITY_REQUIRED" | "TASHIRA_PROCESSING" | "MAY_BE_REQUIRED" | "OPTIONAL";
 };
 
 export type QuestionDefinition = {
@@ -31,6 +32,7 @@ export type DynamicRequirementView = {
       code: string;
       label: string | null;
       category: DocumentDefinition["category"] | null;
+      classification: NonNullable<DocumentDefinition["classification"]>;
       state: "REQUIRED" | "CONDITIONAL";
       reason: string;
     }[];
@@ -72,6 +74,7 @@ export function buildDynamicRequirements(input: {
           code: requirement.code,
           label: definition?.label ?? null,
           category: definition?.category ?? null,
+          classification: definition?.classification ?? "AUTHORITY_REQUIRED",
           state: "REQUIRED",
           reason: "Required by the selected eligibility evaluation",
         });
@@ -82,6 +85,7 @@ export function buildDynamicRequirements(input: {
         if (!requirement.when) {
           applicantDocuments.push({
             code: requirement.code, label: definition?.label ?? null, category: definition?.category ?? null,
+            classification: definition?.classification ?? "MAY_BE_REQUIRED",
             state: "CONDITIONAL", reason: requirement.reason,
           });
           continue;
@@ -97,11 +101,13 @@ export function buildDynamicRequirements(input: {
           applicantQuestions.set(question.code, question);
           applicantDocuments.push({
             code: requirement.code, label: definition?.label ?? null, category: definition?.category ?? null,
+            classification: definition?.classification ?? "MAY_BE_REQUIRED",
             state: "CONDITIONAL", reason: requirement.reason,
           });
         } else if (matches) {
           applicantDocuments.push({
             code: requirement.code, label: definition?.label ?? null, category: definition?.category ?? null,
+            classification: definition?.classification ?? "MAY_BE_REQUIRED",
             state: "REQUIRED", reason: requirement.reason,
           });
         }

@@ -46,6 +46,7 @@ describe("dynamic requirements", () => {
     const view = buildDynamicRequirements({ family, catalog, answers: { 11: { IS_MINOR: "YES" }, 12: { IS_MINOR: "YES" } } });
     expect(view.applicants[0].documents).toContainEqual({
       code: "PARENT_CONSENT", label: "Parent consent", category: "RELATIONSHIP",
+      classification: "MAY_BE_REQUIRED",
       state: "REQUIRED", reason: "Required for minors",
     });
     expect(view.applicants[1].documents.map((document) => document.code)).toEqual(["PASSPORT"]);
