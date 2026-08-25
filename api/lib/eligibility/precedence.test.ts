@@ -10,6 +10,9 @@ describe("visa rule precedence", () => {
       "GCC_OVERLAY",
       "AGE_MINOR_OVERLAY",
       "FAMILY_OVERLAY",
+      "TRAVEL_PARTY_OVERLAY",
+      "TICKET_TRAVEL_OVERLAY",
+      "SUBMISSION_TIMING_OVERLAY",
       "OPERATIONAL_OVERLAY",
     ]);
   });
