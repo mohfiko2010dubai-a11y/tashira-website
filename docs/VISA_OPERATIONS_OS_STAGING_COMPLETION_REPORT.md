@@ -2,6 +2,16 @@
 
 Date: 2026-08-25. Scope: authorized Staging work only.
 
+## Travel Party / Submission Scheduler migration 024
+
+- Local rehearsal: MySQL 8.4.11 clean and legacy chains `014–024` PASS; rollback/reapply PASS.
+- Verified Staging backup: `/var/backups/tashira-staging/20260825T120604Z-travel-scheduler-024-preflight-verified`.
+- Applied database: `tashira_staging` only; four new tables and four append-only triggers verified.
+- Deployed Staging SHA: `a459f5da805e9bd8102fffd7914c156e44e8fb29` through `staging/deploy-native.mjs`.
+- Synthetic persistence: one travel group, two independently linked applicants, one shared booking with two explicit links, and one immutable schedule snapshot.
+- `TRAVEL_PARTY_ENGINE=OFF` and `SUBMISSION_SCHEDULER=OFF`; no customer-facing activation occurred.
+- Application/applicant/document counts and the document manifest remained unchanged. Staging and read-only Production public health were HTTP 200.
+
 ## Step 3 evidence
 
 - Target identity: `/var/www/tashira-staging`, database `tashira_staging`, PM2 `tashira-staging`, listener `127.0.0.1:3002`.
