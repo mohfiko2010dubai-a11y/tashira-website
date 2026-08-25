@@ -14,19 +14,20 @@ function snapshot(state: SubmissionScheduleSnapshot["state"], arrival = "2026-12
 
 describe("scheduler runtime contracts", () => {
   it("creates, acknowledges and resolves append-only alerts with optimistic concurrency", () => {
-    const base = { applicationId: 70, travelGroupId: "trip-a", scheduleEvaluationId: "schedule-a", type: "DUE_SOON" as const };
+    const base = { applicationId: 70, travelGroupId: "trip-a", scheduleEvaluationId: "schedule-a", type: "DUE_SOON" as const,
+      severity: "WARNING" as const, category: "DUE_SOON" as const, correlationId: "corr-a", idempotencyKey: "idem-create" };
     const created = appendSchedulerAlertEvent({ history: [], ...base, eventId: "event-1", targetState: "CREATED", expectedVersion: 0,
       actorId: "system:scheduler", reason: "DUE_SOON_THRESHOLD_REACHED", occurredAt: "2026-08-25T00:00:00Z" });
     expect(created.event.version).toBe(1);
-    expect(appendSchedulerAlertEvent({ history: [created.event], ...base, eventId: "event-duplicate", targetState: "CREATED", expectedVersion: 1,
+    expect(appendSchedulerAlertEvent({ history: [created.event], ...base, idempotencyKey: "idem-duplicate", eventId: "event-duplicate", targetState: "CREATED", expectedVersion: 1,
       actorId: "system:scheduler", reason: "RETRY", occurredAt: "2026-08-25T00:00:01Z" })).toEqual({ appended: false, event: created.event });
-    const acknowledged = appendSchedulerAlertEvent({ history: [created.event], ...base, eventId: "event-2", targetState: "ACKNOWLEDGED", expectedVersion: 1,
+    const acknowledged = appendSchedulerAlertEvent({ history: [created.event], ...base, idempotencyKey: "idem-ack", eventId: "event-2", targetState: "ACKNOWLEDGED", expectedVersion: 1,
       actorId: "staff:31", reason: "CASE_REVIEW_STARTED", occurredAt: "2026-08-25T01:00:00Z" });
     expect(acknowledged.event.version).toBe(2);
-    const resolved = appendSchedulerAlertEvent({ history: [created.event, acknowledged.event], ...base, eventId: "event-3", targetState: "RESOLVED", expectedVersion: 2,
+    const resolved = appendSchedulerAlertEvent({ history: [created.event, acknowledged.event], ...base, idempotencyKey: "idem-resolve", eventId: "event-3", targetState: "RESOLVED", expectedVersion: 2,
       actorId: "staff:31", reason: "REQUIREMENTS_COMPLETE", occurredAt: "2026-08-25T02:00:00Z" });
     expect(resolved.event.state).toBe("RESOLVED");
-    expect(() => appendSchedulerAlertEvent({ history: [created.event], ...base, eventId: "stale", targetState: "RESOLVED", expectedVersion: 0,
+    expect(() => appendSchedulerAlertEvent({ history: [created.event], ...base, idempotencyKey: "idem-stale", eventId: "stale", targetState: "RESOLVED", expectedVersion: 0,
       actorId: "staff:31", reason: "STALE", occurredAt: "2026-08-25T02:00:00Z" })).toThrow("SCHEDULER_ALERT_VERSION_CONFLICT");
   });
 

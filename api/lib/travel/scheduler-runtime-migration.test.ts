@@ -9,10 +9,16 @@ describe("scheduler runtime event migration", () => {
     expect(sql).not.toMatch(/^\s*(?:DELETE|TRUNCATE|ALTER\s+TABLE|DROP\s+TABLE)\b/im);
     expect(sql).not.toMatch(/ON DELETE CASCADE/i);
     expect(sql).toContain("scheduler_alert_version_uq");
+    expect(sql).toContain("scheduler_alert_idempotency_uq");
     expect(sql).toContain("scheduler_communication_idempotency_uq");
     expect(sql).toContain("scheduler_alert_events_no_update");
     expect(sql).toContain("scheduler_communication_no_delete");
     expect(sql).toContain("schedule_evaluation_id");
     expect(sql).toContain("customer_contract_json");
+    expect(sql).toContain("applicant_id");
+    expect(sql).toContain("acknowledged_at");
+    expect(sql).toContain("resolved_at");
+    expect(sql).toContain("correlation_id");
+    expect(sql).toContain("command_hash");
   });
 });

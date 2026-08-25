@@ -2,18 +2,26 @@ import type { SubmissionScheduleSnapshot } from "./submission-scheduler";
 
 export type SchedulerAlertState = "CREATED" | "ACKNOWLEDGED" | "RESOLVED";
 export type SchedulerAlertType = "WINDOW_OPEN" | "DUE_SOON" | "URGENT" | "OVERDUE" | "BLOCKED";
+export type SchedulerAlertSeverity = "INFO" | "WARNING" | "HIGH" | "CRITICAL";
+export type SchedulerQueueCategory = "FUTURE" | "DUE_SOON" | "URGENT" | "DUE_TODAY" | "OVERDUE" | "BLOCKED";
 
 export type SchedulerAlertEvent = {
   id: string;
   alertKey: string;
   applicationId: number;
+  applicantId: number | null;
   travelGroupId: string;
   scheduleEvaluationId: string;
   type: SchedulerAlertType;
+  severity: SchedulerAlertSeverity;
+  category: SchedulerQueueCategory;
   state: SchedulerAlertState;
   version: number;
   actorId: string;
   reason: string;
+  context: Readonly<Record<string, string | number | boolean | null>>;
+  correlationId: string;
+  idempotencyKey: string;
   occurredAt: string;
 };
 
@@ -41,13 +49,19 @@ export function appendSchedulerAlertEvent(input: {
   history: readonly SchedulerAlertEvent[];
   eventId: string;
   applicationId: number;
+  applicantId?: number | null;
   travelGroupId: string;
   scheduleEvaluationId: string;
   type: SchedulerAlertType;
+  severity: SchedulerAlertSeverity;
+  category: SchedulerQueueCategory;
   targetState: SchedulerAlertState;
   expectedVersion: number;
   actorId: string;
   reason: string;
+  context?: Readonly<Record<string, string | number | boolean | null>>;
+  correlationId: string;
+  idempotencyKey: string;
   occurredAt: string;
 }): { appended: boolean; event: SchedulerAlertEvent } {
   const alertKey = schedulerAlertKey(input);
@@ -61,10 +75,10 @@ export function appendSchedulerAlertEvent(input: {
       : current.state === "ACKNOWLEDGED" && input.targetState === "RESOLVED";
   if (!allowed) throw new Error("INVALID_SCHEDULER_ALERT_TRANSITION");
   if (!input.actorId.trim() || !input.reason.trim()) throw new Error("SCHEDULER_ALERT_EVIDENCE_REQUIRED");
-  return { appended: true, event: { id: input.eventId, alertKey, applicationId: input.applicationId,
-    travelGroupId: input.travelGroupId, scheduleEvaluationId: input.scheduleEvaluationId, type: input.type,
+  return { appended: true, event: { id: input.eventId, alertKey, applicationId: input.applicationId, applicantId: input.applicantId ?? null,
+    travelGroupId: input.travelGroupId, scheduleEvaluationId: input.scheduleEvaluationId, type: input.type, severity: input.severity, category: input.category,
     state: input.targetState, version: currentVersion + 1, actorId: input.actorId, reason: input.reason,
-    occurredAt: input.occurredAt } };
+    context: input.context ?? {}, correlationId: input.correlationId, idempotencyKey: input.idempotencyKey, occurredAt: input.occurredAt } };
 }
 
 export function toSchedulerCustomerContract(snapshot: SubmissionScheduleSnapshot): SchedulerCustomerContract {
