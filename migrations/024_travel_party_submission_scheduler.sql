@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS `travel_document_applicant_links` (
   UNIQUE KEY `travel_document_applicant_uq` (`document_id`,`applicant_id`),
   KEY `travel_document_owner_idx` (`application_id`,`applicant_id`),
   CONSTRAINT `travel_document_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `travel_document_document_fk` FOREIGN KEY (`document_id`) REFERENCES `documents` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `travel_document_applicant_fk` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
@@ -54,14 +55,27 @@ CREATE TABLE IF NOT EXISTS `submission_schedule_snapshots` (
   `application_id` bigint unsigned NOT NULL,
   `travel_group_id` varchar(36) NOT NULL,
   `route_code` varchar(100) NOT NULL,
+  `applicant_id` bigint unsigned NULL,
   `planned_arrival_date` date NOT NULL,
   `earliest_safe_submission_date` date NULL,
   `target_submission_date` date NULL,
   `latest_safe_submission_date` date NULL,
-  `schedule_state` enum('SCHEDULED_FOR_SUBMISSION','READY_FOR_SUBMISSION','BLOCKED','HUMAN_REVIEW_REQUIRED') NOT NULL,
+  `entry_validity_rule_id` varchar(36) NULL,
+  `entry_validity_rule_version` int unsigned NULL,
+  `entry_validity_days` int unsigned NULL,
+  `stay_duration_rule_id` varchar(36) NULL,
+  `stay_duration_rule_version` int unsigned NULL,
+  `operational_submission_policy_id` varchar(36) NULL,
+  `operational_submission_policy_version` int unsigned NULL,
+  `processing_time_assumption_days` int unsigned NULL,
+  `operational_buffer_days` int unsigned NULL,
+  `schedule_state` enum('NOT_EVALUATED','NOT_APPLICABLE','TOO_EARLY','SCHEDULED_FOR_SUBMISSION','SUBMISSION_WINDOW_OPEN','READY_FOR_SUBMISSION','BLOCKED_BY_REQUIREMENTS','BLOCKED_BY_MANUAL_REVIEW','OVERDUE','ALREADY_SUBMITTED','HUMAN_REVIEW_REQUIRED') NOT NULL,
   `reason` varchar(500) NOT NULL,
   `blocking_reasons_json` json NOT NULL,
   `rule_versions_json` json NOT NULL,
+  `matched_rule_ids_json` json NOT NULL,
+  `source_evidence_references_json` json NOT NULL,
+  `recalculation_reason` varchar(500) NOT NULL,
   `evaluator_version` varchar(100) NOT NULL,
   `evidence_sha256` char(64) NOT NULL,
   `evaluated_at` datetime NOT NULL,
@@ -69,6 +83,7 @@ CREATE TABLE IF NOT EXISTS `submission_schedule_snapshots` (
   PRIMARY KEY (`id`),
   KEY `submission_schedule_group_current_idx` (`travel_group_id`,`evaluated_at`,`id`),
   CONSTRAINT `submission_schedule_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `submission_schedule_applicant_fk` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `submission_schedule_travel_group_fk` FOREIGN KEY (`travel_group_id`) REFERENCES `travel_groups` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 

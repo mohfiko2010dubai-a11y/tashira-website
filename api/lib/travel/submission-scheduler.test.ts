@@ -22,7 +22,17 @@ describe("deterministic submission scheduler", () => {
   it("becomes ready only when the window and prerequisites are satisfied", () => {
     expect(evaluate({ evaluatedAt: new Date("2026-11-25T00:00:00.000Z") }).state).toBe("READY_FOR_SUBMISSION");
     expect(evaluate({ evaluatedAt: new Date("2026-11-25T00:00:00.000Z"), readinessSatisfied: false,
-      blockingReasons: ["APPLICANT_2_MISSING_PASSPORT"] }).state).toBe("BLOCKED");
+      blockingReasons: ["APPLICANT_2_MISSING_PASSPORT"] }).state).toBe("BLOCKED_BY_REQUIREMENTS");
+  });
+
+  it("distinguishes an ordinary scheduled case from a true too-early hard block", () => {
+    expect(evaluate().state).toBe("SCHEDULED_FOR_SUBMISSION");
+    expect(evaluate({ hardBlockBeforeWindow: true }).state).toBe("TOO_EARLY");
+  });
+
+  it("preserves already-submitted cases and manual-review blockers", () => {
+    expect(evaluate({ alreadySubmitted: true }).state).toBe("ALREADY_SUBMITTED");
+    expect(evaluate({ manualReviewRequired: true, blockingReasons: ["RULE_CONFLICT"] }).state).toBe("BLOCKED_BY_MANUAL_REVIEW");
   });
 
   it("fails to human review when official or operational timing evidence is absent", () => {

@@ -13,5 +13,10 @@ describe("travel party and submission scheduler migration", () => {
     expect(sql).toContain("submission_schedule_snapshots");
     expect(sql).toContain("submission_schedule_no_update");
     expect(sql).toContain("submission_schedule_no_delete");
+    expect(sql).toContain("entry_validity_rule_version");
+    expect(sql).toContain("stay_duration_rule_version");
+    expect(sql).toContain("operational_submission_policy_version");
+    expect(sql).toContain("source_evidence_references_json");
+    expect(sql).toContain("travel_document_document_fk");
   });
 });
