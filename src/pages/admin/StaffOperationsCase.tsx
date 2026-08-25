@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
 import OperationsCaseWorkspace from "@/components/operations/OperationsCaseWorkspace";
+import SchedulerAlertPanel from "@/components/operations/SchedulerAlertPanel";
 
 export default function StaffOperationsCase() {
   const { referenceNumber = "" } = useParams<{ referenceNumber: string }>();
@@ -19,5 +20,5 @@ export default function StaffOperationsCase() {
       </section>
     </main>
   );
-  return <OperationsCaseWorkspace enabled model={query.data} />;
+  return <><OperationsCaseWorkspace enabled model={query.data} /><SchedulerAlertPanel applicationId={query.data.summary.applicationId} /></>;
 }

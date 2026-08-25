@@ -5,7 +5,7 @@ import { buildUpcomingSubmissionsQueue, type SubmissionQueueCandidate } from "./
 const actor: AuthorizationActor = { id: "staff:7", permissions: new Set(["case.read"]), scopes: ["TEAM"], teamIds: new Set([3]), departmentIds: new Set() };
 const flags = ["OPERATIONS_CASE_READ_MODEL", "SUBMISSION_SCHEDULER"].map((flagKey) => ({ flagKey: flagKey as "OPERATIONS_CASE_READ_MODEL" | "SUBMISSION_SCHEDULER", environment: "TEST" as const, enabled: true, scopeType: "GLOBAL" as const, scopeReference: "" }));
 const candidate = (overrides: Partial<SubmissionQueueCandidate> = {}): SubmissionQueueCandidate => ({
-  applicationId: 1, applicationReference: "TSH-SYN", travelGroupId: "trip-a", travelGroupReference: "Trip A",
+  applicationId: 1, applicationReference: "TSH-SYN", travelGroupId: "trip-a", travelGroupReference: "Trip A", scheduleEvaluationId: "schedule-a",
   applicantNames: ["Synthetic Applicant"], routeCode: "SYN", plannedArrivalDate: "2026-12-20",
   targetSubmissionDate: "2026-08-30", latestSafeSubmissionDate: "2026-09-02", schedulerState: "SCHEDULED_FOR_SUBMISSION",
   readinessState: "READY", blockingReasons: [], manualReviewRequired: false, teamId: 3, ...overrides,

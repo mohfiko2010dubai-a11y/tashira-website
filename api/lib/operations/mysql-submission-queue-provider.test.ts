@@ -6,7 +6,7 @@ class Sql implements OperationsSqlClient {
   queries: string[] = [];
   async query(sql: string): Promise<readonly object[]> {
     this.queries.push(sql);
-    if (sql.includes("FROM submission_schedule_snapshots")) return [{ applicationId: 7, applicationReference: "TSH-SYN", travelGroupId: "trip-a", travelGroupReference: "Trip A", routeCode: "SYN", plannedArrivalDate: "2026-12-20", targetSubmissionDate: "2026-11-20", latestSafeSubmissionDate: "2026-11-25", schedulerState: "SCHEDULED_FOR_SUBMISSION", blockingReasons: [], assignedStaffId: 9, teamId: 3, departmentId: 2, readinessState: "READY_FOR_SUBMISSION", manualReviewRequired: 0 }];
+    if (sql.includes("FROM submission_schedule_snapshots")) return [{ scheduleEvaluationId: "schedule-a", applicationId: 7, applicationReference: "TSH-SYN", travelGroupId: "trip-a", travelGroupReference: "Trip A", routeCode: "SYN", plannedArrivalDate: "2026-12-20", targetSubmissionDate: "2026-11-20", latestSafeSubmissionDate: "2026-11-25", schedulerState: "SCHEDULED_FOR_SUBMISSION", blockingReasons: [], assignedStaffId: 9, teamId: 3, departmentId: 2, readinessState: "READY_FOR_SUBMISSION", manualReviewRequired: 0 }];
     return [{ applicationId: 7, displayName: "Synthetic Applicant" }];
   }
 }

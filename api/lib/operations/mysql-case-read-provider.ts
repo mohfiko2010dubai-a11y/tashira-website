@@ -6,6 +6,7 @@ import { InMemoryFamilyPersistenceRepository } from "../family/family-persistenc
 import type { OperationsSqlClient } from "./mysql-access-provider";
 import type { OperationsCaseSource, OperationsTravelGroup } from "./case-read-model";
 import type { SubmissionScheduleState } from "../travel/submission-scheduler";
+import type { SchedulerAlertEvent, SchedulerAlertSeverity, SchedulerAlertState, SchedulerAlertType, SchedulerQueueCategory } from "../travel/scheduler-runtime";
 
 type Row = Record<string, unknown>;
 
@@ -72,7 +73,7 @@ export class MysqlOperationsCaseReadProvider {
 
     const [applicantRows, documentRows, evaluationRows, matchRows, selectionRows, relationshipRows,
       requirementRows, requirementEventRows, timelineRows, supplierRows, travelGroupRows, travelMemberRows,
-      travelDocumentRows, scheduleRows] = await Promise.all([
+      travelDocumentRows, scheduleRows, schedulerAlertRows] = await Promise.all([
       this.sql.query(`SELECT id, applicant_index AS applicantIndex, full_name AS displayName,
                             nationality, gcc_residence_country AS residenceCountry
                        FROM applicants WHERE application_id=? ORDER BY applicant_index,id`, [applicationId]),
@@ -131,6 +132,16 @@ export class MysqlOperationsCaseReadProvider {
                             evaluator_version AS evaluatorVersion, evidence_sha256 AS evidenceSha256,
                             evaluated_at AS evaluatedAt
                        FROM submission_schedule_snapshots WHERE application_id=? ORDER BY evaluated_at,id`, [applicationId]),
+      this.sql.query(`SELECT e.id,e.alert_key AS alertKey,e.application_id AS applicationId,e.applicant_id AS applicantId,
+                            e.travel_group_id AS travelGroupId,e.schedule_evaluation_id AS scheduleEvaluationId,
+                            e.alert_type AS alertType,e.severity,e.category,e.alert_state AS alertState,e.version,
+                            e.actor_reference AS actorReference,e.reason,e.context_json AS contextJson,
+                            e.correlation_id AS correlationId,e.idempotency_key AS idempotencyKey,e.occurred_at AS occurredAt
+                       FROM submission_scheduler_alert_events e
+                       JOIN (SELECT alert_key,MAX(version) AS version FROM submission_scheduler_alert_events
+                              WHERE application_id=? GROUP BY alert_key) current
+                         ON current.alert_key=e.alert_key AND current.version=e.version
+                      WHERE e.application_id=? ORDER BY e.occurred_at DESC,e.id DESC`, [applicationId, applicationId]),
     ]);
 
     const applicants = applicantRows.map((row) => ({
@@ -264,6 +275,15 @@ export class MysqlOperationsCaseReadProvider {
           .map(([documentId, link]) => ({ documentId, documentType: link.documentType, applicantIds: [...link.applicantIds].sort((a, b) => a - b) })),
         currentSchedule: history.at(-1) ?? null, scheduleHistory: history.slice(0, -1) };
     });
+    const schedulerAlerts: SchedulerAlertEvent[] = schedulerAlertRows.map((row) => ({
+      id: text(row, "id"), alertKey: text(row, "alertKey"), applicationId: number(row, "applicationId"),
+      applicantId: nullableNumber(row, "applicantId") ?? null, travelGroupId: text(row, "travelGroupId"),
+      scheduleEvaluationId: text(row, "scheduleEvaluationId"), type: text(row, "alertType") as SchedulerAlertType,
+      severity: text(row, "severity") as SchedulerAlertSeverity, category: text(row, "category") as SchedulerQueueCategory,
+      state: text(row, "alertState") as SchedulerAlertState, version: number(row, "version"), actorId: text(row, "actorReference"),
+      reason: text(row, "reason"), context: json(row, "contextJson", {}), correlationId: text(row, "correlationId"),
+      idempotencyKey: text(row, "idempotencyKey"), occurredAt: text(row, "occurredAt"),
+    }));
     return {
       source: {
         summary: { applicationId, reference: text(application, "reference"), status: text(application, "status"),
@@ -273,7 +293,7 @@ export class MysqlOperationsCaseReadProvider {
           legacy: selectionRows.length === 0 },
         applicants, documents, supplier,
         operationalHistory: timelineRows.map((row) => ({ id: text(row, "id"), event: text(row, "event"),
-          actorType: text(row, "actorType"), occurredAt: text(row, "occurredAt") })), travelGroups,
+          actorType: text(row, "actorType"), occurredAt: text(row, "occurredAt") })), travelGroups, schedulerAlerts,
       }, snapshots, family,
     };
   }

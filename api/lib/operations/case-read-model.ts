@@ -6,6 +6,7 @@ import { deriveFamilyReadiness, type FamilyReadinessResult, type TravelOutcome }
 import { InMemoryFamilyPersistenceRepository, type FamilyRelationshipEvent } from "../family/family-persistence";
 import type { SubmissionScheduleSnapshot, SubmissionScheduleState } from "../travel/submission-scheduler";
 import type { TicketStatus, TravelArrangement } from "../travel/travel-party";
+import type { SchedulerAlertEvent } from "../travel/scheduler-runtime";
 
 export type OperationsTravelGroup = {
   id: string;
@@ -53,6 +54,7 @@ export type OperationsCaseSource = {
   supplier: SupplierOperationalView | SupplierFinancialView | null;
   operationalHistory: readonly { id: string; event: string; actorType: string; occurredAt: string }[];
   travelGroups?: readonly OperationsTravelGroup[];
+  schedulerAlerts?: readonly SchedulerAlertEvent[];
 };
 
 export type OperationsCaseReadModel = {
@@ -82,6 +84,7 @@ export type OperationsCaseReadModel = {
   supplier: SupplierOperationalView | SupplierFinancialView | null;
   operationalHistory: OperationsCaseSource["operationalHistory"];
   travelGroups?: readonly OperationsTravelGroup[];
+  schedulerAlerts?: readonly SchedulerAlertEvent[];
   legacyWarnings: readonly string[];
 };
 
@@ -166,6 +169,7 @@ export function buildOperationsCaseReadModel(input: {
     supplier: input.supplierProjection,
     operationalHistory: structuredClone(input.source.operationalHistory),
     travelGroups: structuredClone(input.source.travelGroups ?? []),
+    schedulerAlerts: structuredClone(input.source.schedulerAlerts ?? []),
     legacyWarnings: legacyGraph?.warnings ?? [],
   };
 }

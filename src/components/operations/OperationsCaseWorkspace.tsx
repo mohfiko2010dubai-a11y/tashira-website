@@ -48,6 +48,7 @@ export default function OperationsCaseWorkspace({ enabled, model }: Props) {
           {[
             ["overview", "Case Overview"], ["applicants", "Applicants"], ["requirements", "Requirements"],
             ["travel-party", "Travel Party"], ["submission-schedule", "Submission Schedule"],
+            ["scheduler-alerts", "Scheduler Alerts"],
             ["documents", "Documents"], ["history", "Evaluation History"], ["readiness", "Family Readiness"],
             ["timeline", "Timeline"], ["supplier", "Supplier"],
           ].map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-full border bg-white px-3 py-1.5">{label}</a>)}
@@ -59,6 +60,21 @@ export default function OperationsCaseWorkspace({ enabled, model }: Props) {
             <div><dt className="text-xs text-slate-500">Status</dt><dd className="font-medium">{model.summary.status}</dd></div>
             <div><dt className="text-xs text-slate-500">Created</dt><dd className="font-medium">{model.summary.createdAt}</dd></div>
           </dl>
+        </Section>
+
+        <Section id="scheduler-alerts" title="Scheduler Alerts">
+          {(model.schedulerAlerts ?? []).length === 0 ? <p className="text-sm text-slate-500">No current operational alerts.</p> : (
+            <div className="space-y-3">{(model.schedulerAlerts ?? []).map((alert) => (
+              <article key={alert.id} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div><strong>{alert.type}</strong><p className="text-xs text-slate-500">Travel group {alert.travelGroupId}</p></div>
+                  <div className="flex gap-2"><StateBadge>{alert.severity}</StateBadge><StateBadge>{alert.state}</StateBadge></div>
+                </div>
+                <p className="mt-2 text-sm">{alert.reason}</p>
+                <p className="mt-2 text-xs text-slate-500">Version {alert.version} · {alert.occurredAt}</p>
+              </article>
+            ))}</div>
+          )}
         </Section>
 
         <Section id="travel-party" title="Travel Party">

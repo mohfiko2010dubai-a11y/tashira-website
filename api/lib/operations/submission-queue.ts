@@ -5,7 +5,7 @@ import type { SubmissionScheduleState } from "../travel/submission-scheduler";
 export type SubmissionQueueCategory = "FUTURE" | "DUE_SOON" | "URGENT" | "DUE_TODAY" | "OVERDUE" | "BLOCKED";
 export type SubmissionQueuePolicy = { dueSoonDays: number; urgentDays: number };
 export type SubmissionQueueCandidate = AuthorizationResource & {
-  applicationId: number; applicationReference: string; travelGroupId: string; travelGroupReference: string;
+  applicationId: number; applicationReference: string; travelGroupId: string; travelGroupReference: string; scheduleEvaluationId: string;
   applicantNames: readonly string[]; routeCode: string; plannedArrivalDate: string;
   targetSubmissionDate: string | null; latestSafeSubmissionDate: string | null;
   schedulerState: SubmissionScheduleState; readinessState: string; blockingReasons: readonly string[];

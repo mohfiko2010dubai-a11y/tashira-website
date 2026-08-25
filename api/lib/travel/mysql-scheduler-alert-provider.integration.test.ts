@@ -27,7 +27,20 @@ describe.skipIf(!enabled)("MySQL scheduler alert persistence", () => {
       JOIN submission_schedule_snapshots s ON s.travel_group_id=g.id LIMIT 1`);
     const fixture = Array.isArray(fixtureRows) ? fixtureRows[0] as Record<string, unknown> | undefined : undefined;
     if (!fixture) throw new Error("SCHEDULER_ALERT_FIXTURE_REQUIRED");
-    applicationId = Number(fixture.applicationId); travelGroupId = String(fixture.travelGroupId); scheduleEvaluationId = String(fixture.scheduleEvaluationId);
+    applicationId = Number(fixture.applicationId); travelGroupId = String(fixture.travelGroupId);
+    scheduleEvaluationId = randomUUID();
+    await pool.execute(`INSERT INTO submission_schedule_snapshots
+      (id,application_id,travel_group_id,route_code,applicant_id,planned_arrival_date,earliest_safe_submission_date,target_submission_date,
+       latest_safe_submission_date,entry_validity_rule_id,entry_validity_rule_version,entry_validity_days,stay_duration_rule_id,
+       stay_duration_rule_version,operational_submission_policy_id,operational_submission_policy_version,processing_time_assumption_days,
+       operational_buffer_days,schedule_state,reason,blocking_reasons_json,rule_versions_json,matched_rule_ids_json,
+       source_evidence_references_json,recalculation_reason,evaluator_version,evidence_sha256,evaluated_at)
+      SELECT ?,application_id,travel_group_id,route_code,applicant_id,planned_arrival_date,earliest_safe_submission_date,target_submission_date,
+       latest_safe_submission_date,entry_validity_rule_id,entry_validity_rule_version,entry_validity_days,stay_duration_rule_id,
+       stay_duration_rule_version,operational_submission_policy_id,operational_submission_policy_version,processing_time_assumption_days,
+       operational_buffer_days,schedule_state,reason,blocking_reasons_json,rule_versions_json,matched_rule_ids_json,
+       source_evidence_references_json,'SCHEDULER_ALERT_INTEGRATION',evaluator_version,evidence_sha256,UTC_TIMESTAMP()
+      FROM submission_schedule_snapshots WHERE id=?`, [scheduleEvaluationId, String(fixture.scheduleEvaluationId)]);
     const suffix = Date.now().toString();
     const [department] = await pool.execute("INSERT INTO operations_departments (code,name) VALUES (?,?)", [`ALERT-${suffix}`, "Synthetic Alert Department"]);
     const departmentId = Number(Reflect.get(department, "insertId"));
@@ -37,10 +50,10 @@ describe.skipIf(!enabled)("MySQL scheduler alert persistence", () => {
     const wrongTeamId = Number(Reflect.get(wrongTeam, "insertId"));
     const [role] = await pool.execute("INSERT INTO operations_roles (code,name) VALUES (?,?)", [`ALERT-${suffix}`, "Scheduler Alert Operator"]);
     const roleId = Number(Reflect.get(role, "insertId"));
-    await pool.execute("INSERT INTO operations_permissions (code,description,risk_level) VALUES ('case.transition','Synthetic scheduler alert permission','HIGH') ON DUPLICATE KEY UPDATE code=VALUES(code)");
-    const [permissionRows] = await pool.query("SELECT id FROM operations_permissions WHERE code='case.transition'");
-    const permissionId = Number(Reflect.get((permissionRows as object[])[0], "id"));
-    await pool.execute("INSERT INTO operations_role_permissions (role_id,permission_id,granted_by) VALUES (?,?,?)", [roleId,permissionId,"synthetic-test"]);
+    await pool.execute("INSERT INTO operations_permissions (code,description,risk_level) VALUES ('case.transition','Synthetic scheduler alert permission','HIGH'),('case.read','Synthetic scheduler read permission','LOW') ON DUPLICATE KEY UPDATE code=VALUES(code)");
+    const [permissionRows] = await pool.query("SELECT id FROM operations_permissions WHERE code IN ('case.transition','case.read')");
+    for (const permission of permissionRows as object[]) await pool.execute(
+      "INSERT INTO operations_role_permissions (role_id,permission_id,granted_by) VALUES (?,?,?)", [roleId,Number(Reflect.get(permission,"id")),"synthetic-test"]);
     const createStaff = async (username: string, scopedTeamId: number) => {
       const [staff] = await pool.execute("INSERT INTO staff_users (username,password_hash,name,is_active) VALUES (?,'synthetic-no-login',?,'active')", [username,username]);
       const staffId = Number(Reflect.get(staff,"insertId"));
@@ -67,19 +80,23 @@ describe.skipIf(!enabled)("MySQL scheduler alert persistence", () => {
     const duplicate=await provider.create({...common,idempotencyKey:randomUUID()},actor);
     expect(duplicate.id).toBe(created.id);
     const ackKey=randomUUID();
-    const acknowledged=await provider.acknowledge({...common,expectedVersion:1,idempotencyKey:ackKey,reason:"Synthetic acknowledgement"},actor);
+    const transition = { applicationId, alertId: created.id, expectedVersion: 1, idempotencyKey: ackKey,
+      correlationId: common.correlationId, reason: "Synthetic acknowledgement" };
+    const acknowledged=await provider.acknowledge(transition,actor);
     expect(acknowledged.state).toBe("ACKNOWLEDGED");
-    expect((await provider.acknowledge({...common,expectedVersion:1,idempotencyKey:ackKey,reason:"Synthetic acknowledgement"},actor)).id).toBe(acknowledged.id);
-    await expect(provider.acknowledge({...common,expectedVersion:1,idempotencyKey:ackKey,reason:"Conflicting payload"},actor))
+    expect((await provider.acknowledge(transition,actor)).id).toBe(acknowledged.id);
+    await expect(provider.acknowledge({...transition,reason:"Conflicting payload"},actor))
       .rejects.toMatchObject({code:"IDEMPOTENCY_CONFLICT"});
-    await expect(provider.resolve({...common,expectedVersion:1,idempotencyKey:randomUUID(),reason:"Stale resolve"},actor))
+    await expect(provider.resolve({ ...transition, alertId: acknowledged.id, expectedVersion:1,idempotencyKey:randomUUID(),reason:"Stale resolve"},actor))
       .rejects.toMatchObject({code:"CONCURRENCY_CONFLICT"});
-    const resolved=await provider.resolve({...common,expectedVersion:2,idempotencyKey:randomUUID(),reason:"Condition resolved"},actor);
+    const resolved=await provider.resolve({ ...transition, alertId: acknowledged.id, expectedVersion:2,idempotencyKey:randomUUID(),reason:"Condition resolved"},actor);
     expect(resolved.state).toBe("RESOLVED");
-    expect(await provider.listForApplication(applicationId,actor)).toEqual([resolved]);
+    const listed = await provider.listForApplication(applicationId,actor);
+    expect(listed).toContainEqual(resolved);
+    expect(listed.filter((item) => item.alertKey === resolved.alertKey)).toEqual([resolved]);
     await expect(provider.listForApplication(applicationId,wrongTeamActor)).rejects.toBeInstanceOf(SchedulerAlertPersistenceError);
     const [audit] = await pool.query("SELECT COUNT(*) count FROM operations_audit_events WHERE event_type='OPERATIONS_SCHEDULER_ALERT' AND resource_reference=?",[String(applicationId)]);
     expect(Number(Reflect.get((audit as object[])[0],"count"))).toBe(auditBefore + 3);
-    expect(JSON.stringify(await provider.listForApplication(applicationId,actor))).not.toMatch(/cost|margin|profit|stripe|payout/i);
+    expect(JSON.stringify(listed)).not.toMatch(/cost|margin|profit|stripe|payout/i);
   });
 });

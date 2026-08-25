@@ -16,7 +16,7 @@ export class MysqlSubmissionQueueProvider {
 
   async list(): Promise<SubmissionQueueCandidate[]> {
     const rows = await this.sql.query(
-      `SELECT s.application_id AS applicationId, a.reference_number AS applicationReference,
+      `SELECT s.id AS scheduleEvaluationId, s.application_id AS applicationId, a.reference_number AS applicationReference,
               s.travel_group_id AS travelGroupId, g.travel_group_reference AS travelGroupReference,
               s.route_code AS routeCode, s.planned_arrival_date AS plannedArrivalDate,
               s.target_submission_date AS targetSubmissionDate, s.latest_safe_submission_date AS latestSafeSubmissionDate,
@@ -50,7 +50,8 @@ export class MysqlSubmissionQueueProvider {
     return rows.map((row) => {
       const applicationId = number(row, "applicationId");
       return { applicationId, applicationReference: text(row, "applicationReference"), travelGroupId: text(row, "travelGroupId"),
-        travelGroupReference: text(row, "travelGroupReference"), applicantNames: names.get(applicationId) ?? [],
+        travelGroupReference: text(row, "travelGroupReference"), scheduleEvaluationId: text(row, "scheduleEvaluationId"),
+        applicantNames: names.get(applicationId) ?? [],
         routeCode: text(row, "routeCode"), plannedArrivalDate: text(row, "plannedArrivalDate"),
         targetSubmissionDate: text(row, "targetSubmissionDate") || null, latestSafeSubmissionDate: text(row, "latestSafeSubmissionDate") || null,
         schedulerState: text(row, "schedulerState") as SubmissionScheduleState,
