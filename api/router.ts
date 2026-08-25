@@ -20,6 +20,7 @@ import { securityDepositRouter } from "./security-deposit-router";
 import { operationsWriteRouter } from "./operations-write-router";
 import { operationsReadRouter } from "./operations-read-router";
 import { operationsAlertRouter } from "./operations-alert-router";
+import { customerOperationsRouter } from "./customer-operations-router";
 
 export const appRouter = createRouter({
   auth: authRouter,
@@ -43,6 +44,7 @@ export const appRouter = createRouter({
   operationsWrite: operationsWriteRouter,
   operationsRead: operationsReadRouter,
   operationsAlerts: operationsAlertRouter,
+  customerOperations: customerOperationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

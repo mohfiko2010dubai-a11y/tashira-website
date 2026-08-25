@@ -24,7 +24,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Case Workspace | DONE | Yes | Yes | Controlled UI browser sign-off |
 | Customer Pre-Check | PARTIAL | Yes | No | Safe guidance contract is complete behind a closed flag; approved public rule subset, route/UI wiring and Staging UAT remain |
 | Trust Center | PARTIAL | Existing legal UI | Existing app | Final legal owner review |
-| Customer Portal Timeline | PARTIAL | Yes | Existing timeline | Canonical finance-free portal projection and UI complete behind a closed application flag; authenticated runtime route/Staging UAT remain |
+| Customer Portal Timeline | PARTIAL | Yes | Existing timeline | Canonical finance-free portal projection, UI and authenticated application-scoped read-only runtime API complete behind a closed flag; customer route registration and scoped Staging UAT remain |
 | Visa Assistant | PARTIAL | Yes | No | Evidence-priority grounding supports authenticated applicant/travel/scheduler/document answers; runtime adapter and approved knowledge content remain |
 | Authenticated Case Chat / Handoff | PARTIAL | Yes | Existing app | Audited handoff payload and triggers complete; runtime conversation adapter remains |
 | Email Automation | PARTIAL | Yes | Existing app | Complete canonical V1 event/dedup ledger exists; persistent runtime/provider dispatch remains |
