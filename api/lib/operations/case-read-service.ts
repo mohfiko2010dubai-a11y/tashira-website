@@ -26,8 +26,13 @@ export function readOperationsCase(input: {
   requirePermission(input.actor, "applicant.read", resource);
   requirePermission(input.actor, "document.read", resource);
   requirePermission(input.actor, "rule.read", resource);
+  const travelPartyEnabled = isOperationsFlagEnabled("TRAVEL_PARTY_ENGINE", input.context, input.flags);
+  const schedulerEnabled = isOperationsFlagEnabled("SUBMISSION_SCHEDULER", input.context, input.flags);
+  const travelGroups = travelPartyEnabled ? (input.source.travelGroups ?? []).map((group) => schedulerEnabled ? group : {
+    ...group, currentSchedule: null, scheduleHistory: [],
+  }) : [];
   return buildOperationsCaseReadModel({
-    source: input.source,
+    source: { ...input.source, travelGroups },
     snapshots: input.snapshots,
     family: input.family,
     supplierProjection: input.source.supplier && input.actor.permissions.has("supplier.read_operational") ? {

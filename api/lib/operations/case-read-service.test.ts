@@ -36,6 +36,13 @@ function source(legacy = false): OperationsCaseSource {
     ],
     supplier: { id: 5, name: "Synthetic Supplier", slaHours: 24, reliabilityScore: 95, effectiveCost: "100", internalCost: "90" },
     operationalHistory: [{ id: "timeline-1", event: "CASE_CREATED", actorType: "SYSTEM", occurredAt: "2026-01-01" }],
+    travelGroups: [{ id: "trip-a", reference: "Trip A", arrangement: "TOGETHER", primaryTravellerId: 11,
+      accompanyingAdultId: 11, applicantIds: [11, 12], origin: "CAI", destination: "DXB", plannedArrivalDate: "2026-12-20",
+      plannedDepartureDate: null, ticketStatus: "CONFIRMED", sharedDocuments: [],
+      currentSchedule: { evaluationId: "schedule-a", evaluatedAt: "2026-08-25", travelGroupId: "trip-a", routeCode: "FAMILY",
+        plannedArrivalDate: "2026-12-20", earliestSafeSubmissionDate: "2026-11-20", targetSubmissionDate: "2026-12-12",
+        latestSafeSubmissionDate: "2026-12-15", state: "SCHEDULED_FOR_SUBMISSION", reason: "SUBMISSION_WINDOW_NOT_OPEN",
+        blockingReasons: [], recalculationReason: "INITIAL_EVALUATION", ruleVersions: [], sourceEvidenceReferences: [], evidenceSha256: "a".repeat(64) }, scheduleHistory: [] }],
   };
 }
 
@@ -152,5 +159,15 @@ describe("read-only Operations case gate", () => {
 
   it("is closed by default", () => {
     expect(() => read({ flags: [] })).toThrow("OPERATIONS_CASE_READ_MODEL_DISABLED");
+  });
+
+  it("independently gates Travel Party and Scheduler evidence", () => {
+    expect(read().travelGroups).toEqual([]);
+    const travel = { ...enabled, flagKey: "TRAVEL_PARTY_ENGINE" as const };
+    const travelOnly = read({ flags: [enabled, travel] }).travelGroups?.[0];
+    expect(travelOnly?.reference).toBe("Trip A");
+    expect(travelOnly?.currentSchedule).toBeNull();
+    const scheduler = { ...enabled, flagKey: "SUBMISSION_SCHEDULER" as const };
+    expect(read({ flags: [enabled, travel, scheduler] }).travelGroups?.[0].currentSchedule?.state).toBe("SCHEDULED_FOR_SUBMISSION");
   });
 });
