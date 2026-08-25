@@ -13,6 +13,9 @@ export const OPERATIONS_FLAGS = [
   "DYNAMIC_CUSTOMER_APPLICATION",
   "CUSTOMER_PRECHECK",
   "CUSTOMER_OPERATIONS_PORTAL",
+  "TYPING_PACK",
+  "AUTHORITY_QUERY",
+  "VISA_DELIVERY",
 ] as const;
 
 export type OperationsFlag = typeof OPERATIONS_FLAGS[number];

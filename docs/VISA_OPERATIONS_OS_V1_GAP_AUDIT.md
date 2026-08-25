@@ -12,9 +12,9 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | AI Document Pre-Screening | PARTIAL | Yes | No | External provider adapter; human remains final authority |
 | Human / Document Review | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
 | Assignment / State Machine / Re-evaluation | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
-| Typing Pack | NOT STARTED | No | No | Template/business-output specification required |
-| Authority Query Workflow | NOT STARTED | No | No | Authority-specific process decision required |
-| Visa Delivery Workflow | PARTIAL | Yes | Existing statuses | Delivery package and authority response integration |
+| Typing Pack | PARTIAL | Yes | No | Integrity-bound draft framework complete behind a closed flag; owner-approved templates/output renderer remain |
+| Authority Query Workflow | PARTIAL | Yes | No | Deterministic append-only lifecycle complete behind a closed flag; authority-specific submission adapter/procedure remain |
+| Visa Delivery Workflow | PARTIAL | Yes | Existing statuses | Authorized ownership/scan-gated delivery package complete behind a closed flag; secure runtime adapter/UAT remain |
 | Supplier Management | PARTIAL | Existing app | Read-only identity | Operations-specific SLA/escalation controls |
 | Supplier Cost / Finance Separation | DONE | Yes | Yes | Finance-only activation review |
 | Effective Cost History | PARTIAL | Existing snapshots | No | Finance policy and supplier-cost history integration |
