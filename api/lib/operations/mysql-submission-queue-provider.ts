@@ -23,7 +23,9 @@ export class MysqlSubmissionQueueProvider {
               s.schedule_state AS schedulerState, s.blocking_reasons_json AS blockingReasons,
               c.assigned_staff_user_id AS assignedStaffId, c.team_id AS teamId, t.department_id AS departmentId,
               COALESCE(f.family_readiness_state,'NOT_EVALUATED') AS readinessState,
-              COALESCE(f.manual_review_required,0) AS manualReviewRequired
+              COALESCE(f.manual_review_required,0) AS manualReviewRequired,
+              al.id AS alertId,al.alert_type AS alertType,al.severity AS alertSeverity,
+              al.alert_state AS alertState,al.version AS alertVersion,al.reason AS alertReason
          FROM submission_schedule_snapshots s
          JOIN travel_groups g ON g.id=s.travel_group_id AND g.application_id=s.application_id
          JOIN applications a ON a.id=s.application_id
@@ -31,6 +33,10 @@ export class MysqlSubmissionQueueProvider {
          LEFT JOIN operations_teams t ON t.id=c.team_id
          LEFT JOIN family_readiness_snapshots f ON f.id=(
            SELECT f2.id FROM family_readiness_snapshots f2 WHERE f2.application_id=s.application_id ORDER BY f2.evaluated_at DESC,f2.id DESC LIMIT 1)
+         LEFT JOIN submission_scheduler_alert_events al ON al.id=(
+           SELECT al2.id FROM submission_scheduler_alert_events al2
+            WHERE al2.application_id=s.application_id AND al2.schedule_evaluation_id=s.id
+            ORDER BY al2.version DESC,al2.occurred_at DESC LIMIT 1)
         WHERE NOT EXISTS (SELECT 1 FROM submission_schedule_snapshots newer
                            WHERE newer.travel_group_id=s.travel_group_id
                              AND (newer.evaluated_at>s.evaluated_at OR (newer.evaluated_at=s.evaluated_at AND newer.id>s.id)))
@@ -56,7 +62,11 @@ export class MysqlSubmissionQueueProvider {
         targetSubmissionDate: text(row, "targetSubmissionDate") || null, latestSafeSubmissionDate: text(row, "latestSafeSubmissionDate") || null,
         schedulerState: text(row, "schedulerState") as SubmissionScheduleState,
         readinessState: text(row, "readinessState"), blockingReasons: json(row, "blockingReasons", []),
-        manualReviewRequired: Boolean(value(row, "manualReviewRequired")),
+        manualReviewRequired: Boolean(value(row, "manualReviewRequired")), currentAlert: text(row, "alertId") ? {
+          id: text(row, "alertId"), type: text(row, "alertType") as "WINDOW_OPEN" | "DUE_SOON" | "URGENT" | "OVERDUE" | "BLOCKED",
+          severity: text(row, "alertSeverity") as "INFO" | "WARNING" | "HIGH" | "CRITICAL",
+          state: text(row, "alertState") as "CREATED" | "ACKNOWLEDGED" | "RESOLVED", version: number(row, "alertVersion"), reason: text(row, "alertReason"),
+        } : null,
         assignedActorId: optionalNumber(row, "assignedStaffId") === undefined ? undefined : `staff:${optionalNumber(row, "assignedStaffId")}`,
         teamId: optionalNumber(row, "teamId"), departmentId: optionalNumber(row, "departmentId") };
     });

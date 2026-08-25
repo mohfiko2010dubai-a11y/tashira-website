@@ -1,6 +1,7 @@
 import { authorize, type AuthorizationActor, type AuthorizationResource } from "../authorization/policy";
 import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from "../feature-flags/feature-flags";
 import type { SubmissionScheduleState } from "../travel/submission-scheduler";
+import type { SchedulerAlertSeverity, SchedulerAlertState, SchedulerAlertType } from "../travel/scheduler-runtime";
 
 export type SubmissionQueueCategory = "FUTURE" | "DUE_SOON" | "URGENT" | "DUE_TODAY" | "OVERDUE" | "BLOCKED";
 export type SubmissionQueuePolicy = { dueSoonDays: number; urgentDays: number };
@@ -11,7 +12,8 @@ export type SubmissionQueueCandidate = AuthorizationResource & {
   schedulerState: SubmissionScheduleState; readinessState: string; blockingReasons: readonly string[];
   manualReviewRequired: boolean;
 };
-export type SubmissionQueueItem = SubmissionQueueCandidate & { category: SubmissionQueueCategory; countdownDays: number | null };
+export type SubmissionQueueItem = SubmissionQueueCandidate & { category: SubmissionQueueCategory; countdownDays: number | null;
+  currentAlert?: { id: string; type: SchedulerAlertType; severity: SchedulerAlertSeverity; state: SchedulerAlertState; version: number; reason: string } | null };
 
 function daysBetween(now: Date, date: string): number {
   const target = new Date(`${date.slice(0, 10)}T00:00:00.000Z`).getTime();
