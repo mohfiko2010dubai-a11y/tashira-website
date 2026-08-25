@@ -1,6 +1,10 @@
 export type AssistantGrounding = {
   activeRules: readonly { id: string; version: number; questionKey: string; answer: string; authority: string }[];
   authenticatedCase?: { applicationReference: string; customerAuthorized: boolean; statusAnswer?: string; requirementAnswer?: string };
+  applicantRequirements?: readonly { applicantId: number; relationship: string; answer: string; evidenceReferences: readonly string[] }[];
+  travelPartyAnswers?: Readonly<Record<string, { answer: string; evidenceReferences: readonly string[] }>>;
+  submissionScheduleAnswers?: Readonly<Record<string, { answer: string; evidenceReferences: readonly string[] }>>;
+  documentStatusAnswers?: Readonly<Record<string, { answer: string; evidenceReferences: readonly string[] }>>;
   approvedFaq: Readonly<Record<string, string>>;
   policies: Readonly<Record<string, string>>;
   approvedProcedures: Readonly<Record<string, string>>;
@@ -31,6 +35,22 @@ export function answerVisaAssistant(questionKey: string, grounding: AssistantGro
     return answer
       ? { state: "ANSWERED", answer, sourceType: "AUTHENTICATED_CASE", sourceReferences: [currentCase.applicationReference] }
       : { state: "HUMAN_REVIEW_REQUIRED", answer: "Your case requires assistance from the TASHIRA team.", sourceType: "AUTHENTICATED_CASE", sourceReferences: [currentCase.applicationReference] };
+  }
+
+  if (key.startsWith("applicant.requirements.")) {
+    const currentCase = grounding.authenticatedCase;
+    if (!currentCase?.customerAuthorized) return { state: "AUTHENTICATION_REQUIRED", answer: "Please sign in securely to view application-specific information.", sourceType: "NONE", sourceReferences: [] };
+    const relationship = key.slice("applicant.requirements.".length).toLocaleUpperCase("en");
+    const matches = (grounding.applicantRequirements ?? []).filter((item) => item.relationship.toLocaleUpperCase("en") === relationship);
+    if (matches.length !== 1) return { state: "HUMAN_REVIEW_REQUIRED", answer: "A TASHIRA specialist must confirm the applicant requirements.", sourceType: "AUTHENTICATED_CASE", sourceReferences: [currentCase.applicationReference] };
+    return { state: "ANSWERED", answer: matches[0].answer, sourceType: "AUTHENTICATED_CASE", sourceReferences: matches[0].evidenceReferences };
+  }
+
+  for (const values of [grounding.travelPartyAnswers, grounding.submissionScheduleAnswers, grounding.documentStatusAnswers]) {
+    const grounded = values?.[key];
+    if (!grounded) continue;
+    if (!grounding.authenticatedCase?.customerAuthorized) return { state: "AUTHENTICATION_REQUIRED", answer: "Please sign in securely to view application-specific information.", sourceType: "NONE", sourceReferences: [] };
+    return { state: "ANSWERED", answer: grounded.answer, sourceType: "AUTHENTICATED_CASE", sourceReferences: grounded.evidenceReferences };
   }
 
   for (const [sourceType, values] of [

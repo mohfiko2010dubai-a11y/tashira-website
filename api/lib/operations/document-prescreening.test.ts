@@ -20,8 +20,19 @@ describe("provider-independent document pre-screening", () => {
   });
 
   it("fails unreadable and low-confidence evidence to review", () => {
-    expect(prescreenDocument({ ...base, unreadableReasons: ["GLARE"] }).classification).toBe("UNREADABLE");
-    expect(prescreenDocument({ ...base, confidence: 0.55 }).classification).toBe("LOW_CONFIDENCE");
+    expect(prescreenDocument({ ...base, unreadableReasons: ["GLARE"] })).toMatchObject({ classification: "UNREADABLE", outcome: "UNREADABLE" });
+    expect(prescreenDocument({ ...base, confidence: 0.55 })).toMatchObject({ classification: "LOW_CONFIDENCE", outcome: "WARNING" });
+  });
+
+  it("detects missing pages, expiry, document numbers and ticket passenger mismatches", () => {
+    expect(prescreenDocument({ ...base, missingPages: ["BIO_PAGE"] })).toMatchObject({ outcome: "MISSING", missingPages: ["BIO_PAGE"] });
+    expect(prescreenDocument({ ...base, documentExpiryDate: "2026-01-01", evaluatedAt: "2026-08-25" })).toMatchObject({ outcome: "MISMATCH", reasons: ["DOCUMENT_EXPIRED"] });
+    expect(prescreenDocument({ ...base, extractedFields: { fullName: "MAYA HASSAN", passportNumber: "B" }, authoritativeApplicantFields: { fullName: "MAYA HASSAN", passportNumber: "A" } })).toMatchObject({ outcome: "MISMATCH", fieldMismatches: ["passportNumber"] });
+    expect(prescreenDocument({ ...base, ticketPassengerNames: ["OTHER PERSON"], authoritativeApplicantNames: ["MAYA HASSAN"] })).toMatchObject({ outcome: "MISMATCH", ticketPassengerMismatches: ["OTHER PERSON"] });
+  });
+
+  it("records provider/model metadata while retaining human authority", () => {
+    expect(prescreenDocument({ ...base, providerName: "SYNTHETIC", processedAt: "2026-08-25T12:00:00Z" })).toMatchObject({ providerName: "SYNTHETIC", processedAt: "2026-08-25T12:00:00Z", outcome: "PASS", finalDecisionAuthority: "HUMAN" });
   });
 
   it("rejects missing evidence and invalid confidence", () => {

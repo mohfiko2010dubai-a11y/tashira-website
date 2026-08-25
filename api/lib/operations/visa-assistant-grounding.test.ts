@@ -25,4 +25,23 @@ describe("Visa Assistant grounding", () => {
   it("never invents unknown requirements", () => {
     expect(answerVisaAssistant("unknown.requirement", empty)).toMatchObject({ state: "HUMAN_REVIEW_REQUIRED", sourceType: "NONE" });
   });
+
+  it("answers spouse, travel, scheduler and document questions only from authenticated evidence", () => {
+    const extended = {
+      ...empty,
+      authenticatedCase: { applicationReference: "TSH-1", customerAuthorized: true },
+      applicantRequirements: [{ applicantId: 2, relationship: "SPOUSE", answer: "Passport and residence proof are required.", evidenceReferences: ["evaluation:spouse"] }],
+      travelPartyAnswers: { "travel.together": { answer: "Two travel groups are recorded.", evidenceReferences: ["travel:g1", "travel:g2"] } },
+      submissionScheduleAnswers: { "submission.when": { answer: "Scheduled for the recommended window.", evidenceReferences: ["schedule:s1"] } },
+      documentStatusAnswers: { "document.missing": { answer: "Child 1 needs parental consent.", evidenceReferences: ["requirement:r1"] } },
+    };
+    expect(answerVisaAssistant("applicant.requirements.spouse", extended)).toMatchObject({ state: "ANSWERED", sourceReferences: ["evaluation:spouse"] });
+    expect(answerVisaAssistant("travel.together", extended).answer).toContain("Two travel groups");
+    expect(answerVisaAssistant("submission.when", extended).answer).toContain("Scheduled");
+    expect(answerVisaAssistant("document.missing", extended).answer).toContain("parental consent");
+  });
+
+  it("requires authentication for case-specific travel answers", () => {
+    expect(answerVisaAssistant("travel.together", { ...empty, travelPartyAnswers: { "travel.together": { answer: "Private", evidenceReferences: ["travel:g1"] } } }).state).toBe("AUTHENTICATION_REQUIRED");
+  });
 });

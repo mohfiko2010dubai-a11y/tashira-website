@@ -1,0 +1,7 @@
+import { describe, expect, it } from "vitest";
+import { createRegulatoryChange, reviewRegulatoryChange } from "./regulatory-change-center";
+const proposal = { proposalId: "p1", sourceId: "ICP-1", previousFingerprint: "a", currentFingerprint: "b", state: "PROPOSED" as const, requiresAuthorizedHumanReview: true as const, automaticActivationAllowed: false as const, affectedActiveApplicationIds: [1, 2], changedAt: "2026-08-25T12:00:00Z" };
+describe("regulatory change center", () => {
+  it("captures broad impact and never auto-activates or rewrites history", () => { const change = createRegulatoryChange({ proposal, proposedRuleVersion: 2, currentRuleVersion: 1, impactAreas: ["ENTRY_VALIDITY", "SUBMISSION_SCHEDULER", "ACTIVE_APPLICATIONS"], impactReasons: ["Official wording changed"] }); expect(change).toMatchObject({ state: "NEW", activationAllowed: false, historicalMutationAllowed: false }); });
+  it("requires controlled human review before approval", () => { const created = createRegulatoryChange({ proposal, proposedRuleVersion: 2, currentRuleVersion: 1, impactAreas: ["DOCUMENTS"], impactReasons: ["Document list changed"] }); const review = reviewRegulatoryChange({ change: created, reviewerId: 7, reviewedAt: "2026-08-25T13:00:00Z", decision: "START_REVIEW" }); expect(reviewRegulatoryChange({ change: review, reviewerId: 7, reviewedAt: "2026-08-25T14:00:00Z", decision: "APPROVE" })).toMatchObject({ state: "APPROVED", activationAllowed: false }); });
+});

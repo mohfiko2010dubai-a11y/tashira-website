@@ -16,6 +16,8 @@ export const OPERATIONS_FLAGS = [
   "TYPING_PACK",
   "AUTHORITY_QUERY",
   "VISA_DELIVERY",
+  "MANAGER_DASHBOARD",
+  "OPERATIONS_ANALYTICS",
 ] as const;
 
 export type OperationsFlag = typeof OPERATIONS_FLAGS[number];

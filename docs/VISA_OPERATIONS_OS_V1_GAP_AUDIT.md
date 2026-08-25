@@ -9,7 +9,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Immutable evaluations | DONE | Yes | Yes | None in engineering scope |
 | Family Engine / readiness | DONE | Yes | Read Model | Customer activation remains off |
 | Dynamic Questions / Requirements / Documents | PARTIAL | Yes | Persistence | Customer review UI and deterministic plan complete behind closed flags; approved production catalogs/runtime wiring remain |
-| AI Document Pre-Screening | PARTIAL | Yes | No | External provider adapter; human remains final authority |
+| AI Document Pre-Screening | EXTERNAL DEPENDENCY | Yes | No | Provider-independent classification/extraction validation is complete; live AI provider credentials/adapter remain, human remains final authority |
 | Human / Document Review | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
 | Assignment / State Machine / Re-evaluation | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
 | Typing Pack | PARTIAL | Yes | No | Integrity-bound draft framework complete behind a closed flag; owner-approved templates/output renderer remain |
@@ -20,20 +20,20 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Effective Cost History | PARTIAL | Existing snapshots | No | Finance policy and supplier-cost history integration |
 | Multi-Team RBAC | DONE | Yes | Yes | Production grants require owner approval |
 | Audit Trail | DONE | Yes | Yes | Monitoring/retention decision |
-| Operations Dashboard / Manager Dashboard | PARTIAL | Yes | Case workspace only | Queues, workloads and team analytics UI |
+| Operations Dashboard / Manager Dashboard | PARTIAL | Yes | Case workspace only | Finance-free deterministic manager aggregates complete; persistent read provider and dashboard UI remain |
 | Case Workspace | DONE | Yes | Yes | Controlled UI browser sign-off |
 | Customer Pre-Check | PARTIAL | Yes | No | Safe guidance contract is complete behind a closed flag; approved public rule subset, route/UI wiring and Staging UAT remain |
 | Trust Center | PARTIAL | Existing legal UI | Existing app | Final legal owner review |
 | Customer Portal Timeline | PARTIAL | Yes | Existing timeline | Canonical finance-free portal projection and UI complete behind a closed application flag; authenticated runtime route/Staging UAT remain |
-| Visa Assistant | PARTIAL | Yes | No | Runtime adapter and approved knowledge content |
-| Authenticated Case Chat / Handoff | PARTIAL | Existing chat | Existing app | Grounding and Support Inbox integration |
-| Email Automation | PARTIAL | Existing transactional tests | Existing app | Canonical Operations event wiring |
+| Visa Assistant | PARTIAL | Yes | No | Evidence-priority grounding supports authenticated applicant/travel/scheduler/document answers; runtime adapter and approved knowledge content remain |
+| Authenticated Case Chat / Handoff | PARTIAL | Yes | Existing app | Audited handoff payload and triggers complete; runtime conversation adapter remains |
+| Email Automation | PARTIAL | Yes | Existing app | Complete canonical V1 event/dedup ledger exists; persistent runtime/provider dispatch remains |
 | Inbound Email / Employee Reply | PARTIAL | Contract only | No | Mailbox/provider credentials and adapter |
-| Support Inbox | PARTIAL | Contract only | No | Persistent store, API and UI |
-| Regulatory Watcher / Change Center | PARTIAL | Yes | No | Official-source connector and authorized review UI |
+| Support Inbox | PARTIAL | Yes | No | Unified thread state/concurrency/idempotency/internal-note workflow complete; persistent store, API and UI remain |
+| Regulatory Watcher / Change Center | PARTIAL | Yes | No | Controlled review/impact model complete and cannot auto-activate; official-source connector, persistence and authorized UI remain |
 | Feature Flags | DONE | Yes | Yes | Production activation is a separate owner gate |
 | Legacy Compatibility | DONE | Yes | Yes | Explicit re-evaluation only |
-| Operations Analytics | NOT STARTED | No | No | Approved KPI definitions and privacy-safe aggregates |
+| Operations Analytics | PARTIAL | Yes | No | Finance-free workload, SLA, turnaround, rework and supplier operational aggregates complete; persistent provider/UI and owner KPI thresholds remain |
 
 ## Honest completion
 
