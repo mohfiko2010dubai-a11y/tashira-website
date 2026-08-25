@@ -17,6 +17,7 @@ function insertedId(result: object): number {
 }
 
 integration("persistent Operations executor and internal API", () => {
+  const runId = randomUUID().slice(0, 8);
   let pool: Pool;
   let staff1 = 0;
   let staff2 = 0;
@@ -47,18 +48,18 @@ integration("persistent Operations executor and internal API", () => {
 
   beforeAll(async () => {
     pool = createPool({ uri: databaseUrl ?? "", connectionLimit: 8 });
-    const [department] = await pool.execute("INSERT INTO operations_departments (code,name) VALUES ('OPS_TEST','Operations Test')");
+    const [department] = await pool.execute("INSERT INTO operations_departments (code,name) VALUES (?,?)", [`OPS_${runId}`, `Operations Test ${runId}`]);
     const departmentId = insertedId(department);
-    const [firstTeam] = await pool.execute("INSERT INTO operations_teams (department_id,code,name) VALUES (?,'TEAM_A','Team A')", [departmentId]);
+    const [firstTeam] = await pool.execute("INSERT INTO operations_teams (department_id,code,name) VALUES (?,?,?)", [departmentId, `A_${runId}`, `Team A ${runId}`]);
     team1 = insertedId(firstTeam);
-    const [secondTeam] = await pool.execute("INSERT INTO operations_teams (department_id,code,name) VALUES (?,'TEAM_B','Team B')", [departmentId]);
+    const [secondTeam] = await pool.execute("INSERT INTO operations_teams (department_id,code,name) VALUES (?,?,?)", [departmentId, `B_${runId}`, `Team B ${runId}`]);
     team2 = insertedId(secondTeam);
     const createStaff = async (username: string) => {
       const [result] = await pool.execute("INSERT INTO staff_users (username,password_hash,name,is_active) VALUES (?,'synthetic-no-login',?,'active')", [username, username]);
       return insertedId(result);
     };
-    staff1 = await createStaff("ops-staff-1"); staff2 = await createStaff("ops-staff-2"); wrongTeamStaff = await createStaff("ops-wrong-team");
-    const [role] = await pool.execute("INSERT INTO operations_roles (code,name) VALUES ('OPS_TEST_ROLE','Operations Test Role')");
+    staff1 = await createStaff(`ops-staff-1-${runId}`); staff2 = await createStaff(`ops-staff-2-${runId}`); wrongTeamStaff = await createStaff(`ops-wrong-team-${runId}`);
+    const [role] = await pool.execute("INSERT INTO operations_roles (code,name) VALUES (?,?)", [`ROLE_${runId}`, `Operations Test Role ${runId}`]);
     const roleId = insertedId(role);
     const permissions = ["case.read_assigned", "case.assign", "case.transition", "document.review", "rule.review"];
     for (const code of permissions) {
@@ -70,7 +71,9 @@ integration("persistent Operations executor and internal API", () => {
       await pool.execute("INSERT INTO operations_staff_workload_limits (staff_user_id,workload_limit,configured_by,reason) VALUES (?,10,'synthetic','Synthetic limit')", [staffId]);
     }
     await pool.execute("INSERT INTO operations_scope_grants (staff_user_id,scope_type,team_id,granted_by) VALUES (?,'TEAM',?,'synthetic'),(?,'TEAM',?,'synthetic'),(?,'TEAM',?,'synthetic')", [staff1, team1, staff2, team1, wrongTeamStaff, team2]);
-    await pool.execute("INSERT INTO operations_feature_flags (flag_key,environment,enabled,scope_type,scope_reference,reason,changed_by) VALUES ('OPERATIONS_CONTROLLED_WRITES','TEST','YES','GLOBAL','','Synthetic API gate','synthetic'),('VISA_RULES_EVALUATION','TEST','YES','GLOBAL','','Synthetic API gate','synthetic')");
+    await pool.execute(`INSERT INTO operations_feature_flags (flag_key,environment,enabled,scope_type,scope_reference,reason,changed_by)
+      VALUES ('OPERATIONS_CONTROLLED_WRITES','TEST','YES','GLOBAL','','Synthetic API gate','synthetic'),('VISA_RULES_EVALUATION','TEST','YES','GLOBAL','','Synthetic API gate','synthetic')
+      ON DUPLICATE KEY UPDATE enabled='YES',reason=VALUES(reason),changed_by=VALUES(changed_by)`);
     const [application] = await pool.execute(
       "INSERT INTO applications (reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,total_amount_aed,status,payment_status) VALUES (?,'family','non-gcc','ROUTE_TEST','regular','synthetic@example.invalid','000',1,100,'documents_received','paid')",
       [`OPS-${Date.now()}`]);
@@ -89,7 +92,7 @@ integration("persistent Operations executor and internal API", () => {
     const [source] = await pool.execute("INSERT INTO visa_rule_sources (authority,title,source_url,classification) VALUES ('Synthetic Authority','Synthetic Source',?,'OFFICIAL')", [`https://example.invalid/${randomUUID()}`]);
     const sourceId = insertedId(source); const snapshotId = randomUUID();
     await pool.execute("INSERT INTO visa_rule_source_snapshots (id,source_id,retrieved_at,fingerprint_sha256,content_reference,retrieval_status) VALUES (?,?,UTC_TIMESTAMP(),REPEAT('a',64),'synthetic','SUCCESS')", [snapshotId, sourceId]);
-    const [set] = await pool.execute("INSERT INTO visa_rule_sets (stable_id,route_code,profile_code) VALUES ('OPS_BASE','ROUTE_TEST','ALL')");
+    const [set] = await pool.execute("INSERT INTO visa_rule_sets (stable_id,route_code,profile_code) VALUES (?,'ROUTE_TEST','ALL')", [`OPS_BASE_${runId}`]);
     const setId = insertedId(set); const versionId = randomUUID();
     await pool.execute(
       "INSERT INTO visa_rule_versions (id,rule_set_id,version,status,classification,rule_layer,research_status,source_snapshot_id,effective_from,conditions_json,outcome_json,created_by) VALUES (?,?,1,'DRAFT','OFFICIAL','BASE_ROUTE','VALIDATED',?,DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 DAY),JSON_ARRAY(),JSON_OBJECT('eligibility','ELIGIBLE','requirementCodes',JSON_ARRAY('PASSPORT'),'conditionalDocuments',JSON_ARRAY(),'explanationCode','SYNTHETIC_ELIGIBLE'),'synthetic')",
@@ -164,15 +167,16 @@ integration("persistent Operations executor and internal API", () => {
   });
 
   it("rolls back business/version/action/idempotency if audit persistence fails", async () => {
-    await pool.query("CREATE TRIGGER synthetic_operations_audit_failure BEFORE INSERT ON operations_audit_events FOR EACH ROW BEGIN IF NEW.event_type='OPERATIONS_HUMAN_REVIEW' AND NEW.reason_code='HUMAN_REVIEW' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic audit failure'; END IF; END");
-    try {
-      await expect(caller.humanReview({ applicationId, expectedVersion: 5, idempotencyKey: "audit-failure-001", reason: "Synthetic forced rollback", outcome: "NEEDS_CORRECTION" })).rejects.toMatchObject({ message: "PERSISTENCE_FAILURE" });
-      expect(await scalar("SELECT version value FROM operations_case_controls WHERE application_id=?", [applicationId])).toBe(5);
-      expect(await scalar("SELECT COUNT(*) value FROM operations_action_events WHERE application_id=? AND correlation_id='audit-failure-001'", [applicationId])).toBe(0);
-      expect(await scalar("SELECT COUNT(*) value FROM operations_idempotency_records WHERE application_id=? AND idempotency_key='audit-failure-001'", [applicationId])).toBe(0);
-    } finally {
-      await pool.query("DROP TRIGGER IF EXISTS synthetic_operations_audit_failure");
-    }
+    const failureExecutor = new MysqlControlledWriteExecutor(pool, provider, {
+      beforeAuditPersist: ({ idempotencyKey }) => {
+        if (idempotencyKey === "audit-failure-001") throw new Error("synthetic audit failure");
+      },
+    });
+    const failureCaller = createOperationsWriteRouter({ actorForContext: (ctx) => provider.actorForContext(ctx), flagContextForContext: (ctx) => provider.flagContextForContext(ctx), flagsForContext: () => provider.featureFlags(), executor: failureExecutor, capabilities: (application, actor) => failureExecutor.capabilities(application, actor) }).createCaller(context(staff1));
+    await expect(failureCaller.humanReview({ applicationId, expectedVersion: 5, idempotencyKey: "audit-failure-001", reason: "Synthetic forced rollback", outcome: "NEEDS_CORRECTION" })).rejects.toMatchObject({ message: "PERSISTENCE_FAILURE" });
+    expect(await scalar("SELECT version value FROM operations_case_controls WHERE application_id=?", [applicationId])).toBe(5);
+    expect(await scalar("SELECT COUNT(*) value FROM operations_action_events WHERE application_id=? AND correlation_id='audit-failure-001'", [applicationId])).toBe(0);
+    expect(await scalar("SELECT COUNT(*) value FROM operations_idempotency_records WHERE application_id=? AND idempotency_key='audit-failure-001'", [applicationId])).toBe(0);
   });
 
   it("commits one of two stale concurrent writes and keeps finance fields unchanged", async () => {

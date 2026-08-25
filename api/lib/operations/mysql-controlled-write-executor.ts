@@ -74,6 +74,10 @@ export type OperationsWriteCapabilities = {
   permittedAssignees: readonly { actorId: string; displayName: string }[];
 };
 
+export type MysqlControlledWriteHooks = {
+  beforeAuditPersist?: (context: { action: Action; applicationId: number; idempotencyKey: string }) => void | Promise<void>;
+};
+
 async function rows(connection: PoolConnection, sql: string, parameters: readonly SqlValue[] = []): Promise<readonly object[]> {
   const [result] = await connection.execute(sql, [...parameters]);
   if (!Array.isArray(result)) return [];
@@ -140,10 +144,12 @@ type LockedCase = {
 export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
   private readonly pool: Pool;
   private readonly access: MysqlOperationsAccessProvider;
+  private readonly hooks: MysqlControlledWriteHooks;
 
-  constructor(pool: Pool, access: MysqlOperationsAccessProvider) {
+  constructor(pool: Pool, access: MysqlOperationsAccessProvider, hooks: MysqlControlledWriteHooks = {}) {
     this.pool = pool;
     this.access = access;
+    this.hooks = hooks;
   }
 
   async capabilities(applicationId: number, actor: AuthorizationActor): Promise<OperationsWriteCapabilities> {
@@ -395,6 +401,7 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
         after.teamId ?? null,
         stringField(event.details, "previousEvaluationId"), stringField(event.details, "evaluationId"), event.reason,
         event.entityVersionBefore, event.entityVersionAfter, input.idempotencyKey]);
+    await this.hooks.beforeAuditPersist?.({ action, applicationId: input.applicationId, idempotencyKey: input.idempotencyKey });
     await affected(connection,
       `INSERT INTO operations_audit_events
        (id,event_type,actor_type,actor_reference,resource_type,resource_reference,outcome,reason_code,metadata_json)
