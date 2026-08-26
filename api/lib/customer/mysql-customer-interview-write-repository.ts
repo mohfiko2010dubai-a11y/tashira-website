@@ -234,6 +234,55 @@ export class MysqlCustomerInterviewWriteRepository {
     });
   }
 
+  async linkRequirementDocument(input: { applicationId: number; applicantId: number; requirementCode: string; documentId: number;
+    actorReference: string; idempotencyKey: string; occurredAt: Date }): Promise<{ requirementInstanceId: string; documentId: number;
+      replayed: boolean }> {
+    const commandSha256 = digest({ type: "LINK_REQUIREMENT_DOCUMENT", applicationId: input.applicationId,
+      applicantId: input.applicantId, requirementCode: input.requirementCode, documentId: input.documentId });
+    return transaction(this.pool, async (connection) => {
+      const [applications] = await connection.execute<RowDataPacket[]>("SELECT id FROM applications WHERE id=? FOR UPDATE", [input.applicationId]);
+      if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
+      const prior = await commandReplay(connection, { ...input, commandSha256 });
+      if (prior) return { requirementInstanceId: prior.entityReference, documentId: input.documentId, replayed: true };
+      const [requirements] = await connection.execute<RowDataPacket[]>(`SELECT i.id,i.requirement_code AS requirementCode
+        FROM applicant_requirement_instances i
+        JOIN visa_rule_evaluation_selections s ON s.application_id=i.application_id AND s.applicant_id=i.applicant_id
+          AND s.evaluation_id=i.evaluation_id
+        WHERE i.application_id=? AND i.applicant_id=? AND i.requirement_kind='DOCUMENT' AND i.requirement_code=?
+          AND s.id=(SELECT current_selection.id FROM visa_rule_evaluation_selections current_selection
+            WHERE current_selection.application_id=i.application_id AND current_selection.applicant_id=i.applicant_id
+            ORDER BY current_selection.selected_at DESC,current_selection.id DESC LIMIT 1)
+        LIMIT 1 FOR UPDATE`, [input.applicationId, input.applicantId, input.requirementCode]);
+      const requirement = requirements[0];
+      if (!requirement) throw new Error("CUSTOMER_REQUIREMENT_CURRENT_INSTANCE_MISSING");
+      const [documents] = await connection.execute<RowDataPacket[]>(`SELECT id FROM documents
+        WHERE id=? AND application_id=? AND applicant_id=? AND upload_status='uploaded' FOR UPDATE`,
+      [input.documentId, input.applicationId, input.applicantId]);
+      if (!documents[0]) throw new Error("CUSTOMER_REQUIREMENT_DOCUMENT_OWNERSHIP_INVALID");
+      const requirementInstanceId = String(requirement.id);
+      const [existing] = await connection.execute<RowDataPacket[]>(`SELECT id FROM applicant_requirement_document_links
+        WHERE requirement_instance_id=? AND document_id=? LIMIT 1`, [requirementInstanceId, input.documentId]);
+      if (existing[0]) return { requirementInstanceId, documentId: input.documentId, replayed: true };
+      const evidenceSha256 = digest({ applicationId: input.applicationId, applicantId: input.applicantId,
+        requirementInstanceId, requirementCode: input.requirementCode, documentId: input.documentId });
+      await connection.execute(`INSERT INTO applicant_requirement_document_links
+        (id,application_id,applicant_id,requirement_instance_id,document_id,requirement_code,evidence_sha256,actor_reference,linked_at)
+        VALUES (?,?,?,?,?,?,?,?,?)`, [randomUUID(), input.applicationId, input.applicantId, requirementInstanceId, input.documentId,
+        input.requirementCode, evidenceSha256, input.actorReference, input.occurredAt]);
+      const [currentEvents] = await connection.execute<RowDataPacket[]>(`SELECT state FROM applicant_requirement_events
+        WHERE requirement_instance_id=? ORDER BY occurred_at DESC,id DESC LIMIT 1`, [requirementInstanceId]);
+      if (String(currentEvents[0]?.state ?? "") !== "UPLOADED") await connection.execute(`INSERT INTO applicant_requirement_events
+        (id,requirement_instance_id,state,reason,actor_reference,occurred_at) VALUES (?,?,'UPLOADED',?,?,?)`,
+      [randomUUID(), requirementInstanceId, "Customer uploaded the required document", input.actorReference, input.occurredAt]);
+      await connection.execute(`INSERT INTO customer_interview_command_events
+        (id,application_id,command_type,entity_reference,entity_version,command_sha256,evidence_json,idempotency_key,actor_reference,occurred_at)
+        VALUES (?,?,'LINK_REQUIREMENT_DOCUMENT',?,NULL,?,?,?,?,?)`, [randomUUID(), input.applicationId, requirementInstanceId,
+        commandSha256, JSON.stringify({ applicantId: input.applicantId, requirementCode: input.requirementCode,
+          documentId: input.documentId, evidenceSha256 }), input.idempotencyKey, input.actorReference, input.occurredAt]);
+      return { requirementInstanceId, documentId: input.documentId, replayed: false };
+    });
+  }
+
   private async validateTravelGroupOwnership(connection: PoolConnection, applicationId: number, id: string, group: CustomerTravelGroupInput) {
     const validation = validateTravelGroup({ id, applicationId, ...group });
     if (!validation.valid) throw new Error(`CUSTOMER_TRAVEL_GROUP_INVALID:${validation.errors.join(",")}`);

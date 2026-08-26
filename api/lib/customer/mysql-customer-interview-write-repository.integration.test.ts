@@ -79,6 +79,37 @@ describe.skipIf(!databaseUrl)("MySQL customer interview applicant writes", () =>
       await expect(repository.linkSharedDocument({ applicationId: Number(otherApplication.insertId), documentId: Number(document.insertId),
         documentType: "FAMILY_BOOKING", applicantIds: [created.applicantId], actorReference: "customer:synthetic",
         idempotencyKey: `document-cross-${runId}`, occurredAt: new Date() })).rejects.toThrow("CUSTOMER_SHARED_DOCUMENT_OWNERSHIP_INVALID");
+      const evaluationId = randomUUID(); const requirementInstanceId = randomUUID();
+      await pool.execute(`INSERT INTO visa_rule_evaluation_runs
+        (id,application_id,applicant_id,route_code,engine_version,final_eligibility_state,decision_reason,required_documents_json,
+          conditional_documents_json,warnings_json,precedence_trace_json,evidence_sha256,evaluated_at)
+        VALUES (?,?,?,'ROUTE_TEST','synthetic-v1','ELIGIBLE','Synthetic evaluation',JSON_ARRAY('PASSPORT'),JSON_ARRAY(),JSON_ARRAY(),JSON_ARRAY(),?,NOW(3))`,
+      [evaluationId, application.insertId, created.applicantId, "a".repeat(64)]);
+      await pool.execute(`INSERT INTO visa_rule_evaluation_selections
+        (id,application_id,applicant_id,evaluation_id,selection_reason,selected_by,selected_at) VALUES (?,?,?,?,?,?,NOW(3))`,
+      [randomUUID(), application.insertId, created.applicantId, evaluationId, "Synthetic current selection", "staging-test"]);
+      await pool.execute(`INSERT INTO applicant_requirement_instances
+        (id,application_id,applicant_id,evaluation_id,catalog_version,requirement_code,requirement_kind,critical,conditional)
+        VALUES (?,?,?,?,'synthetic-v1','PASSPORT','DOCUMENT',TRUE,FALSE)`,
+      [requirementInstanceId, application.insertId, created.applicantId, evaluationId]);
+      await pool.execute(`INSERT INTO applicant_requirement_events
+        (id,requirement_instance_id,state,reason,actor_reference,occurred_at) VALUES (?,?,'MISSING','Synthetic missing','staging-test',NOW(3))`,
+      [randomUUID(), requirementInstanceId]);
+      const requirementLink = await repository.linkRequirementDocument({ applicationId: Number(application.insertId),
+        applicantId: created.applicantId, requirementCode: "PASSPORT", documentId: Number(document.insertId),
+        actorReference: "customer:synthetic", idempotencyKey: `requirement-document-${runId}`, occurredAt: new Date() });
+      expect(requirementLink).toMatchObject({ requirementInstanceId, documentId: Number(document.insertId), replayed: false });
+      expect(await repository.linkRequirementDocument({ applicationId: Number(application.insertId), applicantId: created.applicantId,
+        requirementCode: "PASSPORT", documentId: Number(document.insertId), actorReference: "customer:synthetic",
+        idempotencyKey: `requirement-document-${runId}`, occurredAt: new Date() })).toEqual({ ...requirementLink, replayed: true });
+      await expect(repository.linkRequirementDocument({ applicationId: Number(otherApplication.insertId), applicantId: created.applicantId,
+        requirementCode: "PASSPORT", documentId: Number(document.insertId), actorReference: "customer:synthetic",
+        idempotencyKey: `requirement-document-cross-${runId}`, occurredAt: new Date() }))
+        .rejects.toThrow("CUSTOMER_REQUIREMENT_CURRENT_INSTANCE_MISSING");
+      const [requirementEvidence] = await pool.execute<RowDataPacket[]>(`SELECT l.requirement_code AS requirementCode,e.state
+        FROM applicant_requirement_document_links l JOIN applicant_requirement_events e ON e.requirement_instance_id=l.requirement_instance_id
+        WHERE l.requirement_instance_id=? ORDER BY e.occurred_at,e.id`, [requirementInstanceId]);
+      expect(requirementEvidence).toEqual([{ requirementCode: "PASSPORT", state: "MISSING" }, { requirementCode: "PASSPORT", state: "UPLOADED" }]);
       const [evidence] = await pool.execute<RowDataPacket[]>("SELECT event_type AS eventType,profile_version AS profileVersion FROM customer_interview_profile_events WHERE application_id=? ORDER BY profile_version", [application.insertId]);
       expect(evidence).toHaveLength(3);
     } finally { await pool.end(); }
