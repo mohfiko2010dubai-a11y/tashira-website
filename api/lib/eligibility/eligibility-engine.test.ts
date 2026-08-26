@@ -28,6 +28,10 @@ const profile = {
 };
 
 describe("deterministic eligibility engine", () => {
+  it("treats the authoritative effective-to instant as inclusive", () => {
+    const ending = rule({ effectiveTo: new Date("2026-06-01T00:00:00Z") });
+    expect(evaluateEligibility({ profile, rules: [ending], evaluatedAt: at }).finalEligibilityState).toBe("ELIGIBLE");
+  });
   it("applies the highest matching official overlay deterministically", () => {
     const result = evaluateEligibility({ profile, evaluatedAt: at, rules: [
       rule(),

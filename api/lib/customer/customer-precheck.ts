@@ -9,7 +9,14 @@ export type CustomerPrecheckResult = {
   warnings: readonly string[];
   disclaimer: string;
   ruleEvidence: EligibilityEvaluationResult["matchedRuleVersions"];
+  operationalRequirements: readonly string[];
+  travelPartyConditions: readonly string[];
+  ticketRequirementCodes: readonly string[];
+  submissionTimingWarnings: readonly string[];
+  sourceVerificationStatus: "VERIFIED" | "NOT_RESEARCHED" | "HUMAN_REVIEW_REQUIRED";
 };
+
+const TICKET_CODES = new Set(["OUTBOUND_TICKET", "RETURN_TICKET", "ONWARD_TICKET", "ROUND_TRIP_TICKET", "FAMILY_BOOKING"]);
 
 export function runCustomerPrecheck(input: {
   profile: EligibilityProfile;
@@ -30,5 +37,20 @@ export function runCustomerPrecheck(input: {
     warnings: result.manualReviewReason ? [result.manualReviewReason] : [],
     disclaimer: "This pre-check is guidance only. It is not a visa approval or a guarantee of government acceptance.",
     ruleEvidence: result.matchedRuleVersions,
+    operationalRequirements: [...new Set(result.matchedRules
+      .filter(({ classification }) => classification === "OPERATIONAL")
+      .map(({ reason }) => reason))].sort(),
+    travelPartyConditions: result.matchedRules
+      .filter(({ layer }) => layer === "FAMILY_OVERLAY" || layer === "TRAVEL_PARTY_OVERLAY")
+      .map(({ reason }) => reason),
+    ticketRequirementCodes: [...new Set([...result.requiredDocuments, ...result.conditionalDocuments.map(({ code }) => code)]
+      .filter((code) => TICKET_CODES.has(code)))].sort(),
+    submissionTimingWarnings: result.matchedRules
+      .filter(({ layer }) => layer === "SUBMISSION_TIMING_OVERLAY")
+      .map(({ reason }) => reason),
+    sourceVerificationStatus: result.matchedRules.length === 0
+      ? "NOT_RESEARCHED"
+      : result.finalEligibilityState === "RULE_CONFLICT" || result.finalEligibilityState === "HUMAN_REVIEW_REQUIRED"
+        ? "HUMAN_REVIEW_REQUIRED" : "VERIFIED",
   };
 }

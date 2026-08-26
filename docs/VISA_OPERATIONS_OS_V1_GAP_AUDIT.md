@@ -22,7 +22,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Audit Trail | DONE | Yes | Yes | Monitoring/retention decision |
 | Operations Dashboard / Manager Dashboard | PARTIAL | Yes | Case workspace only | Finance-free deterministic manager aggregates complete; persistent read provider and dashboard UI remain |
 | Case Workspace | DONE | Yes | Yes | Controlled UI browser sign-off |
-| Customer Pre-Check | PARTIAL | Yes | No | Safe guidance contract is complete behind a closed flag; approved public rule subset, route/UI wiring and Staging UAT remain |
+| Customer Pre-Check | PARTIAL | Yes | No | Safe guidance contract and rate-limited Active/validated/source-verified MySQL runtime API are complete behind a closed flag; approved rules dataset, progressive UI and scoped Staging UAT remain |
 | Trust Center | PARTIAL | Existing legal UI | Existing app | Final legal owner review |
 | Customer Portal Timeline | PARTIAL | Yes | Existing timeline | Canonical finance-free portal projection, UI and authenticated application-scoped read-only runtime API complete behind a closed flag; customer route registration and scoped Staging UAT remain |
 | Visa Assistant | PARTIAL | Yes | No | Evidence-priority grounding supports authenticated applicant/travel/scheduler/document answers; runtime adapter and approved knowledge content remain |

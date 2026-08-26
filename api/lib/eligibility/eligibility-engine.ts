@@ -89,7 +89,7 @@ function matchesCondition(profile: EligibilityProfile, condition: EligibilityCon
 function matchesRule(profile: EligibilityProfile, rule: EligibilityRule, evaluatedAt: Date): boolean {
   return rule.routeCode === profile.routeCode
     && evaluatedAt >= rule.effectiveFrom
-    && (rule.effectiveTo === null || evaluatedAt < rule.effectiveTo)
+    && (rule.effectiveTo === null || evaluatedAt <= rule.effectiveTo)
     && rule.conditions.every((condition) => matchesCondition(profile, condition));
 }
 
