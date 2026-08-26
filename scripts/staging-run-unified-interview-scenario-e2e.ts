@@ -9,7 +9,7 @@ type Scenario = { applicantNationalities: readonly string[]; expectedState: stri
 const scenarios: Readonly<Record<string, Scenario>> = {
   "TSH-STG-DYN-GCC-FUTURE": { applicantNationalities: ["EG"], expectedState: "ELIGIBLE_ROUTE_FOUND", expectedRequirement: "GCC_RESIDENCE" },
   "TSH-STG-DYN-FAMILY": { applicantNationalities: ["EG", "PK", "EG", "EG"], expectedState: "ELIGIBLE_ROUTE_FOUND" },
-  "TSH-STG-DYN-NOT-RESEARCHED": { applicantNationalities: ["ZZ"], expectedState: "NOT_RESEARCHED" },
+  "TSH-STG-DYN-NOT-RESEARCHED": { applicantNationalities: ["ZZ"], expectedState: "HUMAN_REVIEW_REQUIRED" },
   "TSH-STG-DYN-CONFLICT": { applicantNationalities: ["EG"], expectedState: "RULE_CONFLICT" },
 };
 const reference = process.argv[2] ?? ""; const scenario = scenarios[reference];
