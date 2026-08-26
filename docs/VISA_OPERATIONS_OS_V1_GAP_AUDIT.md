@@ -14,7 +14,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Assignment / State Machine / Re-evaluation | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
 | Typing Pack | PARTIAL | Yes | Staging scoped E2E | Immutable template/evaluation-bound MySQL persistence, RBAC API and replay-safe generation are complete behind an OFF flag; owner-approved templates/output renderer remain |
 | Authority Query Workflow | PARTIAL | Yes | Staging scoped E2E | Scoped optimistic MySQL lifecycle, append-only events/audit and safe-reference gate are complete behind an OFF flag; authority-specific submission adapter/procedure remain |
-| Visa Delivery Workflow | PARTIAL | Yes | Existing statuses | Authorized ownership/scan-gated delivery package complete behind a closed flag; secure runtime adapter/UAT remain |
+| Visa Delivery Workflow | COMPLETE (provider-independent) | Yes | Migration 035 + MySQL runtime | Immutable scan evidence, applicant-owned delivery persistence, RBAC preparation, customer-session access and signed-download Staging E2E complete behind a closed flag; selecting and connecting a real malware-scanning provider remains an external owner gate |
 | Supplier Management | PARTIAL | Yes | Staging scoped E2E | Finance-free SLA policies/snapshots, queue, RBAC API/UI, concurrency, escalation and audit are complete behind an OFF flag; approved business policy values and external supplier integration remain |
 | Supplier Cost / Finance Separation | DONE | Yes | Yes | Finance-only activation review |
 | Effective Cost History | PARTIAL | Existing snapshots | No | Finance policy and supplier-cost history integration |
