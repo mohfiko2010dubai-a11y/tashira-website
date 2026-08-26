@@ -8,7 +8,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Eligibility Engine / precedence | DONE | Yes | Persistence | Real rule content remains human-approved |
 | Immutable evaluations | DONE | Yes | Yes | None in engineering scope |
 | Family Engine / readiness | DONE | Yes | Read Model | Customer activation remains off |
-| Dynamic Questions / Requirements / Documents | PARTIAL | Yes | Persistence | Customer review UI and deterministic plan complete behind closed flags; approved production catalogs/runtime wiring remain |
+| Dynamic Questions / Requirements / Documents | DONE | Yes | API/MySQL scoped E2E | Unified applicant-scoped interview, immutable evaluations, dynamic requirements and owned document upload/link are complete behind closed flags; approved Production catalog content and activation remain owner gates |
 | AI Document Pre-Screening | EXTERNAL DEPENDENCY | Yes | No | Provider-independent classification/extraction validation is complete; live AI provider credentials/adapter remain, human remains final authority |
 | Human / Document Review | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
 | Assignment / State Machine / Re-evaluation | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
@@ -37,7 +37,15 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 
 ## Honest completion
 
-Core case-operations foundation is approximately **78% complete**. Full Master Program V1 is approximately **61% complete** because customer-facing, supplier/authority, support-provider, analytics and approved regulatory content remain incomplete. No percentage includes Production activation.
+Core case-operations foundation is approximately **82% complete**. Full Master Program V1 is approximately **65% complete** because supplier/authority, external AI/support providers, analytics UI, approved regulatory content and Production activation remain incomplete. No percentage includes Production activation.
+
+## Unified Interview runtime update — 2026-08-26
+
+- Exact Staging runtime SHA: `e0a2aa5fe574033651b1bbd784251d36d8839ce9`.
+- Migrations `029` and `030` are applied only to isolated Staging. Migration `030` preserves legitimate repeated answers as predecessor-linked immutable transitions.
+- Scoped synthetic E2E passed authorization, applicant isolation, owned document upload/link, readiness transition, idempotency, cross-application denial and finance isolation.
+- All GLOBAL/APPLICATION customer flags returned to OFF. Browser UI E2E remains blocked by the desktop Browser plugin before tab creation; API/MySQL E2E is complete.
+- Verified pre-`030` backup: `/var/backups/tashira-staging/20260826T152550Z-answer-transitions-030-predeploy`.
 
 ## External or owner dependencies
 

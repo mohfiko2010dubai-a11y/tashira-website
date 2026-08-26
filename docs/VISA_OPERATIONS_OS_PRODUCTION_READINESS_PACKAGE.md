@@ -6,7 +6,7 @@ Status: **prepared, not authorized for execution**.
 
 - Source branch: `codex/visa-operations-os-v1`
 - Exact release SHA: record only after final Staging hardening commit and verification.
-- Database chain: additive migrations `014` through `023`.
+- Database chain: reviewed migrations `014` through `030`; re-rehearse the exact chain against a restored Production-shaped copy before authorization.
 - Production changes performed by this package: none.
 
 ## Required Production sequence
@@ -17,7 +17,7 @@ Status: **prepared, not authorized for execution**.
 4. Create root-only database, document, private-config and Git backups; verify SHA-256 and restore rehearsal evidence.
 5. Enter maintenance/write freeze without changing customer documents.
 6. Rehearse the exact release and migrations against an isolated restored copy.
-7. Apply `014`–`023` in order using the guarded wrapper. Stop on drift or failure.
+7. Apply `014`–`030` in order using the guarded wrapper. Stop on drift or failure. Migration `030` replaces the historical answer-value uniqueness rule with predecessor-linked transition uniqueness.
 8. Deploy the exact approved SHA through the protected manual workflow.
 9. Keep every Operations flag OFF; verify legacy/customer/payment/email regressions.
 10. Enable `OPERATIONS_CASE_READ_MODEL` for named internal scopes only and verify RBAC/finance isolation.
@@ -27,7 +27,7 @@ Status: **prepared, not authorized for execution**.
 ## Rollback and recovery
 
 - Application rollback: exact pre-change SHA only.
-- Database rollback: use only the verified pre-migration backup during an approved maintenance window; never run rollback scripts blindly against a partially used schema.
+- Database rollback: use only the verified pre-migration backup during an approved maintenance window; never run rollback scripts blindly against a partially used schema. In particular, after a legitimate answer cycle such as `A → B → A`, do not blindly restore Migration `030`'s former answer-value uniqueness constraint because doing so conflicts with valid immutable history.
 - Feature rollback: disable the affected scoped flag first; preserve append-only evidence.
 - Documents: never overwrite or delete `/var/www/tashira/storage/documents`; verify fingerprint before and after.
 

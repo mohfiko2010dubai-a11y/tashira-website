@@ -192,4 +192,4 @@ Last verified: 2026-08-26
 
 ## Next highest-priority task
 
-Review and approve `docs/VISA_OPERATIONS_OS_STAGING_RUNBOOK.md`. The next Operations OS step is staging identity/backup verification followed by migrations `014–023` with every feature flag OFF; it must not execute without separate explicit owner authorization. Customer-facing Operations OS modules remain partial or not started and must stay inactive.
+Complete the remaining provider-independent Operations Manager analytics persistence/API/UI and keep it behind the existing closed internal feature gates. Browser UI sign-off should resume only when the desktop Browser plugin can open its trusted service path. Production merge, migrations, deployment, official rule/catalog content, external AI/mailbox providers, retention/legal policy and any feature activation remain true owner gates.
