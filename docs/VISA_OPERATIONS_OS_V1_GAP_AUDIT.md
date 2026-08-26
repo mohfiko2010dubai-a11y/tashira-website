@@ -22,9 +22,9 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Audit Trail | DONE | Yes | Yes | Monitoring/retention decision |
 | Operations Dashboard / Manager Dashboard | DONE | Yes | API/MySQL scoped E2E | Finance-free persistent aggregates, manager-only scoped API and protected dashboard UI are complete; final human browser sign-off remains tool-blocked |
 | Case Workspace | DONE | Yes | Yes | Controlled UI browser sign-off |
-| Customer Pre-Check | PARTIAL | Yes | No | Safe guidance contract and rate-limited Active/validated/source-verified MySQL runtime API are complete behind a closed flag; approved rules dataset, progressive UI and scoped Staging UAT remain |
+| Customer Pre-Check | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Safe guidance contract, rate-limited Active/validated/source-verified MySQL runtime API and responsive public UI are complete behind a closed flag; approved Production rules dataset and activation remain owner gates |
 | Trust Center | PARTIAL | Existing legal UI | Existing app | Final legal owner review |
-| Customer Portal Timeline | PARTIAL | Yes | Existing timeline | Canonical finance-free portal projection, UI and authenticated application-scoped read-only runtime API complete behind a closed flag; customer route registration and scoped Staging UAT remain |
+| Customer Portal Timeline | DONE | Yes | Staging scoped E2E | Canonical finance-free portal projection, registered customer route and authenticated application-scoped read-only runtime API are complete behind a closed flag; Production activation remains an owner gate |
 | Visa Assistant | PARTIAL | Yes | No | Evidence-priority grounding supports authenticated applicant/travel/scheduler/document answers; runtime adapter and approved knowledge content remain |
 | Authenticated Case Chat / Handoff | PARTIAL | Yes | Existing app | Audited handoff payload and triggers complete; runtime conversation adapter remains |
 | Email Automation | PARTIAL | Yes | Existing app | Complete canonical V1 event/dedup ledger exists; persistent runtime/provider dispatch remains |
