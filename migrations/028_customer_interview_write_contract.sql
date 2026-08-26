@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `customer_interview_command_events` (
   `entity_reference` varchar(100) NOT NULL,
   `entity_version` int unsigned NULL,
   `command_sha256` char(64) NOT NULL,
+  `evidence_json` json NOT NULL,
   `idempotency_key` varchar(100) NOT NULL,
   `actor_reference` varchar(100) NOT NULL,
   `occurred_at` datetime(3) NOT NULL,

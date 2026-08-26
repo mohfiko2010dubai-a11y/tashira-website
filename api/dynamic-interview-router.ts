@@ -10,7 +10,7 @@ import { adaptPersistentUnifiedInterview } from "./lib/customer/unified-intervie
 import type { InterviewAnswer, InterviewAnswerEvent } from "./lib/customer/dynamic-interview";
 import { MysqlInterviewAnswerRepository } from "./lib/customer/mysql-interview-answer-repository";
 import { MysqlCustomerInterviewWriteRepository, type CustomerApplicantProfile,
-  type CustomerApplicantWriteResult } from "./lib/customer/mysql-customer-interview-write-repository";
+  type CustomerApplicantWriteResult, type CustomerTravelGroupInput } from "./lib/customer/mysql-customer-interview-write-repository";
 import { MysqlOperationsAccessProvider } from "./lib/operations/mysql-access-provider";
 import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import { MysqlRequirementCatalogProvider } from "./lib/requirements/mysql-requirement-catalog-provider";
@@ -22,6 +22,10 @@ import { applicationAccessQuery, createRouter } from "./middleware";
 
 type ApplicationInterviewRecord = { applicationId: number; referenceNumber: string; routeCode: string; applicantIds: readonly number[];
   applicantLabels: Readonly<Record<number, string>> };
+const travelGroupInputSchema = z.object({ reference: z.string().trim().min(1).max(100), applicantIds: z.array(z.number().int().positive()).min(1).max(50),
+  primaryTravellerId: z.number().int().positive(), accompanyingAdultId: z.number().int().positive().nullable(), arrangement: z.enum(["TOGETHER", "SEPARATELY"]),
+  origin: z.string().trim().min(2).max(100), destination: z.string().trim().min(2).max(100), plannedArrivalDate: z.iso.date(),
+  plannedDepartureDate: z.iso.date().nullable(), ticketStatus: z.enum(["NOT_BOOKED", "RESERVED", "CONFIRMED"]) }).strict();
 type Dependencies = {
   flagContextForContext(ctx: TrpcContext): FeatureFlagContext | Promise<FeatureFlagContext>;
   flagsForContext(ctx: TrpcContext): Promise<readonly FeatureFlagRecord[]>;
@@ -37,6 +41,13 @@ type Dependencies = {
   defineRelationship?(input: { applicationId: number; fromApplicantId: number; toApplicantId: number;
     relationship: "SPOUSE" | "PARENT" | "CHILD" | "GUARDIAN" | "DEPENDENT"; reason: string; actorReference: string;
     idempotencyKey: string; occurredAt: Date }): Promise<{ relationshipEventId: string; replayed: boolean }>;
+  createTravelGroup?(input: { applicationId: number; group: CustomerTravelGroupInput; reason: string; actorReference: string;
+    idempotencyKey: string; occurredAt: Date }): Promise<{ travelGroupId: string; version: number; replayed: boolean }>;
+  updateTravelGroup?(input: { applicationId: number; travelGroupId: string; expectedVersion: number; group: CustomerTravelGroupInput;
+    reason: string; actorReference: string; idempotencyKey: string; occurredAt: Date }): Promise<{ travelGroupId: string; version: number; replayed: boolean }>;
+  linkSharedDocument?(input: { applicationId: number; documentId: number; documentType: "OUTBOUND_TICKET" | "RETURN_TICKET" |
+    "ONWARD_TICKET" | "ROUND_TRIP_TICKET" | "FAMILY_BOOKING"; applicantIds: readonly number[]; actorReference: string;
+    idempotencyKey: string; occurredAt: Date }): Promise<{ documentId: number; linkedApplicantIds: readonly number[]; replayed: boolean }>;
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
     changeReason: string; actorReference: string; occurredAt: Date }): Promise<InterviewAnswerEvent>;
   now(): Date;
@@ -172,6 +183,40 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Relationship could not be saved" });
       }
     }),
+    createTravelGroup: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), group: travelGroupInputSchema,
+      reason: z.string().trim().min(3).max(500), idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
+      const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
+      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.createTravelGroup) throw new TRPCError({ code: "FORBIDDEN", message: "Travel changes unavailable" });
+      try { return await deps.createTravelGroup({ applicationId: application.applicationId, group: input.group, reason: input.reason,
+        actorReference: `customer:${input.referenceNumber}`, idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
+      catch (error) { if (error instanceof Error && error.message.includes("CONFLICT")) throw new TRPCError({ code: "CONFLICT", message: "Travel change is no longer current" });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Travel group could not be saved" }); }
+    }),
+    updateTravelGroup: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), travelGroupId: z.string().uuid(),
+      expectedVersion: z.number().int().positive(), group: travelGroupInputSchema, reason: z.string().trim().min(3).max(500),
+      idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
+      const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
+      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.updateTravelGroup) throw new TRPCError({ code: "FORBIDDEN", message: "Travel changes unavailable" });
+      try { return await deps.updateTravelGroup({ applicationId: application.applicationId, travelGroupId: input.travelGroupId,
+        expectedVersion: input.expectedVersion, group: input.group, reason: input.reason, actorReference: `customer:${input.referenceNumber}`,
+        idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
+      catch (error) { if (error instanceof Error && error.message.includes("CONFLICT")) throw new TRPCError({ code: "CONFLICT", message: "Travel change is no longer current" });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Travel group could not be updated" }); }
+    }),
+    linkSharedDocument: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), documentId: z.number().int().positive(),
+      documentType: z.enum(["OUTBOUND_TICKET", "RETURN_TICKET", "ONWARD_TICKET", "ROUND_TRIP_TICKET", "FAMILY_BOOKING"]),
+      applicantIds: z.array(z.number().int().positive()).min(1).max(50), idempotencyKey: z.string().trim().min(8).max(100) }).strict())
+      .mutation(async ({ input, ctx }) => {
+        const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
+        if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.linkSharedDocument) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Shared document changes unavailable" });
+        }
+        try { return await deps.linkSharedDocument({ applicationId: application.applicationId, documentId: input.documentId,
+          documentType: input.documentType, applicantIds: input.applicantIds, actorReference: `customer:${input.referenceNumber}`,
+          idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
+        catch (error) { if (error instanceof Error && error.message.includes("CONFLICT")) throw new TRPCError({ code: "CONFLICT", message: "Document link is no longer current" });
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Shared document could not be linked" }); }
+      }),
   });
 }
 
@@ -202,5 +247,8 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
   loadUnifiedBundle: (referenceNumber) => caseProvider().load(referenceNumber),
   addApplicant: (input) => applicantWriteProvider().addApplicant(input), editApplicant: (input) => applicantWriteProvider().editApplicant(input),
   defineRelationship: (input) => applicantWriteProvider().defineRelationship(input),
+  createTravelGroup: (input) => applicantWriteProvider().createTravelGroup(input),
+  updateTravelGroup: (input) => applicantWriteProvider().updateTravelGroup(input),
+  linkSharedDocument: (input) => applicantWriteProvider().linkSharedDocument(input),
   append: (input) => answerProvider().append(input), now: () => new Date(),
 });

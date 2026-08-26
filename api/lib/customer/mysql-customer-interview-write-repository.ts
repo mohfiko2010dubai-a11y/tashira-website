@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { validateTravelGroup, type TicketStatus, type TravelArrangement } from "../travel/travel-party";
 
 export type CustomerApplicantProfile = {
   fullName: string;
@@ -14,6 +15,19 @@ export type CustomerApplicantWriteResult = {
   profile: CustomerApplicantProfile;
   replayed: boolean;
 };
+
+export type CustomerTravelGroupInput = { reference: string; applicantIds: readonly number[]; primaryTravellerId: number;
+  accompanyingAdultId: number | null; arrangement: TravelArrangement; origin: string; destination: string;
+  plannedArrivalDate: string; plannedDepartureDate: string | null; ticketStatus: TicketStatus };
+
+async function commandReplay(connection: PoolConnection, input: { applicationId: number; idempotencyKey: string; commandSha256: string }) {
+  const [rows] = await connection.execute<RowDataPacket[]>(`SELECT entity_reference AS entityReference,entity_version AS entityVersion,
+    command_sha256 AS commandSha256 FROM customer_interview_command_events WHERE application_id=? AND idempotency_key=? LIMIT 1`,
+  [input.applicationId, input.idempotencyKey]);
+  if (!rows[0]) return null;
+  if (String(rows[0].commandSha256) !== input.commandSha256) throw new Error("CUSTOMER_INTERVIEW_IDEMPOTENCY_CONFLICT");
+  return { entityReference: String(rows[0].entityReference), entityVersion: Number(rows[0].entityVersion), replayed: true as const };
+}
 
 function digest(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -126,10 +140,124 @@ export class MysqlCustomerInterviewWriteRepository {
         VALUES (?,?,?,?,?,'ESTABLISHED',?,?,?)`, [relationshipEventId, input.applicationId, input.fromApplicantId, input.toApplicantId,
         input.relationship, input.reason, input.actorReference, input.occurredAt]);
       await connection.execute(`INSERT INTO customer_interview_command_events
-        (id,application_id,command_type,entity_reference,entity_version,command_sha256,idempotency_key,actor_reference,occurred_at)
-        VALUES (?,?,'DEFINE_RELATIONSHIP',?,1,?,?,?,?)`, [randomUUID(), input.applicationId, relationshipEventId, commandSha256,
+        (id,application_id,command_type,entity_reference,entity_version,command_sha256,evidence_json,idempotency_key,actor_reference,occurred_at)
+        VALUES (?,?,'DEFINE_RELATIONSHIP',?,1,?,?,?,?,?)`, [randomUUID(), input.applicationId, relationshipEventId, commandSha256,
+        JSON.stringify({ fromApplicantId: input.fromApplicantId, toApplicantId: input.toApplicantId, relationship: input.relationship }),
         input.idempotencyKey, input.actorReference, input.occurredAt]);
       return { relationshipEventId, replayed: false };
     });
+  }
+
+  async createTravelGroup(input: { applicationId: number; group: CustomerTravelGroupInput; reason: string; actorReference: string;
+    idempotencyKey: string; occurredAt: Date }): Promise<{ travelGroupId: string; version: number; replayed: boolean }> {
+    const travelGroupId = randomUUID();
+    const commandSha256 = digest({ type: "DEFINE_TRAVEL_GROUP", applicationId: input.applicationId, group: input.group, reason: input.reason });
+    return transaction(this.pool, async (connection) => {
+      const [applications] = await connection.execute<RowDataPacket[]>("SELECT id FROM applications WHERE id=? FOR UPDATE", [input.applicationId]);
+      if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
+      const prior = await commandReplay(connection, { ...input, commandSha256 });
+      if (prior) return { travelGroupId: prior.entityReference, version: prior.entityVersion, replayed: true };
+      await this.validateTravelGroupOwnership(connection, input.applicationId, travelGroupId, input.group);
+      await connection.execute(`INSERT INTO travel_groups (id,application_id,travel_group_reference,arrangement,primary_traveller_id,
+        accompanying_adult_id,origin,destination,planned_arrival_date,planned_departure_date,ticket_status,version) VALUES (?,?,?,?,?,?,?,?,?,?,?,1)`,
+      [travelGroupId, input.applicationId, input.group.reference, input.group.arrangement, input.group.primaryTravellerId,
+        input.group.accompanyingAdultId, input.group.origin, input.group.destination, input.group.plannedArrivalDate,
+        input.group.plannedDepartureDate, input.group.ticketStatus]);
+      await this.replaceTravelMembers(connection, input.applicationId, travelGroupId, input.group);
+      await this.appendCommand(connection, { applicationId: input.applicationId, type: "DEFINE_TRAVEL_GROUP", entityReference: travelGroupId,
+        version: 1, commandSha256, evidence: input.group, idempotencyKey: input.idempotencyKey, actorReference: input.actorReference, occurredAt: input.occurredAt });
+      return { travelGroupId, version: 1, replayed: false };
+    });
+  }
+
+  async updateTravelGroup(input: { applicationId: number; travelGroupId: string; expectedVersion: number; group: CustomerTravelGroupInput;
+    reason: string; actorReference: string; idempotencyKey: string; occurredAt: Date }): Promise<{ travelGroupId: string; version: number; replayed: boolean }> {
+    const commandSha256 = digest({ type: "UPDATE_TRAVEL_GROUP", applicationId: input.applicationId, travelGroupId: input.travelGroupId,
+      expectedVersion: input.expectedVersion, group: input.group, reason: input.reason });
+    return transaction(this.pool, async (connection) => {
+      const [applications] = await connection.execute<RowDataPacket[]>("SELECT id FROM applications WHERE id=? FOR UPDATE", [input.applicationId]);
+      if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
+      const prior = await commandReplay(connection, { ...input, commandSha256 });
+      if (prior) return { travelGroupId: prior.entityReference, version: prior.entityVersion, replayed: true };
+      const [groups] = await connection.execute<RowDataPacket[]>("SELECT version FROM travel_groups WHERE id=? AND application_id=? FOR UPDATE",
+        [input.travelGroupId, input.applicationId]);
+      if (!groups[0]) throw new Error("CUSTOMER_TRAVEL_GROUP_OWNERSHIP_INVALID");
+      if (Number(groups[0].version) !== input.expectedVersion) throw new Error("CUSTOMER_TRAVEL_GROUP_VERSION_CONFLICT");
+      await this.validateTravelGroupOwnership(connection, input.applicationId, input.travelGroupId, input.group);
+      const version = input.expectedVersion + 1;
+      const [updated] = await connection.execute<ResultSetHeader>(`UPDATE travel_groups SET travel_group_reference=?,arrangement=?,primary_traveller_id=?,
+        accompanying_adult_id=?,origin=?,destination=?,planned_arrival_date=?,planned_departure_date=?,ticket_status=?,version=?
+        WHERE id=? AND application_id=? AND version=?`, [input.group.reference, input.group.arrangement, input.group.primaryTravellerId,
+        input.group.accompanyingAdultId, input.group.origin, input.group.destination, input.group.plannedArrivalDate,
+        input.group.plannedDepartureDate, input.group.ticketStatus, version, input.travelGroupId, input.applicationId, input.expectedVersion]);
+      if (updated.affectedRows !== 1) throw new Error("CUSTOMER_TRAVEL_GROUP_VERSION_CONFLICT");
+      await this.replaceTravelMembers(connection, input.applicationId, input.travelGroupId, input.group);
+      await this.appendCommand(connection, { applicationId: input.applicationId, type: "UPDATE_TRAVEL_GROUP", entityReference: input.travelGroupId,
+        version, commandSha256, evidence: input.group, idempotencyKey: input.idempotencyKey, actorReference: input.actorReference, occurredAt: input.occurredAt });
+      return { travelGroupId: input.travelGroupId, version, replayed: false };
+    });
+  }
+
+  async linkSharedDocument(input: { applicationId: number; documentId: number; documentType: "OUTBOUND_TICKET" | "RETURN_TICKET" |
+    "ONWARD_TICKET" | "ROUND_TRIP_TICKET" | "FAMILY_BOOKING"; applicantIds: readonly number[]; actorReference: string;
+    idempotencyKey: string; occurredAt: Date }): Promise<{ documentId: number; linkedApplicantIds: readonly number[]; replayed: boolean }> {
+    const applicantIds = [...new Set(input.applicantIds)].sort((left, right) => left - right);
+    if (!applicantIds.length) throw new Error("CUSTOMER_SHARED_DOCUMENT_HAS_NO_APPLICANTS");
+    const commandSha256 = digest({ type: "LINK_SHARED_DOCUMENT", applicationId: input.applicationId, documentId: input.documentId,
+      documentType: input.documentType, applicantIds });
+    return transaction(this.pool, async (connection) => {
+      const [applications] = await connection.execute<RowDataPacket[]>("SELECT id FROM applications WHERE id=? FOR UPDATE", [input.applicationId]);
+      if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
+      const prior = await commandReplay(connection, { ...input, commandSha256 });
+      if (prior) return { documentId: Number(prior.entityReference), linkedApplicantIds: applicantIds, replayed: true };
+      const [documents] = await connection.execute<RowDataPacket[]>("SELECT id FROM documents WHERE id=? AND application_id=? FOR UPDATE",
+        [input.documentId, input.applicationId]);
+      if (!documents[0]) throw new Error("CUSTOMER_SHARED_DOCUMENT_OWNERSHIP_INVALID");
+      const placeholders = applicantIds.map(() => "?").join(",");
+      const [owned] = await connection.execute<RowDataPacket[]>(`SELECT id FROM applicants WHERE application_id=? AND id IN (${placeholders}) FOR UPDATE`,
+        [input.applicationId, ...applicantIds]);
+      if (owned.length !== applicantIds.length) throw new Error("CUSTOMER_SHARED_DOCUMENT_APPLICANT_OWNERSHIP_INVALID");
+      const [existing] = await connection.execute<RowDataPacket[]>(`SELECT applicant_id AS applicantId,document_type AS documentType
+        FROM travel_document_applicant_links WHERE document_id=? FOR UPDATE`, [input.documentId]);
+      if (existing.some((row) => String(row.documentType) !== input.documentType)) throw new Error("CUSTOMER_SHARED_DOCUMENT_TYPE_CONFLICT");
+      const linked = new Set(existing.map((row) => Number(row.applicantId)));
+      for (const applicantId of applicantIds) if (!linked.has(applicantId)) await connection.execute(`INSERT INTO travel_document_applicant_links
+        (id,application_id,document_id,applicant_id,document_type,linked_at,actor_reference) VALUES (?,?,?,?,?,?,?)`,
+      [randomUUID(), input.applicationId, input.documentId, applicantId, input.documentType, input.occurredAt, input.actorReference]);
+      await connection.execute(`INSERT INTO customer_interview_command_events
+        (id,application_id,command_type,entity_reference,entity_version,command_sha256,evidence_json,idempotency_key,actor_reference,occurred_at)
+        VALUES (?,?,'LINK_SHARED_DOCUMENT',?,NULL,?,?,?,?,?)`, [randomUUID(), input.applicationId, String(input.documentId), commandSha256,
+        JSON.stringify({ documentType: input.documentType, applicantIds }), input.idempotencyKey, input.actorReference, input.occurredAt]);
+      return { documentId: input.documentId, linkedApplicantIds: applicantIds, replayed: false };
+    });
+  }
+
+  private async validateTravelGroupOwnership(connection: PoolConnection, applicationId: number, id: string, group: CustomerTravelGroupInput) {
+    const validation = validateTravelGroup({ id, applicationId, ...group });
+    if (!validation.valid) throw new Error(`CUSTOMER_TRAVEL_GROUP_INVALID:${validation.errors.join(",")}`);
+    const ids = [...new Set(group.applicantIds)];
+    const placeholders = ids.map(() => "?").join(",");
+    const [owned] = await connection.execute<RowDataPacket[]>(`SELECT id FROM applicants WHERE application_id=? AND id IN (${placeholders}) FOR UPDATE`,
+      [applicationId, ...ids]);
+    if (owned.length !== ids.length) throw new Error("CUSTOMER_TRAVEL_GROUP_APPLICANT_OWNERSHIP_INVALID");
+  }
+
+  private async replaceTravelMembers(connection: PoolConnection, applicationId: number, travelGroupId: string, group: CustomerTravelGroupInput) {
+    await connection.execute("DELETE FROM travel_group_applicants WHERE travel_group_id=? AND application_id=?", [travelGroupId, applicationId]);
+    for (const applicantId of group.applicantIds) {
+      const role = applicantId === group.primaryTravellerId ? "PRIMARY_TRAVELLER"
+        : applicantId === group.accompanyingAdultId ? "ACCOMPANYING_ADULT" : "TRAVELLER";
+      await connection.execute(`INSERT INTO travel_group_applicants (travel_group_id,application_id,applicant_id,role) VALUES (?,?,?,?)`,
+        [travelGroupId, applicationId, applicantId, role]);
+    }
+  }
+
+  private async appendCommand(connection: PoolConnection, input: { applicationId: number; type: "DEFINE_TRAVEL_GROUP" | "UPDATE_TRAVEL_GROUP";
+    entityReference: string; version: number; commandSha256: string; evidence: unknown; idempotencyKey: string;
+    actorReference: string; occurredAt: Date }) {
+    await connection.execute(`INSERT INTO customer_interview_command_events
+      (id,application_id,command_type,entity_reference,entity_version,command_sha256,evidence_json,idempotency_key,actor_reference,occurred_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?)`, [randomUUID(), input.applicationId, input.type, input.entityReference, input.version,
+      input.commandSha256, JSON.stringify(input.evidence), input.idempotencyKey, input.actorReference, input.occurredAt]);
   }
 }

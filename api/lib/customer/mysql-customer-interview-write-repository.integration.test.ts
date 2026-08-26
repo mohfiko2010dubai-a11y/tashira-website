@@ -47,6 +47,38 @@ describe.skipIf(!databaseUrl)("MySQL customer interview applicant writes", () =>
       await expect(repository.defineRelationship({ applicationId: Number(otherApplication.insertId), fromApplicantId: created.applicantId,
         toApplicantId: child.applicantId, relationship: "GUARDIAN", reason: "Cross application", actorReference: "customer:synthetic",
         idempotencyKey: `relationship-cross-${runId}`, occurredAt: new Date() })).rejects.toThrow("CUSTOMER_RELATIONSHIP_OWNERSHIP_INVALID");
+      const groupInput = { reference: "Trip A", applicantIds: [created.applicantId, child.applicantId], primaryTravellerId: created.applicantId,
+        accompanyingAdultId: created.applicantId, arrangement: "TOGETHER" as const, origin: "CAI", destination: "DXB",
+        plannedArrivalDate: "2027-01-20", plannedDepartureDate: "2027-02-01", ticketStatus: "CONFIRMED" as const };
+      const group = await repository.createTravelGroup({ applicationId: Number(application.insertId), group: groupInput, reason: "Synthetic trip",
+        actorReference: "customer:synthetic", idempotencyKey: `group-${runId}`, occurredAt: new Date() });
+      expect(group).toMatchObject({ version: 1, replayed: false });
+      expect(await repository.createTravelGroup({ applicationId: Number(application.insertId), group: groupInput, reason: "Synthetic trip",
+        actorReference: "customer:synthetic", idempotencyKey: `group-${runId}`, occurredAt: new Date() })).toEqual({ ...group, replayed: true });
+      const updatedGroup = await repository.updateTravelGroup({ applicationId: Number(application.insertId), travelGroupId: group.travelGroupId,
+        expectedVersion: 1, group: { ...groupInput, arrangement: "SEPARATELY", reference: "Trip B" }, reason: "Synthetic update",
+        actorReference: "customer:synthetic", idempotencyKey: `group-update-${runId}`, occurredAt: new Date() });
+      expect(updatedGroup).toMatchObject({ version: 2, replayed: false });
+      await expect(repository.updateTravelGroup({ applicationId: Number(application.insertId), travelGroupId: group.travelGroupId,
+        expectedVersion: 1, group: groupInput, reason: "Stale", actorReference: "customer:synthetic",
+        idempotencyKey: `group-stale-${runId}`, occurredAt: new Date() })).rejects.toThrow("CUSTOMER_TRAVEL_GROUP_VERSION_CONFLICT");
+      await expect(repository.createTravelGroup({ applicationId: Number(otherApplication.insertId), group: groupInput, reason: "Cross application",
+        actorReference: "customer:synthetic", idempotencyKey: `group-cross-${runId}`, occurredAt: new Date() }))
+        .rejects.toThrow("CUSTOMER_TRAVEL_GROUP_APPLICANT_OWNERSHIP_INVALID");
+      const [document] = await pool.execute<ResultSetHeader>(`INSERT INTO documents
+        (application_id,applicant_id,document_type,original_file_name,stored_file_name,mime_type,file_size,storage_path,upload_status)
+        VALUES (?,?,'supporting','synthetic.pdf','synthetic.pdf','application/pdf',10,'synthetic/write/path','uploaded')`,
+      [application.insertId, created.applicantId]);
+      const linked = await repository.linkSharedDocument({ applicationId: Number(application.insertId), documentId: Number(document.insertId),
+        documentType: "FAMILY_BOOKING", applicantIds: [created.applicantId, child.applicantId], actorReference: "customer:synthetic",
+        idempotencyKey: `document-${runId}`, occurredAt: new Date() });
+      expect(linked).toMatchObject({ linkedApplicantIds: [created.applicantId, child.applicantId], replayed: false });
+      expect(await repository.linkSharedDocument({ applicationId: Number(application.insertId), documentId: Number(document.insertId),
+        documentType: "FAMILY_BOOKING", applicantIds: [created.applicantId, child.applicantId], actorReference: "customer:synthetic",
+        idempotencyKey: `document-${runId}`, occurredAt: new Date() })).toEqual({ ...linked, replayed: true });
+      await expect(repository.linkSharedDocument({ applicationId: Number(otherApplication.insertId), documentId: Number(document.insertId),
+        documentType: "FAMILY_BOOKING", applicantIds: [created.applicantId], actorReference: "customer:synthetic",
+        idempotencyKey: `document-cross-${runId}`, occurredAt: new Date() })).rejects.toThrow("CUSTOMER_SHARED_DOCUMENT_OWNERSHIP_INVALID");
       const [evidence] = await pool.execute<RowDataPacket[]>("SELECT event_type AS eventType,profile_version AS profileVersion FROM customer_interview_profile_events WHERE application_id=? ORDER BY profile_version", [application.insertId]);
       expect(evidence).toHaveLength(3);
     } finally { await pool.end(); }
