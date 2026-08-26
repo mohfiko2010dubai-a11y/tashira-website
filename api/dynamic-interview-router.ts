@@ -60,6 +60,19 @@ type Dependencies = {
   now(): Date;
 };
 
+function logDynamicInterviewFailure(operation: string, error: unknown): void {
+  const candidate = error as { code?: unknown; errno?: unknown; sqlState?: unknown } | null;
+  const internalCode = error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : undefined;
+  console.error("[Dynamic Interview]", {
+    operation,
+    category: error instanceof Error ? error.constructor.name : "UnknownError",
+    internalCode,
+    driverCode: typeof candidate?.code === "string" ? candidate.code : undefined,
+    driverNumber: typeof candidate?.errno === "number" ? candidate.errno : undefined,
+    sqlState: typeof candidate?.sqlState === "string" ? candidate.sqlState : undefined,
+  });
+}
+
 async function authorizedRuntime(deps: Dependencies, ctx: TrpcContext, referenceNumber: string) {
   assertApplicationReferenceAccess(ctx, referenceNumber);
   if (!ctx.customerApplicationReferences.has(referenceNumber)) throw new TRPCError({ code: "FORBIDDEN", message: "Dynamic interview access denied" });
@@ -140,7 +153,8 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
   return createRouter({
     current: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50) }).strict()).query(async ({ input, ctx }) => {
       try { return (await state(ctx, input.referenceNumber)).state; }
-      catch (error) { if (error instanceof TRPCError) throw error; throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" }); }
+      catch (error) { if (error instanceof TRPCError) throw error; logDynamicInterviewFailure("current", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" }); }
     }),
     answer: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive().nullable(),
       questionCode: z.string().regex(/^[A-Z][A-Z0-9_]{1,99}$/), answer: z.union([z.string().max(500), z.number().finite(), z.boolean()]),
@@ -157,6 +171,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         if (error instanceof Error && error.message.startsWith("INTERVIEW_")) throw new TRPCError({ code: "BAD_REQUEST", message: "Interview answer rejected" });
+        logDynamicInterviewFailure("answer", error);
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" });
       }
     }),
@@ -177,6 +192,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         if (error instanceof Error && error.message.startsWith("INTERVIEW_")) throw new TRPCError({ code: "BAD_REQUEST", message: "Interview answer rejected" });
+        logDynamicInterviewFailure("editAnswer", error);
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" });
       }
     }),
