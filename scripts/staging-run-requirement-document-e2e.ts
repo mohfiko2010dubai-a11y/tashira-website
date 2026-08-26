@@ -36,7 +36,7 @@ try {
   await expectDenied(() => client([]).dynamicInterview.current.query({ referenceNumber: reference }));
   let initial = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
   if (!initial.partySetup?.requirementReadiness.some((item) => item.state === "MISSING")) {
-    const nationality = initial.knownAnswers.find((answer) => answer.code === "NATIONALITY" && answer.applicantId !== null);
+    const nationality = initial.knownAnswers.filter((answer) => answer.code === "NATIONALITY" && answer.applicantId !== null).at(-1);
     if (!nationality || typeof nationality.answer !== "string") throw new Error("STAGING_REQUIREMENT_DOCUMENT_REEVALUATION_FIXTURE_MISSING");
     initial = await authorized.dynamicInterview.editAnswer.mutate({ referenceNumber: reference, applicantId: nationality.applicantId,
       questionCode: nationality.code, answer: nationality.answer === "PK" ? "EG" : "PK",
