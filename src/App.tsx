@@ -41,6 +41,7 @@ const StaffUpcomingSubmissions = lazy(() => importWithStaleChunkRecovery(() => i
 const StaffOperationsDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationsDashboard')));
 const StaffSupportInbox = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffSupportInbox')));
 const StaffSupplierSla = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffSupplierSla')));
+const StaffRegulatoryChanges = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffRegulatoryChanges')));
 const AdminFinanceCockpit = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFinanceCockpit')));
 const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplication')));
 const CustomerApplicationPortal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerApplicationPortal')));
@@ -99,6 +100,7 @@ function AppContent() {
           <Route path="/staff/operations/dashboard" element={<StaffGuard><StaffOperationsDashboard /></StaffGuard>} />
           <Route path="/staff/operations/support" element={<StaffGuard><StaffSupportInbox /></StaffGuard>} />
           <Route path="/staff/operations/supplier-sla" element={<StaffGuard><StaffSupplierSla /></StaffGuard>} />
+          <Route path="/staff/operations/regulatory-changes" element={<StaffGuard><StaffRegulatoryChanges /></StaffGuard>} />
           <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

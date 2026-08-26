@@ -1,0 +1,9 @@
+DROP TRIGGER IF EXISTS `regulatory_event_no_delete`;
+DROP TRIGGER IF EXISTS `regulatory_event_no_update`;
+DROP TRIGGER IF EXISTS `regulatory_impact_no_delete`;
+DROP TRIGGER IF EXISTS `regulatory_impact_no_update`;
+DROP TRIGGER IF EXISTS `regulatory_change_no_delete`;
+DROP TRIGGER IF EXISTS `regulatory_change_identity_immutable`;
+DROP TABLE IF EXISTS `operations_regulatory_change_events`;
+DROP TABLE IF EXISTS `operations_regulatory_change_impacts`;
+DROP TABLE IF EXISTS `operations_regulatory_changes`;

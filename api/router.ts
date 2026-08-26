@@ -27,6 +27,7 @@ import { dynamicInterviewRouter } from "./dynamic-interview-router";
 import { operationsSupportRouter } from "./operations-support-router";
 import { operationsSupplierSlaRouter } from "./operations-supplier-sla-router";
 import { operationsAuthorityOutputRouter } from "./operations-authority-output-router";
+import { operationsRegulatoryRouter } from "./operations-regulatory-router";
 
 export const appRouter = createRouter({
   auth: authRouter,
@@ -57,6 +58,7 @@ export const appRouter = createRouter({
   operationsSupport: operationsSupportRouter,
   operationsSupplierSla: operationsSupplierSlaRouter,
   operationsAuthorityOutput: operationsAuthorityOutputRouter,
+  operationsRegulatory: operationsRegulatoryRouter,
 });
 
 export type AppRouter = typeof appRouter;
