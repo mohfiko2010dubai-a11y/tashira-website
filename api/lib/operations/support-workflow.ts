@@ -29,9 +29,10 @@ export class SupportThreadWorkflow {
       case "ASSIGN": case "REASSIGN":
         if (!command.targetStaffId) throw new Error("SUPPORT_TARGET_STAFF_REQUIRED");
         if (command.action === "ASSIGN" && next.assignedStaffId !== null) throw new Error("SUPPORT_THREAD_ALREADY_ASSIGNED");
+        if (command.action === "REASSIGN" && next.assignedStaffId === null) throw new Error("SUPPORT_THREAD_ASSIGNMENT_REQUIRED");
         next = { ...next, assignedStaffId: command.targetStaffId, state: "ASSIGNED" };
         break;
-      case "START": if (next.assignedStaffId !== command.actorStaffId) throw new Error("SUPPORT_THREAD_ASSIGNMENT_REQUIRED"); next = { ...next, state: "IN_PROGRESS" }; break;
+      case "START": if (next.assignedStaffId !== command.actorStaffId || next.state !== "ASSIGNED") throw new Error("SUPPORT_THREAD_ASSIGNMENT_REQUIRED"); next = { ...next, state: "IN_PROGRESS" }; break;
       case "WAIT_FOR_CUSTOMER": if (next.state !== "IN_PROGRESS") throw new Error("SUPPORT_THREAD_STATE_INVALID"); next = { ...next, state: "WAITING_FOR_CUSTOMER" }; break;
       case "RESOLVE": if (!["IN_PROGRESS", "WAITING_FOR_CUSTOMER"].includes(next.state)) throw new Error("SUPPORT_THREAD_STATE_INVALID"); next = { ...next, state: "RESOLVED" }; break;
       case "ADD_INTERNAL_NOTE":

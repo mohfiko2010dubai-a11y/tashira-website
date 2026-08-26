@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS `operations_support_command_events` (
   `state_after` varchar(40) NOT NULL,
   `version_before` bigint unsigned NOT NULL,
   `version_after` bigint unsigned NOT NULL,
+  `result_json` json NOT NULL,
   `occurred_at` datetime NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

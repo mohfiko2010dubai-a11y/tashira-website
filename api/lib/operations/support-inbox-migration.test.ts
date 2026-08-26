@@ -8,7 +8,7 @@ describe("Support Inbox persistence migration", () => {
   it("adds scoped, concurrent and append-only support evidence without activation or financial data", async () => {
     const sql = await readFile(forward, "utf8");
     for (const table of ["operations_support_threads", "operations_support_messages", "operations_support_internal_notes", "operations_support_command_events"]) expect(sql).toContain(table);
-    expect(sql).toContain("support_command_thread_uq"); expect(sql).toContain("support_command_version_ck");
+    expect(sql).toContain("support_command_thread_uq"); expect(sql).toContain("support_command_version_ck"); expect(sql).toContain("`result_json` json NOT NULL");
     expect(sql.match(/CREATE TRIGGER/g)).toHaveLength(6);
     expect(sql).not.toMatch(/^\s*(?:INSERT|UPDATE|DELETE|TRUNCATE)\b/im);
     expect(sql).not.toMatch(/stripe|payment|price|supplier_cost|internal_cost|margin|profit|storage_path/i);
