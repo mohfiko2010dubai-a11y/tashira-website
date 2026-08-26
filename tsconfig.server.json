@@ -20,5 +20,6 @@
       "@db/*": ["./db/*"]
     }
   },
-  "include": ["api", "contracts", "db", "scripts/staging-run-unified-party-setup-e2e.ts"]
+  "include": ["api", "contracts", "db", "scripts/staging-run-unified-party-setup-e2e.ts",
+    "scripts/staging-scope-customer-portal.ts", "scripts/staging-run-customer-portal-e2e.ts"]
 }

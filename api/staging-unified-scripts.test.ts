@@ -5,6 +5,8 @@ const scope = readFileSync(new URL("../scripts/staging-scope-dynamic-interview.t
 const e2e = readFileSync(new URL("../scripts/staging-run-unified-interview-api-e2e.ts", import.meta.url), "utf8");
 const scenarios = readFileSync(new URL("../scripts/staging-run-unified-interview-scenario-e2e.ts", import.meta.url), "utf8");
 const partySetup = readFileSync(new URL("../scripts/staging-run-unified-party-setup-e2e.ts", import.meta.url), "utf8");
+const portalScope = readFileSync(new URL("../scripts/staging-scope-customer-portal.ts", import.meta.url), "utf8");
+const portalE2e = readFileSync(new URL("../scripts/staging-run-customer-portal-e2e.ts", import.meta.url), "utf8");
 
 describe("Staging Dynamic Interview execution guards", () => {
   it("allows only explicit synthetic application scope and never global scope", () => {
@@ -43,5 +45,16 @@ describe("Staging Dynamic Interview execution guards", () => {
     expect(partySetup).toContain("STAGING_PARTY_SETUP_OWNERSHIP_ISOLATION=PASS");
     expect(partySetup).toContain("STAGING_PARTY_SETUP_FINANCE_ISOLATION=PASS");
     expect(partySetup).not.toMatch(/STRIPE_SECRET_KEY|RESEND_API_KEY|storage_path/);
+  });
+
+  it("keeps Customer Portal E2E application-scoped, authenticated and finance-minimized", () => {
+    expect(portalScope).toContain('databaseUrl.pathname.slice(1) !== "tashira_staging"');
+    expect(portalScope).toContain("allowed.has(reference)");
+    expect(portalScope).toContain("'CUSTOMER_OPERATIONS_PORTAL','STAGING'");
+    expect(portalScope).not.toContain("'GLOBAL'");
+    expect(portalE2e).toContain("createCustomerApplicationCookie");
+    expect(portalE2e).toContain("STAGING_CUSTOMER_PORTAL_CROSS_APPLICATION_DENIAL=PASS");
+    expect(portalE2e).toContain("STAGING_CUSTOMER_PORTAL_FINANCE_ISOLATION=PASS");
+    expect(portalE2e).not.toMatch(/STRIPE_SECRET_KEY|RESEND_API_KEY|storage_path/);
   });
 });
