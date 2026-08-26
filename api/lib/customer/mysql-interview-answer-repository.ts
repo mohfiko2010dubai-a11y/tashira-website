@@ -4,9 +4,20 @@ import type { QuestionCatalogDefinition } from "../requirements/requirement-cata
 import { InMemoryInterviewAnswerHistory, type InterviewAnswer, type InterviewAnswerEvent } from "./dynamic-interview";
 
 function hash(answer: InterviewAnswer): string { return createHash("sha256").update(JSON.stringify(answer)).digest("hex"); }
-function parseAnswer(value: unknown): InterviewAnswer {
-  const parsed = typeof value === "string" ? JSON.parse(value) as unknown : value;
-  if (typeof parsed === "string" || typeof parsed === "number" || typeof parsed === "boolean") return parsed;
+export function parseStoredInterviewAnswer(value: unknown, answerType: QuestionCatalogDefinition["answerType"]): InterviewAnswer {
+  if (answerType === "BOOLEAN") {
+    if (typeof value === "boolean") return value;
+    if (value === "true" || value === "1" || value === 1) return true;
+    if (value === "false" || value === "0" || value === 0) return false;
+  } else if (answerType === "NUMBER") {
+    const parsed = typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : Number.NaN;
+    if (Number.isFinite(parsed)) return parsed;
+  } else if (typeof value === "string") {
+    if (value.startsWith('"') && value.endsWith('"')) {
+      const parsed = JSON.parse(value) as unknown; if (typeof parsed === "string") return parsed;
+    }
+    return value;
+  }
   throw new Error("INTERVIEW_STORED_ANSWER_INVALID");
 }
 async function transaction<T>(pool: Pool, work: (connection: PoolConnection) => Promise<T>): Promise<T> {
@@ -20,13 +31,15 @@ export class MysqlInterviewAnswerRepository {
   constructor(pool: Pool) { this.pool = pool; }
 
   async all(applicationId: number): Promise<readonly InterviewAnswerEvent[]> {
-    const [rows] = await this.pool.execute<RowDataPacket[]>(`SELECT id AS eventId,application_id AS applicationId,applicant_id AS applicantId,
-      question_definition_id AS questionDefinitionId,question_definition_version AS questionDefinitionVersion,answer_json AS answer,
-      answer_sha256 AS answerSha256,supersedes_event_id AS supersedesEventId,change_reason AS changeReason,occurred_at AS occurredAt
-      FROM dynamic_interview_answer_events WHERE application_id=? ORDER BY occurred_at,id`, [applicationId]);
+    const [rows] = await this.pool.execute<RowDataPacket[]>(`SELECT e.id AS eventId,e.application_id AS applicationId,e.applicant_id AS applicantId,
+      e.question_definition_id AS questionDefinitionId,e.question_definition_version AS questionDefinitionVersion,e.answer_json AS answer,
+      e.answer_sha256 AS answerSha256,e.supersedes_event_id AS supersedesEventId,e.change_reason AS changeReason,e.occurred_at AS occurredAt,
+      q.answer_type AS answerType FROM dynamic_interview_answer_events e JOIN requirement_question_definitions q ON q.id=e.question_definition_id
+      WHERE e.application_id=? ORDER BY e.occurred_at,e.id`, [applicationId]);
     return rows.map((row) => ({ eventId: String(row.eventId), applicationId: Number(row.applicationId),
       applicantId: row.applicantId === null ? null : Number(row.applicantId), questionDefinitionId: String(row.questionDefinitionId),
-      questionDefinitionVersion: Number(row.questionDefinitionVersion), answer: parseAnswer(row.answer), answerSha256: String(row.answerSha256),
+      questionDefinitionVersion: Number(row.questionDefinitionVersion),
+      answer: parseStoredInterviewAnswer(row.answer, String(row.answerType) as QuestionCatalogDefinition["answerType"]), answerSha256: String(row.answerSha256),
       supersedesEventId: row.supersedesEventId === null ? null : String(row.supersedesEventId), changeReason: String(row.changeReason),
       occurredAt: new Date(row.occurredAt as Date | string).toISOString() }));
   }
