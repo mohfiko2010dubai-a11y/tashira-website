@@ -51,6 +51,8 @@ type Dependencies = {
   linkSharedDocument?(input: { applicationId: number; documentId: number; documentType: "OUTBOUND_TICKET" | "RETURN_TICKET" |
     "ONWARD_TICKET" | "ROUND_TRIP_TICKET" | "FAMILY_BOOKING"; applicantIds: readonly number[]; actorReference: string;
     idempotencyKey: string; occurredAt: Date }): Promise<{ documentId: number; linkedApplicantIds: readonly number[]; replayed: boolean }>;
+  linkRequirementDocument?(input: { applicationId: number; applicantId: number; requirementCode: string; documentId: number;
+    actorReference: string; idempotencyKey: string; occurredAt: Date }): Promise<{ requirementInstanceId: string; documentId: number; replayed: boolean }>;
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
     changeReason: string; actorReference: string; occurredAt: Date }): Promise<InterviewAnswerEvent>;
   persistCompletedEvaluations?(input: { applicationId: number; evaluations: readonly CompletedApplicantEvaluation[]; triggerEventId: string;
@@ -96,7 +98,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
       review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
         label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) },
-      partySetup: unifiedEnabled ? { applicants: application.applicants,
+      partySetup: unifiedEnabled ? { applicationId: application.applicationId, applicants: application.applicants,
         relationships: partyBundle?.family.currentRelationships(application.applicationId).map((item) => ({ relationshipEventId: item.id,
           fromApplicantId: item.fromApplicantId, toApplicantId: item.toApplicantId, relationship: item.relationship })) ?? [],
         travelGroups: partyBundle?.source.travelGroups?.map((group) => ({ travelGroupId: group.id, version: group.version,
@@ -106,7 +108,18 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         sharedDocuments: partyBundle ? [...new Map((partyBundle.source.travelGroups ?? []).flatMap((group) => group.sharedDocuments)
           .map((document) => [document.documentId, document] as const)).values()].map((document) => ({ documentId: document.documentId,
             documentType: sharedDocumentTypeSchema.parse(document.documentType),
-            applicantIds: document.applicantIds })) : [] } : null,
+            applicantIds: document.applicantIds })) : [],
+        requirementReadiness: partyBundle ? application.applicantIds.flatMap((currentApplicantId) => {
+          const evaluation = partyBundle.snapshots.current(application.applicationId, currentApplicantId);
+          if (!evaluation) return [];
+          return partyBundle.family.requirements(application.applicationId, currentApplicantId, evaluation.evaluationId)
+            .filter(({ instance }) => instance.kind === "DOCUMENT").map(({ instance, currentState }) => {
+              const definition = requirements.find((candidate) => candidate.code === instance.code);
+              if (!definition) throw new Error(`UNRESOLVED_REQUIREMENT_CATALOG:${instance.code}`);
+              return { applicantId: currentApplicantId, requirementCode: instance.code, documentType: definition.documentType,
+                state: currentState ?? "MISSING" };
+            });
+        }) : [] } : null,
       unifiedReview } };
   };
   const persistCompletion = async (runtime: Awaited<ReturnType<typeof state>>, trigger: InterviewAnswerEvent, reason: string) => {
@@ -251,6 +264,19 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         catch (error) { if (error instanceof Error && error.message.includes("CONFLICT")) throw new TRPCError({ code: "CONFLICT", message: "Document link is no longer current" });
           throw new TRPCError({ code: "BAD_REQUEST", message: "Shared document could not be linked" }); }
       }),
+    linkRequirementDocument: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50),
+      applicantId: z.number().int().positive(), requirementCode: z.string().regex(/^[A-Z][A-Z0-9_]{1,99}$/),
+      documentId: z.number().int().positive(), idempotencyKey: z.string().trim().min(8).max(100) }).strict())
+      .mutation(async ({ input, ctx }) => {
+        const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
+        if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.linkRequirementDocument) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Requirement document changes unavailable" });
+        }
+        try { return await deps.linkRequirementDocument({ applicationId: application.applicationId, applicantId: input.applicantId,
+          requirementCode: input.requirementCode, documentId: input.documentId, actorReference: `customer:${input.referenceNumber}`,
+          idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
+        catch { throw new TRPCError({ code: "BAD_REQUEST", message: "Requirement document could not be linked" }); }
+      }),
   });
 }
 
@@ -292,6 +318,7 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
   createTravelGroup: (input) => applicantWriteProvider().createTravelGroup(input),
   updateTravelGroup: (input) => applicantWriteProvider().updateTravelGroup(input),
   linkSharedDocument: (input) => applicantWriteProvider().linkSharedDocument(input),
+  linkRequirementDocument: (input) => applicantWriteProvider().linkRequirementDocument(input),
   append: (input) => answerProvider().append(input),
   persistCompletedEvaluations: (input) => interviewEvaluationProvider().persistCompleted(input), now: () => new Date(),
 });

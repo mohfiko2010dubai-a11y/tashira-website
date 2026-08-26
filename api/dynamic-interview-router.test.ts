@@ -37,6 +37,7 @@ function deps(currentFlags = flags) {
   const createTravelGroup = vi.fn(async () => ({ travelGroupId: "11111111-1111-4111-8111-111111111111", version: 1, replayed: false }));
   const updateTravelGroup = vi.fn(async () => ({ travelGroupId: "11111111-1111-4111-8111-111111111111", version: 2, replayed: false }));
   const linkSharedDocument = vi.fn(async (input) => ({ documentId: input.documentId, linkedApplicantIds: input.applicantIds, replayed: false }));
+  const linkRequirementDocument = vi.fn(async (input) => ({ requirementInstanceId: "requirement-1", documentId: input.documentId, replayed: false }));
   const persistCompletedEvaluations = vi.fn(async (input: { evaluations: readonly { applicantId: number }[] }) => input.evaluations.map((evaluation) => ({ applicantId: evaluation.applicantId,
     evaluationId: `evaluation-${evaluation.applicantId}`, replayed: false })));
   const append = vi.fn(async (input) => {
@@ -50,7 +51,7 @@ function deps(currentFlags = flags) {
       applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" }, applicants: [{ applicantId: 21, applicantIndex: 0,
         fullName: "Ahmed", nationality: "EG", residenceCountry: null, profileVersion: 1 }] }) : null,
     loadCatalog: async () => ({ questions: [question], requirements: [requirement] }), loadRules: async () => [rule], loadEvents: async () => events,
-    loadUnifiedBundle, addApplicant, editApplicant, defineRelationship, createTravelGroup, updateTravelGroup, linkSharedDocument,
+    loadUnifiedBundle, addApplicant, editApplicant, defineRelationship, createTravelGroup, updateTravelGroup, linkSharedDocument, linkRequirementDocument,
     persistCompletedEvaluations, append, now: () => at };
 }
 
@@ -77,7 +78,7 @@ describe("authenticated Dynamic Interview API", () => {
     const current = deps([...flags, dynamicRequirements]); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
     expect(await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG",
       changeReason: "INITIAL_ANSWER" })).toMatchObject({ partySetup: { applicants: [{ applicantId: 21, profileVersion: 1 }],
-        relationships: [], travelGroups: [], sharedDocuments: [] }, unifiedReview: null });
+        applicationId: 9, relationships: [], travelGroups: [], sharedDocuments: [], requirementReadiness: [] }, unifiedReview: null });
     expect(current.loadUnifiedBundle).toHaveBeenCalledTimes(2);
     expect(current.loadUnifiedBundle).toHaveBeenNthCalledWith(1, reference);
     expect(current.loadUnifiedBundle).toHaveBeenNthCalledWith(2, reference);
@@ -115,6 +116,10 @@ describe("authenticated Dynamic Interview API", () => {
       applicantIds: [21, 22], idempotencyKey: "document-link-123" })).toMatchObject({ documentId: 77, linkedApplicantIds: [21, 22] });
     expect(current.linkSharedDocument).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9, documentId: 77,
       applicantIds: [21, 22] }));
+    expect(await caller.linkRequirementDocument({ referenceNumber: reference, applicantId: 21, requirementCode: "PASSPORT",
+      documentId: 78, idempotencyKey: "requirement-link-123" })).toMatchObject({ requirementInstanceId: "requirement-1", documentId: 78 });
+    expect(current.linkRequirementDocument).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9, applicantId: 21,
+      requirementCode: "PASSPORT", documentId: 78 }));
   });
 
   it("accepts only the authoritative current question and returns the next state", async () => {

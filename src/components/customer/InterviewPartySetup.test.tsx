@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { InterviewPartySetup, type PartySetup } from "./InterviewPartySetup";
 
 const setup: PartySetup = {
+  applicationId: 9,
   applicants: [
     { applicantId: 11, applicantIndex: 0, fullName: "Synthetic Father", nationality: "EG", residenceCountry: "AE", profileVersion: 2 },
     { applicantId: 12, applicantIndex: 1, fullName: "Synthetic Child", nationality: "PK", residenceCountry: "QA", profileVersion: 4 },
@@ -12,6 +13,7 @@ const setup: PartySetup = {
     applicantIds: [11, 12], primaryTravellerId: 11, accompanyingAdultId: 11, arrangement: "TOGETHER", origin: "CAI",
     destination: "DXB", plannedArrivalDate: "2027-01-20", plannedDepartureDate: null, ticketStatus: "NOT_BOOKED" }],
   sharedDocuments: [{ documentId: 91, documentType: "FAMILY_BOOKING", applicantIds: [11] }],
+  requirementReadiness: [],
 };
 const callback = vi.fn(async () => undefined);
 

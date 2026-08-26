@@ -3,9 +3,23 @@ import { useParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
 import { UnifiedInterviewReviewPanel } from "@/components/UnifiedInterviewReviewPanel";
 import { InterviewPartySetup } from "@/components/customer/InterviewPartySetup";
+import { InterviewRequirementDocuments } from "@/components/customer/InterviewRequirementDocuments";
+import { legacyDocumentType } from "@/components/customer/requirement-document-type";
 
 const steps = ["Applicant Profile", "Travel Details", "Requirements", "Documents", "Review"] as const;
 type AnswerValue = string | number | boolean;
+const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error("File could not be read"));
+  reader.onload = () => {
+    const result = reader.result;
+    if (typeof result !== "string") return reject(new Error("File could not be read"));
+    const separator = result.indexOf(",");
+    if (separator < 0) return reject(new Error("File could not be encoded"));
+    resolve(result.slice(separator + 1));
+  };
+  reader.readAsDataURL(file);
+});
 
 export default function DynamicApplication() {
   const { referenceNumber = "" } = useParams();
@@ -20,6 +34,9 @@ export default function DynamicApplication() {
   const createTravelGroupMutation = trpc.dynamicInterview.createTravelGroup.useMutation();
   const updateTravelGroupMutation = trpc.dynamicInterview.updateTravelGroup.useMutation();
   const linkSharedDocumentMutation = trpc.dynamicInterview.linkSharedDocument.useMutation();
+  const storageUploadMutation = trpc.storage.upload.useMutation();
+  const documentCreateMutation = trpc.document.create.useMutation();
+  const linkRequirementDocumentMutation = trpc.dynamicInterview.linkRequirementDocument.useMutation();
   const question = query.data?.currentQuestions[0];
 
   if (query.isLoading) return <main className="mx-auto min-h-[60vh] max-w-3xl px-5 py-12" aria-live="polite">Loading your application…</main>;
@@ -58,6 +75,21 @@ export default function DynamicApplication() {
           idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
         onLinkSharedDocument={async (document, applicantIds) => { await linkSharedDocumentMutation.mutateAsync({ referenceNumber,
           documentId: document.documentId, documentType: document.documentType, applicantIds, idempotencyKey: crypto.randomUUID() });
+          await query.refetch(); }} />}
+      {state.partySetup && <InterviewRequirementDocuments applicants={state.partySetup.applicants} requirements={state.partySetup.requirementReadiness}
+        busy={storageUploadMutation.isPending || documentCreateMutation.isPending || linkRequirementDocumentMutation.isPending}
+        error={Boolean(storageUploadMutation.error || documentCreateMutation.error || linkRequirementDocumentMutation.error)}
+        onUpload={async (requirement, file) => { const documentType = legacyDocumentType(requirement.documentType);
+          const applicationId = state.partySetup!.applicationId;
+          const uploaded = await storageUploadMutation.mutateAsync({ applicationId,
+            applicantId: requirement.applicantId, documentType, fileName: file.name, mimeType: file.type, fileSize: file.size,
+            base64Data: await readFileAsBase64(file), uploadedBy: `customer:${referenceNumber}` });
+          const document = await documentCreateMutation.mutateAsync({ applicationId,
+            applicantId: requirement.applicantId, documentType, originalFileName: file.name, storedFileName: uploaded.storedFileName,
+            mimeType: file.type, fileSize: file.size, storagePath: uploaded.storagePath, uploadStatus: "uploaded",
+            uploadedBy: `customer:${referenceNumber}` });
+          await linkRequirementDocumentMutation.mutateAsync({ referenceNumber, applicantId: requirement.applicantId,
+            requirementCode: requirement.requirementCode, documentId: document.id, idempotencyKey: crypto.randomUUID() });
           await query.refetch(); }} />}
       {question ? <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
