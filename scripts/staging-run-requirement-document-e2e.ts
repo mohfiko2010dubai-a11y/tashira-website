@@ -34,7 +34,14 @@ const pool = createPool({ uri: env.databaseUrl, connectionLimit: 1 });
 try {
   const authorized = client([reference]);
   await expectDenied(() => client([]).dynamicInterview.current.query({ referenceNumber: reference }));
-  const initial = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
+  let initial = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
+  if (!initial.partySetup?.requirementReadiness.some((item) => item.state === "MISSING")) {
+    const nationality = initial.knownAnswers.find((answer) => answer.code === "NATIONALITY" && answer.applicantId !== null);
+    if (!nationality || typeof nationality.answer !== "string") throw new Error("STAGING_REQUIREMENT_DOCUMENT_REEVALUATION_FIXTURE_MISSING");
+    initial = await authorized.dynamicInterview.editAnswer.mutate({ referenceNumber: reference, applicantId: nationality.applicantId,
+      questionCode: nationality.code, answer: nationality.answer === "PK" ? "EG" : "PK",
+      changeReason: "STAGING_SYNTHETIC_REQUIREMENT_DOCUMENT_E2E" });
+  }
   const partySetup = initial.partySetup;
   if (!partySetup) throw new Error("STAGING_REQUIREMENT_DOCUMENT_PARTY_SETUP_MISSING");
   const requirement = partySetup.requirementReadiness.find((item) => item.state === "MISSING");

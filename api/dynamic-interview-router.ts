@@ -33,7 +33,7 @@ type Dependencies = {
   flagContextForContext(ctx: TrpcContext): FeatureFlagContext | Promise<FeatureFlagContext>;
   flagsForContext(ctx: TrpcContext): Promise<readonly FeatureFlagRecord[]>;
   loadApplication(referenceNumber: string): Promise<ApplicationInterviewRecord | null>;
-  loadCatalog(at: Date): Promise<Pick<VersionedRequirementCatalog, "questions" | "requirements">>;
+  loadCatalog(at: Date): Promise<VersionedRequirementCatalog>;
   loadRules(routeCode: string): Promise<readonly EligibilityRule[]>;
   loadEvents(applicationId: number): Promise<readonly InterviewAnswerEvent[]>;
   loadUnifiedBundle?(referenceNumber: string): Promise<MysqlOperationsCaseBundle | null>;
@@ -56,7 +56,7 @@ type Dependencies = {
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
     changeReason: string; actorReference: string; occurredAt: Date }): Promise<InterviewAnswerEvent>;
   persistCompletedEvaluations?(input: { applicationId: number; evaluations: readonly CompletedApplicantEvaluation[]; triggerEventId: string;
-    actorReference: string; reason: string; evaluatedAt: Date }): Promise<readonly { applicantId: number; evaluationId: string; replayed: boolean }[]>;
+    catalogVersion: string; actorReference: string; reason: string; evaluatedAt: Date }): Promise<readonly { applicantId: number; evaluationId: string; replayed: boolean }[]>;
   now(): Date;
 };
 
@@ -91,10 +91,11 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       const answers = Object.fromEntries(application.applicantIds.map((id) => [id, Object.fromEntries(interview.knownAnswers
         .filter((answer) => answer.applicantId === id).map((answer) => [answer.code, String(answer.answer)]))]));
       unifiedReview = (await buildUnifiedInterviewRuntime({ context, flags,
-        catalogProvider: { active: async () => ({ catalogVersion: "CURRENT", ...catalog }) }, evaluatedAt: now,
+        catalogProvider: { active: async () => catalog }, evaluatedAt: now,
         applicationId: application.applicationId, ...persistent, answers, travelQuestions: [] })).review;
     }
-    return { application, context, flags, questions, requirements, rules, events, state: { ...interview, currentApplicant: applicantId === null ? null
+    return { application, context, flags, catalogVersion: catalog.catalogVersion, questions, requirements, rules, events,
+      state: { ...interview, currentApplicant: applicantId === null ? null
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
       review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
         label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) },
@@ -132,7 +133,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       rules: runtime.rules, events, evaluatedAt });
     if (!evaluations) return;
     if (!deps.persistCompletedEvaluations) throw new Error("INTERVIEW_EVALUATION_PERSISTENCE_UNAVAILABLE");
-    await deps.persistCompletedEvaluations({ applicationId: runtime.application.applicationId,
+    await deps.persistCompletedEvaluations({ applicationId: runtime.application.applicationId, catalogVersion: runtime.catalogVersion,
       evaluations: evaluations.map(({ applicantId, result }) => ({ applicantId, selectedRoute: runtime.application.routeCode, result })),
       triggerEventId: trigger.eventId, actorReference: `customer:${runtime.application.referenceNumber}`, reason, evaluatedAt });
   };

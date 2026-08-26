@@ -50,7 +50,8 @@ function deps(currentFlags = flags) {
     loadApplication: async (value: string) => value === reference ? ({ applicationId: 9, referenceNumber: reference, routeCode: "UAE_VISIT",
       applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" }, applicants: [{ applicantId: 21, applicantIndex: 0,
         fullName: "Ahmed", nationality: "EG", residenceCountry: null, profileVersion: 1 }] }) : null,
-    loadCatalog: async () => ({ questions: [question], requirements: [requirement] }), loadRules: async () => [rule], loadEvents: async () => events,
+    loadCatalog: async () => ({ catalogVersion: "test-catalog-v1", questions: [question], requirements: [requirement] }),
+    loadRules: async () => [rule], loadEvents: async () => events,
     loadUnifiedBundle, addApplicant, editApplicant, defineRelationship, createTravelGroup, updateTravelGroup, linkSharedDocument, linkRequirementDocument,
     persistCompletedEvaluations, append, now: () => at };
 }
@@ -82,7 +83,7 @@ describe("authenticated Dynamic Interview API", () => {
     expect(current.loadUnifiedBundle).toHaveBeenCalledTimes(2);
     expect(current.loadUnifiedBundle).toHaveBeenNthCalledWith(1, reference);
     expect(current.loadUnifiedBundle).toHaveBeenNthCalledWith(2, reference);
-    expect(current.persistCompletedEvaluations).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9,
+    expect(current.persistCompletedEvaluations).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9, catalogVersion: "test-catalog-v1",
       evaluations: [expect.objectContaining({ applicantId: 21, selectedRoute: "UAE_VISIT" })] }));
   });
 
