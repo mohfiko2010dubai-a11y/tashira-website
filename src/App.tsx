@@ -40,6 +40,7 @@ const StaffOperationsCase = lazy(() => importWithStaleChunkRecovery(() => import
 const StaffUpcomingSubmissions = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffUpcomingSubmissions')));
 const AdminFinanceCockpit = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFinanceCockpit')));
 const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplication')));
+const CustomerApplicationPortal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerApplicationPortal')));
 
 function AppContent() {
   const { i18n } = useTranslation();
@@ -66,6 +67,7 @@ function AppContent() {
           <Route path="/track" element={<Track />} />
           <Route path="/pay/:referenceNumber" element={<PaymentPage />} />
           <Route path="/apply/:referenceNumber/interview" element={<DynamicApplication />} />
+          <Route path="/applications/:referenceNumber/status" element={<CustomerApplicationPortal />} />
           <Route path="/recover" element={<Recovery />} />
           <Route path="/deposit/:token" element={<SecurityDepositPage />} />
           <Route path="/terms" element={<Legal page="terms" />} />
