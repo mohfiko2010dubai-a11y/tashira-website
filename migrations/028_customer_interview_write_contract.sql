@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `customer_interview_profile_events` (
   `profile_json` json NOT NULL,
   `reason` varchar(500) NOT NULL,
   `actor_reference` varchar(100) NOT NULL,
+  `command_sha256` char(64) NOT NULL,
   `idempotency_key` varchar(100) NOT NULL,
   `occurred_at` datetime(3) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

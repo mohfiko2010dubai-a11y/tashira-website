@@ -10,6 +10,7 @@ describe("customer interview write migration", () => {
     expect(migration).toContain("customer_interview_profile_events");
     expect(migration).toContain("customer_profile_applicant_version_uq");
     expect(migration).toContain("customer_profile_application_idempotency_uq");
+    expect(migration).toContain("`command_sha256` char(64) NOT NULL");
     expect(migration).toContain("customer_interview_command_events");
     expect(migration).toContain("customer_command_application_idempotency_uq");
     expect(migration).toContain("Customer profile history is append-only");
