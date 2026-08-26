@@ -57,4 +57,6 @@ Core case-operations foundation is approximately **78% complete**. Full Master P
 - Generic seed: deterministic DRAFT-only definitions for 12 documents and 12 question domains; it activates no requirement.
 - Dynamic Application runtime: governed catalog projection, applicant isolation, travel/family sharing metadata, scheduler passthrough and Pre-Check/final-rule change evidence are complete behind closed flags.
 - Local evidence: MySQL 8.4 clean/legacy migrations `014`–`026`, ESLint, TypeScript, 491 tests, production build, static assets and server bundle pass.
-- Remaining: Staging backup/Migration 026, synthetic scoped activation/E2E, then the remaining provider/external-data Final V1 gaps.
+- Staging: verified root-only backup created; Migration `026` applied to `tashira_staging`; exact SHA `d0f91508b25a5d5b4fb320630c841fc7f58a1bc7` deployed healthy with protected counts unchanged.
+- Activation remains closed: catalog tables contain no governed APPROVED definitions yet, Dynamic Requirements is globally OFF, and no customer Pre-Check/Dynamic Application/Portal scope is enabled. Synthetic activation must wait for the persistent import/review path plus an authenticated Dynamic Application API route; activating empty/incomplete runtime would fail the safety contract.
+- Remaining: persistent catalog import/review API, authenticated Dynamic Application route, application-scoped synthetic seed/flags and E2E scenarios, then the remaining provider/external-data Final V1 gaps.
