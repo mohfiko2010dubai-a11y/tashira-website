@@ -97,4 +97,39 @@ export class MysqlCustomerInterviewWriteRepository {
         profile: structuredClone(input.profile), replayed: false };
     });
   }
+
+  async defineRelationship(input: { applicationId: number; fromApplicantId: number; toApplicantId: number;
+    relationship: "SPOUSE" | "PARENT" | "CHILD" | "GUARDIAN" | "DEPENDENT"; reason: string; actorReference: string;
+    idempotencyKey: string; occurredAt: Date }): Promise<{ relationshipEventId: string; replayed: boolean }> {
+    if (input.fromApplicantId === input.toApplicantId) throw new Error("CUSTOMER_RELATIONSHIP_SELF_REFERENCE");
+    const commandSha256 = digest({ type: "DEFINE_RELATIONSHIP", applicationId: input.applicationId, fromApplicantId: input.fromApplicantId,
+      toApplicantId: input.toApplicantId, relationship: input.relationship, reason: input.reason });
+    return transaction(this.pool, async (connection) => {
+      const [applications] = await connection.execute<RowDataPacket[]>("SELECT id FROM applications WHERE id=? FOR UPDATE", [input.applicationId]);
+      if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
+      const [commands] = await connection.execute<RowDataPacket[]>(`SELECT entity_reference AS entityReference,command_sha256 AS commandSha256
+        FROM customer_interview_command_events WHERE application_id=? AND idempotency_key=? LIMIT 1`, [input.applicationId, input.idempotencyKey]);
+      if (commands[0]) {
+        if (String(commands[0].commandSha256) !== commandSha256) throw new Error("CUSTOMER_INTERVIEW_IDEMPOTENCY_CONFLICT");
+        return { relationshipEventId: String(commands[0].entityReference), replayed: true };
+      }
+      const [applicants] = await connection.execute<RowDataPacket[]>("SELECT id FROM applicants WHERE application_id=? AND id IN (?,?) FOR UPDATE",
+        [input.applicationId, input.fromApplicantId, input.toApplicantId]);
+      if (applicants.length !== 2) throw new Error("CUSTOMER_RELATIONSHIP_OWNERSHIP_INVALID");
+      const [current] = await connection.execute<RowDataPacket[]>(`SELECT event_type AS eventType FROM family_relationship_events
+        WHERE application_id=? AND from_applicant_id=? AND to_applicant_id=? AND relationship_type=? ORDER BY occurred_at DESC,id DESC LIMIT 1`,
+      [input.applicationId, input.fromApplicantId, input.toApplicantId, input.relationship]);
+      if (String(current[0]?.eventType ?? "") === "ESTABLISHED") throw new Error("CUSTOMER_RELATIONSHIP_ALREADY_ACTIVE");
+      const relationshipEventId = randomUUID();
+      await connection.execute(`INSERT INTO family_relationship_events
+        (id,application_id,from_applicant_id,to_applicant_id,relationship_type,event_type,reason,actor_reference,occurred_at)
+        VALUES (?,?,?,?,?,'ESTABLISHED',?,?,?)`, [relationshipEventId, input.applicationId, input.fromApplicantId, input.toApplicantId,
+        input.relationship, input.reason, input.actorReference, input.occurredAt]);
+      await connection.execute(`INSERT INTO customer_interview_command_events
+        (id,application_id,command_type,entity_reference,entity_version,command_sha256,idempotency_key,actor_reference,occurred_at)
+        VALUES (?,?,'DEFINE_RELATIONSHIP',?,1,?,?,?,?)`, [randomUUID(), input.applicationId, relationshipEventId, commandSha256,
+        input.idempotencyKey, input.actorReference, input.occurredAt]);
+      return { relationshipEventId, replayed: false };
+    });
+  }
 }

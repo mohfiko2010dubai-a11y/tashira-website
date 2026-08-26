@@ -7,6 +7,7 @@ const rollback = readFileSync(new URL("../../../migrations/028_customer_intervie
 describe("customer interview write migration", () => {
   it("adds optimistic applicant versions and append-only/idempotent evidence", () => {
     expect(migration).toContain("`profile_version` int unsigned NOT NULL DEFAULT 1");
+    expect(migration).toContain("'GUARDIAN','DEPENDENT'");
     expect(migration).toContain("customer_interview_profile_events");
     expect(migration).toContain("customer_profile_applicant_version_uq");
     expect(migration).toContain("customer_profile_application_idempotency_uq");
@@ -19,6 +20,7 @@ describe("customer interview write migration", () => {
 
   it("provides an explicit reverse-order rollback", () => {
     expect(rollback.indexOf("customer_interview_command_events")).toBeLessThan(rollback.indexOf("customer_interview_profile_events"));
+    expect(rollback).toContain("'SPOUSE','CHILD','PARENT','SIBLING','OTHER'");
     expect(rollback.trimEnd().endsWith("ALTER TABLE `applicants` DROP COLUMN `profile_version`;"))
       .toBe(true);
   });

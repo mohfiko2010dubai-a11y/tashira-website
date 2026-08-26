@@ -39,7 +39,7 @@ function json<T>(row: object, key: string, fallback: T): T {
 }
 
 const eligibilityStates = new Set(["ELIGIBLE", "INELIGIBLE", "HUMAN_REVIEW_REQUIRED", "RULE_CONFLICT"]);
-const relationshipTypes = new Set(["SPOUSE", "CHILD", "PARENT", "SIBLING", "OTHER"]);
+const relationshipTypes = new Set(["SPOUSE", "CHILD", "PARENT", "GUARDIAN", "DEPENDENT", "SIBLING", "OTHER"]);
 const requirementKinds = new Set(["DOCUMENT", "QUESTION"]);
 const requirementStates = new Set(["MISSING", "UPLOADED", "VALIDATED", "WAIVED", "CONDITIONAL_PENDING"]);
 
@@ -205,7 +205,7 @@ export class MysqlOperationsCaseReadProvider {
       if (relationship === "LEAD_APPLICANT" || !relationshipTypes.has(relationship)) continue;
       family.appendRelationship({ id: text(row, "id"), applicationId,
         fromApplicantId: number(row, "fromApplicantId"), toApplicantId: number(row, "toApplicantId"),
-        relationship: relationship as "SPOUSE" | "CHILD" | "PARENT" | "SIBLING" | "OTHER",
+        relationship: relationship as "SPOUSE" | "CHILD" | "PARENT" | "GUARDIAN" | "DEPENDENT" | "SIBLING" | "OTHER",
         eventType: text(row, "eventType") as "ESTABLISHED" | "REVOKED", reason: text(row, "reason"), occurredAt: text(row, "occurredAt") });
     }
     for (const row of requirementRows) {

@@ -1,6 +1,9 @@
 ALTER TABLE `applicants`
   ADD COLUMN `profile_version` int unsigned NOT NULL DEFAULT 1;
 
+ALTER TABLE `family_relationship_events`
+  MODIFY COLUMN `relationship_type` enum('LEAD_APPLICANT','SPOUSE','PARENT','CHILD','GUARDIAN','DEPENDENT','SIBLING','OTHER') NOT NULL;
+
 CREATE TABLE IF NOT EXISTS `customer_interview_profile_events` (
   `id` varchar(36) NOT NULL,
   `application_id` bigint unsigned NOT NULL,

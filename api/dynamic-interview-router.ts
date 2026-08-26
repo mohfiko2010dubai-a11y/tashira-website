@@ -34,6 +34,9 @@ type Dependencies = {
     idempotencyKey: string; occurredAt: Date }): Promise<CustomerApplicantWriteResult>;
   editApplicant?(input: { applicationId: number; applicantId: number; expectedVersion: number; profile: CustomerApplicantProfile;
     reason: string; actorReference: string; idempotencyKey: string; occurredAt: Date }): Promise<CustomerApplicantWriteResult>;
+  defineRelationship?(input: { applicationId: number; fromApplicantId: number; toApplicantId: number;
+    relationship: "SPOUSE" | "PARENT" | "CHILD" | "GUARDIAN" | "DEPENDENT"; reason: string; actorReference: string;
+    idempotencyKey: string; occurredAt: Date }): Promise<{ relationshipEventId: string; replayed: boolean }>;
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
     changeReason: string; actorReference: string; occurredAt: Date }): Promise<InterviewAnswerEvent>;
   now(): Date;
@@ -151,6 +154,24 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Applicant could not be updated" });
       }
     }),
+    defineRelationship: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50),
+      fromApplicantId: z.number().int().positive(), toApplicantId: z.number().int().positive(),
+      relationship: z.enum(["SPOUSE", "PARENT", "CHILD", "GUARDIAN", "DEPENDENT"]), reason: z.string().trim().min(3).max(500),
+      idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
+      const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
+      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.defineRelationship) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Relationship changes unavailable" });
+      }
+      try { return await deps.defineRelationship({ applicationId: application.applicationId, fromApplicantId: input.fromApplicantId,
+        toApplicantId: input.toApplicantId, relationship: input.relationship, reason: input.reason,
+        actorReference: `customer:${input.referenceNumber}`, idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
+      catch (error) {
+        if (error instanceof Error && ["CUSTOMER_INTERVIEW_IDEMPOTENCY_CONFLICT", "CUSTOMER_RELATIONSHIP_ALREADY_ACTIVE"].includes(error.message)) {
+          throw new TRPCError({ code: "CONFLICT", message: "Relationship change is no longer current" });
+        }
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Relationship could not be saved" });
+      }
+    }),
   });
 }
 
@@ -180,5 +201,6 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
   loadRules: (routeCode) => ruleProvider().activeForRoute(routeCode), loadEvents: (applicationId) => answerProvider().all(applicationId),
   loadUnifiedBundle: (referenceNumber) => caseProvider().load(referenceNumber),
   addApplicant: (input) => applicantWriteProvider().addApplicant(input), editApplicant: (input) => applicantWriteProvider().editApplicant(input),
+  defineRelationship: (input) => applicantWriteProvider().defineRelationship(input),
   append: (input) => answerProvider().append(input), now: () => new Date(),
 });

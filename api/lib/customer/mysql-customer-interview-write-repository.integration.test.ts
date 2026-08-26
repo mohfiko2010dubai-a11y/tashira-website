@@ -34,8 +34,21 @@ describe.skipIf(!databaseUrl)("MySQL customer interview applicant writes", () =>
       await expect(repository.editApplicant({ applicationId: Number(otherApplication.insertId), applicantId: created.applicantId, expectedVersion: 2,
         profile, reason: "Cross application", actorReference: "customer:synthetic", idempotencyKey: `cross-${runId}`, occurredAt: new Date() }))
         .rejects.toThrow("CUSTOMER_APPLICANT_OWNERSHIP_INVALID");
+      const child = await repository.addApplicant({ applicationId: Number(application.insertId),
+        profile: { fullName: "Synthetic Child", nationality: "EG", residenceCountry: null }, reason: "Synthetic child",
+        actorReference: "customer:synthetic", idempotencyKey: `child-${runId}`, occurredAt: new Date() });
+      const relationship = await repository.defineRelationship({ applicationId: Number(application.insertId), fromApplicantId: created.applicantId,
+        toApplicantId: child.applicantId, relationship: "GUARDIAN", reason: "Synthetic guardian", actorReference: "customer:synthetic",
+        idempotencyKey: `relationship-${runId}`, occurredAt: new Date() });
+      expect(relationship.replayed).toBe(false);
+      expect(await repository.defineRelationship({ applicationId: Number(application.insertId), fromApplicantId: created.applicantId,
+        toApplicantId: child.applicantId, relationship: "GUARDIAN", reason: "Synthetic guardian", actorReference: "customer:synthetic",
+        idempotencyKey: `relationship-${runId}`, occurredAt: new Date() })).toEqual({ ...relationship, replayed: true });
+      await expect(repository.defineRelationship({ applicationId: Number(otherApplication.insertId), fromApplicantId: created.applicantId,
+        toApplicantId: child.applicantId, relationship: "GUARDIAN", reason: "Cross application", actorReference: "customer:synthetic",
+        idempotencyKey: `relationship-cross-${runId}`, occurredAt: new Date() })).rejects.toThrow("CUSTOMER_RELATIONSHIP_OWNERSHIP_INVALID");
       const [evidence] = await pool.execute<RowDataPacket[]>("SELECT event_type AS eventType,profile_version AS profileVersion FROM customer_interview_profile_events WHERE application_id=? ORDER BY profile_version", [application.insertId]);
-      expect(evidence).toEqual([{ eventType: "CREATED", profileVersion: 1 }, { eventType: "UPDATED", profileVersion: 2 }]);
+      expect(evidence).toHaveLength(3);
     } finally { await pool.end(); }
   });
 });

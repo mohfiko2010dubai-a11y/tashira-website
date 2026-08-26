@@ -33,6 +33,7 @@ function deps(currentFlags = flags) {
     profile: input.profile, replayed: false }));
   const editApplicant = vi.fn(async (input) => ({ applicantId: input.applicantId, applicantIndex: 0, profileVersion: input.expectedVersion + 1,
     profile: input.profile, replayed: false }));
+  const defineRelationship = vi.fn(async () => ({ relationshipEventId: "relationship-1", replayed: false }));
   const append = vi.fn(async (input) => {
     events.push({ eventId: "event-1", applicationId: input.applicationId, applicantId: input.applicantId,
       questionDefinitionId: input.definition.definitionId, questionDefinitionVersion: 1, answer: input.answer,
@@ -42,7 +43,7 @@ function deps(currentFlags = flags) {
   return { flagContextForContext: async () => ({ environment: "STAGING" as const }), flagsForContext: async () => currentFlags,
     loadApplication: async (value: string) => value === reference ? ({ applicationId: 9, referenceNumber: reference, routeCode: "UAE_VISIT", applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" } }) : null,
     loadCatalog: async () => ({ questions: [question], requirements: [requirement] }), loadRules: async () => [rule], loadEvents: async () => events,
-    loadUnifiedBundle, addApplicant, editApplicant, append, now: () => at };
+    loadUnifiedBundle, addApplicant, editApplicant, defineRelationship, append, now: () => at };
 }
 
 describe("authenticated Dynamic Interview API", () => {
@@ -82,6 +83,11 @@ describe("authenticated Dynamic Interview API", () => {
     expect(await caller.editApplicant({ referenceNumber: reference, applicantId: 21, expectedVersion: 1, profile,
       reason: "Correct applicant", idempotencyKey: "edit-ahmed-123" })).toMatchObject({ applicantId: 21, profileVersion: 2 });
     expect(current.editApplicant).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9, applicantId: 21, expectedVersion: 1 }));
+    expect(await caller.defineRelationship({ referenceNumber: reference, fromApplicantId: 21, toApplicantId: 22,
+      relationship: "GUARDIAN", reason: "Guardian relationship", idempotencyKey: "relationship-123" }))
+      .toMatchObject({ relationshipEventId: "relationship-1" });
+    expect(current.defineRelationship).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9, fromApplicantId: 21,
+      toApplicantId: 22, relationship: "GUARDIAN" }));
   });
 
   it("accepts only the authoritative current question and returns the next state", async () => {
