@@ -28,6 +28,7 @@ const flags: FeatureFlagRecord[] = ["DYNAMIC_CUSTOMER_APPLICATION", "VISA_RULES_
 }));
 function deps(currentFlags = flags) {
   const events: InterviewAnswerEvent[] = [];
+  const loadUnifiedBundle = vi.fn(async () => null);
   const append = vi.fn(async (input) => {
     events.push({ eventId: "event-1", applicationId: input.applicationId, applicantId: input.applicantId,
       questionDefinitionId: input.definition.definitionId, questionDefinitionVersion: 1, answer: input.answer,
@@ -37,7 +38,7 @@ function deps(currentFlags = flags) {
   return { flagContextForContext: async () => ({ environment: "STAGING" as const }), flagsForContext: async () => currentFlags,
     loadApplication: async (value: string) => value === reference ? ({ applicationId: 9, referenceNumber: reference, routeCode: "UAE_VISIT", applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" } }) : null,
     loadCatalog: async () => ({ questions: [question], requirements: [requirement] }), loadRules: async () => [rule], loadEvents: async () => events,
-    append, now: () => at };
+    loadUnifiedBundle, append, now: () => at };
 }
 
 describe("authenticated Dynamic Interview API", () => {
@@ -49,6 +50,20 @@ describe("authenticated Dynamic Interview API", () => {
   it("fails closed unless application-scoped flags are enabled", async () => {
     const caller = createDynamicInterviewRouter(deps([])).createCaller(context([reference]));
     await expect(caller.current({ referenceNumber: reference })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("does not read unified persistence while its requirement flag is closed", async () => {
+    const current = deps(); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    await caller.current({ referenceNumber: reference });
+    expect(current.loadUnifiedBundle).not.toHaveBeenCalled();
+  });
+
+  it("requests the trusted unified persistence bundle only after its application flag opens", async () => {
+    const dynamicRequirements: FeatureFlagRecord = { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true,
+      scopeType: "APPLICATION", scopeReference: reference };
+    const current = deps([...flags, dynamicRequirements]); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    expect(await caller.current({ referenceNumber: reference })).toMatchObject({ unifiedReview: null });
+    expect(current.loadUnifiedBundle).toHaveBeenCalledExactlyOnceWith(reference);
   });
 
   it("accepts only the authoritative current question and returns the next state", async () => {

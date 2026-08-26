@@ -5,12 +5,15 @@ import { assertApplicationReferenceAccess } from "./lib/application-authorizatio
 import type { FeatureFlagContext, FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
 import { isOperationsFlagEnabled } from "./lib/feature-flags/feature-flags";
 import { buildPersistentDynamicInterview } from "./lib/customer/dynamic-interview-service";
+import { buildUnifiedInterviewRuntime } from "./lib/customer/unified-interview-orchestrator";
+import { adaptPersistentUnifiedInterview } from "./lib/customer/unified-interview-persistence-adapter";
 import type { InterviewAnswer, InterviewAnswerEvent } from "./lib/customer/dynamic-interview";
 import { MysqlInterviewAnswerRepository } from "./lib/customer/mysql-interview-answer-repository";
 import { MysqlOperationsAccessProvider } from "./lib/operations/mysql-access-provider";
 import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import { MysqlRequirementCatalogProvider } from "./lib/requirements/mysql-requirement-catalog-provider";
 import { MysqlActiveRuleProvider } from "./lib/rules/mysql-active-rule-provider";
+import { MysqlOperationsCaseReadProvider, type MysqlOperationsCaseBundle } from "./lib/operations/mysql-case-read-provider";
 import type { EligibilityRule } from "./lib/eligibility/eligibility-engine";
 import type { QuestionCatalogDefinition, RequirementCatalogDefinition, VersionedRequirementCatalog } from "./lib/requirements/requirement-catalog";
 import { applicationAccessQuery, createRouter } from "./middleware";
@@ -24,6 +27,7 @@ type Dependencies = {
   loadCatalog(at: Date): Promise<Pick<VersionedRequirementCatalog, "questions" | "requirements">>;
   loadRules(routeCode: string): Promise<readonly EligibilityRule[]>;
   loadEvents(applicationId: number): Promise<readonly InterviewAnswerEvent[]>;
+  loadUnifiedBundle?(referenceNumber: string): Promise<MysqlOperationsCaseBundle | null>;
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
     changeReason: string; actorReference: string; occurredAt: Date }): Promise<InterviewAnswerEvent>;
   now(): Date;
@@ -39,21 +43,33 @@ async function authorizedRuntime(deps: Dependencies, ctx: TrpcContext, reference
     || !isOperationsFlagEnabled("VISA_RULES_EVALUATION", context, flags)) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Dynamic interview unavailable" });
   }
-  return application;
+  return { application, context, flags };
 }
 
 export function createDynamicInterviewRouter(deps: Dependencies) {
   const state = async (ctx: TrpcContext, referenceNumber: string) => {
-    const application = await authorizedRuntime(deps, ctx, referenceNumber); const now = deps.now();
-    const [catalog, rules, events] = await Promise.all([deps.loadCatalog(now), deps.loadRules(application.routeCode), deps.loadEvents(application.applicationId)]);
+    const authorized = await authorizedRuntime(deps, ctx, referenceNumber); const { application, context, flags } = authorized; const now = deps.now();
+    const [catalog, rules, events] = await Promise.all([deps.loadCatalog(now), deps.loadRules(application.routeCode),
+      deps.loadEvents(application.applicationId)]);
+    const unifiedEnabled = isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
+    const bundle = unifiedEnabled ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
     const questions: readonly QuestionCatalogDefinition[] = catalog.questions; const requirements: readonly RequirementCatalogDefinition[] = catalog.requirements;
     const interview = buildPersistentDynamicInterview({ applicationId: application.applicationId,
       routeCode: application.routeCode, applicantIds: application.applicantIds, questions, requirements, rules, events, evaluatedAt: now });
     const applicantId = interview.currentQuestions[0]?.applicantId ?? null;
+    let unifiedReview = null;
+    if (bundle) {
+      const persistent = adaptPersistentUnifiedInterview(bundle);
+      const answers = Object.fromEntries(application.applicantIds.map((id) => [id, Object.fromEntries(interview.knownAnswers
+        .filter((answer) => answer.applicantId === id).map((answer) => [answer.code, String(answer.answer)]))]));
+      unifiedReview = (await buildUnifiedInterviewRuntime({ context, flags,
+        catalogProvider: { active: async () => ({ catalogVersion: "CURRENT", ...catalog }) }, evaluatedAt: now,
+        applicationId: application.applicationId, ...persistent, answers, travelQuestions: [] })).review;
+    }
     return { application, questions, rules, events, state: { ...interview, currentApplicant: applicantId === null ? null
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
       review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
-        label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) } } };
+        label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) }, unifiedReview } };
   };
   return createRouter({
     current: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50) }).strict()).query(async ({ input, ctx }) => {
@@ -100,11 +116,12 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
 
 const sql = defaultOperationsSqlClient();
 let access: MysqlOperationsAccessProvider | undefined; let catalog: MysqlRequirementCatalogProvider | undefined;
-let rules: MysqlActiveRuleProvider | undefined; let answers: MysqlInterviewAnswerRepository | undefined;
+let rules: MysqlActiveRuleProvider | undefined; let answers: MysqlInterviewAnswerRepository | undefined; let cases: MysqlOperationsCaseReadProvider | undefined;
 function accessProvider() { return access ??= new MysqlOperationsAccessProvider(sql); }
 function catalogProvider() { return catalog ??= new MysqlRequirementCatalogProvider(sql); }
 function ruleProvider() { return rules ??= new MysqlActiveRuleProvider(sql); }
 function answerProvider() { return answers ??= new MysqlInterviewAnswerRepository(defaultOperationsPool()); }
+function caseProvider() { return cases ??= new MysqlOperationsCaseReadProvider(sql); }
 export const dynamicInterviewRouter = createDynamicInterviewRouter({
   flagContextForContext: (ctx) => accessProvider().flagContextForContext(ctx), flagsForContext: () => accessProvider().featureFlags(),
   loadApplication: async (referenceNumber) => {
@@ -119,5 +136,6 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
   },
   loadCatalog: (at) => catalogProvider().active(at),
   loadRules: (routeCode) => ruleProvider().activeForRoute(routeCode), loadEvents: (applicationId) => answerProvider().all(applicationId),
+  loadUnifiedBundle: (referenceNumber) => caseProvider().load(referenceNumber),
   append: (input) => answerProvider().append(input), now: () => new Date(),
 });
