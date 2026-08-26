@@ -5,8 +5,8 @@ Status: **prepared, not authorized for execution**.
 ## Release identity
 
 - Source branch: `codex/visa-operations-os-v1`
-- Exact release SHA: record only after final Staging hardening commit and verification.
-- Database chain: reviewed migrations `014` through `030`; re-rehearse the exact chain against a restored Production-shaped copy before authorization.
+- Latest exact Staging implementation/runtime SHA: `5afea33e9e8bdf54e417c0b54f4f383e6659e55c`; later documentation-only commits do not change this runtime evidence. No SHA is authorized for Production.
+- Database chain: reviewed additive migrations `014` through `036`; re-rehearse the exact chain against an isolated restored Production-shaped copy before authorization.
 - Production changes performed by this package: none.
 
 ## Required Production sequence
@@ -17,12 +17,21 @@ Status: **prepared, not authorized for execution**.
 4. Create root-only database, document, private-config and Git backups; verify SHA-256 and restore rehearsal evidence.
 5. Enter maintenance/write freeze without changing customer documents.
 6. Rehearse the exact release and migrations against an isolated restored copy.
-7. Apply `014`–`030` in order using the guarded wrapper. Stop on drift or failure. Migration `030` replaces the historical answer-value uniqueness rule with predecessor-linked transition uniqueness.
+7. Apply `014`–`036` in order using the guarded wrapper. Stop on drift or failure. Migration `030` replaces the historical answer-value uniqueness rule with predecessor-linked transition uniqueness; later migrations add only the separately reviewed Support Inbox, SLA, typing/authority, regulatory, visa-delivery and email-dispatch persistence contracts.
 8. Deploy the exact approved SHA through the protected manual workflow.
 9. Keep every Operations flag OFF; verify legacy/customer/payment/email regressions.
 10. Enable `OPERATIONS_CASE_READ_MODEL` for named internal scopes only and verify RBAC/finance isolation.
 11. Enable `OPERATIONS_CONTROLLED_WRITES` only after separate approval and named-team pilot verification.
-12. Keep customer-facing Operations, AI Document Review, Support Inbox and Regulatory Watcher flags OFF until their individual gates pass.
+12. Keep customer-facing Operations, AI Document Review, Support Inbox, Regulatory Watcher, Visa Assistant, case handoff and email automation flags OFF until their individual owner/external-provider gates pass.
+
+## Latest Staging evidence
+
+- Unified Interview authenticated read API: start/resume/current question/eligibility/requirements/upload requirements/scheduler/review all use one canonical persisted state path.
+- Scoped synthetic E2E: PASS for lifecycle equivalence, anonymous denial, application ownership and finance isolation.
+- Quality gates: TypeScript PASS; full ESLint PASS; 608 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
+- Runtime: PM2 `tashira-staging` online; local/public Staging HTTP 200; read-only Production HTTP 200.
+- Closed state after E2E: customer application scopes OFF; Controlled Writes OFF; Operations Email Automation OFF.
+- Production, Production database, Production documents, main/master, Stripe, Resend, pricing, payment and invoice behavior were not modified by this milestone.
 
 ## Rollback and recovery
 
