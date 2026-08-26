@@ -49,6 +49,8 @@ const router = createCustomerVisaAssistantRouter({
   flagContext: async () => ({ environment: "TEST" }),
   flags: async () => flags,
   load: async reference => (reference === "TSH-1" ? bundle : null),
+  handoffs: { create: async input => input },
+  now: () => new Date("2026-08-26T12:00:00Z"),
 });
 function ctx(refs: string[]): TrpcContext {
   return {
