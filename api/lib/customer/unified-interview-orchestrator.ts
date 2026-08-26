@@ -25,7 +25,9 @@ export type UnifiedInterviewReview = {
 };
 
 function validateTravelOwnership(input: { applicationId: number; applicantIds: ReadonlySet<number>; groups: readonly TravelGroup[];
-  documents: readonly SharedTravelDocument[] }): void {
+  documents: readonly SharedTravelDocument[]; schedules: readonly SubmissionScheduleSnapshot[] }): void {
+  const groupIds = new Set(input.groups.map(({ id }) => id));
+  if (groupIds.size !== input.groups.length) throw new Error("UNIFIED_INTERVIEW_TRAVEL_GROUP_DUPLICATE");
   for (const group of input.groups) {
     if (group.applicationId !== input.applicationId || group.applicantIds.some((id) => !input.applicantIds.has(id))) {
       throw new Error("UNIFIED_INTERVIEW_TRAVEL_OWNERSHIP_INVALID");
@@ -37,6 +39,11 @@ function validateTravelOwnership(input: { applicationId: number; applicantIds: R
     if (document.applicationId !== input.applicationId) throw new Error("UNIFIED_INTERVIEW_DOCUMENT_OWNERSHIP_INVALID");
     const validation = validateSharedTravelDocument({ document, groups: input.groups });
     if (!validation.valid) throw new Error(`UNIFIED_INTERVIEW_DOCUMENT_INVALID:${validation.errors.join(",")}`);
+  }
+  const scheduleGroupIds = input.schedules.map(({ travelGroupId }) => travelGroupId);
+  if (new Set(scheduleGroupIds).size !== scheduleGroupIds.length) throw new Error("UNIFIED_INTERVIEW_SCHEDULE_DUPLICATE");
+  if (scheduleGroupIds.some((travelGroupId) => !groupIds.has(travelGroupId))) {
+    throw new Error("UNIFIED_INTERVIEW_SCHEDULE_OWNERSHIP_INVALID");
   }
 }
 
@@ -57,7 +64,8 @@ export async function buildUnifiedInterviewRuntime(input: {
   const applicantIds = new Set(input.identities.map(({ applicantId }) => applicantId));
   if (applicantIds.size !== input.identities.length || input.family.applicationId !== input.applicationId
     || input.family.members.some(({ applicantId }) => !applicantIds.has(applicantId))) throw new Error("UNIFIED_INTERVIEW_APPLICANT_OWNERSHIP_INVALID");
-  validateTravelOwnership({ applicationId: input.applicationId, applicantIds, groups: input.travelGroups, documents: input.sharedDocuments });
+  validateTravelOwnership({ applicationId: input.applicationId, applicantIds, groups: input.travelGroups,
+    documents: input.sharedDocuments, schedules: input.schedules });
   const customerGroups: CustomerTravelGroup[] = input.travelGroups.map((group, index) => ({ travelGroupId: group.id,
     label: `Trip ${String.fromCharCode(65 + index)}`, applicantIds: [...group.applicantIds], plannedArrivalDate: group.plannedArrivalDate,
     plannedDepartureDate: group.plannedDepartureDate }));

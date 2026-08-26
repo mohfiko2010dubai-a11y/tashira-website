@@ -47,6 +47,14 @@ describe("unified Dynamic Interview orchestration", () => {
       .rejects.toThrow("UNIFIED_INTERVIEW_DOCUMENT_OWNERSHIP_INVALID");
   });
 
+  it("fails closed when a current schedule does not belong to a current travel group", async () => {
+    await expect(buildUnifiedInterviewRuntime({ context: { environment: "STAGING", applicationReference: "TSH-TEST" }, flags,
+      catalogProvider, evaluatedAt: at, applicationId: 7,
+      identities: [{ applicantId: 1, displayLabel: "Applicant", relationship: "LEAD_APPLICANT" }],
+      family: { ...family, members: [family.members[0]] }, answers: {}, travelQuestions: [], travelGroups: [], schedules: [schedule], sharedDocuments: [] }))
+      .rejects.toThrow("UNIFIED_INTERVIEW_SCHEDULE_OWNERSHIP_INVALID");
+  });
+
   it("returns no customer runtime while required scoped flags are closed", async () => {
     const result = await buildUnifiedInterviewRuntime({ context: { environment: "STAGING", applicationReference: "TSH-TEST" }, flags: [],
       catalogProvider, evaluatedAt: at, applicationId: 7,
