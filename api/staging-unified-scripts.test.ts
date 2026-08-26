@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const scope = readFileSync(new URL("../scripts/staging-scope-dynamic-interview.ts", import.meta.url), "utf8");
 const e2e = readFileSync(new URL("../scripts/staging-run-unified-interview-api-e2e.ts", import.meta.url), "utf8");
 const scenarios = readFileSync(new URL("../scripts/staging-run-unified-interview-scenario-e2e.ts", import.meta.url), "utf8");
+const partySetup = readFileSync(new URL("../scripts/staging-run-unified-party-setup-e2e.ts", import.meta.url), "utf8");
 
 describe("Staging Dynamic Interview execution guards", () => {
   it("allows only explicit synthetic application scope and never global scope", () => {
@@ -33,5 +34,14 @@ describe("Staging Dynamic Interview execution guards", () => {
     expect(scenarios).toContain("STAGING_SCENARIO_CROSS_APPLICANT_REQUIREMENT_LEAK");
     expect(scenarios).toContain("STAGING_SCENARIO_FINANCE_FIELD_LEAK");
     expect(scenarios).not.toMatch(/STRIPE_SECRET_KEY|RESEND_API_KEY|storage_path/);
+  });
+
+  it("guards the customer party setup runner before any database or API mutation", () => {
+    expect(partySetup).toContain('databaseUrl.pathname.slice(1) !== "tashira_staging"');
+    expect(partySetup).toContain('endsWith("/var/www/tashira-staging")');
+    expect(partySetup).toContain('reference = "TSH-STG-DYN-FAMILY"');
+    expect(partySetup).toContain("STAGING_PARTY_SETUP_OWNERSHIP_ISOLATION=PASS");
+    expect(partySetup).toContain("STAGING_PARTY_SETUP_FINANCE_ISOLATION=PASS");
+    expect(partySetup).not.toMatch(/STRIPE_SECRET_KEY|RESEND_API_KEY|storage_path/);
   });
 });
