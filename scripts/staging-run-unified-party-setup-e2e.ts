@@ -72,7 +72,23 @@ try {
   if (travelGroup?.arrangement !== "SEPARATELY" || travelGroup.version < 2 || !travelGroup.applicantIds.includes(added.applicantId)) {
     throw new Error("STAGING_PARTY_E2E_TRAVEL_UPDATE_INVALID");
   }
-  const sharedDocument = state.partySetup?.sharedDocuments[0];
+  let sharedDocument = state.partySetup?.sharedDocuments[0];
+  if (!sharedDocument) {
+    const [applicationRows] = await pool.execute<RowDataPacket[]>("SELECT id FROM applications WHERE reference_number=?", [reference]);
+    const applicationId = Number(applicationRows[0]?.id);
+    if (!Number.isInteger(applicationId) || applicationId <= 0) throw new Error("STAGING_PARTY_E2E_APPLICATION_FIXTURE_MISSING");
+    const pdf = Buffer.from("%PDF-1.4\n% Synthetic shared booking for isolated Staging E2E only\n%%EOF\n", "utf8");
+    const uploaded = await authorized.storage.upload.mutate({ applicationId, documentType: "supporting",
+      fileName: "synthetic-family-booking.pdf", mimeType: "application/pdf", fileSize: pdf.length,
+      base64Data: pdf.toString("base64"), uploadedBy: "staging-system:unified-party-e2e" });
+    const createdDocument = await authorized.document.create.mutate({ applicationId, documentType: "supporting",
+      originalFileName: "synthetic-family-booking.pdf", storedFileName: uploaded.storedFileName, mimeType: "application/pdf",
+      fileSize: pdf.length, storagePath: uploaded.storagePath, uploadStatus: "uploaded", uploadedBy: "staging-system:unified-party-e2e" });
+    await authorized.dynamicInterview.linkSharedDocument.mutate({ referenceNumber: reference, documentId: createdDocument.id,
+      documentType: "FAMILY_BOOKING", applicantIds: [lead.applicantId], idempotencyKey: "party-document-fixture-link-v1" });
+    state = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
+    sharedDocument = state.partySetup?.sharedDocuments.find((document) => document.documentId === createdDocument.id);
+  }
   if (!sharedDocument) throw new Error("STAGING_PARTY_E2E_SHARED_DOCUMENT_FIXTURE_MISSING");
   await expectDenied(() => authorized.dynamicInterview.linkSharedDocument.mutate({ referenceNumber: "TSH-STG-DYN-INDIVIDUAL",
     documentId: sharedDocument.documentId, documentType: sharedDocument.documentType, applicantIds: [added.applicantId],
