@@ -37,7 +37,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 
 ## Honest completion
 
-Core case-operations foundation is approximately **85% complete**. Full Master Program V1 is approximately **68% complete** because external supplier/authority, AI/support providers, approved policy/rule content and Production activation remain incomplete. No percentage includes Production activation.
+Core case-operations foundation is approximately **90% complete**. Full Master Program V1 is approximately **72% complete** because external supplier/authority, AI/mailbox providers, approved policy/rule/template content, final human browser acceptance and Production activation remain incomplete. No percentage includes Production activation.
 
 ## Unified Interview runtime update — 2026-08-26
 
@@ -59,10 +59,12 @@ Core case-operations foundation is approximately **85% complete**. Full Master P
 
 - Official, reviewed Visa Rule Registry content and activation approvals.
 - AI/OCR provider credentials and data-processing approval.
-- Inbound mailbox/provider credentials.
+- Operations email trigger/template matrix, provider-dispatch authorization and inbound mailbox/provider credentials. The current work authorization forbids Resend changes or real-customer delivery.
 - Authority submission/query/delivery operating procedure.
 - Typing Pack templates and accepted output format.
-- Operations KPI definitions, retention period and legal review.
+- Finance-approved effective supplier-cost history policy and access/activation review.
+- Operations KPI definitions, retention period, Trust Center wording and legal review.
+- Human interactive browser acceptance for the protected Operations UI; the desktop Browser plugin remains blocked by its trusted-path failure.
 - Separate approval for Production migration/deployment/flags.
 # Requirement Catalog and Dynamic Runtime Update — 2026-08-26
 
