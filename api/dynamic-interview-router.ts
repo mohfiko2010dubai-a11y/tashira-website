@@ -12,7 +12,7 @@ import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operati
 import { MysqlRequirementCatalogProvider } from "./lib/requirements/mysql-requirement-catalog-provider";
 import { MysqlActiveRuleProvider } from "./lib/rules/mysql-active-rule-provider";
 import type { EligibilityRule } from "./lib/eligibility/eligibility-engine";
-import type { QuestionCatalogDefinition } from "./lib/requirements/requirement-catalog";
+import type { QuestionCatalogDefinition, RequirementCatalogDefinition, VersionedRequirementCatalog } from "./lib/requirements/requirement-catalog";
 import { applicationAccessQuery, createRouter } from "./middleware";
 
 type ApplicationInterviewRecord = { applicationId: number; referenceNumber: string; routeCode: string; applicantIds: readonly number[];
@@ -21,7 +21,7 @@ type Dependencies = {
   flagContextForContext(ctx: TrpcContext): FeatureFlagContext | Promise<FeatureFlagContext>;
   flagsForContext(ctx: TrpcContext): Promise<readonly FeatureFlagRecord[]>;
   loadApplication(referenceNumber: string): Promise<ApplicationInterviewRecord | null>;
-  loadQuestions(at: Date): Promise<readonly QuestionCatalogDefinition[]>;
+  loadCatalog(at: Date): Promise<Pick<VersionedRequirementCatalog, "questions" | "requirements">>;
   loadRules(routeCode: string): Promise<readonly EligibilityRule[]>;
   loadEvents(applicationId: number): Promise<readonly InterviewAnswerEvent[]>;
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
@@ -45,12 +45,15 @@ async function authorizedRuntime(deps: Dependencies, ctx: TrpcContext, reference
 export function createDynamicInterviewRouter(deps: Dependencies) {
   const state = async (ctx: TrpcContext, referenceNumber: string) => {
     const application = await authorizedRuntime(deps, ctx, referenceNumber); const now = deps.now();
-    const [questions, rules, events] = await Promise.all([deps.loadQuestions(now), deps.loadRules(application.routeCode), deps.loadEvents(application.applicationId)]);
+    const [catalog, rules, events] = await Promise.all([deps.loadCatalog(now), deps.loadRules(application.routeCode), deps.loadEvents(application.applicationId)]);
+    const questions: readonly QuestionCatalogDefinition[] = catalog.questions; const requirements: readonly RequirementCatalogDefinition[] = catalog.requirements;
     const interview = buildPersistentDynamicInterview({ applicationId: application.applicationId,
-      routeCode: application.routeCode, applicantIds: application.applicantIds, questions, rules, events, evaluatedAt: now });
+      routeCode: application.routeCode, applicantIds: application.applicantIds, questions, requirements, rules, events, evaluatedAt: now });
     const applicantId = interview.currentQuestions[0]?.applicantId ?? null;
     return { application, questions, rules, events, state: { ...interview, currentApplicant: applicantId === null ? null
-      : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` } } };
+      : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
+      review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
+        label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) } } };
   };
   return createRouter({
     current: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50) }).strict()).query(async ({ input, ctx }) => {
@@ -114,7 +117,7 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
         const fullName = String(Reflect.get(applicant, "fullName") ?? "").trim(); const index = Number(Reflect.get(applicant, "applicantIndex"));
         return [id, fullName || `Applicant ${index + 1}`]; })) };
   },
-  loadQuestions: async (at) => (await catalogProvider().active(at)).questions,
+  loadCatalog: (at) => catalogProvider().active(at),
   loadRules: (routeCode) => ruleProvider().activeForRoute(routeCode), loadEvents: (applicationId) => answerProvider().all(applicationId),
   append: (input) => answerProvider().append(input), now: () => new Date(),
 });

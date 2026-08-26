@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./context";
 import { createDynamicInterviewRouter } from "./dynamic-interview-router";
 import type { FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
-import type { QuestionCatalogDefinition } from "./lib/requirements/requirement-catalog";
+import type { QuestionCatalogDefinition, RequirementCatalogDefinition } from "./lib/requirements/requirement-catalog";
 import type { EligibilityRule } from "./lib/eligibility/eligibility-engine";
 import type { InterviewAnswerEvent } from "./lib/customer/dynamic-interview";
 
@@ -17,6 +17,12 @@ const question: QuestionCatalogDefinition = { definitionId: "11111111-1111-4111-
 const rule: EligibilityRule = { id: "TEST_BASE", version: 1, routeCode: "UAE_VISIT", layer: "BASE_ROUTE", classification: "OFFICIAL",
   sourceAuthority: "Synthetic staging authority", reason: "Synthetic test route", effectiveFrom: at, effectiveTo: null,
   conditions: [{ field: "nationality", operator: "EXISTS" }], eligibilityEffect: "ELIGIBLE", requiredDocuments: ["PASSPORT"], conditionalDocuments: [] };
+const requirement: RequirementCatalogDefinition = { kind: "DOCUMENT", definitionId: "99999999-1111-4111-8111-111111111111", code: "PASSPORT", version: 1,
+  status: "ACTIVE", customerLabel: "Passport copy", shortCustomerExplanation: "Upload the passport bio page", internalLabel: "Passport",
+  classification: "OFFICIAL", authoritySemantics: null, reasonTemplate: "Required by the selected route", effectiveFrom: at, effectiveTo: null,
+  reviewStatus: "APPROVED", documentType: "PASSPORT", category: "IDENTITY", requiredCapability: true, conditionalCapability: false,
+  sharedDocumentCapability: false, applicantScopedCapability: true, travelGroupScopedCapability: false, familyScopedCapability: false,
+  aiExtractionCapability: false, humanReviewPolicy: "ALWAYS" };
 const flags: FeatureFlagRecord[] = ["DYNAMIC_CUSTOMER_APPLICATION", "VISA_RULES_EVALUATION"].map((flagKey) => ({
   flagKey: flagKey as FeatureFlagRecord["flagKey"], environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference,
 }));
@@ -30,7 +36,7 @@ function deps(currentFlags = flags) {
   });
   return { flagContextForContext: async () => ({ environment: "STAGING" as const }), flagsForContext: async () => currentFlags,
     loadApplication: async (value: string) => value === reference ? ({ applicationId: 9, referenceNumber: reference, routeCode: "UAE_VISIT", applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" } }) : null,
-    loadQuestions: async () => [question], loadRules: async () => [rule], loadEvents: async () => events,
+    loadCatalog: async () => ({ questions: [question], requirements: [requirement] }), loadRules: async () => [rule], loadEvents: async () => events,
     append, now: () => at };
 }
 

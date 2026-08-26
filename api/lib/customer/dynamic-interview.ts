@@ -45,6 +45,16 @@ export type DynamicInterviewState = {
   knownAnswers: readonly { code: string; applicantId: number | null; answer: InterviewAnswer }[];
   eligibilityState: InterviewEligibilityState;
   nextAction: "ANSWER_QUESTIONS" | "REVIEW_REQUIREMENTS" | "HUMAN_REVIEW";
+  review: {
+    applicants: readonly {
+      applicantId: number;
+      eligibilityState: InterviewEligibilityState;
+      requirements: readonly { code: string; label: string; classification: "AUTHORITY_REQUIRED" | "TASHIRA_PROCESSING" | "MAY_BE_REQUIRED" | "OPTIONAL";
+        state: "REQUIRED" | "CONDITIONAL"; explanation: string }[];
+      customerMessage: string;
+    }[];
+    manualReviewRequired: boolean;
+  };
 };
 
 export type InterviewAnswerLookup = {
@@ -54,6 +64,7 @@ export type InterviewAnswerLookup = {
 export function buildDynamicInterviewState(input: {
   applicationId: number; applicantIds: readonly number[]; requiredQuestionCodes: readonly { code: string; applicantId: number | null; reason: string }[];
   questionCatalog: readonly QuestionCatalogDefinition[]; history: InterviewAnswerLookup; evaluatedState?: Exclude<InterviewEligibilityState, "NEEDS_MORE_INFORMATION">;
+  applicantReview?: DynamicInterviewState["review"]["applicants"];
 }): DynamicInterviewState {
   const allowedApplicants = new Set(input.applicantIds);
   const catalog = new Map(input.questionCatalog.filter((question) => question.customerVisible && question.classification !== "INTERNAL").map((question) => [question.code, question]));
@@ -72,5 +83,7 @@ export function buildDynamicInterviewState(input: {
   const dateCodes = new Set(["PLANNED_ARRIVAL_DATE", "PLANNED_DEPARTURE_DATE", "HAS_CONFIRMED_TICKETS"]);
   return { currentStep: current.some(({ code }) => travelCodes.has(code)) ? "TRAVEL_PARTY" : current.some(({ code }) => dateCodes.has(code)) ? "TRAVEL_DATES" : current.length ? "PROFILE" : "REVIEW",
     currentQuestions: current, knownAnswers, eligibilityState: state,
-    nextAction: current.length ? "ANSWER_QUESTIONS" : ["HUMAN_REVIEW_REQUIRED", "NOT_RESEARCHED", "RULE_CONFLICT"].includes(state) ? "HUMAN_REVIEW" : "REVIEW_REQUIREMENTS" };
+    nextAction: current.length ? "ANSWER_QUESTIONS" : ["HUMAN_REVIEW_REQUIRED", "NOT_RESEARCHED", "RULE_CONFLICT"].includes(state) ? "HUMAN_REVIEW" : "REVIEW_REQUIREMENTS",
+    review: { applicants: input.applicantReview ?? [], manualReviewRequired: (input.applicantReview ?? []).some(({ eligibilityState }) =>
+      ["HUMAN_REVIEW_REQUIRED", "NOT_RESEARCHED", "RULE_CONFLICT"].includes(eligibilityState)) } };
 }
