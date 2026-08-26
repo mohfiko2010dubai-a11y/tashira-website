@@ -20,7 +20,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Effective Cost History | PARTIAL | Existing snapshots | No | Finance policy and supplier-cost history integration |
 | Multi-Team RBAC | DONE | Yes | Yes | Production grants require owner approval |
 | Audit Trail | DONE | Yes | Yes | Monitoring/retention decision |
-| Operations Dashboard / Manager Dashboard | PARTIAL | Yes | Case workspace only | Finance-free deterministic manager aggregates complete; persistent read provider and dashboard UI remain |
+| Operations Dashboard / Manager Dashboard | DONE | Yes | API/MySQL scoped E2E | Finance-free persistent aggregates, manager-only scoped API and protected dashboard UI are complete; final human browser sign-off remains tool-blocked |
 | Case Workspace | DONE | Yes | Yes | Controlled UI browser sign-off |
 | Customer Pre-Check | PARTIAL | Yes | No | Safe guidance contract and rate-limited Active/validated/source-verified MySQL runtime API are complete behind a closed flag; approved rules dataset, progressive UI and scoped Staging UAT remain |
 | Trust Center | PARTIAL | Existing legal UI | Existing app | Final legal owner review |
@@ -33,7 +33,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Regulatory Watcher / Change Center | PARTIAL | Yes | No | Controlled review/impact model complete and cannot auto-activate; official-source connector, persistence and authorized UI remain |
 | Feature Flags | DONE | Yes | Yes | Production activation is a separate owner gate |
 | Legacy Compatibility | DONE | Yes | Yes | Explicit re-evaluation only |
-| Operations Analytics | PARTIAL | Yes | No | Finance-free workload, SLA, turnaround, rework and supplier operational aggregates complete; persistent provider/UI and owner KPI thresholds remain |
+| Operations Analytics | DONE | Yes | API/MySQL scoped E2E | Finance-free workload, readiness, schedule, rework and supplier operational aggregates are live on isolated Staging; owner KPI thresholds remain a future tuning input |
 
 ## Honest completion
 
@@ -46,6 +46,14 @@ Core case-operations foundation is approximately **82% complete**. Full Master P
 - Scoped synthetic E2E passed authorization, applicant isolation, owned document upload/link, readiness transition, idempotency, cross-application denial and finance isolation.
 - All GLOBAL/APPLICATION customer flags returned to OFF. Browser UI E2E remains blocked by the desktop Browser plugin before tab creation; API/MySQL E2E is complete.
 - Verified pre-`030` backup: `/var/backups/tashira-staging/20260826T152550Z-answer-transitions-030-predeploy`.
+
+## Operations Manager analytics update — 2026-08-26
+
+- Exact Staging runtime SHA: `83a03203287a27c3f34b908a51853ac12db476c3`.
+- Team-scoped manager API E2E passed exact scope aggregation, manager permission, employee/anonymous denial, finance non-disclosure and direct SPA route/static-asset verification.
+- Protected counts and document metadata fingerprint remained unchanged; temporary staff identities and grants were removed.
+- Existing Staging feature scopes were preserved. No customer-facing feature was activated.
+- Verified runtime-config rollback evidence: `/var/backups/tashira-staging/20260826T154653Z-manager-dashboard-predeploy`.
 
 ## External or owner dependencies
 
