@@ -72,6 +72,17 @@ try {
   if (travelGroup?.arrangement !== "SEPARATELY" || travelGroup.version < 2 || !travelGroup.applicantIds.includes(added.applicantId)) {
     throw new Error("STAGING_PARTY_E2E_TRAVEL_UPDATE_INVALID");
   }
+  const sharedDocument = state.partySetup?.sharedDocuments[0];
+  if (!sharedDocument) throw new Error("STAGING_PARTY_E2E_SHARED_DOCUMENT_FIXTURE_MISSING");
+  await expectDenied(() => authorized.dynamicInterview.linkSharedDocument.mutate({ referenceNumber: "TSH-STG-DYN-INDIVIDUAL",
+    documentId: sharedDocument.documentId, documentType: sharedDocument.documentType, applicantIds: [added.applicantId],
+    idempotencyKey: "party-document-cross-application-denial" }));
+  const linkedApplicantIds = [...new Set([...sharedDocument.applicantIds, added.applicantId])];
+  await authorized.dynamicInterview.linkSharedDocument.mutate({ referenceNumber: reference, documentId: sharedDocument.documentId,
+    documentType: sharedDocument.documentType, applicantIds: linkedApplicantIds, idempotencyKey: "party-document-link-v1" });
+  state = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
+  const linkedDocument = state.partySetup?.sharedDocuments.find((document) => document.documentId === sharedDocument.documentId);
+  if (!linkedDocument?.applicantIds.includes(added.applicantId)) throw new Error("STAGING_PARTY_E2E_SHARED_DOCUMENT_LINK_INVALID");
   const serialized = JSON.stringify(state.partySetup).toLowerCase();
   if (["suppliercost", "internalcost", "margin", "profit", "stripe", "paymentintent"].some((field) => serialized.includes(field))) {
     throw new Error("STAGING_PARTY_E2E_FINANCE_FIELD_LEAK");
@@ -87,5 +98,7 @@ try {
   console.log("STAGING_PARTY_SETUP_RELATIONSHIP=PASS");
   console.log("STAGING_PARTY_SETUP_TRAVEL_VERSIONING=PASS");
   console.log("STAGING_PARTY_SETUP_OWNERSHIP_ISOLATION=PASS");
+  console.log("STAGING_PARTY_SETUP_SHARED_DOCUMENT_LINK=PASS");
+  console.log("STAGING_PARTY_SETUP_SHARED_DOCUMENT_CROSS_APPLICATION_DENIAL=PASS");
   console.log("STAGING_PARTY_SETUP_FINANCE_ISOLATION=PASS");
 } finally { await pool.end(); }

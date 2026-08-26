@@ -43,6 +43,8 @@ describe("Staging Dynamic Interview execution guards", () => {
     expect(partySetup).toContain('endsWith("/var/www/tashira-staging")');
     expect(partySetup).toContain('reference = "TSH-STG-DYN-FAMILY"');
     expect(partySetup).toContain("STAGING_PARTY_SETUP_OWNERSHIP_ISOLATION=PASS");
+    expect(partySetup).toContain("STAGING_PARTY_SETUP_SHARED_DOCUMENT_LINK=PASS");
+    expect(partySetup).toContain("STAGING_PARTY_SETUP_SHARED_DOCUMENT_CROSS_APPLICATION_DENIAL=PASS");
     expect(partySetup).toContain("STAGING_PARTY_SETUP_FINANCE_ISOLATION=PASS");
     expect(partySetup).not.toMatch(/STRIPE_SECRET_KEY|RESEND_API_KEY|storage_path/);
   });
