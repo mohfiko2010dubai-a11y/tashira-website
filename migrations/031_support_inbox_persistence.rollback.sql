@@ -1,0 +1,10 @@
+DROP TRIGGER IF EXISTS `support_commands_no_delete`;
+DROP TRIGGER IF EXISTS `support_commands_no_update`;
+DROP TRIGGER IF EXISTS `support_notes_no_delete`;
+DROP TRIGGER IF EXISTS `support_notes_no_update`;
+DROP TRIGGER IF EXISTS `support_messages_no_delete`;
+DROP TRIGGER IF EXISTS `support_messages_no_update`;
+DROP TABLE IF EXISTS `operations_support_command_events`;
+DROP TABLE IF EXISTS `operations_support_internal_notes`;
+DROP TABLE IF EXISTS `operations_support_messages`;
+DROP TABLE IF EXISTS `operations_support_threads`;
