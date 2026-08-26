@@ -36,9 +36,9 @@ export const GENERIC_REQUIREMENT_CODES = [
 ] as const;
 
 export const GENERIC_QUESTION_CODES = [
-  "NATIONALITY", "RESIDENCE_COUNTRY", "GCC_STATUS", "PROFESSION", "LOCATION",
-  "TRAVELLING_TOGETHER", "ACCOMPANYING_GUARDIAN", "PLANNED_ARRIVAL", "PLANNED_DEPARTURE",
-  "TICKET_CONFIRMATION", "TRAVEL_GROUP", "RELATIONSHIP",
+  "NATIONALITY", "RESIDENCE_COUNTRY", "GCC_RESIDENT", "GCC_COUNTRY", "PROFESSION", "INSIDE_OUTSIDE_UAE",
+  "TRAVELLING_TOGETHER", "ACCOMPANYING_PERSON", "PLANNED_ARRIVAL_DATE", "PLANNED_DEPARTURE_DATE",
+  "HAS_CONFIRMED_TICKETS", "TRAVEL_GROUP",
 ] as const;
 
 const labels: Readonly<Record<(typeof GENERIC_REQUIREMENT_CODES)[number], string>> = {
@@ -76,8 +76,8 @@ export function buildGenericCatalogSeed(): RequirementCatalogImport {
       shortCustomerExplanation: "This answer is used only when an active rule needs it.", internalLabel: code,
       classification: "CONDITIONAL", authoritySemantics: null, reasonTemplate: "May be required depending on your case.",
       helpText: "Answer for this applicant or travel group only.",
-      answerType: ["PLANNED_ARRIVAL", "PLANNED_DEPARTURE"].includes(code) ? "DATE"
-        : ["TRAVELLING_TOGETHER", "ACCOMPANYING_GUARDIAN", "TICKET_CONFIRMATION"].includes(code) ? "BOOLEAN" : "TEXT",
+      answerType: ["PLANNED_ARRIVAL_DATE", "PLANNED_DEPARTURE_DATE"].includes(code) ? "DATE"
+        : ["GCC_RESIDENT", "TRAVELLING_TOGETHER", "HAS_CONFIRMED_TICKETS"].includes(code) ? "BOOLEAN" : "TEXT",
       allowedValues: null, validationContract: { maxLength: 200 }, customerVisible: true,
       effectiveFrom, effectiveTo: null, reviewStatus: "PENDING",
     })),

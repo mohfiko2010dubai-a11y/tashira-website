@@ -32,7 +32,7 @@ export class MysqlRequirementCatalogProvider {
               human_review_policy AS humanReviewPolicy,effective_from AS effectiveFrom,effective_to AS effectiveTo,
               review_status AS reviewStatus
          FROM requirement_definitions
-        WHERE status='ACTIVE' AND review_status='APPROVED' AND effective_from<=?
+        WHERE status='ACTIVE' AND review_status='APPROVED' AND governance_state='ACTIVE' AND effective_from<=?
           AND (effective_to IS NULL OR effective_to>=?)
         ORDER BY stable_code,version`, [at, at],
     );
@@ -45,7 +45,7 @@ export class MysqlRequirementCatalogProvider {
               customer_visible AS customerVisible,effective_from AS effectiveFrom,effective_to AS effectiveTo,
               review_status AS reviewStatus
          FROM requirement_question_definitions
-        WHERE status='ACTIVE' AND review_status='APPROVED' AND effective_from<=?
+        WHERE status='ACTIVE' AND review_status='APPROVED' AND governance_state='ACTIVE' AND effective_from<=?
           AND (effective_to IS NULL OR effective_to>=?)
         ORDER BY stable_code,version`, [at, at],
     );

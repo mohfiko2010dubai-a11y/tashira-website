@@ -22,6 +22,7 @@ import { operationsReadRouter } from "./operations-read-router";
 import { operationsAlertRouter } from "./operations-alert-router";
 import { customerOperationsRouter } from "./customer-operations-router";
 import { customerPrecheckRouter } from "./customer-precheck-router";
+import { catalogGovernanceRouter } from "./catalog-governance-router";
 
 export const appRouter = createRouter({
   auth: authRouter,
@@ -47,6 +48,7 @@ export const appRouter = createRouter({
   operationsAlerts: operationsAlertRouter,
   customerOperations: customerOperationsRouter,
   customerPrecheck: customerPrecheckRouter,
+  catalogGovernance: catalogGovernanceRouter,
 });
 
 export type AppRouter = typeof appRouter;

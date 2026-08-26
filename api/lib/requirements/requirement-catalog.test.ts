@@ -30,7 +30,7 @@ describe("versioned requirement catalog", () => {
 
   it("provides deterministic generic import codes without activating requirements", () => {
     expect(GENERIC_REQUIREMENT_CODES).toContain("FAMILY_BOOKING");
-    expect(GENERIC_QUESTION_CODES).toContain("TRAVELLING_TOGETHER");
+    expect(GENERIC_QUESTION_CODES).toContain("GCC_RESIDENT");
     const first = validateCatalogImport({ importVersion: "generic-v1", requirements: [definition], questions: [] });
     const second = validateCatalogImport({ questions: [], requirements: [definition], importVersion: "generic-v1" });
     expect(first.sha256).toBe(second.sha256);
