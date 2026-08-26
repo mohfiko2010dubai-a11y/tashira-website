@@ -77,7 +77,7 @@ describe("authenticated Dynamic Interview API", () => {
     const current = deps([...flags, dynamicRequirements]); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
     expect(await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG",
       changeReason: "INITIAL_ANSWER" })).toMatchObject({ partySetup: { applicants: [{ applicantId: 21, profileVersion: 1 }],
-        relationships: [], travelGroups: [] }, unifiedReview: null });
+        relationships: [], travelGroups: [], sharedDocuments: [] }, unifiedReview: null });
     expect(current.loadUnifiedBundle).toHaveBeenCalledTimes(2);
     expect(current.loadUnifiedBundle).toHaveBeenNthCalledWith(1, reference);
     expect(current.loadUnifiedBundle).toHaveBeenNthCalledWith(2, reference);

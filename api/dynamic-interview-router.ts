@@ -28,6 +28,7 @@ const travelGroupInputSchema = z.object({ reference: z.string().trim().min(1).ma
   primaryTravellerId: z.number().int().positive(), accompanyingAdultId: z.number().int().positive().nullable(), arrangement: z.enum(["TOGETHER", "SEPARATELY"]),
   origin: z.string().trim().min(2).max(100), destination: z.string().trim().min(2).max(100), plannedArrivalDate: z.iso.date(),
   plannedDepartureDate: z.iso.date().nullable(), ticketStatus: z.enum(["NOT_BOOKED", "RESERVED", "CONFIRMED"]) }).strict();
+const sharedDocumentTypeSchema = z.enum(["OUTBOUND_TICKET", "RETURN_TICKET", "ONWARD_TICKET", "ROUND_TRIP_TICKET", "FAMILY_BOOKING"]);
 type Dependencies = {
   flagContextForContext(ctx: TrpcContext): FeatureFlagContext | Promise<FeatureFlagContext>;
   flagsForContext(ctx: TrpcContext): Promise<readonly FeatureFlagRecord[]>;
@@ -101,7 +102,11 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         travelGroups: partyBundle?.source.travelGroups?.map((group) => ({ travelGroupId: group.id, version: group.version,
           reference: group.reference, applicantIds: group.applicantIds, primaryTravellerId: group.primaryTravellerId,
           accompanyingAdultId: group.accompanyingAdultId, arrangement: group.arrangement, origin: group.origin, destination: group.destination,
-          plannedArrivalDate: group.plannedArrivalDate, plannedDepartureDate: group.plannedDepartureDate, ticketStatus: group.ticketStatus })) ?? [] } : null,
+          plannedArrivalDate: group.plannedArrivalDate, plannedDepartureDate: group.plannedDepartureDate, ticketStatus: group.ticketStatus })) ?? [],
+        sharedDocuments: partyBundle ? [...new Map((partyBundle.source.travelGroups ?? []).flatMap((group) => group.sharedDocuments)
+          .map((document) => [document.documentId, document] as const)).values()].map((document) => ({ documentId: document.documentId,
+            documentType: sharedDocumentTypeSchema.parse(document.documentType),
+            applicantIds: document.applicantIds })) : [] } : null,
       unifiedReview } };
   };
   const persistCompletion = async (runtime: Awaited<ReturnType<typeof state>>, trigger: InterviewAnswerEvent, reason: string) => {
@@ -233,7 +238,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Travel group could not be updated" }); }
     }),
     linkSharedDocument: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), documentId: z.number().int().positive(),
-      documentType: z.enum(["OUTBOUND_TICKET", "RETURN_TICKET", "ONWARD_TICKET", "ROUND_TRIP_TICKET", "FAMILY_BOOKING"]),
+      documentType: sharedDocumentTypeSchema,
       applicantIds: z.array(z.number().int().positive()).min(1).max(50), idempotencyKey: z.string().trim().min(8).max(100) }).strict())
       .mutation(async ({ input, ctx }) => {
         const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);

@@ -19,6 +19,7 @@ export default function DynamicApplication() {
   const relationshipMutation = trpc.dynamicInterview.defineRelationship.useMutation();
   const createTravelGroupMutation = trpc.dynamicInterview.createTravelGroup.useMutation();
   const updateTravelGroupMutation = trpc.dynamicInterview.updateTravelGroup.useMutation();
+  const linkSharedDocumentMutation = trpc.dynamicInterview.linkSharedDocument.useMutation();
   const question = query.data?.currentQuestions[0];
 
   if (query.isLoading) return <main className="mx-auto min-h-[60vh] max-w-3xl px-5 py-12" aria-live="polite">Loading your application…</main>;
@@ -41,8 +42,8 @@ export default function DynamicApplication() {
         {steps.map((step, index) => <li key={step} className={`rounded-full px-3 py-2 text-center ${index <= activeStep ? "bg-[#cda64f] font-semibold text-slate-950" : "bg-white text-slate-500"}`}>{step}</li>)}
       </ol>
       {state.partySetup && <InterviewPartySetup setup={state.partySetup}
-        busy={addApplicantMutation.isPending || editApplicantMutation.isPending || relationshipMutation.isPending || createTravelGroupMutation.isPending || updateTravelGroupMutation.isPending}
-        error={Boolean(addApplicantMutation.error || editApplicantMutation.error || relationshipMutation.error || createTravelGroupMutation.error || updateTravelGroupMutation.error)}
+        busy={addApplicantMutation.isPending || editApplicantMutation.isPending || relationshipMutation.isPending || createTravelGroupMutation.isPending || updateTravelGroupMutation.isPending || linkSharedDocumentMutation.isPending}
+        error={Boolean(addApplicantMutation.error || editApplicantMutation.error || relationshipMutation.error || createTravelGroupMutation.error || updateTravelGroupMutation.error || linkSharedDocumentMutation.error)}
         onAddApplicant={async (profile) => { await addApplicantMutation.mutateAsync({ referenceNumber, profile,
           reason: "Customer added applicant", idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
         onEditApplicant={async (applicant, profile) => { await editApplicantMutation.mutateAsync({ referenceNumber,
@@ -54,7 +55,10 @@ export default function DynamicApplication() {
           reason: "Customer created travel group", idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
         onUpdateTravelGroup={async (current, group) => { await updateTravelGroupMutation.mutateAsync({ referenceNumber,
           travelGroupId: current.travelGroupId, expectedVersion: current.version, group, reason: "Customer updated travel group",
-          idempotencyKey: crypto.randomUUID() }); await query.refetch(); }} />}
+          idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+        onLinkSharedDocument={async (document, applicantIds) => { await linkSharedDocumentMutation.mutateAsync({ referenceNumber,
+          documentId: document.documentId, documentType: document.documentType, applicantIds, idempotencyKey: crypto.randomUUID() });
+          await query.refetch(); }} />}
       {question ? <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div><p className="text-sm font-semibold text-[#9b7425]">{state.currentApplicant?.label ?? "Whole application"}</p><p className="text-sm text-slate-500">{state.currentStep.replaceAll("_", " ")}</p></div>
