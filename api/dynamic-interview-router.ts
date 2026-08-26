@@ -9,6 +9,8 @@ import { buildUnifiedInterviewRuntime } from "./lib/customer/unified-interview-o
 import { adaptPersistentUnifiedInterview } from "./lib/customer/unified-interview-persistence-adapter";
 import type { InterviewAnswer, InterviewAnswerEvent } from "./lib/customer/dynamic-interview";
 import { MysqlInterviewAnswerRepository } from "./lib/customer/mysql-interview-answer-repository";
+import { MysqlCustomerInterviewWriteRepository, type CustomerApplicantProfile,
+  type CustomerApplicantWriteResult } from "./lib/customer/mysql-customer-interview-write-repository";
 import { MysqlOperationsAccessProvider } from "./lib/operations/mysql-access-provider";
 import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import { MysqlRequirementCatalogProvider } from "./lib/requirements/mysql-requirement-catalog-provider";
@@ -28,6 +30,10 @@ type Dependencies = {
   loadRules(routeCode: string): Promise<readonly EligibilityRule[]>;
   loadEvents(applicationId: number): Promise<readonly InterviewAnswerEvent[]>;
   loadUnifiedBundle?(referenceNumber: string): Promise<MysqlOperationsCaseBundle | null>;
+  addApplicant?(input: { applicationId: number; profile: CustomerApplicantProfile; reason: string; actorReference: string;
+    idempotencyKey: string; occurredAt: Date }): Promise<CustomerApplicantWriteResult>;
+  editApplicant?(input: { applicationId: number; applicantId: number; expectedVersion: number; profile: CustomerApplicantProfile;
+    reason: string; actorReference: string; idempotencyKey: string; occurredAt: Date }): Promise<CustomerApplicantWriteResult>;
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
     changeReason: string; actorReference: string; occurredAt: Date }): Promise<InterviewAnswerEvent>;
   now(): Date;
@@ -51,12 +57,13 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     const authorized = await authorizedRuntime(deps, ctx, referenceNumber); const { application, context, flags } = authorized; const now = deps.now();
     const [catalog, rules, events] = await Promise.all([deps.loadCatalog(now), deps.loadRules(application.routeCode),
       deps.loadEvents(application.applicationId)]);
-    const unifiedEnabled = isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
-    const bundle = unifiedEnabled ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
     const questions: readonly QuestionCatalogDefinition[] = catalog.questions; const requirements: readonly RequirementCatalogDefinition[] = catalog.requirements;
     const interview = buildPersistentDynamicInterview({ applicationId: application.applicationId,
       routeCode: application.routeCode, applicantIds: application.applicantIds, questions, requirements, rules, events, evaluatedAt: now });
     const applicantId = interview.currentQuestions[0]?.applicantId ?? null;
+    const unifiedEnabled = isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
+    const bundle = unifiedEnabled && interview.currentQuestions.length === 0
+      ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
     let unifiedReview = null;
     if (bundle) {
       const persistent = adaptPersistentUnifiedInterview(bundle);
@@ -111,17 +118,52 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" });
       }
     }),
+    addApplicant: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50),
+      profile: z.object({ fullName: z.string().trim().min(2).max(255), nationality: z.string().trim().min(2).max(100).nullable(),
+        residenceCountry: z.string().trim().min(2).max(100).nullable() }).strict(), reason: z.string().trim().min(3).max(500),
+      idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
+      const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
+      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.addApplicant) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Applicant changes unavailable" });
+      }
+      try { return await deps.addApplicant({ applicationId: application.applicationId, profile: input.profile, reason: input.reason,
+        actorReference: `customer:${input.referenceNumber}`, idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
+      catch (error) {
+        if (error instanceof Error && error.message === "CUSTOMER_INTERVIEW_IDEMPOTENCY_CONFLICT") throw new TRPCError({ code: "CONFLICT", message: "Applicant change conflicts with an earlier request" });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Applicant could not be added" });
+      }
+    }),
+    editApplicant: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive(),
+      expectedVersion: z.number().int().positive(), profile: z.object({ fullName: z.string().trim().min(2).max(255),
+        nationality: z.string().trim().min(2).max(100).nullable(), residenceCountry: z.string().trim().min(2).max(100).nullable() }).strict(),
+      reason: z.string().trim().min(3).max(500), idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
+      const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
+      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.editApplicant) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Applicant changes unavailable" });
+      }
+      try { return await deps.editApplicant({ applicationId: application.applicationId, applicantId: input.applicantId,
+        expectedVersion: input.expectedVersion, profile: input.profile, reason: input.reason, actorReference: `customer:${input.referenceNumber}`,
+        idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
+      catch (error) {
+        if (error instanceof Error && ["CUSTOMER_APPLICANT_VERSION_CONFLICT", "CUSTOMER_INTERVIEW_IDEMPOTENCY_CONFLICT"].includes(error.message)) {
+          throw new TRPCError({ code: "CONFLICT", message: "Applicant change is no longer current" });
+        }
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Applicant could not be updated" });
+      }
+    }),
   });
 }
 
 const sql = defaultOperationsSqlClient();
 let access: MysqlOperationsAccessProvider | undefined; let catalog: MysqlRequirementCatalogProvider | undefined;
 let rules: MysqlActiveRuleProvider | undefined; let answers: MysqlInterviewAnswerRepository | undefined; let cases: MysqlOperationsCaseReadProvider | undefined;
+let applicantWrites: MysqlCustomerInterviewWriteRepository | undefined;
 function accessProvider() { return access ??= new MysqlOperationsAccessProvider(sql); }
 function catalogProvider() { return catalog ??= new MysqlRequirementCatalogProvider(sql); }
 function ruleProvider() { return rules ??= new MysqlActiveRuleProvider(sql); }
 function answerProvider() { return answers ??= new MysqlInterviewAnswerRepository(defaultOperationsPool()); }
 function caseProvider() { return cases ??= new MysqlOperationsCaseReadProvider(sql); }
+function applicantWriteProvider() { return applicantWrites ??= new MysqlCustomerInterviewWriteRepository(defaultOperationsPool()); }
 export const dynamicInterviewRouter = createDynamicInterviewRouter({
   flagContextForContext: (ctx) => accessProvider().flagContextForContext(ctx), flagsForContext: () => accessProvider().featureFlags(),
   loadApplication: async (referenceNumber) => {
@@ -137,5 +179,6 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
   loadCatalog: (at) => catalogProvider().active(at),
   loadRules: (routeCode) => ruleProvider().activeForRoute(routeCode), loadEvents: (applicationId) => answerProvider().all(applicationId),
   loadUnifiedBundle: (referenceNumber) => caseProvider().load(referenceNumber),
+  addApplicant: (input) => applicantWriteProvider().addApplicant(input), editApplicant: (input) => applicantWriteProvider().editApplicant(input),
   append: (input) => answerProvider().append(input), now: () => new Date(),
 });
