@@ -4,11 +4,12 @@ import type { TrpcContext } from "./context";
 import { assertApplicationReferenceAccess } from "./lib/application-authorization";
 import type { FeatureFlagContext, FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
 import { isOperationsFlagEnabled } from "./lib/feature-flags/feature-flags";
-import { buildPersistentDynamicInterview } from "./lib/customer/dynamic-interview-service";
+import { buildPersistentDynamicInterview, evaluateCompletedInterviewApplicants } from "./lib/customer/dynamic-interview-service";
 import { buildUnifiedInterviewRuntime } from "./lib/customer/unified-interview-orchestrator";
 import { adaptPersistentUnifiedInterview } from "./lib/customer/unified-interview-persistence-adapter";
 import type { InterviewAnswer, InterviewAnswerEvent } from "./lib/customer/dynamic-interview";
 import { MysqlInterviewAnswerRepository } from "./lib/customer/mysql-interview-answer-repository";
+import { MysqlInterviewEvaluationRepository, type CompletedApplicantEvaluation } from "./lib/customer/mysql-interview-evaluation-repository";
 import { MysqlCustomerInterviewWriteRepository, type CustomerApplicantProfile,
   type CustomerApplicantWriteResult, type CustomerTravelGroupInput } from "./lib/customer/mysql-customer-interview-write-repository";
 import { MysqlOperationsAccessProvider } from "./lib/operations/mysql-access-provider";
@@ -50,6 +51,8 @@ type Dependencies = {
     idempotencyKey: string; occurredAt: Date }): Promise<{ documentId: number; linkedApplicantIds: readonly number[]; replayed: boolean }>;
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
     changeReason: string; actorReference: string; occurredAt: Date }): Promise<InterviewAnswerEvent>;
+  persistCompletedEvaluations?(input: { applicationId: number; evaluations: readonly CompletedApplicantEvaluation[]; triggerEventId: string;
+    actorReference: string; reason: string; evaluatedAt: Date }): Promise<readonly { applicantId: number; evaluationId: string; replayed: boolean }[]>;
   now(): Date;
 };
 
@@ -87,10 +90,24 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         catalogProvider: { active: async () => ({ catalogVersion: "CURRENT", ...catalog }) }, evaluatedAt: now,
         applicationId: application.applicationId, ...persistent, answers, travelQuestions: [] })).review;
     }
-    return { application, questions, rules, events, state: { ...interview, currentApplicant: applicantId === null ? null
+    return { application, context, flags, questions, requirements, rules, events, state: { ...interview, currentApplicant: applicantId === null ? null
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
       review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
         label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) }, unifiedReview } };
+  };
+  const persistCompletion = async (runtime: Awaited<ReturnType<typeof state>>, trigger: InterviewAnswerEvent, reason: string) => {
+    if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags)) return;
+    const events = await deps.loadEvents(runtime.application.applicationId);
+    const evaluatedAt = new Date(trigger.occurredAt);
+    const evaluations = evaluateCompletedInterviewApplicants({ applicationId: runtime.application.applicationId,
+      routeCode: runtime.application.routeCode, applicantIds: runtime.application.applicantIds, questions: runtime.questions,
+      requirements: runtime.requirements,
+      rules: runtime.rules, events, evaluatedAt });
+    if (!evaluations) return;
+    if (!deps.persistCompletedEvaluations) throw new Error("INTERVIEW_EVALUATION_PERSISTENCE_UNAVAILABLE");
+    await deps.persistCompletedEvaluations({ applicationId: runtime.application.applicationId,
+      evaluations: evaluations.map(({ applicantId, result }) => ({ applicantId, selectedRoute: runtime.application.routeCode, result })),
+      triggerEventId: trigger.eventId, actorReference: `customer:${runtime.application.referenceNumber}`, reason, evaluatedAt });
   };
   return createRouter({
     current: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50) }).strict()).query(async ({ input, ctx }) => {
@@ -105,8 +122,9 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         if (!current || current.code !== input.questionCode || current.applicantId !== input.applicantId) throw new TRPCError({ code: "CONFLICT", message: "Interview question is no longer current" });
         const definition = runtime.questions.find((question) => question.code === input.questionCode);
         if (!definition) throw new TRPCError({ code: "CONFLICT", message: "Interview question unavailable" });
-        await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
+        const appended = await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
           answer: input.answer, changeReason: input.changeReason, actorReference: `customer:${input.referenceNumber}`, occurredAt: deps.now() });
+        await persistCompletion(runtime, appended, "CUSTOMER_INTERVIEW_COMPLETED");
         return (await state(ctx, input.referenceNumber)).state;
       } catch (error) {
         if (error instanceof TRPCError) throw error;
@@ -121,10 +139,12 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         const runtime = await state(ctx, input.referenceNumber);
         const previous = runtime.state.knownAnswers.find((item) => item.code === input.questionCode && item.applicantId === input.applicantId);
         if (!previous) throw new TRPCError({ code: "CONFLICT", message: "Interview answer is not editable" });
+        if (JSON.stringify(previous.answer) === JSON.stringify(input.answer)) return runtime.state;
         const definition = runtime.questions.find((question) => question.code === input.questionCode);
         if (!definition) throw new TRPCError({ code: "CONFLICT", message: "Interview question unavailable" });
-        await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
+        const appended = await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
           answer: input.answer, changeReason: input.changeReason, actorReference: `customer:${input.referenceNumber}`, occurredAt: deps.now() });
+        await persistCompletion(runtime, appended, input.changeReason);
         return (await state(ctx, input.referenceNumber)).state;
       } catch (error) {
         if (error instanceof TRPCError) throw error;
@@ -224,12 +244,14 @@ const sql = defaultOperationsSqlClient();
 let access: MysqlOperationsAccessProvider | undefined; let catalog: MysqlRequirementCatalogProvider | undefined;
 let rules: MysqlActiveRuleProvider | undefined; let answers: MysqlInterviewAnswerRepository | undefined; let cases: MysqlOperationsCaseReadProvider | undefined;
 let applicantWrites: MysqlCustomerInterviewWriteRepository | undefined;
+let interviewEvaluations: MysqlInterviewEvaluationRepository | undefined;
 function accessProvider() { return access ??= new MysqlOperationsAccessProvider(sql); }
 function catalogProvider() { return catalog ??= new MysqlRequirementCatalogProvider(sql); }
 function ruleProvider() { return rules ??= new MysqlActiveRuleProvider(sql); }
 function answerProvider() { return answers ??= new MysqlInterviewAnswerRepository(defaultOperationsPool()); }
 function caseProvider() { return cases ??= new MysqlOperationsCaseReadProvider(sql); }
 function applicantWriteProvider() { return applicantWrites ??= new MysqlCustomerInterviewWriteRepository(defaultOperationsPool()); }
+function interviewEvaluationProvider() { return interviewEvaluations ??= new MysqlInterviewEvaluationRepository(defaultOperationsPool()); }
 export const dynamicInterviewRouter = createDynamicInterviewRouter({
   flagContextForContext: (ctx) => accessProvider().flagContextForContext(ctx), flagsForContext: () => accessProvider().featureFlags(),
   loadApplication: async (referenceNumber) => {
@@ -250,5 +272,6 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
   createTravelGroup: (input) => applicantWriteProvider().createTravelGroup(input),
   updateTravelGroup: (input) => applicantWriteProvider().updateTravelGroup(input),
   linkSharedDocument: (input) => applicantWriteProvider().linkSharedDocument(input),
-  append: (input) => answerProvider().append(input), now: () => new Date(),
+  append: (input) => answerProvider().append(input),
+  persistCompletedEvaluations: (input) => interviewEvaluationProvider().persistCompleted(input), now: () => new Date(),
 });

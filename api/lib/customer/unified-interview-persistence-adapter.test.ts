@@ -41,4 +41,16 @@ describe("persistent Unified Interview adapter", () => {
     expect(() => adaptPersistentUnifiedInterview({ ...bundle, family: new InMemoryFamilyPersistenceRepository() }))
       .toThrow("UNIFIED_INTERVIEW_RELATIONSHIP_MISSING:12");
   });
+
+  it("fails closed when any applicant has no current immutable evaluation", () => {
+    const bundle = fixture();
+    const incomplete = new InMemoryEligibilitySnapshotRepository();
+    const current = bundle.snapshots.current(7, 11);
+    if (!current) throw new Error("fixture missing evaluation");
+    incomplete.append(current);
+    incomplete.select({ id: "only-lead", applicationId: 7, applicantId: 11, evaluationId: current.evaluationId,
+      reason: "CURRENT", selectedBy: "system", selectedAt: "2026-08-26T00:02:00.000Z" });
+    expect(() => adaptPersistentUnifiedInterview({ ...bundle, snapshots: incomplete }))
+      .toThrow("UNIFIED_INTERVIEW_CURRENT_EVALUATION_MISSING:12");
+  });
 });

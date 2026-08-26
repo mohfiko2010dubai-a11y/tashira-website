@@ -37,6 +37,8 @@ function deps(currentFlags = flags) {
   const createTravelGroup = vi.fn(async () => ({ travelGroupId: "11111111-1111-4111-8111-111111111111", version: 1, replayed: false }));
   const updateTravelGroup = vi.fn(async () => ({ travelGroupId: "11111111-1111-4111-8111-111111111111", version: 2, replayed: false }));
   const linkSharedDocument = vi.fn(async (input) => ({ documentId: input.documentId, linkedApplicantIds: input.applicantIds, replayed: false }));
+  const persistCompletedEvaluations = vi.fn(async (input: { evaluations: readonly { applicantId: number }[] }) => input.evaluations.map((evaluation) => ({ applicantId: evaluation.applicantId,
+    evaluationId: `evaluation-${evaluation.applicantId}`, replayed: false })));
   const append = vi.fn(async (input) => {
     events.push({ eventId: "event-1", applicationId: input.applicationId, applicantId: input.applicantId,
       questionDefinitionId: input.definition.definitionId, questionDefinitionVersion: 1, answer: input.answer,
@@ -46,7 +48,8 @@ function deps(currentFlags = flags) {
   return { flagContextForContext: async () => ({ environment: "STAGING" as const }), flagsForContext: async () => currentFlags,
     loadApplication: async (value: string) => value === reference ? ({ applicationId: 9, referenceNumber: reference, routeCode: "UAE_VISIT", applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" } }) : null,
     loadCatalog: async () => ({ questions: [question], requirements: [requirement] }), loadRules: async () => [rule], loadEvents: async () => events,
-    loadUnifiedBundle, addApplicant, editApplicant, defineRelationship, createTravelGroup, updateTravelGroup, linkSharedDocument, append, now: () => at };
+    loadUnifiedBundle, addApplicant, editApplicant, defineRelationship, createTravelGroup, updateTravelGroup, linkSharedDocument,
+    persistCompletedEvaluations, append, now: () => at };
 }
 
 describe("authenticated Dynamic Interview API", () => {
@@ -73,6 +76,8 @@ describe("authenticated Dynamic Interview API", () => {
     expect(await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG",
       changeReason: "INITIAL_ANSWER" })).toMatchObject({ unifiedReview: null });
     expect(current.loadUnifiedBundle).toHaveBeenCalledExactlyOnceWith(reference);
+    expect(current.persistCompletedEvaluations).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9,
+      evaluations: [expect.objectContaining({ applicantId: 21, selectedRoute: "UAE_VISIT" })] }));
   });
 
   it("adds and edits applicants only through the authenticated owned application", async () => {

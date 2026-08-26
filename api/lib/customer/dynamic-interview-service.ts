@@ -1,4 +1,4 @@
-import { evaluateEligibility, type EligibilityProfile, type EligibilityRule } from "../eligibility/eligibility-engine";
+import { evaluateEligibility, type EligibilityEvaluationResult, type EligibilityProfile, type EligibilityRule } from "../eligibility/eligibility-engine";
 import { customerReason, type QuestionCatalogDefinition, type RequirementCatalogDefinition } from "../requirements/requirement-catalog";
 import { buildDynamicInterviewState, type DynamicInterviewState, type InterviewAnswerEvent, type InterviewAnswerLookup, type InterviewEligibilityState } from "./dynamic-interview";
 import { deriveRequiredInterviewQuestions } from "./dynamic-question-progression";
@@ -37,9 +37,11 @@ function customerMessage(state: InterviewEligibilityState): string {
   return "This applicant is ready to review the listed requirements.";
 }
 
-export function buildPersistentDynamicInterview(input: { applicationId: number; routeCode: string; applicantIds: readonly number[];
-  questions: readonly QuestionCatalogDefinition[]; requirements?: readonly RequirementCatalogDefinition[]; rules: readonly EligibilityRule[]; events: readonly InterviewAnswerEvent[];
-  evaluatedAt: Date }): DynamicInterviewState {
+type PersistentInterviewInput = { applicationId: number; routeCode: string; applicantIds: readonly number[];
+  questions: readonly QuestionCatalogDefinition[]; requirements?: readonly RequirementCatalogDefinition[]; rules: readonly EligibilityRule[];
+  events: readonly InterviewAnswerEvent[]; evaluatedAt: Date };
+
+function prepare(input: PersistentInterviewInput) {
   const latest = currentEvents(input.events);
   const codeByDefinition = new Map(input.questions.map((question) => [question.definitionId, question.code]));
   const requiredQuestionCodes = deriveRequiredInterviewQuestions({ applicantIds: input.applicantIds, rules: input.rules,
@@ -51,20 +53,46 @@ export function buildPersistentDynamicInterview(input: { applicationId: number; 
     const definition = input.questions.find((question) => question.code === required.code);
     return !definition || !lookup.current(input.applicationId, required.applicantId, definition.definitionId);
   });
+  return { latest, codeByDefinition, requiredQuestionCodes, relevantAnswerKeys, lookup, unanswered };
+}
+
+function evaluatePreparedApplicant(input: PersistentInterviewInput, prepared: ReturnType<typeof prepare>, applicantId: number): {
+  profile: EligibilityProfile; result: EligibilityEvaluationResult;
+} | null {
+  const applicantHasUnanswered = prepared.requiredQuestionCodes.some((required) => required.applicantId === applicantId && (() => {
+    const definition = input.questions.find((question) => question.code === required.code);
+    return !definition || !prepared.lookup.current(input.applicationId, applicantId, definition.definitionId);
+  })());
+  if (applicantHasUnanswered) return null;
+  const attributes: Record<string, string | number | boolean> = {};
+  for (const event of prepared.latest.filter((answer) => answer.applicantId === applicantId)) {
+    const code = prepared.codeByDefinition.get(event.questionDefinitionId); const field = code ? codeField[code] : undefined;
+    if (field && code && prepared.relevantAnswerKeys.has(`${applicantId}:${code}`)) attributes[field] = event.answer;
+  }
+  const profile: EligibilityProfile = { routeCode: input.routeCode, attributes };
+  return { profile, result: evaluateEligibility({ profile, rules: input.rules, evaluatedAt: input.evaluatedAt }) };
+}
+
+/** Canonical completed-interview evaluation used by both customer projection and immutable persistence. */
+export function evaluateCompletedInterviewApplicants(input: PersistentInterviewInput): readonly {
+  applicantId: number; profile: EligibilityProfile; result: EligibilityEvaluationResult;
+}[] | null {
+  const prepared = prepare(input);
+  if (prepared.unanswered) return null;
+  return input.applicantIds.map((applicantId) => {
+    const evaluated = evaluatePreparedApplicant(input, prepared, applicantId);
+    if (!evaluated) throw new Error(`INTERVIEW_APPLICANT_EVALUATION_INCOMPLETE:${applicantId}`);
+    return { applicantId, ...evaluated };
+  });
+}
+
+export function buildPersistentDynamicInterview(input: PersistentInterviewInput): DynamicInterviewState {
+  const prepared = prepare(input);
   const applicantReview = input.applicantIds.map((applicantId) => {
-    const applicantHasUnanswered = requiredQuestionCodes.some((required) => required.applicantId === applicantId && (() => {
-      const definition = input.questions.find((question) => question.code === required.code);
-      return !definition || !lookup.current(input.applicationId, applicantId, definition.definitionId);
-    })());
-    if (applicantHasUnanswered) return { applicantId, eligibilityState: "NEEDS_MORE_INFORMATION" as const,
+    const evaluated = evaluatePreparedApplicant(input, prepared, applicantId);
+    if (!evaluated) return { applicantId, eligibilityState: "NEEDS_MORE_INFORMATION" as const,
       requirements: [], customerMessage: customerMessage("NEEDS_MORE_INFORMATION") };
-      const attributes: Record<string, string | number | boolean> = {};
-      for (const event of latest.filter((answer) => answer.applicantId === applicantId)) {
-        const code = codeByDefinition.get(event.questionDefinitionId); const field = code ? codeField[code] : undefined;
-        if (field && code && relevantAnswerKeys.has(`${applicantId}:${code}`)) attributes[field] = event.answer;
-      }
-      const profile: EligibilityProfile = { routeCode: input.routeCode, attributes };
-      const result = evaluateEligibility({ profile, rules: input.rules, evaluatedAt: input.evaluatedAt });
+      const result = evaluated.result;
       const eligibilityState: InterviewEligibilityState = result.finalEligibilityState === "ELIGIBLE" ? "ELIGIBLE_ROUTE_FOUND"
         : result.finalEligibilityState === "INELIGIBLE" ? "NOT_ELIGIBLE" : result.finalEligibilityState;
       const definitions = new Map((input.requirements ?? []).filter(({ classification }) => classification !== "INTERNAL").map((definition) => [definition.code, definition]));
@@ -80,7 +108,7 @@ export function buildPersistentDynamicInterview(input: { applicationId: number; 
       const conditional = [...new Set(result.conditionalDocuments.map(({ code }) => code))].sort().map((code) => project(code, "CONDITIONAL"));
       return { applicantId, eligibilityState, requirements: [...required, ...conditional], customerMessage: customerMessage(eligibilityState) };
   });
-  const evaluatedState = unanswered ? undefined : aggregate(applicantReview.map(({ eligibilityState }) => eligibilityState));
+  const evaluatedState = prepared.unanswered ? undefined : aggregate(applicantReview.map(({ eligibilityState }) => eligibilityState));
   return buildDynamicInterviewState({ applicationId: input.applicationId, applicantIds: input.applicantIds,
-    requiredQuestionCodes, questionCatalog: input.questions, history: lookup, evaluatedState, applicantReview });
+    requiredQuestionCodes: prepared.requiredQuestionCodes, questionCatalog: input.questions, history: prepared.lookup, evaluatedState, applicantReview });
 }

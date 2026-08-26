@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { EligibilityRule } from "../eligibility/eligibility-engine";
 import type { QuestionCatalogDefinition, RequirementCatalogDefinition } from "../requirements/requirement-catalog";
 import { InMemoryInterviewAnswerHistory } from "./dynamic-interview";
-import { buildPersistentDynamicInterview } from "./dynamic-interview-service";
+import { buildPersistentDynamicInterview, evaluateCompletedInterviewApplicants } from "./dynamic-interview-service";
 
 const at = new Date("2026-08-26T00:00:00Z");
 function question(code: string, answerType: QuestionCatalogDefinition["answerType"] = "TEXT"): QuestionCatalogDefinition {
@@ -33,6 +33,10 @@ describe("persistent dynamic interview composition", () => {
     expect(buildPersistentDynamicInterview({ ...base, events: history.all(9) })).toMatchObject({ eligibilityState: "ELIGIBLE_ROUTE_FOUND", nextAction: "REVIEW_REQUIREMENTS" });
     expect(buildPersistentDynamicInterview({ ...base, events: history.all(9) }).review.applicants[0]).toMatchObject({
       applicantId: 21, eligibilityState: "ELIGIBLE_ROUTE_FOUND", requirements: [expect.objectContaining({ code: "PASSPORT", label: "Passport copy" })] });
+    expect(evaluateCompletedInterviewApplicants({ ...base, events: history.all(9) })).toEqual([
+      expect.objectContaining({ applicantId: 21, profile: { routeCode: "UAE_VISIT", attributes: { nationality: "EG" } },
+        result: expect.objectContaining({ finalEligibilityState: "ELIGIBLE", requiredDocuments: ["PASSPORT"] }) }),
+    ]);
   });
 
   it("returns customer-safe independent family review requirements", () => {

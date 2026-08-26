@@ -32,6 +32,11 @@ export function adaptPersistentUnifiedInterview(bundle: MysqlOperationsCaseBundl
   sharedDocuments: readonly SharedTravelDocument[];
 } {
   const applicantIdentities = identities(bundle);
+  for (const { applicantId } of applicantIdentities) {
+    if (!bundle.snapshots.current(bundle.source.summary.applicationId, applicantId)) {
+      throw new Error(`UNIFIED_INTERVIEW_CURRENT_EVALUATION_MISSING:${applicantId}`);
+    }
+  }
   const members: FamilyMember[] = applicantIdentities.map(({ applicantId, relationship }) => ({ applicantId, relationship: relationship as FamilyRelationship }));
   const applicationId = bundle.source.summary.applicationId;
   const family = aggregateFamilyEvaluations({ applicationId, members, snapshots: bundle.snapshots });
