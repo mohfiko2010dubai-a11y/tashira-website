@@ -12,7 +12,7 @@ describe("catalog governance", () => {
   it("imports deterministic definitions as DRAFT only", () => {
     const repo = new InMemoryCatalogGovernanceRepository();
     const result = repo.importDraft(buildGenericCatalogSeed(), proposer, new Date("2026-08-26T00:00:00Z"));
-    expect(result.imported).toBe(24);
+    expect(result.imported).toBe(31);
     expect(repo.get(result.catalog.requirements[0].definitionId)?.state).toBe("DRAFT");
   });
 

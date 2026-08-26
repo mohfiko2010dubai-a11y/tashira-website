@@ -47,9 +47,13 @@ export type DynamicInterviewState = {
   nextAction: "ANSWER_QUESTIONS" | "REVIEW_REQUIREMENTS" | "HUMAN_REVIEW";
 };
 
+export type InterviewAnswerLookup = {
+  current(applicationId: number, applicantId: number | null, definitionId: string): InterviewAnswerEvent | null;
+};
+
 export function buildDynamicInterviewState(input: {
   applicationId: number; applicantIds: readonly number[]; requiredQuestionCodes: readonly { code: string; applicantId: number | null; reason: string }[];
-  questionCatalog: readonly QuestionCatalogDefinition[]; history: InMemoryInterviewAnswerHistory; evaluatedState?: Exclude<InterviewEligibilityState, "NEEDS_MORE_INFORMATION">;
+  questionCatalog: readonly QuestionCatalogDefinition[]; history: InterviewAnswerLookup; evaluatedState?: Exclude<InterviewEligibilityState, "NEEDS_MORE_INFORMATION">;
 }): DynamicInterviewState {
   const allowedApplicants = new Set(input.applicantIds);
   const catalog = new Map(input.questionCatalog.filter((question) => question.customerVisible && question.classification !== "INTERNAL").map((question) => [question.code, question]));

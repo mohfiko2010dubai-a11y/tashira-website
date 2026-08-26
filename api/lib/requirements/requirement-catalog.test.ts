@@ -36,8 +36,8 @@ describe("versioned requirement catalog", () => {
     expect(first.sha256).toBe(second.sha256);
     expect(first.catalog.requirements[0].status).toBe("ACTIVE");
     const generic = buildGenericCatalogSeed();
-    expect(generic.requirements).toHaveLength(12);
-    expect(generic.questions).toHaveLength(12);
+    expect(generic.requirements).toHaveLength(13);
+    expect(generic.questions).toHaveLength(18);
     expect(generic.requirements.every(({ status }) => status === "DRAFT")).toBe(true);
   });
 });

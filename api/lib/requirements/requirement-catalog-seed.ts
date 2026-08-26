@@ -31,12 +31,13 @@ export function validateCatalogImport(input: unknown): { catalog: RequirementCat
 
 export const GENERIC_REQUIREMENT_CODES = [
   "PASSPORT", "PERSONAL_PHOTO", "NATIONAL_ID", "GCC_RESIDENCE", "RESIDENCE_PERMIT",
-  "RETURN_TICKET", "ONWARD_TICKET", "ROUND_TRIP_TICKET", "FAMILY_BOOKING",
+  "RETURN_TICKET", "OUTBOUND_TICKET", "ONWARD_TICKET", "ROUND_TRIP_TICKET", "FAMILY_BOOKING",
   "HEALTH_INSURANCE", "BANK_STATEMENT", "RELATIONSHIP_DOCUMENT",
 ] as const;
 
 export const GENERIC_QUESTION_CODES = [
-  "NATIONALITY", "RESIDENCE_COUNTRY", "GCC_RESIDENT", "GCC_COUNTRY", "PROFESSION", "INSIDE_OUTSIDE_UAE",
+  "APPLICATION_TYPE", "NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "RESIDENCE_TYPE", "GCC_RESIDENT",
+  "GCC_COUNTRY", "RESIDENCE_EXPIRY", "PROFESSION", "DATE_OF_BIRTH", "RELATIONSHIP", "INSIDE_OUTSIDE_UAE",
   "TRAVELLING_TOGETHER", "ACCOMPANYING_PERSON", "PLANNED_ARRIVAL_DATE", "PLANNED_DEPARTURE_DATE",
   "HAS_CONFIRMED_TICKETS", "TRAVEL_GROUP",
 ] as const;
@@ -44,7 +45,7 @@ export const GENERIC_QUESTION_CODES = [
 const labels: Readonly<Record<(typeof GENERIC_REQUIREMENT_CODES)[number], string>> = {
   PASSPORT: "Passport copy", PERSONAL_PHOTO: "Personal photo", NATIONAL_ID: "National ID",
   GCC_RESIDENCE: "GCC residence evidence", RESIDENCE_PERMIT: "Residence permit", RETURN_TICKET: "Return ticket",
-  ONWARD_TICKET: "Onward ticket", ROUND_TRIP_TICKET: "Round-trip ticket", FAMILY_BOOKING: "Family booking",
+  OUTBOUND_TICKET: "Outbound ticket", ONWARD_TICKET: "Onward ticket", ROUND_TRIP_TICKET: "Round-trip ticket", FAMILY_BOOKING: "Family booking",
   HEALTH_INSURANCE: "Health insurance", BANK_STATEMENT: "Bank statement", RELATIONSHIP_DOCUMENT: "Relationship document",
 };
 
@@ -76,7 +77,7 @@ export function buildGenericCatalogSeed(): RequirementCatalogImport {
       shortCustomerExplanation: "This answer is used only when an active rule needs it.", internalLabel: code,
       classification: "CONDITIONAL", authoritySemantics: null, reasonTemplate: "May be required depending on your case.",
       helpText: "Answer for this applicant or travel group only.",
-      answerType: ["PLANNED_ARRIVAL_DATE", "PLANNED_DEPARTURE_DATE"].includes(code) ? "DATE"
+      answerType: ["PLANNED_ARRIVAL_DATE", "PLANNED_DEPARTURE_DATE", "RESIDENCE_EXPIRY", "DATE_OF_BIRTH"].includes(code) ? "DATE"
         : ["GCC_RESIDENT", "TRAVELLING_TOGETHER", "HAS_CONFIRMED_TICKETS"].includes(code) ? "BOOLEAN" : "TEXT",
       allowedValues: null, validationContract: { maxLength: 200 }, customerVisible: true,
       effectiveFrom, effectiveTo: null, reviewStatus: "PENDING",

@@ -18,7 +18,8 @@ function date(valueToParse: unknown): Date | null {
 function bool(valueToParse: unknown): boolean { return valueToParse === true || valueToParse === 1 || valueToParse === "1"; }
 
 export class MysqlRequirementCatalogProvider {
-  constructor(private readonly sql: OperationsSqlClient) {}
+  private readonly sql: OperationsSqlClient;
+  constructor(sql: OperationsSqlClient) { this.sql = sql; }
 
   async active(at: Date): Promise<VersionedRequirementCatalog> {
     const requirementRows = await this.sql.query(

@@ -23,6 +23,7 @@ import { operationsAlertRouter } from "./operations-alert-router";
 import { customerOperationsRouter } from "./customer-operations-router";
 import { customerPrecheckRouter } from "./customer-precheck-router";
 import { catalogGovernanceRouter } from "./catalog-governance-router";
+import { dynamicInterviewRouter } from "./dynamic-interview-router";
 
 export const appRouter = createRouter({
   auth: authRouter,
@@ -49,6 +50,7 @@ export const appRouter = createRouter({
   customerOperations: customerOperationsRouter,
   customerPrecheck: customerPrecheckRouter,
   catalogGovernance: catalogGovernanceRouter,
+  dynamicInterview: dynamicInterviewRouter,
 });
 
 export type AppRouter = typeof appRouter;
