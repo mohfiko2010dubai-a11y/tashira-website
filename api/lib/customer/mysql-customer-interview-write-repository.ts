@@ -63,7 +63,9 @@ async function replay(connection: PoolConnection, input: { applicationId: number
 }
 
 export class MysqlCustomerInterviewWriteRepository {
-  constructor(private readonly pool: Pool) {}
+  private readonly pool: Pool;
+
+  constructor(pool: Pool) { this.pool = pool; }
 
   async addApplicant(input: { applicationId: number; profile: CustomerApplicantProfile; reason: string; actorReference: string;
     idempotencyKey: string; occurredAt: Date }): Promise<CustomerApplicantWriteResult> {

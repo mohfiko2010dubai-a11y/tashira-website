@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { InMemoryEligibilitySnapshotRepository } from "../eligibility/snapshot-repository";
+import { ELIGIBILITY_ENGINE_VERSION } from "../eligibility/evaluation-evidence";
 import { InMemoryFamilyPersistenceRepository } from "../family/family-persistence";
 import type { MysqlOperationsCaseBundle } from "../operations/mysql-case-read-provider";
 import { adaptPersistentUnifiedInterview } from "./unified-interview-persistence-adapter";
@@ -7,7 +8,7 @@ import { adaptPersistentUnifiedInterview } from "./unified-interview-persistence
 function fixture(): MysqlOperationsCaseBundle {
   const snapshots = new InMemoryEligibilitySnapshotRepository();
   for (const applicantId of [11, 12]) {
-    snapshots.append({ evaluationId: `eval-${applicantId}`, applicationId: 7, applicantId, engineVersion: "test", selectedRoute: "TEST",
+    snapshots.append({ evaluationId: `eval-${applicantId}`, applicationId: 7, applicantId, engineVersion: ELIGIBILITY_ENGINE_VERSION, selectedRoute: "TEST",
       evaluatedAt: "2026-08-26T00:00:00.000Z", eligibilityState: "ELIGIBLE", reason: "Synthetic", reevaluationReason: null,
       supersedesEvaluationId: null, manualReviewReason: null, matchedRuleIds: ["rule"], matchedRuleVersions: [{ ruleId: "rule", version: 1 }],
       sourceAuthorities: ["SYNTHETIC"], matchedRules: [], requiredDocuments: ["PASSPORT"], conditionalDocuments: [], warnings: [],
