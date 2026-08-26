@@ -15,7 +15,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Typing Pack | PARTIAL | Yes | No | Integrity-bound draft framework complete behind a closed flag; owner-approved templates/output renderer remain |
 | Authority Query Workflow | PARTIAL | Yes | No | Deterministic append-only lifecycle complete behind a closed flag; authority-specific submission adapter/procedure remain |
 | Visa Delivery Workflow | PARTIAL | Yes | Existing statuses | Authorized ownership/scan-gated delivery package complete behind a closed flag; secure runtime adapter/UAT remain |
-| Supplier Management | PARTIAL | Existing app | Read-only identity | Operations-specific SLA/escalation controls |
+| Supplier Management | PARTIAL | Yes | Staging scoped E2E | Finance-free SLA policies/snapshots, queue, RBAC API/UI, concurrency, escalation and audit are complete behind an OFF flag; approved business policy values and external supplier integration remain |
 | Supplier Cost / Finance Separation | DONE | Yes | Yes | Finance-only activation review |
 | Effective Cost History | PARTIAL | Existing snapshots | No | Finance policy and supplier-cost history integration |
 | Multi-Team RBAC | DONE | Yes | Yes | Production grants require owner approval |
@@ -37,7 +37,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 
 ## Honest completion
 
-Core case-operations foundation is approximately **82% complete**. Full Master Program V1 is approximately **65% complete** because supplier/authority, external AI/support providers, analytics UI, approved regulatory content and Production activation remain incomplete. No percentage includes Production activation.
+Core case-operations foundation is approximately **85% complete**. Full Master Program V1 is approximately **68% complete** because external supplier/authority, AI/support providers, approved policy/rule content and Production activation remain incomplete. No percentage includes Production activation.
 
 ## Unified Interview runtime update — 2026-08-26
 
