@@ -38,7 +38,7 @@ try {
   const added = await authorized.dynamicInterview.addApplicant.mutate({ referenceNumber: reference,
     profile: { fullName: "Synthetic Added Applicant", nationality: "EG", residenceCountry: "AE" },
     reason: "Synthetic Staging party setup E2E", idempotencyKey: "party-add-applicant-v1" });
-  state = await authorized.dynamicInterview.current.query({ referenceNumber });
+  state = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
   let applicant = state.partySetup?.applicants.find((item) => item.applicantId === added.applicantId);
   if (!applicant) throw new Error("STAGING_PARTY_E2E_ADDED_APPLICANT_MISSING");
   if (applicant.fullName === "Synthetic Added Applicant") {
@@ -53,7 +53,7 @@ try {
     applicantIds: [lead.applicantId, applicant.applicantId], primaryTravellerId: lead.applicantId, accompanyingAdultId: lead.applicantId,
     arrangement: "TOGETHER", origin: "CAI", destination: "DXB", plannedArrivalDate: "2027-03-20", plannedDepartureDate: "2027-03-30",
     ticketStatus: "NOT_BOOKED" }, reason: "Synthetic Staging travel group", idempotencyKey: "party-travel-create-v1" });
-  state = await authorized.dynamicInterview.current.query({ referenceNumber });
+  state = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
   const currentGroup = state.partySetup?.travelGroups.find((group) => group.travelGroupId === created.travelGroupId);
   if (!currentGroup) throw new Error("STAGING_PARTY_E2E_TRAVEL_GROUP_MISSING");
   if (currentGroup.arrangement === "TOGETHER") await authorized.dynamicInterview.updateTravelGroup.mutate({ referenceNumber: reference,
@@ -63,7 +63,7 @@ try {
       destination: currentGroup.destination, plannedArrivalDate: currentGroup.plannedArrivalDate,
       plannedDepartureDate: currentGroup.plannedDepartureDate, ticketStatus: currentGroup.ticketStatus },
     reason: "Synthetic Staging travel correction", idempotencyKey: "party-travel-update-v1" });
-  state = await authorized.dynamicInterview.current.query({ referenceNumber });
+  state = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
   applicant = state.partySetup?.applicants.find((item) => item.applicantId === added.applicantId);
   const relationship = state.partySetup?.relationships.find((item) => item.fromApplicantId === lead.applicantId && item.toApplicantId === added.applicantId);
   const travelGroup = state.partySetup?.travelGroups.find((group) => group.travelGroupId === created.travelGroupId);
