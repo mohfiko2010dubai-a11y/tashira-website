@@ -29,7 +29,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Authenticated Case Chat / Handoff | PARTIAL | Yes | Existing app | Audited handoff payload and triggers complete; runtime conversation adapter remains |
 | Email Automation | PARTIAL | Yes | Existing app | Complete canonical V1 event/dedup ledger exists; persistent runtime/provider dispatch remains |
 | Inbound Email / Employee Reply | PARTIAL | Contract only | No | Mailbox/provider credentials and adapter |
-| Support Inbox | PARTIAL | Yes | Isolated MySQL rehearsal | Persistent team-scoped store, RBAC API, internal UI, concurrency, idempotency and append-only messages/notes/audit are complete behind a closed flag; Staging scoped E2E and external mailbox provider remain |
+| Support Inbox | PARTIAL | Yes | Staging MySQL runtime verified | Persistent team-scoped store, RBAC API, internal UI, concurrency, idempotency and append-only messages/notes/audit are deployed on Staging behind an OFF flag; real Staging repository integration passes, while browser sign-off and the external mailbox provider remain |
 | Regulatory Watcher / Change Center | PARTIAL | Yes | No | Controlled review/impact model complete and cannot auto-activate; official-source connector, persistence and authorized UI remain |
 | Feature Flags | DONE | Yes | Yes | Production activation is a separate owner gate |
 | Legacy Compatibility | DONE | Yes | Yes | Explicit re-evaluation only |
