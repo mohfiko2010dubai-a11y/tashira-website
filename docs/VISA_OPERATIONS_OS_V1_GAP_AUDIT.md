@@ -27,7 +27,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Customer Portal Timeline | DONE | Yes | Staging scoped E2E | Canonical finance-free portal projection, registered customer route and authenticated application-scoped read-only runtime API are complete behind a closed flag; Production activation remains an owner gate |
 | Visa Assistant | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Authenticated application-owned runtime reuses the canonical MySQL case bundle and finance-minimized portal projection for status, requirements, travel, submission and document answers; unknown knowledge fails closed to human review. Approved knowledge content/provider and Production activation remain owner gates |
 | Authenticated Case Chat / Handoff | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Owned customer runtime reuses the canonical case bundle, assistant grounding and Support Inbox persistence; team/current-evaluation fail-closed gates, transactionality, replay/conflict handling and append-only audit are verified. External provider messaging remains deliberately absent |
-| Email Automation | PARTIAL | Yes | Existing app | Complete canonical V1 event/dedup ledger exists; persistent runtime/provider dispatch remains |
+| Email Automation | PERSISTENCE COMPLETE | Yes | Migration 036 + Staging scoped E2E | Immutable timeline-owned dispatch queue, recipient-hash minimization, append-only delivery evidence, replay/conflict behavior and provider-ledger isolation are complete behind an OFF flag. Approved trigger/template policy and external provider dispatch remain owner gates; no email was sent |
 | Inbound Email / Employee Reply | PARTIAL | Contract only | No | Mailbox/provider credentials and adapter |
 | Support Inbox | PARTIAL | Yes | Staging MySQL runtime verified | Persistent team-scoped store, RBAC API, internal UI, concurrency, idempotency and append-only messages/notes/audit are deployed on Staging behind an OFF flag; real Staging repository integration passes, while browser sign-off and the external mailbox provider remain |
 | Regulatory Watcher / Change Center | PARTIAL | Yes | Staging scoped E2E | Immutable proposal/impact persistence, explicit RBAC review API and internal UI are complete behind an OFF flag and cannot auto-activate; official-source connector and approved content remain |
@@ -37,7 +37,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 
 ## Honest completion
 
-Core case-operations foundation is approximately **90% complete**. Full Master Program V1 is approximately **72% complete** because external supplier/authority, AI/mailbox providers, approved policy/rule/template content, final human browser acceptance and Production activation remain incomplete. No percentage includes Production activation.
+Core case-operations foundation is approximately **91% complete**. Full Master Program V1 is approximately **73% complete** because external supplier/authority, AI/mailbox providers, approved policy/rule/template content, final human browser acceptance and Production activation remain incomplete. No percentage includes Production activation.
 
 ## Unified Interview runtime update — 2026-08-26
 
