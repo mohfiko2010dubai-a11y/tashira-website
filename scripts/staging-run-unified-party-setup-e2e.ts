@@ -35,28 +35,28 @@ try {
   let state = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
   if (!state.partySetup || state.partySetup.applicants.length < 2) throw new Error("STAGING_PARTY_E2E_SETUP_MISSING");
   const lead = state.partySetup.applicants[0];
-  const added = await authorized.dynamicInterview.addApplicant.mutate({ referenceNumber,
+  const added = await authorized.dynamicInterview.addApplicant.mutate({ referenceNumber: reference,
     profile: { fullName: "Synthetic Added Applicant", nationality: "EG", residenceCountry: "AE" },
     reason: "Synthetic Staging party setup E2E", idempotencyKey: "party-add-applicant-v1" });
   state = await authorized.dynamicInterview.current.query({ referenceNumber });
   let applicant = state.partySetup?.applicants.find((item) => item.applicantId === added.applicantId);
   if (!applicant) throw new Error("STAGING_PARTY_E2E_ADDED_APPLICANT_MISSING");
   if (applicant.fullName === "Synthetic Added Applicant") {
-    await authorized.dynamicInterview.editApplicant.mutate({ referenceNumber, applicantId: applicant.applicantId,
+    await authorized.dynamicInterview.editApplicant.mutate({ referenceNumber: reference, applicantId: applicant.applicantId,
       expectedVersion: applicant.profileVersion, profile: { fullName: "Synthetic Updated Applicant", nationality: "EG", residenceCountry: "AE" },
       reason: "Synthetic Staging profile correction", idempotencyKey: "party-edit-applicant-v1" });
   }
-  await authorized.dynamicInterview.defineRelationship.mutate({ referenceNumber, fromApplicantId: lead.applicantId,
+  await authorized.dynamicInterview.defineRelationship.mutate({ referenceNumber: reference, fromApplicantId: lead.applicantId,
     toApplicantId: applicant.applicantId, relationship: "DEPENDENT", reason: "Synthetic Staging relationship",
     idempotencyKey: "party-relationship-v1" });
-  const created = await authorized.dynamicInterview.createTravelGroup.mutate({ referenceNumber, group: { reference: "Synthetic secondary trip",
+  const created = await authorized.dynamicInterview.createTravelGroup.mutate({ referenceNumber: reference, group: { reference: "Synthetic secondary trip",
     applicantIds: [lead.applicantId, applicant.applicantId], primaryTravellerId: lead.applicantId, accompanyingAdultId: lead.applicantId,
     arrangement: "TOGETHER", origin: "CAI", destination: "DXB", plannedArrivalDate: "2027-03-20", plannedDepartureDate: "2027-03-30",
     ticketStatus: "NOT_BOOKED" }, reason: "Synthetic Staging travel group", idempotencyKey: "party-travel-create-v1" });
   state = await authorized.dynamicInterview.current.query({ referenceNumber });
   const currentGroup = state.partySetup?.travelGroups.find((group) => group.travelGroupId === created.travelGroupId);
   if (!currentGroup) throw new Error("STAGING_PARTY_E2E_TRAVEL_GROUP_MISSING");
-  if (currentGroup.arrangement === "TOGETHER") await authorized.dynamicInterview.updateTravelGroup.mutate({ referenceNumber,
+  if (currentGroup.arrangement === "TOGETHER") await authorized.dynamicInterview.updateTravelGroup.mutate({ referenceNumber: reference,
     travelGroupId: currentGroup.travelGroupId, expectedVersion: currentGroup.version, group: { reference: currentGroup.reference,
       applicantIds: [...currentGroup.applicantIds], primaryTravellerId: currentGroup.primaryTravellerId,
       accompanyingAdultId: currentGroup.accompanyingAdultId, arrangement: "SEPARATELY", origin: currentGroup.origin,
