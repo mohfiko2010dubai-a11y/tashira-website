@@ -1,0 +1,14 @@
+DROP TRIGGER IF EXISTS `authority_query_event_no_delete`;
+DROP TRIGGER IF EXISTS `authority_query_event_no_update`;
+DROP TRIGGER IF EXISTS `authority_query_no_delete`;
+DROP TRIGGER IF EXISTS `authority_query_identity_immutable`;
+DROP TRIGGER IF EXISTS `authority_query_ownership_guard`;
+DROP TRIGGER IF EXISTS `typing_pack_no_delete`;
+DROP TRIGGER IF EXISTS `typing_pack_no_update`;
+DROP TRIGGER IF EXISTS `typing_pack_ownership_guard`;
+DROP TRIGGER IF EXISTS `typing_pack_template_no_delete`;
+DROP TRIGGER IF EXISTS `typing_pack_template_no_update`;
+DROP TABLE IF EXISTS `operations_authority_query_events`;
+DROP TABLE IF EXISTS `operations_authority_queries`;
+DROP TABLE IF EXISTS `operations_typing_packs`;
+DROP TABLE IF EXISTS `operations_typing_pack_templates`;
