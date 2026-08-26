@@ -25,7 +25,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Customer Pre-Check | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Safe guidance contract, rate-limited Active/validated/source-verified MySQL runtime API and responsive public UI are complete behind a closed flag; approved Production rules dataset and activation remain owner gates |
 | Trust Center | PARTIAL | Existing legal UI | Existing app | Final legal owner review |
 | Customer Portal Timeline | DONE | Yes | Staging scoped E2E | Canonical finance-free portal projection, registered customer route and authenticated application-scoped read-only runtime API are complete behind a closed flag; Production activation remains an owner gate |
-| Visa Assistant | PARTIAL | Yes | No | Evidence-priority grounding supports authenticated applicant/travel/scheduler/document answers; runtime adapter and approved knowledge content remain |
+| Visa Assistant | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Authenticated application-owned runtime reuses the canonical MySQL case bundle and finance-minimized portal projection for status, requirements, travel, submission and document answers; unknown knowledge fails closed to human review. Approved knowledge content/provider and Production activation remain owner gates |
 | Authenticated Case Chat / Handoff | PARTIAL | Yes | Existing app | Audited handoff payload and triggers complete; runtime conversation adapter remains |
 | Email Automation | PARTIAL | Yes | Existing app | Complete canonical V1 event/dedup ledger exists; persistent runtime/provider dispatch remains |
 | Inbound Email / Employee Reply | PARTIAL | Contract only | No | Mailbox/provider credentials and adapter |
