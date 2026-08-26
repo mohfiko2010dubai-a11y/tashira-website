@@ -26,12 +26,20 @@ const input = {
 
 describe("operations email runtime", () => {
   it("queues trusted evidence only behind the closed flag", async () => {
+    let received: unknown;
+    const repository = {
+      queue: async (value: unknown) => {
+        received = value;
+        return queued;
+      },
+    };
     await expect(
       queueOperationsEmailBehindFlag({ ...input, flags: [] })
     ).resolves.toBeNull();
     await expect(
       queueOperationsEmailBehindFlag({
         ...input,
+        repository,
         flags: [
           {
             flagKey: "OPERATIONS_EMAIL_AUTOMATION",
@@ -43,6 +51,13 @@ describe("operations email runtime", () => {
         ],
       })
     ).resolves.toEqual(queued);
+    expect(received).toEqual({
+      timelineEventId: input.timelineEventId,
+      event: input.event,
+      templateVersion: input.templateVersion,
+      deduplicationKey: input.deduplicationKey,
+      occurredAt: input.occurredAt,
+    });
   });
   it("rejects incomplete queue evidence", async () => {
     await expect(

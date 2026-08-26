@@ -31,5 +31,11 @@ export async function queueOperationsEmailBehindFlag(
   ) {
     throw new Error("OPERATIONS_EMAIL_QUEUE_EVIDENCE_REQUIRED");
   }
-  return input.repository.queue(input);
+  return input.repository.queue({
+    timelineEventId: input.timelineEventId,
+    event: input.event,
+    templateVersion: input.templateVersion,
+    deduplicationKey: input.deduplicationKey,
+    occurredAt: input.occurredAt,
+  });
 }
