@@ -73,6 +73,39 @@ describe("authenticated Dynamic Interview API", () => {
     expect(current.loadUnifiedBundle).not.toHaveBeenCalled();
   });
 
+  it("exposes explicit lifecycle and read projections through the single canonical state path", async () => {
+    const current = deps(); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    const started = await caller.start({ referenceNumber: reference });
+    const resumed = await caller.resume({ referenceNumber: reference });
+    expect(started).toEqual(resumed);
+    expect(await caller.getCurrentQuestion({ referenceNumber: reference })).toEqual({
+      currentStep: "PROFILE", currentApplicant: { applicantId: 21, label: "Ahmed — Father" },
+      question: expect.objectContaining({ code: "NATIONALITY", applicantId: 21 }), nextAction: "ANSWER_QUESTIONS",
+    });
+    expect(await caller.getEligibility({ referenceNumber: reference })).toEqual({
+      eligibilityState: "NEEDS_MORE_INFORMATION", applicants: [{ applicantId: 21, label: "Ahmed — Father",
+        eligibilityState: "NEEDS_MORE_INFORMATION", customerMessage: "Answer the remaining questions for this applicant." }],
+      manualReviewRequired: false,
+    });
+    expect(await caller.getRequirements({ referenceNumber: reference })).toEqual([{ applicantId: 21, label: "Ahmed — Father",
+      eligibilityState: "NEEDS_MORE_INFORMATION", requirements: [] }]);
+    expect(await caller.getUploadRequirements({ referenceNumber: reference })).toEqual([]);
+    expect(await caller.getSchedulerResult({ referenceNumber: reference })).toEqual([]);
+    expect(await caller.getReviewSummary({ referenceNumber: reference })).toEqual({ interview: started.review,
+      unified: null, nextAction: "ANSWER_QUESTIONS" });
+  });
+
+  it("applies the same application ownership gate to every explicit read projection", async () => {
+    const caller = createDynamicInterviewRouter(deps()).createCaller(context(["TSH-OTHER"]));
+    const operations = [
+      caller.start({ referenceNumber: reference }), caller.resume({ referenceNumber: reference }),
+      caller.getCurrentQuestion({ referenceNumber: reference }), caller.getEligibility({ referenceNumber: reference }),
+      caller.getRequirements({ referenceNumber: reference }), caller.getUploadRequirements({ referenceNumber: reference }),
+      caller.getSchedulerResult({ referenceNumber: reference }), caller.getReviewSummary({ referenceNumber: reference }),
+    ];
+    for (const operation of operations) await expect(operation).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("requests the trusted unified persistence bundle throughout the flagged customer flow", async () => {
     const dynamicRequirements: FeatureFlagRecord = { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true,
       scopeType: "APPLICATION", scopeReference: reference };

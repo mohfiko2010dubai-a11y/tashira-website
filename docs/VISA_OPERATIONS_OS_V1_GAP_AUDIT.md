@@ -8,7 +8,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Eligibility Engine / precedence | DONE | Yes | Persistence | Real rule content remains human-approved |
 | Immutable evaluations | DONE | Yes | Yes | None in engineering scope |
 | Family Engine / readiness | DONE | Yes | Read Model | Customer activation remains off |
-| Dynamic Questions / Requirements / Documents | DONE | Yes | API/MySQL scoped E2E | Unified applicant-scoped interview, immutable evaluations, dynamic requirements and owned document upload/link are complete behind closed flags; approved Production catalog content and activation remain owner gates |
+| Dynamic Questions / Requirements / Documents | DONE | Yes | API/MySQL scoped E2E | Unified applicant-scoped interview, immutable evaluations, dynamic requirements and owned document upload/link are complete behind closed flags. Explicit start/resume/current-question/eligibility/requirements/upload/scheduler/review API operations are thin projections over the same canonical persisted state and inherit the same ownership gate; approved Production catalog content and activation remain owner gates |
 | AI Document Pre-Screening | EXTERNAL DEPENDENCY | Yes | No | Provider-independent classification/extraction validation is complete; live AI provider credentials/adapter remain, human remains final authority |
 | Human / Document Review | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
 | Assignment / State Machine / Re-evaluation | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |

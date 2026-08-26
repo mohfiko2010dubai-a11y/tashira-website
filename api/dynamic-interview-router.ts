@@ -150,11 +150,44 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       evaluations: evaluations.map(({ applicantId, result }) => ({ applicantId, selectedRoute: runtime.application.routeCode, result })),
       triggerEventId: trigger.eventId, actorReference: `customer:${runtime.application.referenceNumber}`, reason, evaluatedAt });
   };
+  const readState = async (ctx: TrpcContext, referenceNumber: string, operation: string) => {
+    try { return (await state(ctx, referenceNumber)).state; }
+    catch (error) { if (error instanceof TRPCError) throw error; logDynamicInterviewFailure(operation, error);
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" }); }
+  };
+  const referenceInput = z.object({ referenceNumber: z.string().trim().min(3).max(50) }).strict();
   return createRouter({
-    current: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50) }).strict()).query(async ({ input, ctx }) => {
-      try { return (await state(ctx, input.referenceNumber)).state; }
-      catch (error) { if (error instanceof TRPCError) throw error; logDynamicInterviewFailure("current", error);
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" }); }
+    current: applicationAccessQuery.input(referenceInput).query(({ input, ctx }) => readState(ctx, input.referenceNumber, "current")),
+    start: applicationAccessQuery.input(referenceInput).query(({ input, ctx }) => readState(ctx, input.referenceNumber, "start")),
+    resume: applicationAccessQuery.input(referenceInput).query(({ input, ctx }) => readState(ctx, input.referenceNumber, "resume")),
+    getCurrentQuestion: applicationAccessQuery.input(referenceInput).query(async ({ input, ctx }) => {
+      const current = await readState(ctx, input.referenceNumber, "getCurrentQuestion");
+      return { currentStep: current.currentStep, currentApplicant: current.currentApplicant,
+        question: current.currentQuestions[0] ?? null, nextAction: current.nextAction };
+    }),
+    getEligibility: applicationAccessQuery.input(referenceInput).query(async ({ input, ctx }) => {
+      const current = await readState(ctx, input.referenceNumber, "getEligibility");
+      return { eligibilityState: current.eligibilityState, applicants: current.review.applicants.map((applicant) => ({
+        applicantId: applicant.applicantId, label: applicant.label, eligibilityState: applicant.eligibilityState,
+        customerMessage: applicant.customerMessage,
+      })), manualReviewRequired: current.review.manualReviewRequired };
+    }),
+    getRequirements: applicationAccessQuery.input(referenceInput).query(async ({ input, ctx }) => {
+      const current = await readState(ctx, input.referenceNumber, "getRequirements");
+      return current.review.applicants.map((applicant) => ({ applicantId: applicant.applicantId, label: applicant.label,
+        eligibilityState: applicant.eligibilityState, requirements: applicant.requirements }));
+    }),
+    getUploadRequirements: applicationAccessQuery.input(referenceInput).query(async ({ input, ctx }) => {
+      const current = await readState(ctx, input.referenceNumber, "getUploadRequirements");
+      return current.partySetup?.requirementReadiness ?? [];
+    }),
+    getSchedulerResult: applicationAccessQuery.input(referenceInput).query(async ({ input, ctx }) => {
+      const current = await readState(ctx, input.referenceNumber, "getSchedulerResult");
+      return current.unifiedReview?.schedules ?? [];
+    }),
+    getReviewSummary: applicationAccessQuery.input(referenceInput).query(async ({ input, ctx }) => {
+      const current = await readState(ctx, input.referenceNumber, "getReviewSummary");
+      return { interview: current.review, unified: current.unifiedReview, nextAction: current.nextAction };
     }),
     answer: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive().nullable(),
       questionCode: z.string().regex(/^[A-Z][A-Z0-9_]{1,99}$/), answer: z.union([z.string().max(500), z.number().finite(), z.boolean()]),
