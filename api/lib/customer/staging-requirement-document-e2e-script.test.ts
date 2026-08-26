@@ -10,6 +10,8 @@ describe("Staging requirement-document E2E guard", () => {
   });
 
   it("proves authorization, applicant isolation, idempotency and finance isolation", () => {
+    expect(source).toContain("STAGING_REQUIREMENT_DOCUMENT_INTERVIEW_DID_NOT_COMPLETE");
+    expect(source).toContain("STAGING_REQUIREMENT_DOCUMENT_UNEXPECTED_QUESTION");
     expect(source).toContain("STAGING_REQUIREMENT_DOCUMENT_AUTHORIZATION=PASS");
     expect(source).toContain("STAGING_REQUIREMENT_DOCUMENT_APPLICANT_ISOLATION=PASS");
     expect(source).toContain("STAGING_REQUIREMENT_DOCUMENT_IDEMPOTENCY=PASS");

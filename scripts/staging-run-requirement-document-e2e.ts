@@ -41,6 +41,18 @@ try {
     initial = await authorized.dynamicInterview.editAnswer.mutate({ referenceNumber: reference, applicantId: nationality.applicantId,
       questionCode: nationality.code, answer: nationality.answer === "PK" ? "EG" : "PK",
       changeReason: "STAGING_SYNTHETIC_REQUIREMENT_DOCUMENT_E2E" });
+    const answers: Readonly<Record<string, string | boolean>> = { APPLICATION_TYPE: "family", NATIONALITY: "EG", PASSPORT_COUNTRY: "EG",
+      RESIDENCE_COUNTRY: "AE", RESIDENCE_TYPE: "RESIDENT", GCC_RESIDENT: false, GCC_COUNTRY: "AE", RESIDENCE_EXPIRY: "2027-12-31",
+      PROFESSION: "Synthetic", DATE_OF_BIRTH: "1990-01-01", RELATIONSHIP: "FAMILY", INSIDE_OUTSIDE_UAE: "OUTSIDE",
+      TRAVELLING_TOGETHER: true, ACCOMPANYING_PERSON: "Synthetic", PLANNED_ARRIVAL_DATE: "2027-03-20",
+      PLANNED_DEPARTURE_DATE: "2027-03-30", HAS_CONFIRMED_TICKETS: false, TRAVEL_GROUP: "Synthetic" };
+    for (let answerCount = 0; initial.currentQuestions[0] && answerCount < 30; answerCount += 1) {
+      const question = initial.currentQuestions[0]; const answer = answers[question.code];
+      if (answer === undefined) throw new Error(`STAGING_REQUIREMENT_DOCUMENT_UNEXPECTED_QUESTION:${question.code}`);
+      initial = await authorized.dynamicInterview.answer.mutate({ referenceNumber: reference, applicantId: question.applicantId,
+        questionCode: question.code, answer, changeReason: "STAGING_SYNTHETIC_REQUIREMENT_DOCUMENT_E2E" });
+    }
+    if (initial.currentQuestions[0]) throw new Error("STAGING_REQUIREMENT_DOCUMENT_INTERVIEW_DID_NOT_COMPLETE");
   }
   const partySetup = initial.partySetup;
   if (!partySetup) throw new Error("STAGING_REQUIREMENT_DOCUMENT_PARTY_SETUP_MISSING");
