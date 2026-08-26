@@ -17,7 +17,18 @@ function text(row: object, key: string, fallback = ""): string {
 }
 function nullableText(row: object, key: string): string | null {
   const candidate = value(row, key);
-  return typeof candidate === "string" ? candidate : null;
+  return typeof candidate === "string" ? candidate : candidate instanceof Date ? candidate.toISOString() : null;
+}
+function dateText(row: object, key: string): string {
+  const candidate = value(row, key);
+  if (typeof candidate === "string") return candidate.slice(0, 10);
+  if (candidate instanceof Date) return candidate.toISOString().slice(0, 10);
+  throw new Error(`INVALID_OPERATIONS_DATE:${key}`);
+}
+function nullableDateText(row: object, key: string): string | null {
+  const candidate = value(row, key);
+  if (candidate === null || candidate === undefined) return null;
+  return dateText(row, key);
 }
 function number(row: object, key: string): number {
   const candidate = value(row, key);
@@ -249,9 +260,9 @@ export class MysqlOperationsCaseReadProvider {
       const groupId = text(row, "travelGroupId");
       const item = {
         evaluationId: text(row, "id"), evaluatedAt: text(row, "evaluatedAt"), travelGroupId: groupId,
-        routeCode: text(row, "routeCode"), plannedArrivalDate: text(row, "plannedArrivalDate"),
-        earliestSafeSubmissionDate: nullableText(row, "earliestSafeSubmissionDate"),
-        targetSubmissionDate: nullableText(row, "targetSubmissionDate"), latestSafeSubmissionDate: nullableText(row, "latestSafeSubmissionDate"),
+        routeCode: text(row, "routeCode"), plannedArrivalDate: dateText(row, "plannedArrivalDate"),
+        earliestSafeSubmissionDate: nullableDateText(row, "earliestSafeSubmissionDate"),
+        targetSubmissionDate: nullableDateText(row, "targetSubmissionDate"), latestSafeSubmissionDate: nullableDateText(row, "latestSafeSubmissionDate"),
         state: text(row, "state") as SubmissionScheduleState, reason: text(row, "reason"),
         blockingReasons: json(row, "blockingReasons", []), recalculationReason: text(row, "recalculationReason"),
         ruleVersions: json(row, "ruleVersions", []), sourceEvidenceReferences: json(row, "sourceEvidenceReferences", []),
@@ -269,7 +280,7 @@ export class MysqlOperationsCaseReadProvider {
       return { id, reference: text(row, "reference"), arrangement: text(row, "arrangement") as "TOGETHER" | "SEPARATELY",
         primaryTravellerId, accompanyingAdultId: nullableNumber(row, "accompanyingAdultId") ?? null,
         applicantIds: members, origin: text(row, "origin"), destination: text(row, "destination"),
-        plannedArrivalDate: text(row, "plannedArrivalDate"), plannedDepartureDate: nullableText(row, "plannedDepartureDate"),
+        plannedArrivalDate: dateText(row, "plannedArrivalDate"), plannedDepartureDate: nullableDateText(row, "plannedDepartureDate"),
         ticketStatus: text(row, "ticketStatus") as "NOT_BOOKED" | "RESERVED" | "CONFIRMED",
         sharedDocuments: [...linkedDocuments.entries()].filter(([, link]) => link.applicantIds.some((id) => members.includes(id)))
           .map(([documentId, link]) => ({ documentId, documentType: link.documentType, applicantIds: [...link.applicantIds].sort((a, b) => a - b) })),

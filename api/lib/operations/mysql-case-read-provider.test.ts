@@ -16,10 +16,10 @@ class FixtureSql implements OperationsSqlClient {
       { id: 702, applicantId: 72, code: "photo", uploadStatus: "uploaded" },
     ];
     if (sql.includes("FROM suppliers")) return [{ id: 2, name: "Operational Supplier" }];
-    if (sql.includes("FROM travel_groups")) return [{ id: "trip-1", reference: "TRIP-A", arrangement: "TOGETHER", primaryTravellerId: 71, accompanyingAdultId: 71, origin: "CAI", destination: "DXB", plannedArrivalDate: "2026-12-20", plannedDepartureDate: "2026-12-30", ticketStatus: "CONFIRMED" }];
+    if (sql.includes("FROM travel_groups")) return [{ id: "trip-1", reference: "TRIP-A", arrangement: "TOGETHER", primaryTravellerId: 71, accompanyingAdultId: 71, origin: "CAI", destination: "DXB", plannedArrivalDate: new Date("2026-12-20T00:00:00.000Z"), plannedDepartureDate: new Date("2026-12-30T00:00:00.000Z"), ticketStatus: "CONFIRMED" }];
     if (sql.includes("FROM travel_group_applicants")) return [{ travelGroupId: "trip-1", applicantId: 71 }, { travelGroupId: "trip-1", applicantId: 72 }];
     if (sql.includes("FROM travel_document_applicant_links")) return [{ documentId: 701, applicantId: 71, documentType: "FAMILY_BOOKING" }, { documentId: 701, applicantId: 72, documentType: "FAMILY_BOOKING" }];
-    if (sql.includes("FROM submission_schedule_snapshots")) return [{ id: "schedule-1", travelGroupId: "trip-1", routeCode: "30-days", plannedArrivalDate: "2026-12-20", earliestSafeSubmissionDate: "2026-11-20", targetSubmissionDate: "2026-12-12", latestSafeSubmissionDate: "2026-12-15", state: "SCHEDULED_FOR_SUBMISSION", reason: "SUBMISSION_WINDOW_NOT_OPEN", blockingReasons: [], recalculationReason: "INITIAL_EVALUATION", ruleVersions: [], sourceEvidenceReferences: [], evaluatorVersion: "v1", evidenceSha256: "a".repeat(64), evaluatedAt: "2026-08-25T00:00:00.000Z" }];
+    if (sql.includes("FROM submission_schedule_snapshots")) return [{ id: "schedule-1", travelGroupId: "trip-1", routeCode: "30-days", plannedArrivalDate: new Date("2026-12-20T00:00:00.000Z"), earliestSafeSubmissionDate: new Date("2026-11-20T00:00:00.000Z"), targetSubmissionDate: new Date("2026-12-12T00:00:00.000Z"), latestSafeSubmissionDate: new Date("2026-12-15T00:00:00.000Z"), state: "SCHEDULED_FOR_SUBMISSION", reason: "SUBMISSION_WINDOW_NOT_OPEN", blockingReasons: [], recalculationReason: "INITIAL_EVALUATION", ruleVersions: [], sourceEvidenceReferences: [], evaluatorVersion: "v1", evidenceSha256: "a".repeat(64), evaluatedAt: "2026-08-25T00:00:00.000Z" }];
     return [];
   }
 }
@@ -38,6 +38,7 @@ describe("MysqlOperationsCaseReadProvider", () => {
     const result = await new MysqlOperationsCaseReadProvider(new FixtureSql()).load("TSH-LEGACY-7");
     expect(result?.source.travelGroups).toEqual([expect.objectContaining({
       id: "trip-1", applicantIds: [71, 72], ticketStatus: "CONFIRMED",
+      plannedArrivalDate: "2026-12-20", plannedDepartureDate: "2026-12-30",
       currentSchedule: expect.objectContaining({ state: "SCHEDULED_FOR_SUBMISSION", targetSubmissionDate: "2026-12-12" }),
       sharedDocuments: [{ documentId: 701, documentType: "FAMILY_BOOKING", applicantIds: [71, 72] }],
     })]);
