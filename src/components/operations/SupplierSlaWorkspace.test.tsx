@@ -1,0 +1,4 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe,expect,it,vi } from "vitest";
+import SupplierSlaWorkspace from "./SupplierSlaWorkspace";
+describe("SupplierSlaWorkspace",()=>{it("renders operational timing and no financial fields",()=>{const html=renderToStaticMarkup(<SupplierSlaWorkspace items={[{slaId:"sla",applicationReference:"TSH-1",supplierName:"Supplier A",routeCode:"UAE_30",state:"COMPLETION_WARNING",escalationLevel:1,version:2,acknowledgementDueAt:"2026-08-26T11:00:00Z",completionDueAt:"2026-08-26T14:00:00Z"}]} busy={false} reason="Review deadline" applicationReference="" onReason={vi.fn()} onApplicationReference={vi.fn()} onStart={vi.fn()} onCommand={vi.fn()}/>);expect(html).toContain("Supplier A");expect(html).toContain("Escalate");expect(html).not.toMatch(/supplier cost|internal cost|margin|markup|profit|price|payment|stripe/i);});});

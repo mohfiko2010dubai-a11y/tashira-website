@@ -18,6 +18,7 @@ export const OPERATIONS_FLAGS = [
   "VISA_DELIVERY",
   "MANAGER_DASHBOARD",
   "OPERATIONS_ANALYTICS",
+  "SUPPLIER_SLA",
 ] as const;
 
 export type OperationsFlag = typeof OPERATIONS_FLAGS[number];

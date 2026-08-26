@@ -1,0 +1,9 @@
+DROP TRIGGER IF EXISTS `supplier_sla_event_no_delete`;
+DROP TRIGGER IF EXISTS `supplier_sla_event_no_update`;
+DROP TRIGGER IF EXISTS `supplier_sla_instance_no_delete`;
+DROP TRIGGER IF EXISTS `supplier_sla_instance_identity_immutable`;
+DROP TRIGGER IF EXISTS `supplier_sla_policy_no_delete`;
+DROP TRIGGER IF EXISTS `supplier_sla_policy_no_update`;
+DROP TABLE IF EXISTS `operations_supplier_sla_events`;
+DROP TABLE IF EXISTS `operations_supplier_sla_instances`;
+DROP TABLE IF EXISTS `operations_supplier_sla_policies`;

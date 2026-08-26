@@ -1,0 +1,17 @@
+import { describe,expect,it } from "vitest";
+import type { AuthorizationActor } from "../authorization/policy";
+import type { FeatureFlagRecord } from "../feature-flags/feature-flags";
+import type { SupplierSlaRepository } from "./supplier-sla-service";
+import { executeSupplierSlaCommand,listSupplierSla,startSupplierSla } from "./supplier-sla-service";
+
+const item=(teamId=7)=>({slaId:"sla-1",applicationId:1,applicationReference:"TSH-1",supplierId:9,supplierName:"Supplier",routeCode:"UAE_30",state:"COMPLETION_WARNING" as const,escalationLevel:0,version:1,startedAt:"2026-08-26T10:00:00Z",acknowledgementDueAt:"2026-08-26T11:00:00Z",completionDueAt:"2026-08-26T14:00:00Z",teamId,departmentId:2});
+const actor=(permissions=["supplier.read_operational","case.transition"],teams=[7]):AuthorizationActor=>({id:"staff:4",permissions:new Set(permissions as ("supplier.read_operational"|"case.transition")[]),scopes:["TEAM"],teamIds:new Set(teams),departmentIds:new Set()});
+const flag:FeatureFlagRecord={flagKey:"SUPPLIER_SLA",environment:"TEST",enabled:true,scopeType:"TEAM",scopeReference:"7"};
+function repo():SupplierSlaRepository&{commands:unknown[]}{const commands:unknown[]=[];return {commands,list:async()=>[item(7),item(8)],get:async()=>item(7),apply:async(_id,command)=>{commands.push(command);return {...item(7),version:2}},startContext:async()=>({applicationId:1,applicationReference:"TSH-1",teamId:7,departmentId:2}),start:async(command)=>{commands.push(command);return item(7)}};}
+
+describe("supplier SLA service",()=>{
+  it("fails closed while disabled and filters queues by trusted team scope",async()=>{const repository=repo();const base={actor:actor(),flagContext:{environment:"TEST" as const,staffId:4,teamIds:new Set([7])},flags:[flag],repository,now:new Date("2026-08-26T13:30:00Z")};expect(await listSupplierSla(base)).toEqual([item(7)]);await expect(listSupplierSla({...base,flags:[]})).rejects.toThrow("SUPPLIER_SLA_DISABLED");});
+  it("derives actor and timestamp server-side and rejects wrong-team writes",async()=>{const repository=repo();const base={actor:actor(),flagContext:{environment:"TEST" as const,staffId:4,teamIds:new Set([7])},flags:[flag],repository,now:new Date("2026-08-26T13:30:00Z")};await executeSupplierSlaCommand({...base,slaId:"sla-1",command:{commandId:"command-1",expectedVersion:1,action:"ESCALATE",reason:"Deadline warning"}});expect(repository.commands[0]).toMatchObject({actorStaffId:4,occurredAt:"2026-08-26T13:30:00.000Z"});await expect(executeSupplierSlaCommand({...base,actor:actor(undefined,[8]),slaId:"sla-1",command:{commandId:"command-2",expectedVersion:1,action:"ESCALATE",reason:"No scope"}})).rejects.toThrow("SUPPLIER_SLA_ACCESS_DENIED");});
+  it("returns no financial fields",async()=>{const result=await listSupplierSla({actor:actor(),flagContext:{environment:"TEST",staffId:4,teamIds:new Set([7])},flags:[flag],repository:repo(),now:new Date()});expect(JSON.stringify(result)).not.toMatch(/cost|margin|markup|profit|price|payment|stripe/i);});
+  it("authorizes START from trusted application scope and derives actor/time",async()=>{const repository=repo();await startSupplierSla({actor:actor(),flagContext:{environment:"TEST",staffId:4,teamIds:new Set([7])},flags:[flag],repository,applicationReference:"TSH-1",commandId:"start-001",reason:"Supplier assignment accepted",now:new Date("2026-08-26T10:00:00Z")});expect(repository.commands[0]).toMatchObject({applicationReference:"TSH-1",actorStaffId:4,occurredAt:"2026-08-26T10:00:00.000Z"});});
+});

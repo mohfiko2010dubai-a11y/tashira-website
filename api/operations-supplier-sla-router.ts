@@ -1,0 +1,16 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import type { TrpcContext } from "./context";
+import { MysqlOperationsAccessProvider,OperationsAccessError } from "./lib/operations/mysql-access-provider";
+import { defaultOperationsPool,defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
+import { MysqlSupplierSlaRepository } from "./lib/operations/mysql-supplier-sla-repository";
+import { executeSupplierSlaCommand,listSupplierSla,startSupplierSla,type SupplierSlaRepository } from "./lib/operations/supplier-sla-service";
+import { createRouter,staffOrAdminQuery } from "./middleware";
+
+type Access=Pick<MysqlOperationsAccessProvider,"actorForContext"|"flagContextForContext"|"featureFlags">;
+type Dependencies={access:Access;repository:SupplierSlaRepository;now():Date};
+async function gate(deps:Dependencies,ctx:TrpcContext){if(!ctx.staffId)throw new TRPCError({code:"FORBIDDEN",message:"Supplier SLA access denied"});const [actor,flagContext,flags]=await Promise.all([deps.access.actorForContext(ctx),deps.access.flagContextForContext(ctx),deps.access.featureFlags()]);return {actor,flagContext,flags,repository:deps.repository};}
+function safe(error:unknown):never{if(error instanceof OperationsAccessError||error instanceof Error&&["SUPPLIER_SLA_DISABLED","SUPPLIER_SLA_ACCESS_DENIED","SUPPLIER_SLA_STAFF_REQUIRED"].includes(error.message))throw new TRPCError({code:"FORBIDDEN",message:"Supplier SLA access denied"});if(error instanceof Error&&["SUPPLIER_SLA_VERSION_CONFLICT","SUPPLIER_SLA_IDEMPOTENCY_CONFLICT"].includes(error.message))throw new TRPCError({code:"CONFLICT",message:"Supplier SLA changed; refresh and retry"});if(error instanceof Error&&error.message==="SUPPLIER_SLA_NOT_FOUND")throw new TRPCError({code:"NOT_FOUND",message:"Supplier SLA not found"});throw new TRPCError({code:"BAD_REQUEST",message:"Supplier SLA action could not be completed"});}
+export function createOperationsSupplierSlaRouter(deps:Dependencies){return createRouter({list:staffOrAdminQuery.input(z.object({}).strict()).query(async({ctx})=>{try{return await listSupplierSla({...await gate(deps,ctx),now:deps.now()});}catch(error){safe(error);}}),start:staffOrAdminQuery.input(z.object({applicationReference:z.string().trim().min(3).max(50),commandId:z.string().min(8).max(100),reason:z.string().trim().min(3).max(1000)}).strict()).mutation(async({ctx,input})=>{try{return await startSupplierSla({...await gate(deps,ctx),...input,now:deps.now()});}catch(error){safe(error);}}),command:staffOrAdminQuery.input(z.object({slaId:z.string().uuid(),command:z.object({commandId:z.string().min(8).max(100),expectedVersion:z.number().int().nonnegative(),action:z.enum(["ACKNOWLEDGE","ESCALATE","COMPLETE"]),reason:z.string().trim().min(3).max(1000)}).strict()}).strict()).mutation(async({ctx,input})=>{try{return await executeSupplierSlaCommand({...await gate(deps,ctx),slaId:input.slaId,command:input.command,now:deps.now()});}catch(error){safe(error);}})});}
+const access=new MysqlOperationsAccessProvider(defaultOperationsSqlClient());
+export const operationsSupplierSlaRouter=createOperationsSupplierSlaRouter({access,repository:new MysqlSupplierSlaRepository(defaultOperationsPool()),now:()=>new Date()});
