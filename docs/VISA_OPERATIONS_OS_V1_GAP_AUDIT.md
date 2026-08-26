@@ -48,3 +48,13 @@ Core case-operations foundation is approximately **78% complete**. Full Master P
 - Typing Pack templates and accepted output format.
 - Operations KPI definitions, retention period and legal review.
 - Separate approval for Production migration/deployment/flags.
+# Requirement Catalog and Dynamic Runtime Update — 2026-08-26
+
+- Persistent versioned Requirement and Question Catalog: implemented in additive Migration `026`.
+- Governance: ACTIVE + APPROVED + effective definitions only; overlapping active versions fail closed.
+- Historical evidence: requirement instances may retain exact definition/rule versions and immutable reason/classification snapshots; legacy raw codes remain readable without fabricated labels.
+- Customer projection: INTERNAL definitions are excluded, OPERATIONAL wording is never represented as an authority mandate, and missing definitions force human review.
+- Generic seed: deterministic DRAFT-only definitions for 12 documents and 12 question domains; it activates no requirement.
+- Dynamic Application runtime: governed catalog projection, applicant isolation, travel/family sharing metadata, scheduler passthrough and Pre-Check/final-rule change evidence are complete behind closed flags.
+- Local evidence: MySQL 8.4 clean/legacy migrations `014`–`026`, ESLint, TypeScript, 491 tests, production build, static assets and server bundle pass.
+- Remaining: Staging backup/Migration 026, synthetic scoped activation/E2E, then the remaining provider/external-data Final V1 gaps.

@@ -5,6 +5,11 @@ export type DocumentDefinition = {
   label: string;
   category: "IDENTITY" | "TRAVEL" | "RELATIONSHIP" | "RESIDENCE" | "SUPPORTING";
   classification?: "AUTHORITY_REQUIRED" | "TASHIRA_PROCESSING" | "MAY_BE_REQUIRED" | "OPTIONAL";
+  definitionId?: string;
+  definitionVersion?: number;
+  shortCustomerExplanation?: string;
+  reasonTemplate?: string;
+  sharingScope?: "APPLICANT" | "TRAVEL_GROUP" | "FAMILY";
 };
 
 export type QuestionDefinition = {
@@ -12,6 +17,9 @@ export type QuestionDefinition = {
   prompt: string;
   answerType: "BOOLEAN" | "SELECT" | "TEXT";
   options?: readonly string[];
+  definitionId?: string;
+  definitionVersion?: number;
+  helpText?: string;
 };
 
 export type RequirementCatalog = {
@@ -35,6 +43,10 @@ export type DynamicRequirementView = {
       classification: NonNullable<DocumentDefinition["classification"]>;
       state: "REQUIRED" | "CONDITIONAL";
       reason: string;
+      definitionId?: string | null;
+      definitionVersion?: number | null;
+      shortCustomerExplanation?: string | null;
+      sharingScope?: "APPLICANT" | "TRAVEL_GROUP" | "FAMILY";
     }[];
     questions: readonly QuestionDefinition[];
     warnings: readonly string[];
@@ -76,7 +88,11 @@ export function buildDynamicRequirements(input: {
           category: definition?.category ?? null,
           classification: definition?.classification ?? "AUTHORITY_REQUIRED",
           state: "REQUIRED",
-          reason: "Required by the selected eligibility evaluation",
+          reason: definition?.reasonTemplate ?? "Required by the selected eligibility evaluation",
+          definitionId: definition?.definitionId ?? null,
+          definitionVersion: definition?.definitionVersion ?? null,
+          shortCustomerExplanation: definition?.shortCustomerExplanation ?? null,
+          sharingScope: definition?.sharingScope ?? "APPLICANT",
         });
       }
       for (const requirement of member.conditionalDocuments) {
@@ -86,7 +102,9 @@ export function buildDynamicRequirements(input: {
           applicantDocuments.push({
             code: requirement.code, label: definition?.label ?? null, category: definition?.category ?? null,
             classification: definition?.classification ?? "MAY_BE_REQUIRED",
-            state: "CONDITIONAL", reason: requirement.reason,
+            state: "CONDITIONAL", reason: definition?.reasonTemplate ?? requirement.reason,
+            definitionId: definition?.definitionId ?? null, definitionVersion: definition?.definitionVersion ?? null,
+            shortCustomerExplanation: definition?.shortCustomerExplanation ?? null, sharingScope: definition?.sharingScope ?? "APPLICANT",
           });
           continue;
         }
@@ -102,13 +120,17 @@ export function buildDynamicRequirements(input: {
           applicantDocuments.push({
             code: requirement.code, label: definition?.label ?? null, category: definition?.category ?? null,
             classification: definition?.classification ?? "MAY_BE_REQUIRED",
-            state: "CONDITIONAL", reason: requirement.reason,
+            state: "CONDITIONAL", reason: definition?.reasonTemplate ?? requirement.reason,
+            definitionId: definition?.definitionId ?? null, definitionVersion: definition?.definitionVersion ?? null,
+            shortCustomerExplanation: definition?.shortCustomerExplanation ?? null, sharingScope: definition?.sharingScope ?? "APPLICANT",
           });
         } else if (matches) {
           applicantDocuments.push({
             code: requirement.code, label: definition?.label ?? null, category: definition?.category ?? null,
             classification: definition?.classification ?? "MAY_BE_REQUIRED",
-            state: "REQUIRED", reason: requirement.reason,
+            state: "REQUIRED", reason: definition?.reasonTemplate ?? requirement.reason,
+            definitionId: definition?.definitionId ?? null, definitionVersion: definition?.definitionVersion ?? null,
+            shortCustomerExplanation: definition?.shortCustomerExplanation ?? null, sharingScope: definition?.sharingScope ?? "APPLICANT",
           });
         }
       }
