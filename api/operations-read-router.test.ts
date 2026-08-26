@@ -6,6 +6,7 @@ import { InMemoryEligibilitySnapshotRepository } from "./lib/eligibility/snapsho
 import { InMemoryFamilyPersistenceRepository } from "./lib/family/family-persistence";
 import type { FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
 import type { MysqlOperationsCaseBundle } from "./lib/operations/mysql-case-read-provider";
+import type { OperationsAnalyticsCandidate } from "./lib/operations/manager-dashboard-service";
 import { createOperationsReadRouter } from "./operations-read-router";
 
 const context = (staffId?: number): TrpcContext => ({
@@ -23,6 +24,10 @@ const bundle = (): MysqlOperationsCaseBundle => ({
 });
 const enabled: FeatureFlagRecord[] = [{ flagKey: "OPERATIONS_CASE_READ_MODEL", environment: "STAGING", enabled: true, scopeType: "STAFF", scopeReference: "10" }];
 const actor = (teamIds = [3]): AuthorizationActor => ({ id: "staff:10", permissions: new Set(ROLE_TEMPLATES.OPERATIONS_MANAGER), scopes: ["TEAM"], teamIds: new Set(teamIds), departmentIds: new Set() });
+const analyticsCandidate = (teamId = 3): OperationsAnalyticsCandidate => ({ applicationId: 1, teamId, applicantCount: 2, family: true,
+  travelGroupCount: 1, status: "DOCUMENTS_PENDING", waitingForCustomer: true, scheduledSubmission: false, dueAt: "2026-08-27",
+  readyForTyping: false, readyForSubmission: false, authorityQueryOpen: false, reworkCount: 0, assignedStaffId: 10,
+  reviewMinutes: null, typingMinutes: null, supplierId: 5 });
 
 function router(flags = enabled, currentActor = actor()) {
   return createOperationsReadRouter({
@@ -30,6 +35,8 @@ function router(flags = enabled, currentActor = actor()) {
     flagContextForContext: async () => ({ environment: "STAGING", staffId: 10, teamIds: currentActor.teamIds }),
     flagsForContext: async () => flags,
     load: async (reference) => reference === "TSH-OPS-1" ? bundle() : null,
+    loadManagerAnalytics: async () => [analyticsCandidate()],
+    submissionQueuePolicy: () => ({ dueSoonDays: 7, urgentDays: 2 }),
   });
 }
 
@@ -51,5 +58,14 @@ describe("operations read router", () => {
   });
   it("returns safe NOT_FOUND only after authorization gates pass", async () => {
     await expect(router().createCaller(context(10)).caseByReference({ reference: "TSH-MISSING" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+  it("returns manager analytics only for the trusted manager scope without finance fields", async () => {
+    const model = await router().createCaller(context(10)).managerDashboard({});
+    expect(model).toMatchObject({ applications: 1, applicants: 2, families: 1, financeFieldsIncluded: false });
+    expect(JSON.stringify(model)).not.toMatch(/cost|margin|profit|payment|stripe/i);
+  });
+  it("denies manager analytics to an employee without case.read", async () => {
+    const employee: AuthorizationActor = { ...actor(), permissions: new Set(["case.read_assigned"]) };
+    await expect(router(enabled, employee).createCaller(context(10)).managerDashboard({})).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

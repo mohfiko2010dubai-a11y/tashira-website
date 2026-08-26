@@ -38,6 +38,7 @@ const StaffDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/p
 const StaffApplicationDetail = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffApplicationDetail')));
 const StaffOperationsCase = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationsCase')));
 const StaffUpcomingSubmissions = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffUpcomingSubmissions')));
+const StaffOperationsDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationsDashboard')));
 const AdminFinanceCockpit = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFinanceCockpit')));
 const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplication')));
 const CustomerApplicationPortal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerApplicationPortal')));
@@ -93,6 +94,7 @@ function AppContent() {
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
           <Route path="/staff/operations/:referenceNumber" element={<StaffGuard><StaffOperationsCase /></StaffGuard>} />
           <Route path="/staff/operations" element={<StaffGuard><StaffUpcomingSubmissions /></StaffGuard>} />
+          <Route path="/staff/operations/dashboard" element={<StaffGuard><StaffOperationsDashboard /></StaffGuard>} />
           <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

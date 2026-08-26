@@ -9,6 +9,8 @@ import { readOperationsCase } from "./lib/operations/case-read-service";
 import { defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import { MysqlSubmissionQueueProvider } from "./lib/operations/mysql-submission-queue-provider";
 import { buildUpcomingSubmissionsQueue, type SubmissionQueueCandidate, type SubmissionQueuePolicy } from "./lib/operations/submission-queue";
+import { readOperationsManagerDashboard, type OperationsAnalyticsCandidate } from "./lib/operations/manager-dashboard-service";
+import { MysqlOperationsManagerAnalyticsProvider } from "./lib/operations/mysql-manager-analytics-provider";
 import { createRouter, staffOrAdminQuery } from "./middleware";
 
 type Dependencies = {
@@ -18,6 +20,7 @@ type Dependencies = {
   load(reference: string): Promise<MysqlOperationsCaseBundle | null>;
   loadUpcoming?(): Promise<SubmissionQueueCandidate[]>;
   submissionQueuePolicy?(): SubmissionQueuePolicy;
+  loadManagerAnalytics?(): Promise<OperationsAnalyticsCandidate[]>;
 };
 
 export function createOperationsReadRouter(deps: Dependencies) {
@@ -61,15 +64,34 @@ export function createOperationsReadRouter(deps: Dependencies) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Submission queue unavailable" });
         }
       }),
+    managerDashboard: staffOrAdminQuery.input(z.object({}).strict()).query(async ({ ctx }) => {
+      if (!ctx.staffId) throw new TRPCError({ code: "FORBIDDEN", message: "Operations access denied" });
+      if (!deps.loadManagerAnalytics || !deps.submissionQueuePolicy) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Operations dashboard unavailable" });
+      try {
+        const [actor, context, flags, candidates] = await Promise.all([
+          deps.actorForContext(ctx), deps.flagContextForContext(ctx), deps.flagsForContext(ctx), deps.loadManagerAnalytics(),
+        ]);
+        const policy = deps.submissionQueuePolicy();
+        return readOperationsManagerDashboard({ actor, context, flags, candidates, now: new Date(), ...policy });
+      } catch (error) {
+        if (error instanceof OperationsAccessError || error instanceof Error
+          && ["OPERATIONS_MANAGER_DASHBOARD_DISABLED", "OPERATIONS_MANAGER_DASHBOARD_ACCESS_DENIED"].includes(error.message)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Operations access denied" });
+        }
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Operations dashboard unavailable" });
+      }
+    }),
   });
 }
 
 let access: MysqlOperationsAccessProvider | undefined;
 let reader: MysqlOperationsCaseReadProvider | undefined;
 let submissionQueue: MysqlSubmissionQueueProvider | undefined;
+let managerAnalytics: MysqlOperationsManagerAnalyticsProvider | undefined;
 function accessProvider() { return access ??= new MysqlOperationsAccessProvider(defaultOperationsSqlClient()); }
 function readProvider() { return reader ??= new MysqlOperationsCaseReadProvider(defaultOperationsSqlClient()); }
 function queueProvider() { return submissionQueue ??= new MysqlSubmissionQueueProvider(defaultOperationsSqlClient()); }
+function managerAnalyticsProvider() { return managerAnalytics ??= new MysqlOperationsManagerAnalyticsProvider(defaultOperationsSqlClient()); }
 function queuePolicy(): SubmissionQueuePolicy {
   const dueSoonDays = Number(process.env.OPERATIONS_SUBMISSION_DUE_SOON_DAYS);
   const urgentDays = Number(process.env.OPERATIONS_SUBMISSION_URGENT_DAYS);
@@ -84,4 +106,5 @@ export const operationsReadRouter = createOperationsReadRouter({
   load: (reference) => readProvider().load(reference),
   loadUpcoming: () => queueProvider().list(),
   submissionQueuePolicy: queuePolicy,
+  loadManagerAnalytics: () => managerAnalyticsProvider().list(),
 });
