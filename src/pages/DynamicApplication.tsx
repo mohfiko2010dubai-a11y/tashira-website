@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
 import { UnifiedInterviewReviewPanel } from "@/components/UnifiedInterviewReviewPanel";
+import { InterviewPartySetup } from "@/components/customer/InterviewPartySetup";
 
 const steps = ["Applicant Profile", "Travel Details", "Requirements", "Documents", "Review"] as const;
 type AnswerValue = string | number | boolean;
@@ -13,6 +14,11 @@ export default function DynamicApplication() {
   const [editing, setEditing] = useState<{ code: string; applicantId: number | null; answer: AnswerValue } | null>(null);
   const answerMutation = trpc.dynamicInterview.answer.useMutation({ onSuccess: async () => { setAnswer(""); await query.refetch(); } });
   const editMutation = trpc.dynamicInterview.editAnswer.useMutation({ onSuccess: async () => { setEditing(null); await query.refetch(); } });
+  const addApplicantMutation = trpc.dynamicInterview.addApplicant.useMutation();
+  const editApplicantMutation = trpc.dynamicInterview.editApplicant.useMutation();
+  const relationshipMutation = trpc.dynamicInterview.defineRelationship.useMutation();
+  const createTravelGroupMutation = trpc.dynamicInterview.createTravelGroup.useMutation();
+  const updateTravelGroupMutation = trpc.dynamicInterview.updateTravelGroup.useMutation();
   const question = query.data?.currentQuestions[0];
 
   if (query.isLoading) return <main className="mx-auto min-h-[60vh] max-w-3xl px-5 py-12" aria-live="polite">Loading your application…</main>;
@@ -34,6 +40,21 @@ export default function DynamicApplication() {
       <ol className="mb-8 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5" aria-label="Application progress">
         {steps.map((step, index) => <li key={step} className={`rounded-full px-3 py-2 text-center ${index <= activeStep ? "bg-[#cda64f] font-semibold text-slate-950" : "bg-white text-slate-500"}`}>{step}</li>)}
       </ol>
+      {state.partySetup && <InterviewPartySetup setup={state.partySetup}
+        busy={addApplicantMutation.isPending || editApplicantMutation.isPending || relationshipMutation.isPending || createTravelGroupMutation.isPending || updateTravelGroupMutation.isPending}
+        error={Boolean(addApplicantMutation.error || editApplicantMutation.error || relationshipMutation.error || createTravelGroupMutation.error || updateTravelGroupMutation.error)}
+        onAddApplicant={async (profile) => { await addApplicantMutation.mutateAsync({ referenceNumber, profile,
+          reason: "Customer added applicant", idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+        onEditApplicant={async (applicant, profile) => { await editApplicantMutation.mutateAsync({ referenceNumber,
+          applicantId: applicant.applicantId, expectedVersion: applicant.profileVersion, profile, reason: "Customer updated applicant profile",
+          idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+        onDefineRelationship={async (fromApplicantId, toApplicantId, relationship) => { await relationshipMutation.mutateAsync({ referenceNumber,
+          fromApplicantId, toApplicantId, relationship, reason: "Customer defined family relationship", idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+        onCreateTravelGroup={async (group) => { await createTravelGroupMutation.mutateAsync({ referenceNumber, group,
+          reason: "Customer created travel group", idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+        onUpdateTravelGroup={async (current, group) => { await updateTravelGroupMutation.mutateAsync({ referenceNumber,
+          travelGroupId: current.travelGroupId, expectedVersion: current.version, group, reason: "Customer updated travel group",
+          idempotencyKey: crypto.randomUUID() }); await query.refetch(); }} />}
       {question ? <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div><p className="text-sm font-semibold text-[#9b7425]">{state.currentApplicant?.label ?? "Whole application"}</p><p className="text-sm text-slate-500">{state.currentStep.replaceAll("_", " ")}</p></div>

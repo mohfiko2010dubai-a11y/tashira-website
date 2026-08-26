@@ -22,7 +22,8 @@ import type { QuestionCatalogDefinition, RequirementCatalogDefinition, Versioned
 import { applicationAccessQuery, createRouter } from "./middleware";
 
 type ApplicationInterviewRecord = { applicationId: number; referenceNumber: string; routeCode: string; applicantIds: readonly number[];
-  applicantLabels: Readonly<Record<number, string>> };
+  applicantLabels: Readonly<Record<number, string>>; applicants: readonly { applicantId: number; applicantIndex: number; fullName: string;
+    nationality: string | null; residenceCountry: string | null; profileVersion: number }[] };
 const travelGroupInputSchema = z.object({ reference: z.string().trim().min(1).max(100), applicantIds: z.array(z.number().int().positive()).min(1).max(50),
   primaryTravellerId: z.number().int().positive(), accompanyingAdultId: z.number().int().positive().nullable(), arrangement: z.enum(["TOGETHER", "SEPARATELY"]),
   origin: z.string().trim().min(2).max(100), destination: z.string().trim().min(2).max(100), plannedArrivalDate: z.iso.date(),
@@ -79,8 +80,8 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       routeCode: application.routeCode, applicantIds: application.applicantIds, questions, requirements, rules, events, evaluatedAt: now });
     const applicantId = interview.currentQuestions[0]?.applicantId ?? null;
     const unifiedEnabled = isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
-    const bundle = unifiedEnabled && interview.currentQuestions.length === 0
-      ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
+    const partyBundle = unifiedEnabled ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
+    const bundle = interview.currentQuestions.length === 0 ? partyBundle : null;
     let unifiedReview = null;
     if (bundle) {
       const persistent = adaptPersistentUnifiedInterview(bundle);
@@ -93,7 +94,15 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     return { application, context, flags, questions, requirements, rules, events, state: { ...interview, currentApplicant: applicantId === null ? null
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
       review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
-        label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) }, unifiedReview } };
+        label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) },
+      partySetup: unifiedEnabled ? { applicants: application.applicants,
+        relationships: partyBundle?.family.currentRelationships(application.applicationId).map((item) => ({ relationshipEventId: item.id,
+          fromApplicantId: item.fromApplicantId, toApplicantId: item.toApplicantId, relationship: item.relationship })) ?? [],
+        travelGroups: partyBundle?.source.travelGroups?.map((group) => ({ travelGroupId: group.id, version: group.version,
+          reference: group.reference, applicantIds: group.applicantIds, primaryTravellerId: group.primaryTravellerId,
+          accompanyingAdultId: group.accompanyingAdultId, arrangement: group.arrangement, origin: group.origin, destination: group.destination,
+          plannedArrivalDate: group.plannedArrivalDate, plannedDepartureDate: group.plannedDepartureDate, ticketStatus: group.ticketStatus })) ?? [] } : null,
+      unifiedReview } };
   };
   const persistCompletion = async (runtime: Awaited<ReturnType<typeof state>>, trigger: InterviewAnswerEvent, reason: string) => {
     if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags)) return;
@@ -257,10 +266,16 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
   loadApplication: async (referenceNumber) => {
     const applicationRows = await sql.query("SELECT id,reference_number AS referenceNumber,visa_type AS routeCode FROM applications WHERE reference_number=?", [referenceNumber]);
     const row = applicationRows[0]; if (!row) return null; const applicationId = Number(Reflect.get(row, "id"));
-    const applicantRows = await sql.query("SELECT id,applicant_index AS applicantIndex,full_name AS fullName FROM applicants WHERE application_id=? ORDER BY applicant_index,id", [applicationId]);
+    const applicantRows = await sql.query(`SELECT id,applicant_index AS applicantIndex,full_name AS fullName,nationality,
+      gcc_residence_country AS residenceCountry,profile_version AS profileVersion FROM applicants WHERE application_id=? ORDER BY applicant_index,id`, [applicationId]);
     const applicantIds = applicantRows.map((applicant) => Number(Reflect.get(applicant, "id")));
     return { applicationId, referenceNumber: String(Reflect.get(row, "referenceNumber")), routeCode: String(Reflect.get(row, "routeCode")),
-      applicantIds, applicantLabels: Object.fromEntries(applicantRows.map((applicant) => { const id = Number(Reflect.get(applicant, "id"));
+      applicantIds, applicants: applicantRows.map((applicant) => ({ applicantId: Number(Reflect.get(applicant, "id")),
+        applicantIndex: Number(Reflect.get(applicant, "applicantIndex")), fullName: String(Reflect.get(applicant, "fullName") ?? ""),
+        nationality: Reflect.get(applicant, "nationality") === null ? null : String(Reflect.get(applicant, "nationality")),
+        residenceCountry: Reflect.get(applicant, "residenceCountry") === null ? null : String(Reflect.get(applicant, "residenceCountry")),
+        profileVersion: Number(Reflect.get(applicant, "profileVersion")) })),
+      applicantLabels: Object.fromEntries(applicantRows.map((applicant) => { const id = Number(Reflect.get(applicant, "id"));
         const fullName = String(Reflect.get(applicant, "fullName") ?? "").trim(); const index = Number(Reflect.get(applicant, "applicantIndex"));
         return [id, fullName || `Applicant ${index + 1}`]; })) };
   },

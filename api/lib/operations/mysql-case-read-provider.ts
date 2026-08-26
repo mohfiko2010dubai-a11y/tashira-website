@@ -123,7 +123,7 @@ export class MysqlOperationsCaseReadProvider {
                        FROM application_timeline_events WHERE application_id=? ORDER BY created_at,id`, [applicationId]),
       nullableNumber(application, "supplierId") === undefined ? Promise.resolve([]) : this.sql.query(
         `SELECT id, name FROM suppliers WHERE id=? AND is_active='active' LIMIT 1`, [nullableNumber(application, "supplierId") ?? 0]),
-      this.sql.query(`SELECT id, travel_group_reference AS reference, arrangement,
+      this.sql.query(`SELECT id, version, travel_group_reference AS reference, arrangement,
                             primary_traveller_id AS primaryTravellerId, accompanying_adult_id AS accompanyingAdultId,
                             origin, destination, planned_arrival_date AS plannedArrivalDate,
                             planned_departure_date AS plannedDepartureDate, ticket_status AS ticketStatus
@@ -277,7 +277,7 @@ export class MysqlOperationsCaseReadProvider {
         throw new Error("TRAVEL_GROUP_APPLICANT_OWNERSHIP_MISMATCH");
       }
       const history = schedules.get(id) ?? [];
-      return { id, reference: text(row, "reference"), arrangement: text(row, "arrangement") as "TOGETHER" | "SEPARATELY",
+      return { id, version: number(row, "version"), reference: text(row, "reference"), arrangement: text(row, "arrangement") as "TOGETHER" | "SEPARATELY",
         primaryTravellerId, accompanyingAdultId: nullableNumber(row, "accompanyingAdultId") ?? null,
         applicantIds: members, origin: text(row, "origin"), destination: text(row, "destination"),
         plannedArrivalDate: dateText(row, "plannedArrivalDate"), plannedDepartureDate: nullableDateText(row, "plannedDepartureDate"),

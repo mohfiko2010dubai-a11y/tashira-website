@@ -46,7 +46,9 @@ function deps(currentFlags = flags) {
     return events[0];
   });
   return { flagContextForContext: async () => ({ environment: "STAGING" as const }), flagsForContext: async () => currentFlags,
-    loadApplication: async (value: string) => value === reference ? ({ applicationId: 9, referenceNumber: reference, routeCode: "UAE_VISIT", applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" } }) : null,
+    loadApplication: async (value: string) => value === reference ? ({ applicationId: 9, referenceNumber: reference, routeCode: "UAE_VISIT",
+      applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" }, applicants: [{ applicantId: 21, applicantIndex: 0,
+        fullName: "Ahmed", nationality: "EG", residenceCountry: null, profileVersion: 1 }] }) : null,
     loadCatalog: async () => ({ questions: [question], requirements: [requirement] }), loadRules: async () => [rule], loadEvents: async () => events,
     loadUnifiedBundle, addApplicant, editApplicant, defineRelationship, createTravelGroup, updateTravelGroup, linkSharedDocument,
     persistCompletedEvaluations, append, now: () => at };
@@ -65,17 +67,20 @@ describe("authenticated Dynamic Interview API", () => {
 
   it("does not read unified persistence while its requirement flag is closed", async () => {
     const current = deps(); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
-    await caller.current({ referenceNumber: reference });
+    expect(await caller.current({ referenceNumber: reference })).toMatchObject({ partySetup: null });
     expect(current.loadUnifiedBundle).not.toHaveBeenCalled();
   });
 
-  it("requests the trusted unified persistence bundle only after its application flag opens", async () => {
+  it("requests the trusted unified persistence bundle throughout the flagged customer flow", async () => {
     const dynamicRequirements: FeatureFlagRecord = { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true,
       scopeType: "APPLICATION", scopeReference: reference };
     const current = deps([...flags, dynamicRequirements]); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
     expect(await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG",
-      changeReason: "INITIAL_ANSWER" })).toMatchObject({ unifiedReview: null });
-    expect(current.loadUnifiedBundle).toHaveBeenCalledExactlyOnceWith(reference);
+      changeReason: "INITIAL_ANSWER" })).toMatchObject({ partySetup: { applicants: [{ applicantId: 21, profileVersion: 1 }],
+        relationships: [], travelGroups: [] }, unifiedReview: null });
+    expect(current.loadUnifiedBundle).toHaveBeenCalledTimes(2);
+    expect(current.loadUnifiedBundle).toHaveBeenNthCalledWith(1, reference);
+    expect(current.loadUnifiedBundle).toHaveBeenNthCalledWith(2, reference);
     expect(current.persistCompletedEvaluations).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9,
       evaluations: [expect.objectContaining({ applicantId: 21, selectedRoute: "UAE_VISIT" })] }));
   });

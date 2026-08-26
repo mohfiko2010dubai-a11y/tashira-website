@@ -10,6 +10,7 @@ import type { SchedulerAlertEvent } from "../travel/scheduler-runtime";
 
 export type OperationsTravelGroup = {
   id: string;
+  version: number;
   reference: string;
   arrangement: TravelArrangement;
   primaryTravellerId: number;

@@ -22,7 +22,7 @@ function fixture(): MysqlOperationsCaseBundle {
   return { snapshots, family, source: { summary: { applicationId: 7, reference: "TSH-TEST", status: "draft", createdAt: "2026-08-26", legacy: false },
     applicants: [{ applicantId: 11, applicantIndex: 0, displayName: "Mother", nationality: "EG", residenceCountry: null, routeCompatible: true },
       { applicantId: 12, applicantIndex: 1, displayName: "Child", nationality: "EG", residenceCountry: null, routeCompatible: true }],
-    documents: [], supplier: null, operationalHistory: [], travelGroups: [{ id: "trip", reference: "Trip A", arrangement: "TOGETHER",
+    documents: [], supplier: null, operationalHistory: [], travelGroups: [{ id: "trip", version: 1, reference: "Trip A", arrangement: "TOGETHER",
       primaryTravellerId: 11, accompanyingAdultId: 11, applicantIds: [11, 12], origin: "CAI", destination: "DXB", plannedArrivalDate: "2027-01-20",
       plannedDepartureDate: null, ticketStatus: "CONFIRMED", sharedDocuments: [{ documentId: 55, documentType: "FAMILY_BOOKING", applicantIds: [11, 12] }],
       currentSchedule: null, scheduleHistory: [] }] } };

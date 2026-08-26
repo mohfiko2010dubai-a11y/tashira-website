@@ -48,7 +48,7 @@ function model(legacy = false): OperationsCaseReadModel {
     },
     supplier: { id: 5, name: "Synthetic Supplier", slaHours: 24, reliabilityScore: 95 },
     operationalHistory: [{ id: "event-1", event: "CASE_CREATED", actorType: "SYSTEM", occurredAt: "2026-06-01" }],
-    travelGroups: legacy ? [] : [{ id: "trip-a", reference: "Travel Group A", arrangement: "TOGETHER", primaryTravellerId: 11,
+    travelGroups: legacy ? [] : [{ id: "trip-a", version: 1, reference: "Travel Group A", arrangement: "TOGETHER", primaryTravellerId: 11,
       accompanyingAdultId: 11, applicantIds: [11, 12], origin: "CAI", destination: "DXB", plannedArrivalDate: "2026-12-20",
       plannedDepartureDate: "2026-12-30", ticketStatus: "CONFIRMED", sharedDocuments: [{ documentId: 101, applicantIds: [11, 12], documentType: "FAMILY_BOOKING" }],
       currentSchedule: { evaluationId: "schedule-a", evaluatedAt: "2026-08-25", travelGroupId: "trip-a", routeCode: "FAMILY",

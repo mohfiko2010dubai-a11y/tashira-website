@@ -36,7 +36,7 @@ function source(legacy = false): OperationsCaseSource {
     ],
     supplier: { id: 5, name: "Synthetic Supplier", slaHours: 24, reliabilityScore: 95, effectiveCost: "100", internalCost: "90" },
     operationalHistory: [{ id: "timeline-1", event: "CASE_CREATED", actorType: "SYSTEM", occurredAt: "2026-01-01" }],
-    travelGroups: [{ id: "trip-a", reference: "Trip A", arrangement: "TOGETHER", primaryTravellerId: 11,
+    travelGroups: [{ id: "trip-a", version: 1, reference: "Trip A", arrangement: "TOGETHER", primaryTravellerId: 11,
       accompanyingAdultId: 11, applicantIds: [11, 12], origin: "CAI", destination: "DXB", plannedArrivalDate: "2026-12-20",
       plannedDepartureDate: null, ticketStatus: "CONFIRMED", sharedDocuments: [],
       currentSchedule: { evaluationId: "schedule-a", evaluatedAt: "2026-08-25", travelGroupId: "trip-a", routeCode: "FAMILY",
