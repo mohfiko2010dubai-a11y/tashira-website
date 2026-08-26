@@ -1,0 +1,27 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+const scope = readFileSync(new URL("../scripts/staging-scope-dynamic-interview.ts", import.meta.url), "utf8");
+const e2e = readFileSync(new URL("../scripts/staging-run-unified-interview-api-e2e.ts", import.meta.url), "utf8");
+
+describe("Staging Dynamic Interview execution guards", () => {
+  it("allows only explicit synthetic application scope and never global scope", () => {
+    expect(scope).toContain('databaseUrl.pathname.slice(1) !== "tashira_staging"');
+    expect(scope).toContain('endsWith("/var/www/tashira-staging")');
+    expect(scope).toContain("allowed.has(reference)");
+    expect(scope).toContain("'APPLICATION'");
+    expect(scope).not.toContain("'GLOBAL'");
+    expect(scope).toContain('"DYNAMIC_CUSTOMER_APPLICATION", "VISA_RULES_EVALUATION", "DYNAMIC_REQUIREMENTS"');
+    expect(scope).not.toContain("OPERATIONS_CONTROLLED_WRITES");
+  });
+
+  it("uses an in-memory session and proves authorization, immutable history, idempotency and finance isolation", () => {
+    expect(e2e).toContain('const reference = "TSH-STG-DYN-INDIVIDUAL"');
+    expect(e2e).toContain("createCustomerApplicationCookie");
+    expect(e2e).not.toMatch(/console\.log\([^)]*(cookie|secret|token)/i);
+    expect(e2e).toContain("STAGING_UNIFIED_API_AUTHORIZATION=PASS");
+    expect(e2e).toContain("STAGING_UNIFIED_API_IMMUTABLE_REEVALUATION=PASS");
+    expect(e2e).toContain("STAGING_UNIFIED_API_IDEMPOTENCY=PASS");
+    expect(e2e).toContain("STAGING_E2E_FINANCE_FIELD_LEAK");
+  });
+});
