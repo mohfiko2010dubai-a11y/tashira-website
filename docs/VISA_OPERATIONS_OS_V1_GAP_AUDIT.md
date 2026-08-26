@@ -30,7 +30,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Email Automation | PARTIAL | Yes | Existing app | Complete canonical V1 event/dedup ledger exists; persistent runtime/provider dispatch remains |
 | Inbound Email / Employee Reply | PARTIAL | Contract only | No | Mailbox/provider credentials and adapter |
 | Support Inbox | PARTIAL | Yes | Staging MySQL runtime verified | Persistent team-scoped store, RBAC API, internal UI, concurrency, idempotency and append-only messages/notes/audit are deployed on Staging behind an OFF flag; real Staging repository integration passes, while browser sign-off and the external mailbox provider remain |
-| Regulatory Watcher / Change Center | PARTIAL | Yes | No | Controlled review/impact model complete and cannot auto-activate; official-source connector, persistence and authorized UI remain |
+| Regulatory Watcher / Change Center | PARTIAL | Yes | Staging scoped E2E | Immutable proposal/impact persistence, explicit RBAC review API and internal UI are complete behind an OFF flag and cannot auto-activate; official-source connector and approved content remain |
 | Feature Flags | DONE | Yes | Yes | Production activation is a separate owner gate |
 | Legacy Compatibility | DONE | Yes | Yes | Explicit re-evaluation only |
 | Operations Analytics | DONE | Yes | API/MySQL scoped E2E | Finance-free workload, readiness, schedule, rework and supplier operational aggregates are live on isolated Staging; owner KPI thresholds remain a future tuning input |
