@@ -54,4 +54,14 @@ describe("authenticated Dynamic Interview API", () => {
       .toMatchObject({ eligibilityState: "ELIGIBLE_ROUTE_FOUND", nextAction: "REVIEW_REQUIREMENTS" });
     expect(current.append).toHaveBeenCalledTimes(1);
   });
+
+  it("edits only an existing owned answer through append-only history", async () => {
+    const current = deps(); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    await expect(caller.editAnswer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "PK", changeReason: "CUSTOMER_CORRECTION" }))
+      .rejects.toMatchObject({ code: "CONFLICT" });
+    await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG", changeReason: "INITIAL_ANSWER" });
+    await caller.editAnswer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "PK", changeReason: "CUSTOMER_CORRECTION" });
+    expect(current.append).toHaveBeenCalledTimes(2);
+    expect(current.append).toHaveBeenLastCalledWith(expect.objectContaining({ applicantId: 21, answer: "PK", changeReason: "CUSTOMER_CORRECTION" }));
+  });
 });

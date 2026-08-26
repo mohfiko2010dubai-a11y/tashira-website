@@ -74,6 +74,24 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" });
       }
     }),
+    editAnswer: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive().nullable(),
+      questionCode: z.string().regex(/^[A-Z][A-Z0-9_]{1,99}$/), answer: z.union([z.string().max(500), z.number().finite(), z.boolean()]),
+      changeReason: z.string().trim().min(3).max(500) }).strict()).mutation(async ({ input, ctx }) => {
+      try {
+        const runtime = await state(ctx, input.referenceNumber);
+        const previous = runtime.state.knownAnswers.find((item) => item.code === input.questionCode && item.applicantId === input.applicantId);
+        if (!previous) throw new TRPCError({ code: "CONFLICT", message: "Interview answer is not editable" });
+        const definition = runtime.questions.find((question) => question.code === input.questionCode);
+        if (!definition) throw new TRPCError({ code: "CONFLICT", message: "Interview question unavailable" });
+        await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
+          answer: input.answer, changeReason: input.changeReason, actorReference: `customer:${input.referenceNumber}`, occurredAt: deps.now() });
+        return (await state(ctx, input.referenceNumber)).state;
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        if (error instanceof Error && error.message.startsWith("INTERVIEW_")) throw new TRPCError({ code: "BAD_REQUEST", message: "Interview answer rejected" });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dynamic interview unavailable" });
+      }
+    }),
   });
 }
 

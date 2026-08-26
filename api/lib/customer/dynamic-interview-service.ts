@@ -34,6 +34,7 @@ export function buildPersistentDynamicInterview(input: { applicationId: number; 
   const codeByDefinition = new Map(input.questions.map((question) => [question.definitionId, question.code]));
   const requiredQuestionCodes = deriveRequiredInterviewQuestions({ applicantIds: input.applicantIds, rules: input.rules,
     currentAnswers: latest, definitionCodeById: codeByDefinition });
+  const relevantAnswerKeys = new Set(requiredQuestionCodes.map((required) => `${required.applicantId ?? "APPLICATION"}:${required.code}`));
   const latestByKey = new Map(latest.map((event) => [`${event.applicantId ?? "APPLICATION"}:${event.questionDefinitionId}`, event]));
   const lookup: InterviewAnswerLookup = { current: (_applicationId, applicantId, definitionId) => latestByKey.get(`${applicantId ?? "APPLICATION"}:${definitionId}`) ?? null };
   const unanswered = requiredQuestionCodes.some((required) => {
@@ -46,7 +47,7 @@ export function buildPersistentDynamicInterview(input: { applicationId: number; 
       const attributes: Record<string, string | number | boolean> = {};
       for (const event of latest.filter((answer) => answer.applicantId === applicantId)) {
         const code = codeByDefinition.get(event.questionDefinitionId); const field = code ? codeField[code] : undefined;
-        if (field) attributes[field] = event.answer;
+        if (field && code && relevantAnswerKeys.has(`${applicantId}:${code}`)) attributes[field] = event.answer;
       }
       const profile: EligibilityProfile = { routeCode: input.routeCode, attributes };
       const result = evaluateEligibility({ profile, rules: input.rules, evaluatedAt: input.evaluatedAt });

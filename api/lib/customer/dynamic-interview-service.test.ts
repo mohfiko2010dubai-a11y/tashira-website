@@ -40,6 +40,21 @@ describe("persistent dynamic interview composition", () => {
     expect(buildPersistentDynamicInterview({ ...base, events: history.all(9) }).currentQuestions).toHaveLength(0);
   });
 
+  it("stops a superseded GCC-dependent answer from affecting current evaluation", () => {
+    const nationality = question("NATIONALITY"), gcc = question("GCC_RESIDENT", "BOOLEAN"), country = question("GCC_COUNTRY");
+    const gccRule: EligibilityRule = { ...rule, id: "GCC", layer: "GCC_OVERLAY", eligibilityEffect: "INELIGIBLE",
+      conditions: [{ field: "gccCountry", operator: "EQUALS", value: "AE" }] };
+    const history = new InMemoryInterviewAnswerHistory();
+    const append = (definition: QuestionCatalogDefinition, answer: string | boolean, reason: string) => history.append({ applicationId: 9, applicantId: 21,
+      questionDefinitionId: definition.definitionId, questionDefinitionVersion: 1, answer, changeReason: reason, occurredAt: at.toISOString(), definition });
+    append(nationality, "EG", "INITIAL_ANSWER"); append(gcc, true, "INITIAL_ANSWER"); append(country, "AE", "INITIAL_ANSWER");
+    append(gcc, false, "CUSTOMER_CORRECTION");
+    const state = buildPersistentDynamicInterview({ applicationId: 9, routeCode: "UAE_VISIT", applicantIds: [21], questions: [nationality, gcc, country],
+      rules: [rule, gccRule], events: history.all(9), evaluatedAt: at });
+    expect(state.currentQuestions).toHaveLength(0);
+    expect(state.eligibilityState).toBe("ELIGIBLE_ROUTE_FOUND");
+  });
+
   it("keeps applicants isolated in a mixed family", () => {
     const nationality = question("NATIONALITY");
     const travelling = { ...question("GCC_COUNTRY"), definitionId: "44444444-1111-4111-8111-111111111111", code: "TRAVELLING_TOGETHER",
