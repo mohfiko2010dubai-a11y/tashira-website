@@ -1,0 +1,4 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe,expect,it } from "vitest";
+import CustomerPrecheckResult from "./CustomerPrecheckResult";
+describe("CustomerPrecheckResult",()=>{it("shows evidence status and disclaimer without guarantees",()=>{const html=renderToStaticMarkup(<CustomerPrecheckResult result={{outcome:"HUMAN_REVIEW_REQUIRED",requiredDocumentCodes:["PASSPORT"],conditionalDocumentCodes:["BANK_STATEMENT"],warnings:["Profile needs review"],disclaimer:"Guidance only; not a guarantee.",sourceVerificationStatus:"HUMAN_REVIEW_REQUIRED"}}/>);expect(html).toContain("Human review required");expect(html).toContain("PASSPORT");expect(html).toContain("BANK STATEMENT");expect(html).toContain("Guidance only");expect(html).not.toMatch(/approved|guaranteed|government accepted/i);});});
