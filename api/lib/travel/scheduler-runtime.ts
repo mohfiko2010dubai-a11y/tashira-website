@@ -26,7 +26,7 @@ export type SchedulerAlertEvent = {
 };
 
 export type SchedulerCustomerContract = {
-  state: "SCHEDULED_FOR_SUBMISSION" | "APPLICATION_TOO_EARLY" | "READY_FOR_SUBMISSION" | "ACTION_REQUIRED" | "SUBMITTED";
+  state: "SCHEDULED_FOR_SUBMISSION" | "RECOMMENDED_WINDOW" | "READY_FOR_SUBMISSION" | "URGENT" | "ACTION_REQUIRED" | "SUBMITTED";
   plannedTravelDate: string;
   recommendedSubmissionWindow: { earliest: string | null; latest: string | null };
   earliestEligibleDate: string | null;
@@ -88,12 +88,14 @@ export function toSchedulerCustomerContract(snapshot: SubmissionScheduleSnapshot
   const common = { plannedTravelDate: snapshot.plannedArrivalDate,
     recommendedSubmissionWindow: { earliest: snapshot.earliestSafeSubmissionDate, latest: snapshot.latestSafeSubmissionDate },
     earliestEligibleDate: snapshot.earliestSafeSubmissionDate, ruleClassification } as const;
-  if (snapshot.state === "TOO_EARLY") return { ...common, state: "APPLICATION_TOO_EARLY",
-    customerSafeExplanation: "This application cannot be processed yet. Please return on or after the earliest eligible date shown." };
   if (snapshot.state === "SCHEDULED_FOR_SUBMISSION") return { ...common, state: "SCHEDULED_FOR_SUBMISSION",
     customerSafeExplanation: "You can complete your application now. TASHIRA will schedule submission closer to your planned travel date." };
+  if (snapshot.state === "RECOMMENDED_WINDOW") return { ...common, state: "RECOMMENDED_WINDOW",
+    customerSafeExplanation: "Your planned travel date is within TASHIRA's recommended operational submission window." };
   if (snapshot.state === "READY_FOR_SUBMISSION") return { ...common, state: "READY_FOR_SUBMISSION",
     customerSafeExplanation: "Your application is ready for the next submission step." };
+  if (snapshot.state === "URGENT") return { ...common, state: "URGENT",
+    customerSafeExplanation: "Your planned travel date is close. TASHIRA will prioritize operational review without guaranteeing authority processing time." };
   if (snapshot.state === "ALREADY_SUBMITTED") return { ...common, state: "SUBMITTED",
     customerSafeExplanation: "Your application has been submitted for processing." };
   return { ...common, state: "ACTION_REQUIRED",

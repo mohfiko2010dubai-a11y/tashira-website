@@ -1,47 +1,46 @@
 import { describe, expect, it } from "vitest";
+import { createOperationalSubmissionPolicy, type OperationalSubmissionPolicy } from "./operational-submission-policy";
 import { evaluateSubmissionSchedule, type SubmissionTimingRule } from "./submission-scheduler";
 
-const official: SubmissionTimingRule = { ruleId: "official-entry", version: 2, classification: "OFFICIAL", entryValidityDays: 60, expectedProcessingDays: 0, safetyBufferDays: 0, preferredLeadDays: 0 };
-const operational: SubmissionTimingRule = { ruleId: "ops-window", version: 4, classification: "OPERATIONAL", entryValidityDays: null, expectedProcessingDays: 5, safetyBufferDays: 3, preferredLeadDays: 30 };
-const evaluate = (overrides: Partial<Parameters<typeof evaluateSubmissionSchedule>[0]> = {}) => evaluateSubmissionSchedule({
-  evaluationId: "schedule-1", evaluatedAt: new Date("2026-10-01T00:00:00.000Z"), travelGroupId: "trip-a",
-  routeCode: "VISIT_30_SINGLE", plannedArrivalDate: "2026-12-01", officialRule: official,
-  operationalRule: operational, readinessSatisfied: true, ...overrides,
-});
+const official: SubmissionTimingRule = { ruleId: "official-entry", version: 2, classification: "OFFICIAL", entryValidityDays: 60 };
+const operational: OperationalSubmissionPolicy = { ...createOperationalSubmissionPolicy({ policyId: "ops-window", version: 1,
+  effectiveFrom: "2026-01-01T00:00:00.000Z", sourceReference: "OWNER_APPROVED_V1_POLICY",
+  thresholds: { scheduledAfterDays: 45, recommendedMinDays: 21, recommendedMaxDays: 45,
+    readyMinDays: 8, readyMaxDays: 20, urgentMinDays: 4, urgentMaxDays: 7,
+    humanReviewMinDays: 0, humanReviewMaxDays: 3, dueSoonDays: 14, alertUrgentDays: 7, dueTodayDays: 0 } }), state: "ACTIVE" };
+const evaluate = (daysUntilArrival: number, overrides: Partial<Parameters<typeof evaluateSubmissionSchedule>[0]> = {}) => {
+  const evaluatedAt = new Date("2026-10-01T00:00:00.000Z");
+  const arrival = new Date(evaluatedAt); arrival.setUTCDate(arrival.getUTCDate() + daysUntilArrival);
+  return evaluateSubmissionSchedule({ evaluationId: "schedule-1", evaluatedAt, travelGroupId: "trip-a",
+    routeCode: "VISIT_30_SINGLE", plannedArrivalDate: arrival.toISOString().slice(0, 10), officialRule: official,
+    operationalPolicy: operational, readinessSatisfied: true, ...overrides });
+};
 
-describe("deterministic submission scheduler", () => {
-  it("schedules an early complete application without calling policy official", () => {
-    const result = evaluate();
-    expect(result.state).toBe("SCHEDULED_FOR_SUBMISSION");
-    expect(result.earliestSafeSubmissionDate).toBe("2026-11-01");
-    expect(result.ruleVersions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ classification: "OFFICIAL" }), expect.objectContaining({ classification: "OPERATIONAL" }),
-    ]));
+describe("owner-approved deterministic submission scheduler", () => {
+  it.each([[46, "SCHEDULED_FOR_SUBMISSION"], [45, "RECOMMENDED_WINDOW"], [21, "RECOMMENDED_WINDOW"],
+    [20, "READY_FOR_SUBMISSION"], [8, "READY_FOR_SUBMISSION"], [7, "URGENT"], [4, "URGENT"],
+    [3, "HUMAN_REVIEW_REQUIRED"], [0, "HUMAN_REVIEW_REQUIRED"], [-1, "OVERDUE"]] as const)(
+    "maps %i days to %s without boundary gaps", (days, state) => expect(evaluate(days).state).toBe(state));
+
+  it("never becomes ready while readiness is blocked", () => {
+    expect(evaluate(15, { readinessSatisfied: false, blockingReasons: ["APPLICANT_2_MISSING_PASSPORT"] }).state)
+      .toBe("BLOCKED_BY_REQUIREMENTS");
+    expect(evaluate(6, { manualReviewRequired: true, blockingReasons: ["RULE_CONFLICT"] }).state)
+      .toBe("BLOCKED_BY_MANUAL_REVIEW");
   });
 
-  it("becomes ready only when the window and prerequisites are satisfied", () => {
-    expect(evaluate({ evaluatedAt: new Date("2026-11-25T00:00:00.000Z") }).state).toBe("READY_FOR_SUBMISSION");
-    expect(evaluate({ evaluatedAt: new Date("2026-11-25T00:00:00.000Z"), readinessSatisfied: false,
-      blockingReasons: ["APPLICANT_2_MISSING_PASSPORT"] }).state).toBe("BLOCKED_BY_REQUIREMENTS");
+  it("fails closed when official or active operational evidence is unresolved", () => {
+    expect(evaluate(15, { officialRule: null }).state).toBe("HUMAN_REVIEW_REQUIRED");
+    expect(evaluate(15, { operationalPolicy: null }).state).toBe("HUMAN_REVIEW_REQUIRED");
+    expect(evaluate(15, { operationalPolicy: { ...operational, state: "APPROVED" } }).state).toBe("HUMAN_REVIEW_REQUIRED");
   });
 
-  it("distinguishes an ordinary scheduled case from a true too-early hard block", () => {
-    expect(evaluate().state).toBe("SCHEDULED_FOR_SUBMISSION");
-    expect(evaluate({ hardBlockBeforeWindow: true }).state).toBe("TOO_EARLY");
-  });
-
-  it("preserves already-submitted cases and manual-review blockers", () => {
-    expect(evaluate({ alreadySubmitted: true }).state).toBe("ALREADY_SUBMITTED");
-    expect(evaluate({ manualReviewRequired: true, blockingReasons: ["RULE_CONFLICT"] }).state).toBe("BLOCKED_BY_MANUAL_REVIEW");
-  });
-
-  it("fails to human review when official or operational timing evidence is absent", () => {
-    expect(evaluate({ officialRule: null }).state).toBe("HUMAN_REVIEW_REQUIRED");
-    expect(evaluate({ operationalRule: null }).state).toBe("HUMAN_REVIEW_REQUIRED");
-  });
-
-  it("produces deterministic immutable evidence", () => {
-    expect(evaluate().evidenceSha256).toBe(evaluate().evidenceSha256);
-    expect(evaluate({ plannedArrivalDate: "2026-12-02" }).evidenceSha256).not.toBe(evaluate().evidenceSha256);
+  it("preserves immutable evidence and exact official/operational versions", () => {
+    expect(evaluate(15).ruleVersions).toEqual([
+      { ruleId: "official-entry", version: 2, classification: "OFFICIAL" },
+      { ruleId: "ops-window", version: 1, classification: "OPERATIONAL" },
+    ]);
+    expect(evaluate(15).evidenceSha256).toBe(evaluate(15).evidenceSha256);
+    expect(evaluate(14).evidenceSha256).not.toBe(evaluate(15).evidenceSha256);
   });
 });

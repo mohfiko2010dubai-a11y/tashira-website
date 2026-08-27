@@ -12,6 +12,7 @@ import { buildUpcomingSubmissionsQueue, type SubmissionQueueCandidate, type Subm
 import { readOperationsManagerDashboard, type OperationsAnalyticsCandidate } from "./lib/operations/manager-dashboard-service";
 import { MysqlOperationsManagerAnalyticsProvider } from "./lib/operations/mysql-manager-analytics-provider";
 import { createRouter, staffOrAdminQuery } from "./middleware";
+import { MysqlOperationalSubmissionPolicyProvider } from "./lib/travel/mysql-operational-submission-policy-provider";
 
 type Dependencies = {
   actorForContext(ctx: TrpcContext): Promise<AuthorizationActor>;
@@ -19,7 +20,7 @@ type Dependencies = {
   flagsForContext(ctx: TrpcContext): Promise<readonly FeatureFlagRecord[]>;
   load(reference: string): Promise<MysqlOperationsCaseBundle | null>;
   loadUpcoming?(): Promise<SubmissionQueueCandidate[]>;
-  submissionQueuePolicy?(): SubmissionQueuePolicy;
+  submissionQueuePolicy?(): SubmissionQueuePolicy | Promise<SubmissionQueuePolicy>;
   loadManagerAnalytics?(): Promise<OperationsAnalyticsCandidate[]>;
 };
 
@@ -55,7 +56,7 @@ export function createOperationsReadRouter(deps: Dependencies) {
           const [actor, context, flags, candidates] = await Promise.all([
             deps.actorForContext(ctx), deps.flagContextForContext(ctx), deps.flagsForContext(ctx), deps.loadUpcoming(),
           ]);
-          return buildUpcomingSubmissionsQueue({ actor, context, flags, candidates, policy: deps.submissionQueuePolicy(), now: new Date() });
+          return buildUpcomingSubmissionsQueue({ actor, context, flags, candidates, policy: await deps.submissionQueuePolicy(), now: new Date() });
         } catch (error) {
           if (error instanceof TRPCError) throw error;
           if (error instanceof OperationsAccessError || error instanceof Error && error.message === "SUBMISSION_QUEUE_DISABLED") {
@@ -71,7 +72,7 @@ export function createOperationsReadRouter(deps: Dependencies) {
         const [actor, context, flags, candidates] = await Promise.all([
           deps.actorForContext(ctx), deps.flagContextForContext(ctx), deps.flagsForContext(ctx), deps.loadManagerAnalytics(),
         ]);
-        const policy = deps.submissionQueuePolicy();
+        const policy = await deps.submissionQueuePolicy();
         return readOperationsManagerDashboard({ actor, context, flags, candidates, now: new Date(), ...policy });
       } catch (error) {
         if (error instanceof OperationsAccessError || error instanceof Error
@@ -88,15 +89,15 @@ let access: MysqlOperationsAccessProvider | undefined;
 let reader: MysqlOperationsCaseReadProvider | undefined;
 let submissionQueue: MysqlSubmissionQueueProvider | undefined;
 let managerAnalytics: MysqlOperationsManagerAnalyticsProvider | undefined;
+let operationalPolicy: MysqlOperationalSubmissionPolicyProvider | undefined;
 function accessProvider() { return access ??= new MysqlOperationsAccessProvider(defaultOperationsSqlClient()); }
 function readProvider() { return reader ??= new MysqlOperationsCaseReadProvider(defaultOperationsSqlClient()); }
 function queueProvider() { return submissionQueue ??= new MysqlSubmissionQueueProvider(defaultOperationsSqlClient()); }
 function managerAnalyticsProvider() { return managerAnalytics ??= new MysqlOperationsManagerAnalyticsProvider(defaultOperationsSqlClient()); }
-function queuePolicy(): SubmissionQueuePolicy {
-  const dueSoonDays = Number(process.env.OPERATIONS_SUBMISSION_DUE_SOON_DAYS);
-  const urgentDays = Number(process.env.OPERATIONS_SUBMISSION_URGENT_DAYS);
-  if (!Number.isSafeInteger(dueSoonDays) || !Number.isSafeInteger(urgentDays)) throw new Error("SUBMISSION_QUEUE_POLICY_NOT_CONFIGURED");
-  return { dueSoonDays, urgentDays };
+function operationalPolicyProvider() { return operationalPolicy ??= new MysqlOperationalSubmissionPolicyProvider(defaultOperationsSqlClient()); }
+async function queuePolicy(): Promise<SubmissionQueuePolicy> {
+  const policy = await operationalPolicyProvider().active(new Date());
+  return { dueSoonDays: policy.thresholds.dueSoonDays, urgentDays: policy.thresholds.alertUrgentDays };
 }
 
 export const operationsReadRouter = createOperationsReadRouter({

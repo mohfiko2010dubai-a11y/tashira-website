@@ -31,12 +31,13 @@ describe("scheduler runtime contracts", () => {
       actorId: "staff:31", reason: "STALE", occurredAt: "2026-08-25T02:00:00Z" })).toThrow("SCHEDULER_ALERT_VERSION_CONFLICT");
   });
 
-  it("returns customer-safe scheduled and too-early contracts without policy math", () => {
+  it("returns customer-safe operational windows without exposing policy math", () => {
     const scheduled = toSchedulerCustomerContract(snapshot("SCHEDULED_FOR_SUBMISSION"));
     expect(scheduled.state).toBe("SCHEDULED_FOR_SUBMISSION");
     expect(scheduled.ruleClassification).toBe("MIXED");
     expect(JSON.stringify(scheduled)).not.toMatch(/preferredLeadDays|safetyBufferDays|expectedProcessingDays/);
-    expect(toSchedulerCustomerContract(snapshot("TOO_EARLY")).state).toBe("APPLICATION_TOO_EARLY");
+    expect(toSchedulerCustomerContract(snapshot("RECOMMENDED_WINDOW")).state).toBe("RECOMMENDED_WINDOW");
+    expect(toSchedulerCustomerContract(snapshot("URGENT")).state).toBe("URGENT");
   });
 
   it("derives canonical communication events only on meaningful transitions", () => {
