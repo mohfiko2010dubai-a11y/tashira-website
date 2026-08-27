@@ -26,6 +26,7 @@ Status: **prepared, not authorized for execution**.
 
 ## Latest Staging evidence
 
+- Isolated migration rehearsal: the exact `014–041` chain was reapplied from a synthetic legacy baseline plus the real Migration `004` timeline dependency on local-only MySQL `8.4.11` (`127.0.0.1:33306`, database `tashira_ops_rehearsal_v1_20260827`). All 28 forward migrations passed and produced 73 tables / 101 triggers. Protected synthetic legacy counts remained 2 applications / 5 applicants / 5 documents / 1 payment / 1 invoice. The functional persistence rehearsal passed environment identity, legacy integrity, Rule governance, evaluation immutability, family/requirement isolation, Controlled Writes, concurrency, idempotency, transaction rollback/atomicity and finance non-mutation. No remote database or Production credential/data was used.
 - Release manifest gate: native Node execution at exact branch SHA `cbd8132d670d1aafe1a1ed182332eef24b17da85` returned `PASS`, proved a clean worktree and exact local/remote feature-branch match, and produced SHA-256 evidence for all 28 ordered forward/rollback migration pairs from `014` through `041`. Run with `node --experimental-strip-types scripts/verify-operations-production-readiness.ts`; it performs no server, database, environment or secret access.
 - Typing Pack output gate: applicant/evaluation/travel fields are explicitly marked for human verification; nested sensitive names, duplicate field identities, control characters and oversized output fail closed. Historical persisted pack hashes remain unchanged because the verification projection is deterministic and derived from already integrity-bound fields. The feature remains OFF and the owner-approved template/output format remains a separate gate.
 
@@ -39,7 +40,7 @@ Status: **prepared, not authorized for execution**.
 
 - Unified Interview authenticated read API: start/resume/current question/eligibility/requirements/upload requirements/scheduler/review all use one canonical persisted state path.
 - Scoped synthetic E2E: PASS for lifecycle equivalence, anonymous denial, application ownership and finance isolation.
-- Quality gates: TypeScript PASS; full ESLint PASS; 686 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
+- Quality gates: TypeScript PASS; full ESLint PASS; 687 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
 - Runtime: PM2 `tashira-staging` online; local/public Staging HTTP 200; read-only Production HTTP 200.
 - Closed state after the latest deployment: Controlled Writes, customer-facing Operations scopes, Typing Pack and external-provider capabilities are OFF; no Production-scoped flag exists in the Staging database. Any retained internal test scope does not make an unreviewed source authoritative.
 - Production, Production database, Production documents, main/master, Stripe, Resend, pricing, payment and invoice behavior were not modified by this milestone.
