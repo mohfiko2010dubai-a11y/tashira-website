@@ -1,12 +1,12 @@
 # TASHIRA Visa Operations OS V1 — Staging Migration and Activation Runbook
 
-Status: **PLAN ONLY — NOT EXECUTED**. This document does not authorize a staging connection, migration, deployment, or feature activation.
+Status: **CANONICAL REUSE RUNBOOK — NOT AN AUTHORIZATION**. Migrations `014–041` were already applied to isolated Staging during separately authorized, backed-up phases. This document does not authorize a new staging connection, migration, deployment, rollback or feature activation.
 
 ## A. Preconditions
 
 - Obtain explicit owner approval for the exact staging maintenance window and reviewed commit SHA.
 - Confirm CI and the final local acceptance gate are green at that exact SHA.
-- Confirm migrations `014` through `023` are unchanged from the rehearsed artifacts.
+- Run `node --experimental-strip-types scripts/verify-operations-production-readiness.ts` from the exact clean review branch and confirm migrations `014` through `041` match the reviewed manifest.
 - Assign named migration operator, verifier, rollback operator, and Operations test users.
 - Keep every Visa Operations OS flag closed before and immediately after migration.
 
@@ -51,6 +51,24 @@ Apply additively and strictly in this order:
 8. `021_rule_registry_governance.sql`
 9. `022_rule_layer_persistence.sql`
 10. `023_operations_write_preconditions.sql`
+11. `024_travel_party_submission_scheduler.sql`
+12. `025_scheduler_alert_communication_events.sql`
+13. `026_requirement_catalog.sql`
+14. `027_catalog_governance_dynamic_interview.sql`
+15. `028_customer_interview_write_contract.sql`
+16. `029_customer_requirement_document_links.sql`
+17. `030_dynamic_interview_answer_transitions.sql`
+18. `031_support_inbox_persistence.sql`
+19. `032_supplier_sla_escalation.sql`
+20. `033_typing_pack_authority_query.sql`
+21. `034_regulatory_change_center.sql`
+22. `035_visa_delivery.sql`
+23. `036_operations_email_queue.sql`
+24. `037_operational_submission_policy_governance.sql`
+25. `038_travel_date_change_evidence.sql`
+26. `039_optional_requirement_classification.sql`
+27. `040_rule_source_authority_governance.sql`
+28. `041_visa_rule_lifecycle_evidence.sql`
 
 Never reorder, skip, edit historical migration files, or apply rollback scripts during forward migration.
 
@@ -70,7 +88,25 @@ for migration in \
   migrations/020_operations_controlled_write_persistence.sql \
   migrations/021_rule_registry_governance.sql \
   migrations/022_rule_layer_persistence.sql \
-  migrations/023_operations_write_preconditions.sql
+  migrations/023_operations_write_preconditions.sql \
+  migrations/024_travel_party_submission_scheduler.sql \
+  migrations/025_scheduler_alert_communication_events.sql \
+  migrations/026_requirement_catalog.sql \
+  migrations/027_catalog_governance_dynamic_interview.sql \
+  migrations/028_customer_interview_write_contract.sql \
+  migrations/029_customer_requirement_document_links.sql \
+  migrations/030_dynamic_interview_answer_transitions.sql \
+  migrations/031_support_inbox_persistence.sql \
+  migrations/032_supplier_sla_escalation.sql \
+  migrations/033_typing_pack_authority_query.sql \
+  migrations/034_regulatory_change_center.sql \
+  migrations/035_visa_delivery.sql \
+  migrations/036_operations_email_queue.sql \
+  migrations/037_operational_submission_policy_governance.sql \
+  migrations/038_travel_date_change_evidence.sql \
+  migrations/039_optional_requirement_classification.sql \
+  migrations/040_rule_source_authority_governance.sql \
+  migrations/041_visa_rule_lifecycle_evidence.sql
 do
   mysql --defaults-extra-file="${STAGING_MYSQL_DEFAULTS_FILE:?approved staging defaults file required}" tashira_staging < "$migration" || exit 1
 done
@@ -91,7 +127,7 @@ The operator must set `STAGING_MYSQL_DEFAULTS_FILE` interactively to the approve
 ## H. Post-migration checks
 
 - Recompute schema fingerprint and compare only expected additive changes.
-- Verify every table/index/constraint/trigger required by `014–023`.
+- Verify every table/index/constraint/trigger required by `014–041` and compare against the isolated round-trip rehearsal evidence.
 - Verify protected application/applicant/document/payment/invoice row counts are unchanged.
 - Verify legacy records were not silently assigned rules, relationships, requirements or permissions.
 - Verify no staff member received an implicit role or scope.
@@ -107,6 +143,24 @@ Flags involved:
 - `FAMILY_ENGINE`
 - `OPERATIONS_CASE_READ_MODEL`
 - `OPERATIONS_CONTROLLED_WRITES`
+- `TRAVEL_PARTY_ENGINE`
+- `SUBMISSION_SCHEDULER`
+- `AI_DOCUMENT_REVIEW`
+- `OPERATIONS_STATE_MACHINE`
+- `SUPPORT_INBOX`
+- `REGULATORY_WATCHER`
+- `DYNAMIC_CUSTOMER_APPLICATION`
+- `CUSTOMER_PRECHECK`
+- `CUSTOMER_OPERATIONS_PORTAL`
+- `TYPING_PACK`
+- `AUTHORITY_QUERY`
+- `VISA_DELIVERY`
+- `VISA_ASSISTANT`
+- `CASE_CHAT_HANDOFF`
+- `OPERATIONS_EMAIL_AUTOMATION`
+- `MANAGER_DASHBOARD`
+- `OPERATIONS_ANALYTICS`
+- `SUPPLIER_SLA`
 
 Migration does not authorize activation. Create explicit TEST/STAGING-scoped records only during separately approved activation steps. Never create a Production flag record from this procedure.
 
@@ -161,7 +215,7 @@ Stop on unproven staging identity, unavailable/unverified backup, version/schema
 Separate explicit approval is required for:
 
 1. staging connection and backups;
-2. staging migrations `014–023` with all features OFF;
+2. any future Staging replay or recovery involving migrations `014–041`, with all features OFF;
 3. restricted Read Model activation;
 4. restricted Controlled Write activation;
 5. synthetic staging acceptance;
@@ -172,7 +226,7 @@ Separate explicit approval is required for:
 
 ### Step 1 — database only
 
-Apply `014–023` to proven `tashira_staging`, verify integrity, keep all flags OFF, then stop for review.
+For a fresh/recovered Staging database only, apply `014–041` to proven `tashira_staging`, verify integrity, keep all flags OFF, then stop for review. On the current Staging database, verify the existing applied schema; never blindly reapply historical migrations.
 
 ### Step 2 — restricted Read Model
 
