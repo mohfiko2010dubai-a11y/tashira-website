@@ -5,7 +5,7 @@ Status: **prepared, not authorized for execution**.
 ## Release identity
 
 - Source branch: `codex/visa-operations-os-v1`
-- Latest exact Staging implementation/runtime SHA: `8569e434a79403fe463d160117aac8225e20d8ea`; later documentation-only commits do not change this runtime evidence. No SHA is authorized for Production.
+- Latest exact Staging implementation/runtime SHA: `4058dcd897e3719447e279feed992e392005a6f6`. Current release-candidate branch SHA `cbd8132d670d1aafe1a1ed182332eef24b17da85` adds only the read-only release-manifest verifier after that runtime deployment. No SHA is authorized for Production.
 - Database chain: reviewed additive migrations `014` through `041`; re-rehearse the exact chain against an isolated restored Production-shaped copy before authorization.
 - Production changes performed by this package: none.
 
@@ -26,6 +26,9 @@ Status: **prepared, not authorized for execution**.
 
 ## Latest Staging evidence
 
+- Release manifest gate: native Node execution at exact branch SHA `cbd8132d670d1aafe1a1ed182332eef24b17da85` returned `PASS`, proved a clean worktree and exact local/remote feature-branch match, and produced SHA-256 evidence for all 28 ordered forward/rollback migration pairs from `014` through `041`. Run with `node --experimental-strip-types scripts/verify-operations-production-readiness.ts`; it performs no server, database, environment or secret access.
+- Typing Pack output gate: applicant/evaluation/travel fields are explicitly marked for human verification; nested sensitive names, duplicate field identities, control characters and oversized output fail closed. Historical persisted pack hashes remain unchanged because the verification projection is deterministic and derived from already integrity-bound fields. The feature remains OFF and the owner-approved template/output format remains a separate gate.
+
 - Inbound email gate: a provider-independent verified-envelope boundary is deployed without mailbox credentials or a public provider endpoint. Synthetic TEST E2E proved exact-one append-only ingestion, replay deduplication, changed-replay and wrong-team rejection, sender-address minimization and attachment exclusion. `SUPPORT_INBOX` remains OFF and no real email was processed.
 
 - Rule lifecycle gate: Migration `041` is applied after verified backup `/var/backups/tashira-staging/20260827T105133Z-rule-lifecycle-041-predeploy`. A synthetic INTERNAL version completed DRAFT → UNDER_REVIEW → REJECTED with exactly three immutable events, changed-replay/stale-transition rejection, zero approved reviews and zero active versions. The read-only Operations projection exposes lifecycle/source evidence only to `rule.read`, returned no finance/secret fields, and provides no activation control. `REGULATORY_WATCHER` remains OFF.
@@ -36,9 +39,9 @@ Status: **prepared, not authorized for execution**.
 
 - Unified Interview authenticated read API: start/resume/current question/eligibility/requirements/upload requirements/scheduler/review all use one canonical persisted state path.
 - Scoped synthetic E2E: PASS for lifecycle equivalence, anonymous denial, application ownership and finance isolation.
-- Quality gates: TypeScript PASS; full ESLint PASS; 670 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
+- Quality gates: TypeScript PASS; full ESLint PASS; 686 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
 - Runtime: PM2 `tashira-staging` online; local/public Staging HTTP 200; read-only Production HTTP 200.
-- Closed state after E2E: all customer-facing Operations scopes OFF; Controlled Writes OFF. The previously authorized internal Read Model global scope and Team-only Travel/Scheduler/Rule test scopes remain enabled; they do not make an unreviewed source authoritative.
+- Closed state after the latest deployment: Controlled Writes, customer-facing Operations scopes, Typing Pack and external-provider capabilities are OFF; no Production-scoped flag exists in the Staging database. Any retained internal test scope does not make an unreviewed source authoritative.
 - Production, Production database, Production documents, main/master, Stripe, Resend, pricing, payment and invoice behavior were not modified by this milestone.
 
 ## Rollback and recovery
