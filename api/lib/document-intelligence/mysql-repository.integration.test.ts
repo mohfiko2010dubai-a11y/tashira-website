@@ -103,6 +103,13 @@ describe.skipIf(!enabled)("MySQL document intelligence persistence", () => {
     const [rows] = await pool.execute("SELECT processing_tiers_json tiers FROM document_intelligence_runs WHERE id=?", [created.runId]);
     const storedTiers: unknown = Reflect.get((rows as object[])[0], "tiers");
     expect(typeof storedTiers === "string" ? JSON.parse(storedTiers) : storedTiers).toEqual(routing.tiers);
+    const operationalView = await repository.readApplicant(applicationReference, applicantId, actor);
+    expect(operationalView.runs[0]).not.toHaveProperty("processingCost");
+    expect(operationalView.fields[0]).toMatchObject({ runId: created.runId, fieldCode: "passport_number", selectedValue: "SYNTHETIC123" });
+    const financeView = await repository.readApplicant(applicationReference, applicantId,
+      { ...actor, permissions: new Set([...actor.permissions, "supplier.read_financial"]) });
+    expect(financeView.runs[0]).toMatchObject({ processingCost: "0.010000", currency: "USD" });
+    await expect(repository.readApplicant(applicationReference, applicantId, wrongTeamActor)).rejects.toThrow("DOCUMENT_INTELLIGENCE_ACCESS_DENIED");
   });
 
   it("fails closed for wrong-team and cross-applicant evidence", async () => {

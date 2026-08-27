@@ -29,6 +29,19 @@ export type PersistDocumentIntelligenceResult = {
   selectionCount: number;
   replayed: boolean;
 };
+export type DocumentIntelligenceApplicantReadModel = {
+  applicationId: number;
+  applicantId: number;
+  runs: readonly {
+    runId: string; documentId: number; provider: string; modelVersion: string; processingTier: string;
+    processingTiers: readonly string[]; processingCost?: string; currency?: string; escalationReasons: readonly string[];
+    warnings: readonly string[]; processedAt: string;
+  }[];
+  fields: readonly {
+    selectionId: string; runId: string; fieldCode: string; fieldState: string; selectedEvidenceId: string | null;
+    selectedValue: string | null; sourceType: string | null; confidence: string | null; reason: string; occurredAt: string;
+  }[];
+};
 
 function digest(value: unknown): string { return createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
 function text(row: object, key: string): string | null { const value = Reflect.get(row, key); return typeof value === "string" ? value : null; }
@@ -43,6 +56,35 @@ function allowedSources(values: readonly string[]): readonly AuthorityFieldSourc
 export class MysqlDocumentIntelligenceRepository {
   readonly #pool: Pool;
   constructor(pool: Pool) { this.#pool = pool; }
+
+  async readApplicant(applicationReference: string, applicantId: number, actor: AuthorizationActor): Promise<DocumentIntelligenceApplicantReadModel> {
+    const connection = await this.#pool.getConnection();
+    try {
+      const resource = await this.#applicantResource(connection, applicationReference, applicantId, false);
+      if (!authorize(actor, "document.review", { assignedActorId: resource.assignedActorId, teamId: resource.teamId, departmentId: resource.departmentId }).allowed) {
+        throw new Error("DOCUMENT_INTELLIGENCE_ACCESS_DENIED");
+      }
+      const financial = actor.permissions.has("supplier.read_financial");
+      const [runs] = await connection.execute<RowDataPacket[]>(`SELECT id runId,document_id documentId,provider,model_version modelVersion,
+        processing_tier processingTier,processing_tiers_json processingTiers,CAST(processing_cost AS CHAR) processingCost,currency,
+        escalation_reasons_json escalationReasons,warnings_json warnings,DATE_FORMAT(processed_at,'%Y-%m-%dT%H:%i:%s.%fZ') processedAt
+        FROM document_intelligence_runs WHERE application_id=? AND applicant_id=? ORDER BY processed_at DESC,id DESC`, [resource.applicationId, applicantId]);
+      const [fields] = await connection.execute<RowDataPacket[]>(`SELECT s.id selectionId,s.run_id runId,s.field_code fieldCode,s.field_state fieldState,
+        s.selected_evidence_id selectedEvidenceId,e.normalized_value selectedValue,e.source_type sourceType,CAST(e.confidence AS CHAR) confidence,
+        s.reason,DATE_FORMAT(s.occurred_at,'%Y-%m-%dT%H:%i:%s.%fZ') occurredAt FROM applicant_field_selection_events s
+        LEFT JOIN document_field_evidence e ON e.id=s.selected_evidence_id WHERE s.application_id=? AND s.applicant_id=?
+        ORDER BY s.occurred_at DESC,s.id DESC`, [resource.applicationId, applicantId]);
+      return { applicationId: resource.applicationId, applicantId,
+        runs: runs.map((row) => ({ runId: text(row,"runId") ?? "", documentId: integer(row,"documentId"), provider: text(row,"provider") ?? "",
+          modelVersion: text(row,"modelVersion") ?? "", processingTier: text(row,"processingTier") ?? "", processingTiers: jsonArray<string>(row,"processingTiers"),
+          ...(financial ? { processingCost: text(row,"processingCost") ?? "0", currency: text(row,"currency") ?? "" } : {}),
+          escalationReasons: jsonArray<string>(row,"escalationReasons"), warnings: jsonArray<string>(row,"warnings"), processedAt: text(row,"processedAt") ?? "" })),
+        fields: fields.map((row) => ({ selectionId: text(row,"selectionId") ?? "", runId: text(row,"runId") ?? "",
+          fieldCode: text(row,"fieldCode") ?? "", fieldState: text(row,"fieldState") ?? "", selectedEvidenceId: text(row,"selectedEvidenceId"),
+          selectedValue: text(row,"selectedValue"), sourceType: text(row,"sourceType"), confidence: text(row,"confidence"),
+          reason: text(row,"reason") ?? "", occurredAt: text(row,"occurredAt") ?? "" })) };
+    } finally { connection.release(); }
+  }
 
   async activeRequirements(input: { authorityCode: string; visaRouteCode: string; evaluatedAt: Date; environment: "TEST" | "STAGING" | "PRODUCTION" }): Promise<readonly AuthorityFieldRequirement[]> {
     if (Number.isNaN(input.evaluatedAt.getTime())) throw new Error("AUTHORITY_FIELD_EVALUATED_AT_INVALID");
@@ -136,10 +178,18 @@ export class MysqlDocumentIntelligenceRepository {
   async #resource(connection: PoolConnection, reference: string, applicantId: number, documentId: number): Promise<{
     applicationId: number; assignedActorId?: string; teamId: number; departmentId: number;
   }> {
+    const resource = await this.#applicantResource(connection, reference, applicantId, true);
+    const [documents] = await connection.execute<RowDataPacket[]>("SELECT id FROM documents WHERE id=? AND application_id=? AND applicant_id=?", [documentId, resource.applicationId, applicantId]);
+    if (!documents[0]) throw new Error("DOCUMENT_INTELLIGENCE_OWNERSHIP_INVALID");
+    return resource;
+  }
+
+  async #applicantResource(connection: PoolConnection, reference: string, applicantId: number, lock: boolean): Promise<{
+    applicationId: number; assignedActorId?: string; teamId: number; departmentId: number;
+  }> {
     const [rows] = await connection.execute<RowDataPacket[]>(`SELECT a.id applicationId,c.assigned_staff_user_id assignedStaffId,c.team_id teamId,t.department_id departmentId
-      FROM applications a JOIN applicants ap ON ap.application_id=a.id AND ap.id=? JOIN documents d ON d.application_id=a.id AND d.applicant_id=ap.id AND d.id=?
-      JOIN operations_case_controls c ON c.application_id=a.id JOIN operations_teams t ON t.id=c.team_id WHERE a.reference_number=? FOR UPDATE`,
-    [applicantId, documentId, reference]);
+      FROM applications a JOIN applicants ap ON ap.application_id=a.id AND ap.id=? JOIN operations_case_controls c ON c.application_id=a.id
+      JOIN operations_teams t ON t.id=c.team_id WHERE a.reference_number=?${lock ? " FOR UPDATE" : ""}`, [applicantId, reference]);
     if (!rows[0]) throw new Error("DOCUMENT_INTELLIGENCE_OWNERSHIP_INVALID");
     const assigned = Reflect.get(rows[0], "assignedStaffId");
     return { applicationId: integer(rows[0], "applicationId"), assignedActorId: assigned === null ? undefined : `staff:${integer(rows[0], "assignedStaffId")}`,

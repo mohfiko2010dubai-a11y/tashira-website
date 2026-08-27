@@ -30,6 +30,7 @@ import { operationsSupplierSlaRouter } from "./operations-supplier-sla-router";
 import { operationsAuthorityOutputRouter } from "./operations-authority-output-router";
 import { operationsRegulatoryRouter } from "./operations-regulatory-router";
 import { operationsVisaDeliveryRouter } from "./operations-visa-delivery-router";
+import { documentIntelligenceRouter } from "./document-intelligence-router";
 import { customerVisaAssistantRouter } from "./customer-visa-assistant-router";
 import { sourceAuthorityGovernanceRouter } from "./source-authority-governance-router";
 import { ruleGovernanceRouter } from "./rule-governance-router";
@@ -66,6 +67,7 @@ export const appRouter = createRouter({
   operationsAuthorityOutput: operationsAuthorityOutputRouter,
   operationsRegulatory: operationsRegulatoryRouter,
   operationsVisaDelivery: operationsVisaDeliveryRouter,
+  documentIntelligence: documentIntelligenceRouter,
   customerVisaAssistant: customerVisaAssistantRouter,
   sourceAuthorityGovernance: sourceAuthorityGovernanceRouter,
   ruleGovernance: ruleGovernanceRouter,
