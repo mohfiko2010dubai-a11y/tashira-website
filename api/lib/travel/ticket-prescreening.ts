@@ -1,3 +1,5 @@
+import { authorizeAiAdvisoryTask } from "../ai/decision-boundary";
+
 export type TicketPrescreenState = "PASS" | "WARNING" | "MISSING_APPLICANT" | "NAME_MISMATCH" | "UNREADABLE" | "MANUAL_REVIEW";
 
 export type TicketExtraction = {
@@ -20,6 +22,7 @@ export function prescreenTicket(input: {
   extraction: TicketExtraction;
   linkedApplicants: readonly { applicantId: number; authoritativeName: string }[];
 }): { state: TicketPrescreenState; reason: string; unmatchedApplicantIds: readonly number[]; confidence: number } {
+  authorizeAiAdvisoryTask("TICKET_PRESCREEN");
   if (input.extraction.confidence < 0 || input.extraction.confidence > 1) {
     return { state: "MANUAL_REVIEW", reason: "INVALID_EXTRACTION_CONFIDENCE", unmatchedApplicantIds: [], confidence: 0 };
   }

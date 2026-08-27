@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertSourceClassification, OFFICIAL_SOURCE_POLICY_VERSION, sourceAuthorityTypeSchema } from "./source-authority-policy";
 
 export const ruleClassificationSchema = z.enum(["OFFICIAL", "OPERATIONAL", "CONDITIONAL", "INTERNAL"]);
 export const ruleResearchStatusSchema = z.enum(["VALIDATED", "NOT_RESEARCHED", "MANUAL_REVIEW_REQUIRED"]);
@@ -9,6 +10,8 @@ export const ruleLayerSchema = z.enum([
 
 const sourceSchema = z.object({
   authority: z.string().min(1).max(255),
+  authorityType: sourceAuthorityTypeSchema,
+  authorityPolicyVersion: z.literal(OFFICIAL_SOURCE_POLICY_VERSION),
   title: z.string().min(1).max(500),
   url: z.string().url().refine((url) => new URL(url).protocol === "https:", "Source URL must use HTTPS"),
   retrievedAt: z.string().datetime({ offset: true }),
@@ -60,6 +63,16 @@ export const visaRuleImportSchema = z.object({
       path: ["outcome", "eligibility"],
       message: "Only OFFICIAL rules may decide eligibility",
     });
+  }
+  try {
+    assertSourceClassification({
+      classification: rule.classification,
+      authorityType: rule.source.authorityType,
+      policyVersion: rule.source.authorityPolicyVersion,
+      url: rule.source.url,
+    });
+  } catch (error) {
+    context.addIssue({ code: "custom", path: ["source"], message: error instanceof Error ? error.message : "SOURCE_AUTHORITY_INVALID" });
   }
 });
 

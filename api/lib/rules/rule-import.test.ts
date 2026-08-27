@@ -15,6 +15,8 @@ function fixture() {
     effectiveTo: null,
     source: {
       authority: "Synthetic Authority",
+      authorityType: "OTHER_UAE_GOVERNMENT_AUTHORITY",
+      authorityPolicyVersion: "UAE_OFFICIAL_SOURCE_POLICY_V1",
       title: "Synthetic rule fixture",
       url: "https://example.invalid/rules/1",
       retrievedAt: "2026-01-01T00:00:00.000Z",
@@ -66,5 +68,11 @@ describe("visa rule import boundary", () => {
     const value = fixture();
     value.classification = "OPERATIONAL";
     expect(() => validateVisaRuleImport(value)).toThrow(/Only OFFICIAL rules/i);
+  });
+
+  it("rejects commercial evidence mislabeled as OFFICIAL", () => {
+    const value = fixture();
+    value.source.authorityType = "COMMERCIAL";
+    expect(() => validateVisaRuleImport(value)).toThrow(/NON_OFFICIAL_SOURCE_CANNOT_BE_CLASSIFIED_OFFICIAL/);
   });
 });

@@ -1,3 +1,5 @@
+import { authorizeAiAdvisoryTask } from "../ai/decision-boundary";
+
 export type DocumentPrescreeningInput = {
   applicationId: number;
   applicantId: number;
@@ -46,6 +48,7 @@ function normalized(value: string): string {
 }
 
 export function prescreenDocument(input: DocumentPrescreeningInput): DocumentPrescreeningResult {
+  authorizeAiAdvisoryTask("DOCUMENT_PRESCREEN");
   if (!Number.isFinite(input.confidence) || input.confidence < 0 || input.confidence > 1) {
     throw new Error("DOCUMENT_PRESCREEN_CONFIDENCE_INVALID");
   }
