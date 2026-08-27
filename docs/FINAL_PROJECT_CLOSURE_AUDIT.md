@@ -23,7 +23,7 @@ All provider-independent engineering work found by the final fast-gap audit is c
 | Country-specific passport layouts/specimens | `EXTERNAL CONNECTION ONLY` | Governance and ICAO baseline exist; authoritative specimens/provider benchmark remain gated. |
 | OCR/AI, inbound mailbox, supplier and authority connections | `EXTERNAL CONNECTION ONLY` | Provider-neutral adapters exist; provider selection, credentials and approved data processing remain gated. |
 | Retention durations and destructive deletion | `OWNER/LEGAL CONFIGURATION` | Configurable framework exists; Production deletion remains OFF. |
-| Authenticated customer and Operations browser acceptance | `OWNER/LEGAL CONFIGURATION` | Public route and unauthenticated denial pass; entry of a short-lived synthetic Staging credential requires action-time confirmation. |
+| Authenticated customer Dynamic Interview browser acceptance | `DONE` | Owner-confirmed short-lived synthetic credential passed single-use authentication, same-application resume, readiness/payment guard, scoped Dynamic Interview rendering and cross-application denial. Operations staff browser sign-off remains a later named-RBAC owner gate. |
 | Main merge, Production migration/deployment/RBAC/activation | `PRODUCTION GATE` | Requires separate exact-SHA authorization and is not implied by this audit. |
 
 ## Quality and staging evidence
@@ -45,6 +45,14 @@ All provider-independent engineering work found by the final fast-gap audit is c
 - Local/public Staging health: HTTP 200.
 - Public Production health checked read-only: HTTP 200.
 - Unauthenticated dynamic-interview route: denied safely without application disclosure.
+- Authenticated synthetic recovery link: accepted once and redirected to the same application's canonical payment route.
+- Incomplete-application payment guard: PASS; exact missing application/applicant/document requirements rendered and Stripe entry remained unavailable.
+- Application-scoped Dynamic Interview: PASS after enabling only `VISA_RULES_EVALUATION`, `DYNAMIC_REQUIREMENTS`, and `DYNAMIC_CUSTOMER_APPLICATION` for `TSH-STG-DYN-INDIVIDUAL`.
+- Dynamic Interview UI: applicant isolation wording, independent applicant profile, Travel Group, current review, eligibility/manual-review state and dynamic requirements rendered.
+- Cross-application browser access (`TSH-STG-DYN-FAMILY`) with the individual session: denied safely.
+- Recovery-link replay: rejected as invalid/expired/already used.
+- Post-test flag rollback: PASS; the three application-scoped flags returned to OFF and the complete closed-state verifier passed.
+- Screenshot capture: the browser integration returned `Unable to capture screenshot`; semantic DOM evidence was captured instead and no acceptance claim depends on an unavailable image.
 
 ## Frozen safety result
 
@@ -57,8 +65,8 @@ All provider-independent engineering work found by the final fast-gap audit is c
 
 ## True remaining owner gates
 
-1. Permit one short-lived synthetic Staging authentication link to be entered into the controlled browser for the final authenticated customer E2E and screenshots.
-2. Approve reviewed official Rule Registry and Requirement Catalog content before customer activation.
-3. Select/authorize required external providers and procedures.
-4. Decide legal retention/deletion durations.
+1. Approve reviewed official Rule Registry and Requirement Catalog content before customer activation.
+2. Select/authorize required external providers and procedures.
+3. Decide legal retention/deletion durations.
+4. Complete the named-RBAC Operations staff browser sign-off when Production/Staging staff identities are approved for that gate.
 5. Separately authorize exact-SHA main merge and the Production backup, rehearsal, migration, deployment, named RBAC grants and scoped activation sequence.
