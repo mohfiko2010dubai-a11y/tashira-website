@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { buildNewTravelGroupDraft } from "./interview-party-draft";
 
 export type PartyApplicant = { applicantId: number; applicantIndex: number; fullName: string; nationality: string | null;
   residenceCountry: string | null; profileVersion: number };
@@ -17,7 +18,7 @@ export type PartySetup = { applicationId: number; applicants: readonly PartyAppl
   requirementReadiness: readonly PartyRequirementReadiness[] };
 
 type Profile = { fullName: string; nationality: string | null; residenceCountry: string | null };
-type TravelInput = Omit<PartyTravelGroup, "travelGroupId" | "version" | "applicantIds"> & { applicantIds: number[] };
+export type TravelInput = Omit<PartyTravelGroup, "travelGroupId" | "version" | "applicantIds"> & { applicantIds: number[] };
 type Props = { setup: PartySetup; busy?: boolean; error?: boolean;
   onAddApplicant: (profile: Profile) => Promise<void>; onEditApplicant: (applicant: PartyApplicant, profile: Profile) => Promise<void>;
   onDefineRelationship: (fromApplicantId: number, toApplicantId: number, relationship: WritableRelationship) => Promise<void>;
@@ -39,10 +40,7 @@ export function InterviewPartySetup({ setup, busy = false, error = false, onAddA
   const startTravel = (group?: PartyTravelGroup) => { setEditingTravelGroupId(group?.travelGroupId ?? null); setTravelDraft(group ? { reference: group.reference, applicantIds: [...group.applicantIds],
     primaryTravellerId: group.primaryTravellerId, accompanyingAdultId: group.accompanyingAdultId, arrangement: group.arrangement,
     origin: group.origin, destination: group.destination, plannedArrivalDate: group.plannedArrivalDate,
-    plannedDepartureDate: group.plannedDepartureDate, ticketStatus: group.ticketStatus } : lead ? { reference: "Main travel group",
-      applicantIds: setup.applicants.map((item) => item.applicantId), primaryTravellerId: lead.applicantId, accompanyingAdultId: lead.applicantId,
-      arrangement: "TOGETHER", origin: "", destination: "DXB", plannedArrivalDate: "", plannedDepartureDate: null,
-      ticketStatus: "NOT_BOOKED" } : null); };
+    plannedDepartureDate: group.plannedDepartureDate, ticketStatus: group.ticketStatus } : buildNewTravelGroupDraft(setup)); };
   return <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" aria-labelledby="party-heading">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-wide text-[#9b7425]">Travel party</p>
       <h2 id="party-heading" className="mt-1 text-2xl font-bold text-slate-950">Applicants and travel arrangements</h2>
@@ -114,7 +112,7 @@ function TravelFields({ setup, draft, setDraft, busy, onCancel, onSave }: { setu
     <label className="grid gap-1 text-sm font-medium">Arrival date<input type="date" className={field} value={draft.plannedArrivalDate} onChange={(event) => setDraft({ ...draft, plannedArrivalDate: event.target.value })}/></label>
     <label className="grid gap-1 text-sm font-medium">Departure date<input type="date" className={field} value={draft.plannedDepartureDate ?? ""} onChange={(event) => setDraft({ ...draft, plannedDepartureDate: asNullable(event.target.value) })}/></label>
     <label className="grid gap-1 text-sm font-medium">Primary traveller<select className={field} value={draft.primaryTravellerId} onChange={(event) => setDraft({ ...draft, primaryTravellerId: Number(event.target.value) })}>{setup.applicants.filter((item) => draft.applicantIds.includes(item.applicantId)).map((item) => <option key={item.applicantId} value={item.applicantId}>{item.fullName}</option>)}</select></label>
-    <label className="grid gap-1 text-sm font-medium">Accompanying adult<select className={field} value={draft.accompanyingAdultId ?? ""} onChange={(event) => setDraft({ ...draft, accompanyingAdultId: event.target.value ? Number(event.target.value) : null })}><option value="">Not specified</option>{setup.applicants.filter((item) => draft.applicantIds.includes(item.applicantId)).map((item) => <option key={item.applicantId} value={item.applicantId}>{item.fullName}</option>)}</select></label>
+    <label className="grid gap-1 text-sm font-medium">Accompanying adult (if applicable)<select className={field} value={draft.accompanyingAdultId ?? ""} onChange={(event) => setDraft({ ...draft, accompanyingAdultId: event.target.value ? Number(event.target.value) : null })}><option value="">Not specified — no applicant is assumed</option>{setup.applicants.filter((item) => draft.applicantIds.includes(item.applicantId)).map((item) => <option key={item.applicantId} value={item.applicantId}>{item.fullName}</option>)}</select></label>
     <label className="grid gap-1 text-sm font-medium">Ticket status<select className={field} value={draft.ticketStatus} onChange={(event) => setDraft({ ...draft, ticketStatus: event.target.value as TravelInput["ticketStatus"] })}><option>NOT_BOOKED</option><option>RESERVED</option><option>CONFIRMED</option></select></label></div>
     <fieldset className="mt-4"><legend className="text-sm font-semibold">Travellers</legend><div className="mt-2 flex flex-wrap gap-3">{setup.applicants.map((applicant) => <label key={applicant.applicantId} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.applicantIds.includes(applicant.applicantId)} onChange={(event) => setDraft({ ...draft,
       ...(() => { const applicantIds = event.target.checked ? [...draft.applicantIds, applicant.applicantId] : draft.applicantIds.filter((id) => id !== applicant.applicantId);
