@@ -22,6 +22,11 @@ function safe(error: unknown): never {
 }
 export function createOperationalPolicyGovernanceRouter(deps: Dependencies) {
   return createRouter({
+    capabilities: staffOrAdminQuery.input(z.object({}).strict()).query(async ({ ctx }) => {
+      const actor = await deps.actorForContext(ctx);
+      return { read: actor.permissions.has("rule.read"), propose: actor.permissions.has("rule.propose"),
+        review: actor.permissions.has("rule.review"), activate: actor.permissions.has("rule.activate") };
+    }),
     list: staffOrAdminQuery.input(z.object({}).strict()).query(async ({ ctx }) => {
       try { return await deps.repository.list(await deps.actorForContext(ctx)); } catch (error) { safe(error); }
     }),

@@ -23,6 +23,17 @@ async function tx<T>(pool: Pool, work: (connection: PoolConnection) => Promise<T
 }
 function sha(payload: unknown) { return createHash("sha256").update(JSON.stringify(payload)).digest("hex"); }
 
+export type OperationalPolicyGovernanceView = {
+  policyId: string; policyCode: "SUBMISSION_SCHEDULER"; version: number; state: OperationalPolicyState; recordVersion: number;
+  thresholds: SubmissionPolicyThresholds; sourceReference: string; effectiveFrom: Date; effectiveTo: Date | null;
+  createdBy: string; approvedBy: string | null; approvedAt: Date | null; activatedBy: string | null; activatedAt: Date | null;
+  evidenceSha256: string;
+};
+export type OperationalPolicyHistoryView = {
+  eventId: string; fromState: OperationalPolicyState | null; toState: OperationalPolicyState; versionBefore: number; versionAfter: number;
+  actorReference: string; reason: string; payloadSha256: string; occurredAt: Date;
+};
+
 export class MysqlOperationalPolicyGovernanceRepository {
   private readonly pool: Pool;
   constructor(pool: Pool) { this.pool = pool; }
@@ -78,21 +89,31 @@ export class MysqlOperationalPolicyGovernanceRepository {
     });
   }
 
-  async list(actor: AuthorizationActor): Promise<readonly object[]> {
+  async list(actor: AuthorizationActor): Promise<readonly OperationalPolicyGovernanceView[]> {
     requirePermission(actor, "rule.read");
     const [rows] = await this.pool.query<RowDataPacket[]>(`SELECT id policyId,policy_code policyCode,version,lifecycle_state state,
       record_version recordVersion,thresholds_json thresholds,source_reference sourceReference,effective_from effectiveFrom,
       effective_to effectiveTo,created_by createdBy,approved_by approvedBy,approved_at approvedAt,activated_by activatedBy,
       activated_at activatedAt,evidence_sha256 evidenceSha256 FROM operations_submission_policies ORDER BY version DESC`);
-    return rows;
+    return rows.map((row) => ({ policyId: String(row.policyId), policyCode: "SUBMISSION_SCHEDULER", version: Number(row.version),
+      state: String(row.state) as OperationalPolicyState, recordVersion: Number(row.recordVersion),
+      thresholds: validateSubmissionPolicyThresholds(typeof row.thresholds === "string" ? JSON.parse(row.thresholds) : row.thresholds),
+      sourceReference: String(row.sourceReference), effectiveFrom: new Date(row.effectiveFrom as string | Date),
+      effectiveTo: row.effectiveTo ? new Date(row.effectiveTo as string | Date) : null, createdBy: String(row.createdBy),
+      approvedBy: row.approvedBy ? String(row.approvedBy) : null, approvedAt: row.approvedAt ? new Date(row.approvedAt as string | Date) : null,
+      activatedBy: row.activatedBy ? String(row.activatedBy) : null, activatedAt: row.activatedAt ? new Date(row.activatedAt as string | Date) : null,
+      evidenceSha256: String(row.evidenceSha256) }));
   }
 
-  async history(policyId: string, actor: AuthorizationActor): Promise<readonly object[]> {
+  async history(policyId: string, actor: AuthorizationActor): Promise<readonly OperationalPolicyHistoryView[]> {
     requirePermission(actor, "rule.read");
     const [rows] = await this.pool.query<RowDataPacket[]>(`SELECT id eventId,from_state fromState,to_state toState,version_before versionBefore,
       version_after versionAfter,actor_reference actorReference,reason,payload_sha256 payloadSha256,occurred_at occurredAt
       FROM operations_submission_policy_events WHERE policy_id=? ORDER BY version_after,occurred_at`, [policyId]);
-    return rows;
+    return rows.map((row) => ({ eventId: String(row.eventId), fromState: row.fromState ? String(row.fromState) as OperationalPolicyState : null,
+      toState: String(row.toState) as OperationalPolicyState, versionBefore: Number(row.versionBefore), versionAfter: Number(row.versionAfter),
+      actorReference: String(row.actorReference), reason: String(row.reason), payloadSha256: String(row.payloadSha256),
+      occurredAt: new Date(row.occurredAt as string | Date) }));
   }
 
   private async event(connection: PoolConnection, policyId: string, from: OperationalPolicyState | null, to: OperationalPolicyState,

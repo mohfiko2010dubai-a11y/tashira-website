@@ -18,6 +18,7 @@ describe("operational policy governance router", () => {
       transition: vi.fn(async () => ({ policyId: "46df7d3d-4ac6-46da-886e-d85cc8507dad", state: "REVIEW" as const, recordVersion: 2 })) };
     const now = new Date("2026-08-27T12:00:00Z");
     const caller = createOperationalPolicyGovernanceRouter({ actorForContext: async () => actor, repository, now: () => now }).createCaller(context());
+    await expect(caller.capabilities({})).resolves.toEqual({ read: true, propose: true, review: true, activate: true });
     await caller.propose({ version: 2, thresholds: policyThresholds, effectiveFrom: now, effectiveTo: null,
       sourceReference: "OWNER_APPROVED_POLICY", reason: "New governed version" });
     expect(repository.propose).toHaveBeenCalledWith(expect.objectContaining({ thresholds: policyThresholds }), actor, now);
