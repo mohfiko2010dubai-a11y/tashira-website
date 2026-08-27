@@ -4,7 +4,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 
 | Module | State | Tested | Staging verified | Remaining V1 work |
 |---|---|---:|---:|---|
-| Visa Rule Registry | DONE | Yes | Schema/runtime | Populate only reviewed official rules |
+| Visa Rule Registry | DONE (governance/runtime) | Yes | Migration 040 + runtime | Record approved source-authority decisions and populate only reviewed official rules; no source is implicitly trusted |
 | Eligibility Engine / precedence | DONE | Yes | Persistence | Real rule content remains human-approved |
 | Immutable evaluations | DONE | Yes | Yes | None in engineering scope |
 | Family Engine / readiness | DONE | Yes | Read Model | Customer activation remains off |
