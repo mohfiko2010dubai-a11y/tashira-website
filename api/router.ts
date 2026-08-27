@@ -23,6 +23,7 @@ import { operationsAlertRouter } from "./operations-alert-router";
 import { customerOperationsRouter } from "./customer-operations-router";
 import { customerPrecheckRouter } from "./customer-precheck-router";
 import { catalogGovernanceRouter } from "./catalog-governance-router";
+import { operationalPolicyGovernanceRouter } from "./operational-policy-governance-router";
 import { dynamicInterviewRouter } from "./dynamic-interview-router";
 import { operationsSupportRouter } from "./operations-support-router";
 import { operationsSupplierSlaRouter } from "./operations-supplier-sla-router";
@@ -56,6 +57,7 @@ export const appRouter = createRouter({
   customerOperations: customerOperationsRouter,
   customerPrecheck: customerPrecheckRouter,
   catalogGovernance: catalogGovernanceRouter,
+  operationalPolicyGovernance: operationalPolicyGovernanceRouter,
   dynamicInterview: dynamicInterviewRouter,
   operationsSupport: operationsSupportRouter,
   operationsSupplierSla: operationsSupplierSlaRouter,
