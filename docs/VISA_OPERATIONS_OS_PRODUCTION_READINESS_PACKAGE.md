@@ -5,7 +5,7 @@ Status: **prepared, not authorized for execution**.
 ## Release identity
 
 - Source branch: `codex/visa-operations-os-v1`
-- Latest exact Staging implementation/runtime SHA: `04ac439238de0d8eb754ae0cb8aefe45067816f7`; later documentation-only commits do not change this runtime evidence. No SHA is authorized for Production.
+- Latest exact Staging implementation/runtime SHA: `8569e434a79403fe463d160117aac8225e20d8ea`; later documentation-only commits do not change this runtime evidence. No SHA is authorized for Production.
 - Database chain: reviewed additive migrations `014` through `041`; re-rehearse the exact chain against an isolated restored Production-shaped copy before authorization.
 - Production changes performed by this package: none.
 
@@ -26,6 +26,8 @@ Status: **prepared, not authorized for execution**.
 
 ## Latest Staging evidence
 
+- Inbound email gate: a provider-independent verified-envelope boundary is deployed without mailbox credentials or a public provider endpoint. Synthetic TEST E2E proved exact-one append-only ingestion, replay deduplication, changed-replay and wrong-team rejection, sender-address minimization and attachment exclusion. `SUPPORT_INBOX` remains OFF and no real email was processed.
+
 - Rule lifecycle gate: Migration `041` is applied after verified backup `/var/backups/tashira-staging/20260827T105133Z-rule-lifecycle-041-predeploy`. A synthetic INTERNAL version completed DRAFT → UNDER_REVIEW → REJECTED with exactly three immutable events, changed-replay/stale-transition rejection, zero approved reviews and zero active versions. The read-only Operations projection exposes lifecycle/source evidence only to `rule.read`, returned no finance/secret fields, and provides no activation control. `REGULATORY_WATCHER` remains OFF.
 
 - Source authority gate: Migration `040` is applied after verified backup `/var/backups/tashira-staging/20260827T102332Z-source-authority-040-predeploy`; its append-only triggers reject update/delete tampering. Existing source/rule history is unchanged and no authority decision was fabricated. Consequently, the Active Rule provider returns no `OFFICIAL` rule until an authorized reviewer records a policy-versioned approval under the owner-approved authority hierarchy.
@@ -34,7 +36,7 @@ Status: **prepared, not authorized for execution**.
 
 - Unified Interview authenticated read API: start/resume/current question/eligibility/requirements/upload requirements/scheduler/review all use one canonical persisted state path.
 - Scoped synthetic E2E: PASS for lifecycle equivalence, anonymous denial, application ownership and finance isolation.
-- Quality gates: TypeScript PASS; full ESLint PASS; 665 tests PASS with 19 documented environment-gated skips; client/static/server build PASS; CI run `33065502125` PASS at exact runtime SHA.
+- Quality gates: TypeScript PASS; full ESLint PASS; 670 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
 - Runtime: PM2 `tashira-staging` online; local/public Staging HTTP 200; read-only Production HTTP 200.
 - Closed state after E2E: all customer-facing Operations scopes OFF; Controlled Writes OFF. The previously authorized internal Read Model global scope and Team-only Travel/Scheduler/Rule test scopes remain enabled; they do not make an unreviewed source authoritative.
 - Production, Production database, Production documents, main/master, Stripe, Resend, pricing, payment and invoice behavior were not modified by this milestone.

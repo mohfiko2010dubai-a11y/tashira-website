@@ -28,7 +28,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Visa Assistant | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Authenticated application-owned runtime reuses the canonical MySQL case bundle and finance-minimized portal projection for status, requirements, travel, submission and document answers; unknown knowledge fails closed to human review. Approved knowledge content/provider and Production activation remain owner gates |
 | Authenticated Case Chat / Handoff | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Owned customer runtime reuses the canonical case bundle, assistant grounding and Support Inbox persistence; team/current-evaluation fail-closed gates, transactionality, replay/conflict handling and append-only audit are verified. External provider messaging remains deliberately absent |
 | Email Automation | PERSISTENCE COMPLETE | Yes | Migration 036 + Staging scoped E2E | Immutable timeline-owned dispatch queue, recipient-hash minimization, append-only delivery evidence, replay/conflict behavior and provider-ledger isolation are complete behind an OFF flag. Approved trigger/template policy and external provider dispatch remain owner gates; no email was sent |
-| Inbound Email / Employee Reply | PARTIAL | Contract only | No | Mailbox/provider credentials and adapter |
+| Inbound Email / Employee Reply | COMPLETE (provider-independent ingestion) | Yes | Synthetic MySQL E2E | Verified-envelope normalization, application/team scope validation, append-only audit/message persistence, sender hashing and replay/conflict handling are complete behind an OFF Support Inbox flag; the live mailbox signature adapter and credentials remain an external dependency |
 | Support Inbox | PARTIAL | Yes | Staging MySQL runtime verified | Persistent team-scoped store, RBAC API, internal UI, concurrency, idempotency and append-only messages/notes/audit are deployed on Staging behind an OFF flag; real Staging repository integration passes, while browser sign-off and the external mailbox provider remain |
 | Regulatory Watcher / Change Center | PARTIAL | Yes | Staging scoped E2E | Immutable proposal/impact and Rule Registry lifecycle persistence, explicit RBAC APIs and a read-only lifecycle/source-evidence UI are complete behind an OFF flag and cannot auto-activate; official-source connector and approved content remain |
 | Feature Flags | DONE | Yes | Yes | Production activation is a separate owner gate |
@@ -59,7 +59,7 @@ Core case-operations foundation is approximately **91% complete**. Full Master P
 
 - Official, reviewed Visa Rule Registry content and activation approvals.
 - AI/OCR provider credentials and data-processing approval.
-- Operations email trigger/template matrix, provider-dispatch authorization and inbound mailbox/provider credentials. The current work authorization forbids Resend changes or real-customer delivery.
+- Operations email trigger/template matrix, provider-dispatch authorization and inbound mailbox/provider credentials. The provider-independent inbound ingestion boundary is complete; the current work authorization forbids Resend changes or real-customer delivery.
 - Authority submission/query/delivery operating procedure.
 - Typing Pack templates and accepted output format.
 - Finance-approved effective supplier-cost history policy and access/activation review.
