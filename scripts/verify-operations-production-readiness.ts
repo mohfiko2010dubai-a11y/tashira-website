@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { operationsMigrationArtifacts, sha256 } from "../api/lib/operations/production-readiness-manifest";
+import { operationsMigrationArtifacts, sha256 } from "../api/lib/operations/production-readiness-manifest.ts";
 
 const root = resolve(import.meta.dirname, "..");
 const git = (...arguments_: string[]) => execFileSync("git", arguments_, { cwd: root, encoding: "utf8" }).trim();
