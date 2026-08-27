@@ -5,6 +5,9 @@ const metrics: readonly { key: keyof DashboardModel; label: string }[] = [
   { key: "scheduledSubmissions", label: "Scheduled submissions" }, { key: "dueToday", label: "Due today" },
   { key: "overdue", label: "Overdue" }, { key: "readyForSubmission", label: "Ready for submission" },
   { key: "authorityQueries", label: "Authority queries" }, { key: "rework", label: "Document rework" },
+  { key: "documentIntelligenceEscalations", label: "Document intelligence escalations" },
+  { key: "manualReviewApplicants", label: "Applicants in manual review" },
+  { key: "manualReviewRatePercent", label: "Manual review rate (%)" },
 ];
 
 export default function OperationsManagerDashboard({ model }: { model: DashboardModel }) {

@@ -33,7 +33,19 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Regulatory Watcher / Change Center | PARTIAL | Yes | Staging scoped E2E | Immutable proposal/impact and Rule Registry lifecycle persistence, explicit RBAC APIs and a read-only lifecycle/source-evidence UI are complete behind an OFF flag and cannot auto-activate; official-source connector and approved content remain |
 | Feature Flags | DONE | Yes | Yes | Production activation is a separate owner gate |
 | Legacy Compatibility | DONE | Yes | Yes | Explicit re-evaluation only |
-| Operations Analytics | DONE | Yes | API/MySQL scoped E2E | Finance-free workload, readiness, schedule, rework and supplier operational aggregates are live on isolated Staging; owner KPI thresholds remain a future tuning input |
+| Operations Analytics | DONE | Yes | API/MySQL scoped E2E | Finance-free workload, readiness, schedule, rework, Document Intelligence escalation, applicant-level Manual Review rate and supplier operational aggregates are implemented; owner KPI thresholds remain a future tuning input |
+
+## Final closure audit update — 2026-08-27
+
+| Work package | Closure classification | Evidence / next gate |
+|---|---|---|
+| Manager Document Intelligence escalation and Manual Review metrics | `IMPLEMENT NOW` → implemented locally | Canonical scoped analytics provider and dashboard; no finance columns selected. |
+| Official route evidence for 30/60-day tourist, GCC resident, GCC companion, five-year multi-entry and conditional residence-based arrival | `IMPLEMENT NOW` → research evidence complete | `docs/OFFICIAL_VISA_RULE_RESEARCH_EVIDENCE.md`; activation remains governed and OFF. |
+| Priority-nationality overlays without complete current authority evidence | `OWNER/LEGAL CONFIGURATION` | Remain `NOT_RESEARCHED` or `HUMAN_REVIEW_REQUIRED`; no fabricated eligibility. |
+| Passport country layouts | `EXTERNAL CONNECTION ONLY` / authoritative specimen gate | ICAO baseline and profile governance exist; country-specific layouts remain deliberately unactivated. |
+| External OCR/AI, mailbox, supplier and authority adapters | `EXTERNAL CONNECTION ONLY` | Provider-neutral boundaries exist; credentials, commercial selection and live data processing remain outside this work package. |
+| Legal retention durations | `OWNER/LEGAL CONFIGURATION` | Framework exists; destructive Production deletion remains OFF. |
+| Authenticated browser acceptance and final Production activation | `PRODUCTION GATE` | Staging-only E2E must pass first; merge, Production migrations, RBAC grants and activation require separate authorization. |
 
 ## Honest completion
 

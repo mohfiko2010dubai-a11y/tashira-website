@@ -8,7 +8,8 @@ const manager: AuthorizationActor = { id: "staff:1", permissions: new Set(["case
 const candidate = (applicationId: number, teamId: number): OperationsAnalyticsCandidate => ({ applicationId, teamId, applicantCount: 1,
   family: false, travelGroupCount: 1, status: "DOCUMENTS_PENDING", waitingForCustomer: true, scheduledSubmission: false,
   dueAt: "2026-08-27", readyForTyping: false, readyForSubmission: false, authorityQueryOpen: false, reworkCount: 0,
-  assignedStaffId: null, reviewMinutes: null, typingMinutes: null, supplierId: 4 });
+  assignedStaffId: null, reviewMinutes: null, typingMinutes: null, supplierId: 4,
+  documentIntelligenceEscalated: false, manualReviewApplicantCount: 0 });
 
 describe("Operations Manager dashboard read gate", () => {
   it("aggregates only cases inside the trusted manager scope", () => {

@@ -27,7 +27,7 @@ const actor = (teamIds = [3]): AuthorizationActor => ({ id: "staff:10", permissi
 const analyticsCandidate = (teamId = 3): OperationsAnalyticsCandidate => ({ applicationId: 1, teamId, applicantCount: 2, family: true,
   travelGroupCount: 1, status: "DOCUMENTS_PENDING", waitingForCustomer: true, scheduledSubmission: false, dueAt: "2026-08-27",
   readyForTyping: false, readyForSubmission: false, authorityQueryOpen: false, reworkCount: 0, assignedStaffId: 10,
-  reviewMinutes: null, typingMinutes: null, supplierId: 5 });
+  reviewMinutes: null, typingMinutes: null, supplierId: 5, documentIntelligenceEscalated: true, manualReviewApplicantCount: 1 });
 
 function router(flags = enabled, currentActor = actor()) {
   return createOperationsReadRouter({

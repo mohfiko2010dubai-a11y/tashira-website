@@ -24,6 +24,13 @@ export class MysqlOperationsManagerAnalyticsProvider {
       (SELECT COUNT(*) FROM travel_groups g WHERE g.application_id=a.id) AS travelGroupCount,
       latest_schedule.target_submission_date AS dueAt,latest_schedule.schedule_state AS scheduleState,
       latest_family.family_readiness_state AS familyReadinessState,
+      EXISTS(SELECT 1 FROM document_intelligence_runs intelligence WHERE intelligence.application_id=a.id
+        AND intelligence.processing_tier IN ('ADVANCED_AI','HUMAN_REVIEW')) AS documentIntelligenceEscalated,
+      (SELECT COUNT(*) FROM applicants review_applicant WHERE review_applicant.application_id=a.id
+        AND EXISTS(SELECT 1 FROM visa_rule_evaluations evaluation WHERE evaluation.applicant_id=review_applicant.id
+          AND evaluation.id=(SELECT current_evaluation.id FROM visa_rule_evaluations current_evaluation
+            WHERE current_evaluation.applicant_id=review_applicant.id ORDER BY current_evaluation.evaluated_at DESC,current_evaluation.id DESC LIMIT 1)
+          AND evaluation.final_eligibility_state IN ('HUMAN_REVIEW_REQUIRED','RULE_CONFLICT'))) AS manualReviewApplicantCount,
       (SELECT COUNT(*) FROM operations_action_events rework WHERE rework.application_id=a.id
         AND rework.action_type='DOCUMENT_REVIEW' AND rework.outcome IN ('REJECTED','NEEDS_REPLACEMENT','UNREADABLE','MISMATCH')) AS reworkCount
       FROM applications a
@@ -43,6 +50,7 @@ export class MysqlOperationsManagerAnalyticsProvider {
         dueAt: date(row, "dueAt"), readyForTyping: false, readyForSubmission: scheduleState === "READY_FOR_SUBMISSION",
         authorityQueryOpen: false, reworkCount: integer(row, "reworkCount"), assignedStaffId: optionalInteger(row, "assignedStaffId"),
         reviewMinutes: null, typingMinutes: null, supplierId: optionalInteger(row, "supplierId"),
+        documentIntelligenceEscalated: Boolean(value(row, "documentIntelligenceEscalated")), manualReviewApplicantCount: integer(row, "manualReviewApplicantCount"),
         assignedActorId: optionalInteger(row, "assignedStaffId") === null ? undefined : `staff:${optionalInteger(row, "assignedStaffId")}`,
         teamId: optionalInteger(row, "teamId") ?? undefined, departmentId: optionalInteger(row, "departmentId") ?? undefined };
     });
