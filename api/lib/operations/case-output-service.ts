@@ -3,7 +3,8 @@ import { AuthorityQueryTimeline } from "./authority-query";
 import { generateTypingPack, type TypingPack } from "./typing-pack";
 import { prepareVisaDelivery, type VisaDeliveryPackage } from "./visa-delivery";
 
-export function generateTypingPackBehindFlag(input: { context: FeatureFlagContext; flags: readonly FeatureFlagRecord[]; pack: Omit<TypingPack, "integritySha256" | "state"> }): TypingPack | null {
+export function generateTypingPackBehindFlag(input: { context: FeatureFlagContext; flags: readonly FeatureFlagRecord[];
+  pack: Omit<TypingPack, "humanVerificationFieldKeys" | "integritySha256" | "state"> }): TypingPack | null {
   return isOperationsFlagEnabled("TYPING_PACK", input.context, input.flags) ? generateTypingPack(input.pack) : null;
 }
 export function createAuthorityQueryTimelineBehindFlag(input: { context: FeatureFlagContext; flags: readonly FeatureFlagRecord[] }): AuthorityQueryTimeline | null {
