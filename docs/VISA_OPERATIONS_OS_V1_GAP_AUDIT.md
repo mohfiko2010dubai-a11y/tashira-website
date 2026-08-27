@@ -4,7 +4,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 
 | Module | State | Tested | Staging verified | Remaining V1 work |
 |---|---|---:|---:|---|
-| Visa Rule Registry | DONE (governance/runtime) | Yes | Migration 040 + RBAC API E2E | Populate reviewed official content and record explicit source approvals; the API/runtime never implicitly trusts a source and no Staging source is currently approved |
+| Visa Rule Registry | DONE (governance/runtime/read model) | Yes | Migrations 040–041 + RBAC API/MySQL/read-only UI E2E | Populate reviewed official content and record explicit source approvals; the API/runtime never implicitly trusts a source and no Staging source is currently approved |
 | Eligibility Engine / precedence | DONE | Yes | Persistence | Real rule content remains human-approved |
 | Immutable evaluations | DONE | Yes | Yes | None in engineering scope |
 | Family Engine / readiness | DONE | Yes | Read Model | Customer activation remains off |
@@ -30,7 +30,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Email Automation | PERSISTENCE COMPLETE | Yes | Migration 036 + Staging scoped E2E | Immutable timeline-owned dispatch queue, recipient-hash minimization, append-only delivery evidence, replay/conflict behavior and provider-ledger isolation are complete behind an OFF flag. Approved trigger/template policy and external provider dispatch remain owner gates; no email was sent |
 | Inbound Email / Employee Reply | PARTIAL | Contract only | No | Mailbox/provider credentials and adapter |
 | Support Inbox | PARTIAL | Yes | Staging MySQL runtime verified | Persistent team-scoped store, RBAC API, internal UI, concurrency, idempotency and append-only messages/notes/audit are deployed on Staging behind an OFF flag; real Staging repository integration passes, while browser sign-off and the external mailbox provider remain |
-| Regulatory Watcher / Change Center | PARTIAL | Yes | Staging scoped E2E | Immutable proposal/impact persistence, explicit RBAC review API and internal UI are complete behind an OFF flag and cannot auto-activate; official-source connector and approved content remain |
+| Regulatory Watcher / Change Center | PARTIAL | Yes | Staging scoped E2E | Immutable proposal/impact and Rule Registry lifecycle persistence, explicit RBAC APIs and a read-only lifecycle/source-evidence UI are complete behind an OFF flag and cannot auto-activate; official-source connector and approved content remain |
 | Feature Flags | DONE | Yes | Yes | Production activation is a separate owner gate |
 | Legacy Compatibility | DONE | Yes | Yes | Explicit re-evaluation only |
 | Operations Analytics | DONE | Yes | API/MySQL scoped E2E | Finance-free workload, readiness, schedule, rework and supplier operational aggregates are live on isolated Staging; owner KPI thresholds remain a future tuning input |

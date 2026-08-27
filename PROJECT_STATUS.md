@@ -234,4 +234,4 @@ Last verified: 2026-08-27
 
 ## Next highest-priority task
 
-Add the internal read-only Rule Registry history projection and Operations UI for Draft/Review evidence behind the still-closed `REGULATORY_WATCHER`; it must expose source governance and immutable lifecycle history without enabling mutations or inventing official rule content. Production merge, migrations, deployment, official rule/catalog content, external AI/mailbox providers, retention/legal policy and any feature activation remain true owner gates.
+Safe provider-independent governance work is complete through Migration `041` and the closed Rule Registry lifecycle read model. The remaining launch path is now blocked on true owner/external gates: reviewed official rule/catalog content and source approvals, authority/typing/supplier procedures and templates, external AI/mailbox/provider decisions, retention/legal decisions, protected browser acceptance, and separate authorization for main merge plus Production backup/migration/deployment/scoped flags. Do not invent these inputs or activate the closed features.
