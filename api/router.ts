@@ -32,6 +32,7 @@ import { operationsRegulatoryRouter } from "./operations-regulatory-router";
 import { operationsVisaDeliveryRouter } from "./operations-visa-delivery-router";
 import { customerVisaAssistantRouter } from "./customer-visa-assistant-router";
 import { sourceAuthorityGovernanceRouter } from "./source-authority-governance-router";
+import { ruleGovernanceRouter } from "./rule-governance-router";
 
 export const appRouter = createRouter({
   auth: authRouter,
@@ -67,6 +68,7 @@ export const appRouter = createRouter({
   operationsVisaDelivery: operationsVisaDeliveryRouter,
   customerVisaAssistant: customerVisaAssistantRouter,
   sourceAuthorityGovernance: sourceAuthorityGovernanceRouter,
+  ruleGovernance: ruleGovernanceRouter,
 });
 
 export type AppRouter = typeof appRouter;
