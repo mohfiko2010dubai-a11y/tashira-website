@@ -7,4 +7,8 @@ describe("typing pack", () => {
   it("does not require human verification for an application identity reference", () => expect(generateTypingPack({ ...base,
     fields: [{ key: "application.referenceNumber", label: "Reference", source: "APPLICATION", value: "TSH-TEST" }] }).humanVerificationFieldKeys).toEqual([]));
   it.each(["cvc", "payment.card_number", "stripe_secret", "storage.path", "document_contents"])("rejects sensitive nested key %s", (key) => expect(() => generateTypingPack({ ...base, fields: [{ ...base.fields[0], key }] })).toThrow("TYPING_PACK_FIELD_PROHIBITED"));
+  it("rejects duplicate field identities instead of resolving them silently", () => expect(() => generateTypingPack({ ...base,
+    fields: [base.fields[0], { ...base.fields[0], value: "CONFLICTING" }] })).toThrow("TYPING_PACK_FIELD_DUPLICATE"));
+  it.each([{ label: "Passport\nnumber", value: "SYNTHETIC" }, { label: "Passport number", value: "SYNTHETIC\u0000INJECTED" }])("rejects control characters in authority output", (field) => expect(() => generateTypingPack({ ...base,
+      fields: [{ ...base.fields[0], ...field }] })).toThrow("TYPING_PACK_FIELD_PROHIBITED"));
 });

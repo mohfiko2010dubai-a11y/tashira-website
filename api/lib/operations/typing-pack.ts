@@ -27,11 +27,21 @@ function prohibited(key: string): boolean {
   return prohibitedKeyFragments.some((fragment) => normalized.includes(fragment));
 }
 
+function hasControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.codePointAt(0) ?? 0;
+    return code < 32 || code === 127;
+  });
+}
+
 export function generateTypingPack(input: Omit<TypingPack, "humanVerificationFieldKeys" | "integritySha256" | "state">): TypingPack {
   if (!input.packId.trim() || !Number.isSafeInteger(input.applicationId) || !Number.isSafeInteger(input.applicantId)) throw new Error("TYPING_PACK_IDENTITY_REQUIRED");
   if (!input.templateId.trim() || input.templateVersion <= 0 || input.evidenceReferences.length === 0) throw new Error("TYPING_PACK_TEMPLATE_EVIDENCE_REQUIRED");
   if (Number.isNaN(Date.parse(input.generatedAt))) throw new Error("TYPING_PACK_TIMESTAMP_INVALID");
-  if (input.fields.some((field) => !field.key.trim() || !field.label.trim() || prohibited(field.key))) throw new Error("TYPING_PACK_FIELD_PROHIBITED");
+  if (input.fields.some((field) => !field.key.trim() || field.key.length > 128 || !field.label.trim() || field.label.length > 200
+    || field.value.length > 2_000 || hasControlCharacters(field.key) || hasControlCharacters(field.label)
+    || hasControlCharacters(field.value) || prohibited(field.key))) throw new Error("TYPING_PACK_FIELD_PROHIBITED");
+  if (new Set(input.fields.map((field) => field.key)).size !== input.fields.length) throw new Error("TYPING_PACK_FIELD_DUPLICATE");
   const canonical = { ...input, fields: [...input.fields].sort((a, b) => a.key.localeCompare(b.key)), evidenceReferences: [...new Set(input.evidenceReferences)].sort() };
   return { ...canonical, humanVerificationFieldKeys: humanVerificationFieldKeys(canonical.fields),
     integritySha256: createHash("sha256").update(JSON.stringify(canonical)).digest("hex"), state: "DRAFT_REQUIRES_HUMAN_REVIEW" };
