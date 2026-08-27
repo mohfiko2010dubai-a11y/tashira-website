@@ -25,7 +25,7 @@ export function createCatalogGovernanceRouter(deps: Dependencies) {
     editDraft: staffOrAdminQuery.input(z.object({ definitionId: z.string().uuid(), kind: z.enum(["REQUIREMENT", "QUESTION"]),
       expectedVersion: z.number().int().positive(), customerLabel: z.string().trim().min(1).max(200),
       shortCustomerExplanation: z.string().trim().min(1).max(500), internalLabel: z.string().trim().min(1).max(200),
-      classification: z.enum(["OFFICIAL", "OPERATIONAL", "CONDITIONAL", "INTERNAL"]), authoritySemantics: z.string().trim().max(500).nullable(),
+      classification: z.enum(["OFFICIAL", "OPERATIONAL", "CONDITIONAL", "OPTIONAL", "INTERNAL"]), authoritySemantics: z.string().trim().max(500).nullable(),
       reasonTemplate: z.string().trim().min(1).max(500), effectiveFrom: z.coerce.date(), effectiveTo: z.coerce.date().nullable(),
       reason: z.string().trim().min(3).max(500) }).strict()).mutation(async ({ input, ctx }) => {
       try { return await deps.repository.editDraft(input, await deps.actorForContext(ctx), deps.now()); } catch (error) { safeError(error); }

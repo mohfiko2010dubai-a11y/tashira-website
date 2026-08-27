@@ -19,6 +19,7 @@ describe("versioned requirement catalog", () => {
     expect(isDefinitionEffective({ ...definition, effectiveTo: new Date("2026-12-31T00:00:00Z") }, new Date("2026-12-31T00:00:00Z"))).toBe(true);
     expect(customerReason(definition)).toBe("Required by the relevant authority for this visa route.");
     expect(customerReason({ ...definition, classification: "OPERATIONAL" })).toBe("Required for TASHIRA processing.");
+    expect(customerReason({ ...definition, classification: "OPTIONAL" })).toContain("Optional supporting evidence");
     expect(() => customerReason({ ...definition, classification: "INTERNAL" })).toThrow("INTERNAL_REQUIREMENT_NOT_CUSTOMER_VISIBLE");
   });
 
@@ -39,5 +40,6 @@ describe("versioned requirement catalog", () => {
     expect(generic.requirements).toHaveLength(13);
     expect(generic.questions).toHaveLength(18);
     expect(generic.requirements.every(({ status }) => status === "DRAFT")).toBe(true);
+    expect(generic.requirements.filter(({ code }) => code.includes("TICKET")).every(({ classification }) => classification === "CONDITIONAL")).toBe(true);
   });
 });

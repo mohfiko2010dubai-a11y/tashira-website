@@ -20,12 +20,16 @@ describe("dynamic catalog adapter", () => {
         { ...base, definitionId: "00000000-0000-4000-8000-000000000002", kind: "DOCUMENT", code: "INTERNAL_NOTE", classification: "INTERNAL", documentType: "NOTE", category: "SUPPORTING",
           requiredCapability: false, conditionalCapability: true, sharedDocumentCapability: false, applicantScopedCapability: true,
           travelGroupScopedCapability: false, familyScopedCapability: false, aiExtractionCapability: false, humanReviewPolicy: "ALWAYS" },
+        { ...base, definitionId: "00000000-0000-4000-8000-000000000003", kind: "DOCUMENT", code: "OPTIONAL_TICKET", classification: "OPTIONAL", documentType: "TICKET", category: "TRAVEL",
+          requiredCapability: false, conditionalCapability: true, sharedDocumentCapability: true, applicantScopedCapability: true,
+          travelGroupScopedCapability: true, familyScopedCapability: false, aiExtractionCapability: false, humanReviewPolicy: "ON_WARNING" },
       ],
       questions: [],
     };
     expect(toDynamicRequirementCatalog(catalog).documents).toEqual([expect.objectContaining({
       code: "PASSPORT", definitionVersion: 1, classification: "AUTHORITY_REQUIRED",
       reasonTemplate: "Required by the relevant authority for this visa route.",
-    })]);
+    }), expect.objectContaining({ code: "OPTIONAL_TICKET", classification: "OPTIONAL",
+      reasonTemplate: "Optional supporting evidence; it is not required for this application." })]);
   });
 });

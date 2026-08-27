@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const requirementClassificationSchema = z.enum(["OFFICIAL", "OPERATIONAL", "CONDITIONAL", "INTERNAL"]);
+export const requirementClassificationSchema = z.enum(["OFFICIAL", "OPERATIONAL", "CONDITIONAL", "OPTIONAL", "INTERNAL"]);
 export const catalogLifecycleSchema = z.enum(["DRAFT", "ACTIVE", "RETIRED"]);
 export const catalogReviewSchema = z.enum(["PENDING", "APPROVED", "REJECTED"]);
 
@@ -62,6 +62,7 @@ export function customerReason(definition: RequirementCatalogDefinition): string
   if (definition.classification === "OFFICIAL") return definition.reasonTemplate;
   if (definition.classification === "OPERATIONAL") return "Required for TASHIRA processing.";
   if (definition.classification === "CONDITIONAL") return "May be required depending on your case.";
+  if (definition.classification === "OPTIONAL") return "Optional supporting evidence; it is not required for this application.";
   throw new Error("INTERNAL_REQUIREMENT_NOT_CUSTOMER_VISIBLE");
 }
 

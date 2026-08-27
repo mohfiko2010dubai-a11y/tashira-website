@@ -83,7 +83,7 @@ export class MysqlCatalogGovernanceRepository {
   }
 
   async editDraft(input: { definitionId: string; kind: CatalogDefinitionKind; expectedVersion: number; customerLabel: string;
-    shortCustomerExplanation: string; internalLabel: string; classification: "OFFICIAL" | "OPERATIONAL" | "CONDITIONAL" | "INTERNAL";
+    shortCustomerExplanation: string; internalLabel: string; classification: "OFFICIAL" | "OPERATIONAL" | "CONDITIONAL" | "OPTIONAL" | "INTERNAL";
     authoritySemantics: string | null; reasonTemplate: string; effectiveFrom: Date; effectiveTo: Date | null; reason: string }, actor: AuthorizationActor, occurredAt: Date) {
     requirePermission(actor, "rule.propose");
     return transaction(this.pool, async (connection) => {

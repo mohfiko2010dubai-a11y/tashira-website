@@ -5,6 +5,7 @@ const classification = {
   OFFICIAL: "AUTHORITY_REQUIRED",
   OPERATIONAL: "TASHIRA_PROCESSING",
   CONDITIONAL: "MAY_BE_REQUIRED",
+  OPTIONAL: "OPTIONAL",
 } as const;
 
 /** Converts governed catalog evidence into the customer runtime contract. INTERNAL definitions are never projected. */
