@@ -6,6 +6,12 @@ import { validateVisaRuleImport, type VisaRuleImport } from "./rule-import";
 import { assertSourceClassification, sourceAuthorityTypeSchema } from "./source-authority-policy";
 
 export type RuleGovernanceResult = { ruleVersionId: string; stableId: string; version: number; status: RuleVersionStatus; eventId: string };
+export type RuleGovernanceHistoryRecord = {
+  ruleVersionId: string; stableId: string; version: number; status: RuleVersionStatus; classification: VisaRuleImport["classification"];
+  layer: VisaRuleImport["layer"] | null; sourceAuthority: string; sourceTitle: string; sourceUrl: string;
+  sourceAuthorityDecision: "APPROVED" | "REJECTED" | "CHANGES_REQUIRED" | null;
+  eventId: string; fromStatus: RuleVersionStatus | null; toStatus: RuleVersionStatus; actorReference: string; reason: string; occurredAt: string;
+};
 function requirePermission(actor: AuthorizationActor, permission: "rule.read" | "rule.propose"): void { if (!actor.permissions.has(permission)) throw new Error("RULE_GOVERNANCE_ACCESS_DENIED"); }
 function text(row: object, key: string): string | null { const value = Reflect.get(row, key); return typeof value === "string" ? value : null; }
 function integer(row: object, key: string): number { const value = Number(Reflect.get(row, key)); if (!Number.isSafeInteger(value) || value < 1) throw new Error("RULE_GOVERNANCE_EVIDENCE_INVALID"); return value; }
@@ -19,6 +25,35 @@ function status(value: string | null): RuleVersionStatus {
 export class MysqlRuleGovernanceRepository {
   private readonly pool: Pool;
   constructor(pool: Pool) { this.pool = pool; }
+
+  async list(actor: AuthorizationActor): Promise<readonly RuleGovernanceHistoryRecord[]> {
+    requirePermission(actor, "rule.read");
+    const [rows] = await this.pool.query<RowDataPacket[]>(`SELECT v.id ruleVersionId,rs.stable_id stableId,v.version,v.status,v.classification,
+      v.rule_layer layer,s.authority sourceAuthority,s.title sourceTitle,s.source_url sourceUrl,a.decision sourceAuthorityDecision,
+      e.id eventId,e.from_status fromStatus,e.to_status toStatus,e.actor_reference actorReference,e.reason,
+      DATE_FORMAT(e.occurred_at,'%Y-%m-%dT%H:%i:%s.000Z') occurredAt
+      FROM visa_rule_versions v JOIN visa_rule_sets rs ON rs.id=v.rule_set_id
+      JOIN visa_rule_source_snapshots ss ON ss.id=v.source_snapshot_id JOIN visa_rule_sources s ON s.id=ss.source_id
+      JOIN visa_rule_governance_events e ON e.rule_version_id=v.id
+      LEFT JOIN visa_rule_source_authority_events a ON a.source_id=s.id AND a.id=(SELECT x.id FROM visa_rule_source_authority_events x
+        WHERE x.source_id=s.id ORDER BY x.occurred_at DESC,x.id DESC LIMIT 1)
+      ORDER BY e.occurred_at DESC,e.id DESC`);
+    return rows.map((row) => {
+      const classification = text(row, "classification"), layer = text(row, "layer"), authorityDecision = text(row, "sourceAuthorityDecision");
+      const ruleVersionId = text(row, "ruleVersionId"), stableId = text(row, "stableId"), sourceAuthority = text(row, "sourceAuthority");
+      const sourceTitle = text(row, "sourceTitle"), sourceUrl = text(row, "sourceUrl"), eventId = text(row, "eventId");
+      const actorReference = text(row, "actorReference"), reason = text(row, "reason"), occurredAt = text(row, "occurredAt");
+      if (!ruleVersionId || !stableId || !sourceAuthority || !sourceTitle || !sourceUrl || !eventId || !actorReference || !reason || !occurredAt ||
+        !classification || !["OFFICIAL", "OPERATIONAL", "CONDITIONAL", "INTERNAL"].includes(classification) ||
+        layer !== null && !["BASE_ROUTE", "NATIONALITY_OVERLAY", "RESIDENCE_OVERLAY", "GCC_OVERLAY", "AGE_MINOR_OVERLAY", "FAMILY_OVERLAY", "OPERATIONAL_OVERLAY"].includes(layer) ||
+        authorityDecision !== null && !["APPROVED", "REJECTED", "CHANGES_REQUIRED"].includes(authorityDecision)) throw new Error("RULE_GOVERNANCE_EVIDENCE_INVALID");
+      return { ruleVersionId, stableId, version: integer(row, "version"), status: status(text(row, "status")),
+        classification: classification as VisaRuleImport["classification"], layer: layer as VisaRuleImport["layer"] | null,
+        sourceAuthority, sourceTitle, sourceUrl, sourceAuthorityDecision: authorityDecision as RuleGovernanceHistoryRecord["sourceAuthorityDecision"],
+        eventId, fromStatus: text(row, "fromStatus") === null ? null : status(text(row, "fromStatus")), toStatus: status(text(row, "toStatus")),
+        actorReference, reason, occurredAt };
+    });
+  }
 
   async importDraft(input: unknown, commandId: string, actor: AuthorizationActor, occurredAt: Date): Promise<RuleGovernanceResult> {
     requirePermission(actor, "rule.propose"); const rule = validateVisaRuleImport(input); if (Number.isNaN(occurredAt.getTime())) throw new Error("RULE_GOVERNANCE_EVIDENCE_REQUIRED");

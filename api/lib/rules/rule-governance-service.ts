@@ -3,7 +3,7 @@ import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecor
 import type { MysqlRuleGovernanceRepository } from "./mysql-rule-governance-repository";
 import type { RuleGovernanceAction, RuleVersionStatus } from "./rule-governance";
 
-type Repository = Pick<MysqlRuleGovernanceRepository, "importDraft" | "transition">;
+type Repository = Pick<MysqlRuleGovernanceRepository, "list" | "importDraft" | "transition">;
 type Context = {
   actor: AuthorizationActor;
   flagContext: FeatureFlagContext;
@@ -14,6 +14,12 @@ type Context = {
 function gate(input: Context, permission: "rule.propose" | "rule.review" | "rule.activate"): void {
   if (!isOperationsFlagEnabled("REGULATORY_WATCHER", input.flagContext, input.flags)) throw new Error("RULE_GOVERNANCE_DISABLED");
   if (!input.actor.permissions.has(permission)) throw new Error("RULE_GOVERNANCE_ACCESS_DENIED");
+}
+
+export async function listRuleGovernanceHistory(input: Context) {
+  if (!isOperationsFlagEnabled("REGULATORY_WATCHER", input.flagContext, input.flags)) throw new Error("RULE_GOVERNANCE_DISABLED");
+  if (!input.actor.permissions.has("rule.read")) throw new Error("RULE_GOVERNANCE_ACCESS_DENIED");
+  return input.repository.list(input.actor);
 }
 
 export async function importRuleDraft(input: Context & { rule: unknown; commandId: string; now: Date }) {

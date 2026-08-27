@@ -5,11 +5,11 @@ import { MysqlOperationsAccessProvider, OperationsAccessError } from "./lib/oper
 import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import { MysqlRuleGovernanceRepository } from "./lib/rules/mysql-rule-governance-repository";
 import { visaRuleImportSchema } from "./lib/rules/rule-import";
-import { importRuleDraft, transitionRuleVersion } from "./lib/rules/rule-governance-service";
+import { importRuleDraft, listRuleGovernanceHistory, transitionRuleVersion } from "./lib/rules/rule-governance-service";
 import { createRouter, staffOrAdminQuery } from "./middleware";
 
 type Access = Pick<MysqlOperationsAccessProvider, "actorForContext" | "flagContextForContext" | "featureFlags">;
-type Repository = Pick<MysqlRuleGovernanceRepository, "importDraft" | "transition">;
+type Repository = Pick<MysqlRuleGovernanceRepository, "list" | "importDraft" | "transition">;
 type Dependencies = { access: Access; repository: Repository; now(): Date };
 async function context(deps: Dependencies, ctx: TrpcContext) {
   const [actor, flagContext, flags] = await Promise.all([deps.access.actorForContext(ctx), deps.access.flagContextForContext(ctx), deps.access.featureFlags()]);
@@ -28,6 +28,9 @@ const status = z.enum(["DRAFT", "UNDER_REVIEW", "APPROVED", "ACTIVE", "RETIRED",
 const action = z.enum(["SUBMIT_FOR_REVIEW", "APPROVE", "REJECT", "ACTIVATE", "RETIRE"]);
 export function createRuleGovernanceRouter(deps: Dependencies) {
   return createRouter({
+    list: staffOrAdminQuery.input(z.object({}).strict()).query(async ({ ctx }) => {
+      try { return await listRuleGovernanceHistory(await context(deps, ctx)); } catch (error) { safe(error); }
+    }),
     importDraft: staffOrAdminQuery.input(z.object({ rule: visaRuleImportSchema, commandId: z.string().uuid() }).strict()).mutation(async ({ ctx, input }) => {
       try { return await importRuleDraft({ ...await context(deps, ctx), ...input, now: deps.now() }); } catch (error) { safe(error); }
     }),
