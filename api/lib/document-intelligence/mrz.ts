@@ -1,4 +1,5 @@
 export type Td3MrzResult = {
+  mrzType: "TD1" | "TD2" | "TD3";
   documentCode: string;
   issuingCountry: string;
   mrzSurname: string;
@@ -46,10 +47,36 @@ export function parseTd3Mrz(lines: readonly string[]): Td3MrzResult {
   if (!check(second.slice(28, 42), second[42] ?? "")) errors.push("PERSONAL_NUMBER_CHECK_DIGIT_INVALID");
   const composite = second.slice(0, 10) + second.slice(13, 20) + second.slice(21, 43);
   if (!check(composite, second[43] ?? "")) errors.push("COMPOSITE_CHECK_DIGIT_INVALID");
-  return { documentCode: first.slice(0, 2).replaceAll("<", ""), issuingCountry: first.slice(2, 5),
+  return { mrzType:"TD3",documentCode: first.slice(0, 2).replaceAll("<", ""), issuingCountry: first.slice(2, 5),
     mrzSurname: parsedNames.surname, mrzGivenNames: parsedNames.givenNames, passportNumber: second.slice(0, 9).replaceAll("<", ""),
     nationality: second.slice(10, 13), dateOfBirth: date(second.slice(13, 19)), sex: second.slice(20, 21),
     expiryDate: date(second.slice(21, 27)), personalNumber: second.slice(28, 42).replaceAll("<", ""),
     checkDigitsValid: errors.length === 0, validationErrors: errors };
 }
 
+export function parseTd2Mrz(lines:readonly string[]):Td3MrzResult{
+  if(lines.length!==2||lines.some(line=>line.length!==36||line!==line.toUpperCase()))throw new Error("MRZ_TD2_LAYOUT_INVALID");const[first,second]=lines;if(!first||!second)throw new Error("MRZ_TD2_LAYOUT_INVALID");
+  const parsedNames=names(first.slice(5));const errors:string[]=[];if(!check(second.slice(0,9),second[9]??""))errors.push("PASSPORT_NUMBER_CHECK_DIGIT_INVALID");
+  if(!check(second.slice(13,19),second[19]??""))errors.push("DATE_OF_BIRTH_CHECK_DIGIT_INVALID");if(!check(second.slice(21,27),second[27]??""))errors.push("EXPIRY_DATE_CHECK_DIGIT_INVALID");
+  const composite=second.slice(0,10)+second.slice(13,20)+second.slice(21,35);if(!check(composite,second[35]??""))errors.push("COMPOSITE_CHECK_DIGIT_INVALID");
+  return{mrzType:"TD2",documentCode:first.slice(0,2).replaceAll("<",""),issuingCountry:first.slice(2,5),mrzSurname:parsedNames.surname,mrzGivenNames:parsedNames.givenNames,
+    passportNumber:second.slice(0,9).replaceAll("<",""),nationality:second.slice(10,13),dateOfBirth:date(second.slice(13,19)),sex:second.slice(20,21),expiryDate:date(second.slice(21,27)),
+    personalNumber:second.slice(28,35).replaceAll("<",""),checkDigitsValid:errors.length===0,validationErrors:errors};
+}
+
+export function parseTd1Mrz(lines:readonly string[]):Td3MrzResult{
+  if(lines.length!==3||lines.some(line=>line.length!==30||line!==line.toUpperCase()))throw new Error("MRZ_TD1_LAYOUT_INVALID");const[first,second,third]=lines;if(!first||!second||!third)throw new Error("MRZ_TD1_LAYOUT_INVALID");
+  const parsedNames=names(third);const errors:string[]=[];if(!check(first.slice(5,14),first[14]??""))errors.push("PASSPORT_NUMBER_CHECK_DIGIT_INVALID");
+  if(!check(second.slice(0,6),second[6]??""))errors.push("DATE_OF_BIRTH_CHECK_DIGIT_INVALID");if(!check(second.slice(8,14),second[14]??""))errors.push("EXPIRY_DATE_CHECK_DIGIT_INVALID");
+  const composite=first.slice(5,30)+second.slice(0,7)+second.slice(8,15)+second.slice(18,29);if(!check(composite,second[29]??""))errors.push("COMPOSITE_CHECK_DIGIT_INVALID");
+  return{mrzType:"TD1",documentCode:first.slice(0,2).replaceAll("<",""),issuingCountry:first.slice(2,5),mrzSurname:parsedNames.surname,mrzGivenNames:parsedNames.givenNames,
+    passportNumber:first.slice(5,14).replaceAll("<",""),nationality:second.slice(15,18),dateOfBirth:date(second.slice(0,6)),sex:second.slice(7,8),expiryDate:date(second.slice(8,14)),
+    personalNumber:(first.slice(15,30)+second.slice(18,29)).replaceAll("<",""),checkDigitsValid:errors.length===0,validationErrors:errors};
+}
+
+export function parseMrz(lines:readonly string[]):Td3MrzResult{
+  if(lines.length===3&&lines.every(line=>line.length===30))return parseTd1Mrz(lines);
+  if(lines.length===2&&lines.every(line=>line.length===36))return parseTd2Mrz(lines);
+  if(lines.length===2&&lines.every(line=>line.length===44))return parseTd3Mrz(lines);
+  throw new Error("MRZ_LAYOUT_UNSUPPORTED");
+}
