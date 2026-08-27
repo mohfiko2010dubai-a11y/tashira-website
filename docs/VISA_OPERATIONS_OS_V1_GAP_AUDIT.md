@@ -4,7 +4,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 
 | Module | State | Tested | Staging verified | Remaining V1 work |
 |---|---|---:|---:|---|
-| Visa Rule Registry | DONE (governance/runtime) | Yes | Migration 040 + runtime | Record approved source-authority decisions and populate only reviewed official rules; no source is implicitly trusted |
+| Visa Rule Registry | DONE (governance/runtime) | Yes | Migration 040 + RBAC API E2E | Populate reviewed official content and record explicit source approvals; the API/runtime never implicitly trusts a source and no Staging source is currently approved |
 | Eligibility Engine / precedence | DONE | Yes | Persistence | Real rule content remains human-approved |
 | Immutable evaluations | DONE | Yes | Yes | None in engineering scope |
 | Family Engine / readiness | DONE | Yes | Read Model | Customer activation remains off |

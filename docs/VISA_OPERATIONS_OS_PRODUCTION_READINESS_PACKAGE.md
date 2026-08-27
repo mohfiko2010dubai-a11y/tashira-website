@@ -5,7 +5,7 @@ Status: **prepared, not authorized for execution**.
 ## Release identity
 
 - Source branch: `codex/visa-operations-os-v1`
-- Latest exact Staging implementation/runtime SHA: `3b46284dc633f7451653e6367f69e6a8fd57e4c8`; later documentation-only commits do not change this runtime evidence. No SHA is authorized for Production.
+- Latest exact Staging implementation/runtime SHA: `a140ac9a6e98f20a1077a5574e69a4be276112cf`; later documentation-only commits do not change this runtime evidence. No SHA is authorized for Production.
 - Database chain: reviewed additive migrations `014` through `040`; re-rehearse the exact chain against an isolated restored Production-shaped copy before authorization.
 - Production changes performed by this package: none.
 
@@ -27,11 +27,12 @@ Status: **prepared, not authorized for execution**.
 ## Latest Staging evidence
 
 - Source authority gate: Migration `040` is applied after verified backup `/var/backups/tashira-staging/20260827T102332Z-source-authority-040-predeploy`; its append-only triggers reject update/delete tampering. Existing source/rule history is unchanged and no authority decision was fabricated. Consequently, the Active Rule provider returns no `OFFICIAL` rule until an authorized reviewer records a policy-versioned approval under the owner-approved authority hierarchy.
+- Source review API gate: the internal API requires `REGULATORY_WATCHER`, trusted actor RBAC, expected-latest-event concurrency and replay-safe command identity. Staging E2E recorded one synthetic `REJECTED` event and zero approvals; replay/conflict and commercial-as-official rejection passed while the flag remained OFF.
 - AI authority gate: `AI_ADVISORY_BOUNDARY_V1` permits extraction/pre-screen/summary only and rejects eligibility decisions, rule activation and final submission outcomes.
 
 - Unified Interview authenticated read API: start/resume/current question/eligibility/requirements/upload requirements/scheduler/review all use one canonical persisted state path.
 - Scoped synthetic E2E: PASS for lifecycle equivalence, anonymous denial, application ownership and finance isolation.
-- Quality gates: TypeScript PASS; full ESLint PASS; 654 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
+- Quality gates: TypeScript PASS; full ESLint PASS; 659 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
 - Runtime: PM2 `tashira-staging` online; local/public Staging HTTP 200; read-only Production HTTP 200.
 - Closed state after E2E: all customer-facing Operations scopes OFF; Controlled Writes OFF. The previously authorized internal Read Model global scope and Team-only Travel/Scheduler/Rule test scopes remain enabled; they do not make an unreviewed source authoritative.
 - Production, Production database, Production documents, main/master, Stripe, Resend, pricing, payment and invoice behavior were not modified by this milestone.
