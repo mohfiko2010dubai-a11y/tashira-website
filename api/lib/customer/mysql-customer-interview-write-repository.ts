@@ -1,6 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { validateTravelGroup, type TicketStatus, type TravelArrangement } from "../travel/travel-party";
+import { validateSubmissionPolicyThresholds, type OperationalSubmissionPolicy } from "../travel/operational-submission-policy";
+import type { SubmissionScheduleSnapshot, SubmissionTimingRule } from "../travel/submission-scheduler";
+import { recalculateForTravelDateChange } from "../travel/travel-date-recalculation";
 
 export type CustomerApplicantProfile = {
   fullName: string;
@@ -181,12 +184,15 @@ export class MysqlCustomerInterviewWriteRepository {
       if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
       const prior = await commandReplay(connection, { ...input, commandSha256 });
       if (prior) return { travelGroupId: prior.entityReference, version: prior.entityVersion, replayed: true };
-      const [groups] = await connection.execute<RowDataPacket[]>("SELECT version FROM travel_groups WHERE id=? AND application_id=? FOR UPDATE",
+      const [groups] = await connection.execute<RowDataPacket[]>("SELECT version,planned_arrival_date AS plannedArrivalDate FROM travel_groups WHERE id=? AND application_id=? FOR UPDATE",
         [input.travelGroupId, input.applicationId]);
       if (!groups[0]) throw new Error("CUSTOMER_TRAVEL_GROUP_OWNERSHIP_INVALID");
       if (Number(groups[0].version) !== input.expectedVersion) throw new Error("CUSTOMER_TRAVEL_GROUP_VERSION_CONFLICT");
       await this.validateTravelGroupOwnership(connection, input.applicationId, input.travelGroupId, input.group);
       const version = input.expectedVersion + 1;
+      const previousArrivalDate = new Date(groups[0].plannedArrivalDate as string | Date).toISOString().slice(0, 10);
+      const dateChange = previousArrivalDate === input.group.plannedArrivalDate ? null
+        : await this.prepareTravelDateChange(connection, { ...input, previousArrivalDate, version });
       const [updated] = await connection.execute<ResultSetHeader>(`UPDATE travel_groups SET travel_group_reference=?,arrangement=?,primary_traveller_id=?,
         accompanying_adult_id=?,origin=?,destination=?,planned_arrival_date=?,planned_departure_date=?,ticket_status=?,version=?
         WHERE id=? AND application_id=? AND version=?`, [input.group.reference, input.group.arrangement, input.group.primaryTravellerId,
@@ -194,10 +200,89 @@ export class MysqlCustomerInterviewWriteRepository {
         input.group.plannedDepartureDate, input.group.ticketStatus, version, input.travelGroupId, input.applicationId, input.expectedVersion]);
       if (updated.affectedRows !== 1) throw new Error("CUSTOMER_TRAVEL_GROUP_VERSION_CONFLICT");
       await this.replaceTravelMembers(connection, input.applicationId, input.travelGroupId, input.group);
+      if (dateChange) await this.persistTravelDateChange(connection, input, dateChange);
       await this.appendCommand(connection, { applicationId: input.applicationId, type: "UPDATE_TRAVEL_GROUP", entityReference: input.travelGroupId,
         version, commandSha256, evidence: input.group, idempotencyKey: input.idempotencyKey, actorReference: input.actorReference, occurredAt: input.occurredAt });
       return { travelGroupId: input.travelGroupId, version, replayed: false };
     });
+  }
+
+  private async prepareTravelDateChange(connection: PoolConnection, input: { applicationId: number; travelGroupId: string;
+    expectedVersion: number; version: number; group: CustomerTravelGroupInput; previousArrivalDate: string; reason: string;
+    actorReference: string; idempotencyKey: string; occurredAt: Date }) {
+    const [schedules] = await connection.execute<RowDataPacket[]>(`SELECT id evaluationId,route_code routeCode,planned_arrival_date plannedArrivalDate,
+      earliest_safe_submission_date earliestSafeSubmissionDate,target_submission_date targetSubmissionDate,
+      latest_safe_submission_date latestSafeSubmissionDate,schedule_state state,reason,blocking_reasons_json blockingReasons,
+      rule_versions_json ruleVersions,source_evidence_references_json sourceEvidenceReferences,recalculation_reason recalculationReason,
+      evidence_sha256 evidenceSha256,evaluated_at evaluatedAt,entry_validity_rule_id officialRuleId,
+      entry_validity_rule_version officialRuleVersion,entry_validity_days entryValidityDays
+      FROM submission_schedule_snapshots WHERE application_id=? AND travel_group_id=? ORDER BY evaluated_at DESC,id DESC LIMIT 1 FOR UPDATE`,
+    [input.applicationId, input.travelGroupId]);
+    const row = schedules[0]; if (!row) throw new Error("CUSTOMER_TRAVEL_SCHEDULE_MISSING");
+    const [policies] = await connection.execute<RowDataPacket[]>(`SELECT id policyId,version,record_version recordVersion,thresholds_json thresholds,
+      source_reference sourceReference,effective_from effectiveFrom,effective_to effectiveTo,evidence_sha256 evidenceSha256
+      FROM operations_submission_policies WHERE policy_code='SUBMISSION_SCHEDULER' AND lifecycle_state='ACTIVE'
+        AND effective_from<=? AND (effective_to IS NULL OR effective_to>?) ORDER BY version DESC FOR UPDATE`, [input.occurredAt, input.occurredAt]);
+    if (policies.length !== 1) throw new Error(policies.length ? "OPERATIONAL_POLICY_ACTIVE_CONFLICT" : "OPERATIONAL_POLICY_NOT_CONFIGURED");
+    const policyRow = policies[0]; const rawThresholds = typeof policyRow.thresholds === "string" ? JSON.parse(policyRow.thresholds) : policyRow.thresholds;
+    const operationalPolicy: OperationalSubmissionPolicy = { policyId: String(policyRow.policyId), policyCode: "SUBMISSION_SCHEDULER",
+      version: Number(policyRow.version), classification: "OPERATIONAL", state: "ACTIVE", recordVersion: Number(policyRow.recordVersion),
+      effectiveFrom: new Date(policyRow.effectiveFrom as string | Date).toISOString(), effectiveTo: policyRow.effectiveTo === null ? null
+        : new Date(policyRow.effectiveTo as string | Date).toISOString(), sourceReference: String(policyRow.sourceReference),
+      thresholds: validateSubmissionPolicyThresholds(rawThresholds), evidenceSha256: String(policyRow.evidenceSha256) };
+    const officialRule: SubmissionTimingRule | null = row.officialRuleId && row.officialRuleVersion && row.entryValidityDays
+      ? { ruleId: String(row.officialRuleId), version: Number(row.officialRuleVersion), classification: "OFFICIAL", entryValidityDays: Number(row.entryValidityDays) } : null;
+    const [readiness] = await connection.execute<RowDataPacket[]>(`SELECT family_readiness_state readinessState,manual_review_required manualReviewRequired,
+      blocking_reasons_json blockingReasons FROM family_readiness_snapshots WHERE application_id=? ORDER BY evaluated_at DESC,id DESC LIMIT 1`, [input.applicationId]);
+    const [applications] = await connection.execute<RowDataPacket[]>("SELECT status FROM applications WHERE id=? LIMIT 1", [input.applicationId]);
+    const previous: SubmissionScheduleSnapshot = { evaluationId: String(row.evaluationId), evaluatedAt: new Date(row.evaluatedAt as string | Date).toISOString(),
+      travelGroupId: input.travelGroupId, routeCode: String(row.routeCode), plannedArrivalDate: input.previousArrivalDate,
+      earliestSafeSubmissionDate: row.earliestSafeSubmissionDate ? new Date(row.earliestSafeSubmissionDate as string | Date).toISOString().slice(0, 10) : null,
+      targetSubmissionDate: row.targetSubmissionDate ? new Date(row.targetSubmissionDate as string | Date).toISOString().slice(0, 10) : null,
+      latestSafeSubmissionDate: row.latestSafeSubmissionDate ? new Date(row.latestSafeSubmissionDate as string | Date).toISOString().slice(0, 10) : null,
+      state: String(row.state) as SubmissionScheduleSnapshot["state"], reason: String(row.reason), blockingReasons: this.jsonArray(row.blockingReasons),
+      recalculationReason: String(row.recalculationReason), ruleVersions: this.jsonValue(row.ruleVersions),
+      sourceEvidenceReferences: this.jsonArray(row.sourceEvidenceReferences), evidenceSha256: String(row.evidenceSha256) };
+    const readinessRow = readiness[0]; const blockingReasons = readinessRow ? this.jsonArray(readinessRow.blockingReasons) : ["FAMILY_READINESS_UNRESOLVED"];
+    const status = String(applications[0]?.status ?? "");
+    return { ...recalculateForTravelDateChange({ eventId: randomUUID(), newEvaluationId: randomUUID(), previous,
+      expectedTravelGroupVersion: input.expectedVersion, currentTravelGroupVersion: input.expectedVersion,
+      newArrivalDate: input.group.plannedArrivalDate, actorReference: input.actorReference, reason: input.reason, occurredAt: input.occurredAt,
+      alreadySubmitted: ["visa_processing", "visa_received", "completed"].includes(status), officialRule, operationalPolicy,
+      readinessSatisfied: readinessRow?.readinessState === "READY_FOR_SUBMISSION", manualReviewRequired: Number(readinessRow?.manualReviewRequired ?? 0) === 1,
+      blockingReasons, sourceEvidenceReferences: [...previous.sourceEvidenceReferences, `operational-policy:${operationalPolicy.policyId}:${operationalPolicy.version}`] }),
+      officialEntryValidityDays: officialRule?.entryValidityDays ?? null };
+  }
+
+  private async persistTravelDateChange(connection: PoolConnection, input: { applicationId: number; travelGroupId: string;
+    idempotencyKey: string }, change: ReturnType<typeof recalculateForTravelDateChange> & { officialEntryValidityDays: number | null }) {
+    const schedule = change.schedule; const official = schedule.ruleVersions.find((rule) => rule.classification === "OFFICIAL");
+    const operational = schedule.ruleVersions.find((rule) => rule.classification === "OPERATIONAL");
+    await connection.execute(`INSERT INTO submission_schedule_snapshots (id,application_id,travel_group_id,route_code,applicant_id,
+      planned_arrival_date,earliest_safe_submission_date,target_submission_date,latest_safe_submission_date,entry_validity_rule_id,
+      entry_validity_rule_version,entry_validity_days,operational_submission_policy_id,operational_submission_policy_version,schedule_state,reason,
+      blocking_reasons_json,rule_versions_json,matched_rule_ids_json,source_evidence_references_json,recalculation_reason,evaluator_version,evidence_sha256,evaluated_at)
+      VALUES (?,?,?,?,NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [schedule.evaluationId, input.applicationId, schedule.travelGroupId,
+      schedule.routeCode, schedule.plannedArrivalDate, schedule.earliestSafeSubmissionDate, schedule.targetSubmissionDate,
+      schedule.latestSafeSubmissionDate, official?.ruleId ?? null, official?.version ?? null, change.officialEntryValidityDays, operational?.ruleId ?? null,
+      operational?.version ?? null, schedule.state, schedule.reason, JSON.stringify(schedule.blockingReasons), JSON.stringify(schedule.ruleVersions),
+      JSON.stringify(schedule.ruleVersions.map((rule) => rule.ruleId)), JSON.stringify(schedule.sourceEvidenceReferences), schedule.recalculationReason,
+      "travel-date-recalculation-v1", schedule.evidenceSha256, new Date(schedule.evaluatedAt)]);
+    await connection.execute(`INSERT INTO travel_date_change_events (id,application_id,travel_group_id,previous_schedule_evaluation_id,
+      new_schedule_evaluation_id,previous_arrival_date,new_arrival_date,version_before,version_after,actor_reference,reason,idempotency_key,evidence_sha256,occurred_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [change.evidence.eventId, input.applicationId, input.travelGroupId,
+      change.evidence.previousScheduleEvaluationId, change.evidence.newScheduleEvaluationId, change.evidence.previousArrivalDate,
+      change.evidence.newArrivalDate, change.evidence.previousTravelGroupVersion, change.evidence.newTravelGroupVersion,
+      change.evidence.actorReference, change.evidence.reason, input.idempotencyKey, change.evidence.evidenceSha256, new Date(change.evidence.occurredAt)]);
+    await connection.execute(`INSERT INTO operations_audit_events (id,event_type,actor_type,actor_reference,resource_type,resource_reference,
+      outcome,reason_code,metadata_json) VALUES (?,'TRAVEL_DATE_CHANGED','CUSTOMER',?,'TRAVEL_GROUP',?,'SUCCESS','TRAVEL_DATE_RECALCULATED',?)`,
+    [randomUUID(), change.evidence.actorReference, input.travelGroupId, JSON.stringify({ previousScheduleEvaluationId: change.evidence.previousScheduleEvaluationId,
+      newScheduleEvaluationId: change.evidence.newScheduleEvaluationId, versionAfter: change.evidence.newTravelGroupVersion })]);
+  }
+
+  private jsonArray(value: unknown): string[] { const parsed = this.jsonValue<unknown>(value); return Array.isArray(parsed) ? parsed.map(String) : []; }
+  private jsonValue<T = { ruleId: string; version: number; classification: "OFFICIAL" | "OPERATIONAL" }[]>(value: unknown): T {
+    return (typeof value === "string" ? JSON.parse(value) : value) as T;
   }
 
   async linkSharedDocument(input: { applicationId: number; documentId: number; documentType: "OUTBOUND_TICKET" | "RETURN_TICKET" |
