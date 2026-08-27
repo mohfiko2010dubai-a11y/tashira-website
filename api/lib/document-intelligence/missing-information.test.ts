@@ -30,5 +30,17 @@ describe("dynamic missing information", () => {
       resolutions: [{ ...resolution("nationality", "VERIFIED"), applicantId: 11 }] }))
       .toThrow("MISSING_INFORMATION_APPLICANT_SCOPE_MISMATCH");
   });
-});
 
+  it("distinguishes confirmed coverage from extracted values that still need confirmation", () => {
+    const actions = determineMissingInformation({
+      applicantId: 10,
+      requirements: [requirement("confirmed_name", []), requirement("extracted_name", [])],
+      resolutions: [resolution("confirmed_name", "CONFIRMED"), resolution("extracted_name", "EXTRACTED")],
+    });
+
+    expect(actions).toEqual([
+      expect.objectContaining({ fieldCode: "confirmed_name", state: "AVAILABLE_CONFIRMED", action: "NONE" }),
+      expect.objectContaining({ fieldCode: "extracted_name", state: "AVAILABLE_EXTRACTED_NEEDS_CONFIRMATION", action: "CUSTOMER_CONFIRMATION" }),
+    ]);
+  });
+});

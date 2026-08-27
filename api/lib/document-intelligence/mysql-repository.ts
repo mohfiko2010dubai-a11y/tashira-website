@@ -42,6 +42,8 @@ export type DocumentIntelligenceApplicantReadModel = {
     selectedValue: string | null; sourceType: string | null; confidence: string | null; reason: string; occurredAt: string;
   }[];
 };
+export type ReviewApplicantFieldInput={applicationReference:string;applicantId:number;fieldCode:string;selectedEvidenceId:string;expectedSelectionId:string;commandId:string;reason:string;occurredAt:string};
+export type ReviewApplicantFieldResult={selectionId:string;applicationId:number;applicantId:number;fieldCode:string;selectedEvidenceId:string;state:"VERIFIED";replayed:boolean};
 
 function digest(value: unknown): string { return createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
 function text(row: object, key: string): string | null { const value = Reflect.get(row, key); return typeof value === "string" ? value : null; }
@@ -108,6 +110,28 @@ export class MysqlDocumentIntelligenceRepository {
       sourceEvidenceReferences: jsonArray<string>(row, "sourceEvidence"), ruleVersionId: text(row, "ruleVersionId") ?? "",
       approvalState: text(row, "approvalState") as AuthorityFieldRequirement["approvalState"] }));
   }
+
+  async reviewField(input:ReviewApplicantFieldInput,actor:AuthorizationActor):Promise<ReviewApplicantFieldResult>{
+    if(!input.fieldCode.trim()||!input.reason.trim()||Number.isNaN(Date.parse(input.occurredAt)))throw new Error("DOCUMENT_INTELLIGENCE_REVIEW_INPUT_INVALID");
+    const connection=await this.#pool.getConnection();try{await connection.beginTransaction();const resource=await this.#applicantResource(connection,input.applicationReference,input.applicantId,true);
+      if(!authorize(actor,"document.review",{assignedActorId:resource.assignedActorId,teamId:resource.teamId,departmentId:resource.departmentId}).allowed)throw new Error("DOCUMENT_INTELLIGENCE_ACCESS_DENIED");
+      const [replay]=await connection.execute<RowDataPacket[]>(`SELECT id selectionId,application_id applicationId,applicant_id applicantId,field_code fieldCode,
+        selected_evidence_id selectedEvidenceId,field_state state,reason,actor_reference actorReference FROM applicant_field_selection_events WHERE id=?`,[input.commandId]);
+      if(replay[0]){const row=replay[0];if(integer(row,"applicationId")!==resource.applicationId||integer(row,"applicantId")!==input.applicantId||text(row,"fieldCode")!==input.fieldCode||
+        text(row,"selectedEvidenceId")!==input.selectedEvidenceId||text(row,"state")!=="VERIFIED"||text(row,"reason")!==input.reason.trim()||text(row,"actorReference")!==actor.id)throw new Error("DOCUMENT_INTELLIGENCE_IDEMPOTENCY_CONFLICT");
+        await connection.commit();return{selectionId:input.commandId,applicationId:resource.applicationId,applicantId:input.applicantId,fieldCode:input.fieldCode,selectedEvidenceId:input.selectedEvidenceId,state:"VERIFIED",replayed:true};}
+      const [current]=await connection.execute<RowDataPacket[]>(`SELECT id selectionId,field_requirement_id requirementId,evidence_integrity_sha256 integritySha256 FROM applicant_field_selection_events
+        WHERE application_id=? AND applicant_id=? AND field_code=? ORDER BY occurred_at DESC,id DESC LIMIT 1 FOR UPDATE`,[resource.applicationId,input.applicantId,input.fieldCode]);
+      if(!current[0]||text(current[0],"selectionId")!==input.expectedSelectionId)throw new Error("DOCUMENT_INTELLIGENCE_REVIEW_CONFLICT");
+      const [evidence]=await connection.execute<RowDataPacket[]>(`SELECT e.id,e.run_id runId FROM document_field_evidence e JOIN document_intelligence_runs r ON r.id=e.run_id
+        WHERE e.id=? AND e.application_id=? AND e.applicant_id=? AND e.field_code=? AND r.application_id=e.application_id AND r.applicant_id=e.applicant_id`,
+      [input.selectedEvidenceId,resource.applicationId,input.applicantId,input.fieldCode]);if(!evidence[0])throw new Error("DOCUMENT_INTELLIGENCE_REVIEW_EVIDENCE_INVALID");
+      await connection.execute(`INSERT INTO applicant_field_selection_events
+        (id,run_id,application_id,applicant_id,field_requirement_id,field_code,selected_evidence_id,field_state,reason,actor_reference,evidence_integrity_sha256,occurred_at)
+        VALUES (?,?,?,?,?,?,?,'VERIFIED',?,?,?,?)`,[input.commandId,text(evidence[0],"runId"),resource.applicationId,input.applicantId,text(current[0],"requirementId"),input.fieldCode,
+        input.selectedEvidenceId,input.reason.trim(),actor.id,text(current[0],"integritySha256"),new Date(input.occurredAt)]);await connection.commit();
+      return{selectionId:input.commandId,applicationId:resource.applicationId,applicantId:input.applicantId,fieldCode:input.fieldCode,selectedEvidenceId:input.selectedEvidenceId,state:"VERIFIED",replayed:false};
+    }catch(error){await connection.rollback();throw error;}finally{connection.release();}}
 
   async persist(input: PersistDocumentIntelligenceInput, actor: AuthorizationActor): Promise<PersistDocumentIntelligenceResult> {
     if (!input.requestKey.trim() || input.requestKey.length > 100 || !Number.isSafeInteger(input.pageCount) || input.pageCount < 1

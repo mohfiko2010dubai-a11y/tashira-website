@@ -110,6 +110,12 @@ describe.skipIf(!enabled)("MySQL document intelligence persistence", () => {
       { ...actor, permissions: new Set([...actor.permissions, "supplier.read_financial"]) });
     expect(financeView.runs[0]).toMatchObject({ processingCost: "0.010000", currency: "USD" });
     await expect(repository.readApplicant(applicationReference, applicantId, wrongTeamActor)).rejects.toThrow("DOCUMENT_INTELLIGENCE_ACCESS_DENIED");
+    const reviewInput={applicationReference,applicantId,fieldCode:"passport_number",selectedEvidenceId:evidence.evidenceId,
+      expectedSelectionId:operationalView.fields[0]!.selectionId,commandId:randomUUID(),reason:"Synthetic reviewer verified matching evidence",occurredAt:new Date().toISOString()};
+    expect(await repository.reviewField(reviewInput,actor)).toMatchObject({state:"VERIFIED",replayed:false});
+    expect(await repository.reviewField(reviewInput,actor)).toMatchObject({state:"VERIFIED",replayed:true});
+    await expect(repository.reviewField({...reviewInput,reason:"Changed replay"},actor)).rejects.toThrow("DOCUMENT_INTELLIGENCE_IDEMPOTENCY_CONFLICT");
+    await expect(repository.reviewField({...reviewInput,commandId:randomUUID(),expectedSelectionId:operationalView.fields[0]!.selectionId},actor)).rejects.toThrow("DOCUMENT_INTELLIGENCE_REVIEW_CONFLICT");
   });
 
   it("fails closed for wrong-team and cross-applicant evidence", async () => {

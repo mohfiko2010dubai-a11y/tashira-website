@@ -3,7 +3,13 @@ import type { ApplicantFieldResolution, AuthorityFieldRequirement } from "./cont
 export type MissingInformationAction = {
   applicantId: number;
   fieldCode: string;
-  state: "AVAILABLE_VERIFIED" | "AVAILABLE_NEEDS_CONFIRMATION" | "MISSING" | "CONFLICT";
+  state:
+    | "AVAILABLE_VERIFIED"
+    | "AVAILABLE_CONFIRMED"
+    | "AVAILABLE_EXTRACTED_NEEDS_CONFIRMATION"
+    | "MISSING"
+    | "CONFLICT"
+    | "HUMAN_REVIEW_REQUIRED";
   action: "NONE" | "CUSTOMER_CONFIRMATION" | "DYNAMIC_QUESTION" | "SUPPORTING_DOCUMENT" | "HUMAN_REVIEW";
   reason: string;
 };
@@ -22,10 +28,13 @@ export function determineMissingInformation(input: {
       reason: "MISSING_REQUIRED_AUTHORITY_FIELD" } as const;
     if (resolution.state === "CONFLICTED") return { applicantId: input.applicantId, fieldCode: requirement.fieldCode,
       state: "CONFLICT", action: "HUMAN_REVIEW", reason: "IDENTITY_DATA_CONFLICT" } as const;
+    if (resolution.requiresHumanReview) return { applicantId: input.applicantId, fieldCode: requirement.fieldCode,
+      state: "HUMAN_REVIEW_REQUIRED", action: "HUMAN_REVIEW", reason: resolution.reason } as const;
     if (resolution.state === "VERIFIED") return { applicantId: input.applicantId, fieldCode: requirement.fieldCode,
       state: "AVAILABLE_VERIFIED", action: "NONE", reason: resolution.reason } as const;
+    if (resolution.state === "CONFIRMED") return { applicantId: input.applicantId, fieldCode: requirement.fieldCode,
+      state: "AVAILABLE_CONFIRMED", action: "NONE", reason: resolution.reason } as const;
     return { applicantId: input.applicantId, fieldCode: requirement.fieldCode,
-      state: "AVAILABLE_NEEDS_CONFIRMATION", action: "CUSTOMER_CONFIRMATION", reason: resolution.reason } as const;
+      state: "AVAILABLE_EXTRACTED_NEEDS_CONFIRMATION", action: "CUSTOMER_CONFIRMATION", reason: resolution.reason } as const;
   });
 }
-

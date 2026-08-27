@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { prescreenTicket, type TicketExtraction } from "./ticket-prescreening";
+import { mapSharedTicketPassengers, prescreenTicket, type TicketExtraction } from "./ticket-prescreening";
 
 const extraction = (passengerNames: readonly string[], confidence = 0.95): TicketExtraction => ({
   passengerNames, confidence, origin: "CAI", destination: "DXB", arrivalDate: "2026-12-01",
@@ -22,5 +22,22 @@ describe("AI ticket pre-screening boundary", () => {
   it("fails unreadable and low-confidence extraction safely", () => {
     expect(prescreenTicket({ extraction: extraction([]), linkedApplicants: applicants }).state).toBe("UNREADABLE");
     expect(prescreenTicket({ extraction: extraction(["Fatima Ahmed", "Omar Ahmed"], 0.6), linkedApplicants: applicants }).state).toBe("WARNING");
+  });
+
+  it("maps a shared booking independently without marking a missing family member as valid", () => {
+    expect(mapSharedTicketPassengers({ extraction: extraction(["Fatima Ahmed"]), linkedApplicants: applicants })).toEqual([
+      expect.objectContaining({ applicantId: 1, matchedPassengerName: "Fatima Ahmed", state: "PASS" }),
+      expect.objectContaining({ applicantId: 2, matchedPassengerName: null, state: "MISSING_APPLICANT" }),
+    ]);
+  });
+
+  it("fails ambiguous family identities closed for human review", () => {
+    const result = mapSharedTicketPassengers({ extraction: extraction(["Child Ahmed"]), linkedApplicants: [
+      { applicantId: 1, authoritativeName: "Child Ahmed" }, { applicantId: 2, authoritativeName: "Child Ahmed" },
+    ] });
+    expect(result).toEqual([
+      expect.objectContaining({ applicantId: 1, state: "MANUAL_REVIEW", reason: "AMBIGUOUS_AUTHORITATIVE_NAME" }),
+      expect.objectContaining({ applicantId: 2, state: "MANUAL_REVIEW", reason: "AMBIGUOUS_AUTHORITATIVE_NAME" }),
+    ]);
   });
 });
