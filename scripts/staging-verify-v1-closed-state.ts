@@ -10,6 +10,7 @@ if (!process.cwd().replaceAll("\\", "/").endsWith("/var/www/tashira-staging")) {
 const closedFlags = [
   "OPERATIONS_CONTROLLED_WRITES",
   "AI_DOCUMENT_REVIEW",
+  "DOCUMENT_INTELLIGENCE",
   "SUPPORT_INBOX",
   "REGULATORY_WATCHER",
   "DYNAMIC_CUSTOMER_APPLICATION",
@@ -34,6 +35,7 @@ const migrationObjects = [
   "operations_supplier_sla_policies", "operations_typing_pack_templates", "operations_regulatory_changes",
   "operations_document_security_scans", "operations_email_dispatches", "operations_submission_policies",
   "travel_date_change_events", "visa_rule_source_authority_events", "visa_rule_governance_events",
+  "passport_profile_versions", "authority_application_field_requirements", "document_field_evidence",
 ] as const;
 
 const pool = createPool({ uri: env.databaseUrl, connectionLimit: 1 });
@@ -62,7 +64,7 @@ try {
 
   console.log("STAGING_V1_ENVIRONMENT_IDENTITY=PASS");
   console.log(`STAGING_V1_MYSQL_VERSION=${String(identity[0].mysqlVersion)}`);
-  console.log("STAGING_V1_SCHEMA_OBJECTS_014_041=PASS");
+  console.log("STAGING_V1_SCHEMA_OBJECTS_014_042=PASS");
   console.log("STAGING_V1_CONTROLLED_WRITES=OFF");
   console.log("STAGING_V1_CUSTOMER_FEATURES=OFF");
   console.log("STAGING_V1_EXTERNAL_PROVIDER_FEATURES=OFF");

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 export const OPERATIONS_MIGRATION_FIRST = 14;
-export const OPERATIONS_MIGRATION_LAST = 41;
+export const OPERATIONS_MIGRATION_LAST = 42;
 
 export type MigrationArtifact = {
   number: number;

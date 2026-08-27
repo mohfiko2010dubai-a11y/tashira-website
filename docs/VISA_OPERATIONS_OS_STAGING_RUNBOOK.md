@@ -1,12 +1,12 @@
 # TASHIRA Visa Operations OS V1 — Staging Migration and Activation Runbook
 
-Status: **CANONICAL REUSE RUNBOOK — NOT AN AUTHORIZATION**. Migrations `014–041` were already applied to isolated Staging during separately authorized, backed-up phases. This document does not authorize a new staging connection, migration, deployment, rollback or feature activation.
+Status: **CANONICAL REUSE RUNBOOK — NOT AN AUTHORIZATION**. Migrations `014–041` were already applied to isolated Staging during separately authorized, backed-up phases. Migration `042` is reviewed and locally rehearsed but is not yet applied to Staging. This document does not authorize a new staging connection, migration, deployment, rollback or feature activation.
 
 ## A. Preconditions
 
 - Obtain explicit owner approval for the exact staging maintenance window and reviewed commit SHA.
 - Confirm CI and the final local acceptance gate are green at that exact SHA.
-- Run `node --experimental-strip-types scripts/verify-operations-production-readiness.ts` from the exact clean review branch and confirm migrations `014` through `041` match the reviewed manifest.
+- Run `node --experimental-strip-types scripts/verify-operations-production-readiness.ts` from the exact clean review branch and confirm migrations `014` through `042` match the reviewed manifest.
 - Assign named migration operator, verifier, rollback operator, and Operations test users.
 - Keep every Visa Operations OS flag closed before and immediately after migration.
 
@@ -69,6 +69,7 @@ Apply additively and strictly in this order:
 26. `039_optional_requirement_classification.sql`
 27. `040_rule_source_authority_governance.sql`
 28. `041_visa_rule_lifecycle_evidence.sql`
+29. `042_document_intelligence_governance.sql`
 
 Never reorder, skip, edit historical migration files, or apply rollback scripts during forward migration.
 
@@ -106,7 +107,8 @@ for migration in \
   migrations/038_travel_date_change_evidence.sql \
   migrations/039_optional_requirement_classification.sql \
   migrations/040_rule_source_authority_governance.sql \
-  migrations/041_visa_rule_lifecycle_evidence.sql
+  migrations/041_visa_rule_lifecycle_evidence.sql \
+  migrations/042_document_intelligence_governance.sql
 do
   mysql --defaults-extra-file="${STAGING_MYSQL_DEFAULTS_FILE:?approved staging defaults file required}" tashira_staging < "$migration" || exit 1
 done
@@ -127,7 +129,7 @@ The operator must set `STAGING_MYSQL_DEFAULTS_FILE` interactively to the approve
 ## H. Post-migration checks
 
 - Recompute schema fingerprint and compare only expected additive changes.
-- Verify every table/index/constraint/trigger required by `014–041` and compare against the isolated round-trip rehearsal evidence.
+- Verify every table/index/constraint/trigger required by `014–042` and compare against the isolated round-trip rehearsal evidence.
 - Verify protected application/applicant/document/payment/invoice row counts are unchanged.
 - Verify legacy records were not silently assigned rules, relationships, requirements or permissions.
 - Verify no staff member received an implicit role or scope.
@@ -146,6 +148,7 @@ Flags involved:
 - `TRAVEL_PARTY_ENGINE`
 - `SUBMISSION_SCHEDULER`
 - `AI_DOCUMENT_REVIEW`
+- `DOCUMENT_INTELLIGENCE`
 - `OPERATIONS_STATE_MACHINE`
 - `SUPPORT_INBOX`
 - `REGULATORY_WATCHER`
@@ -215,7 +218,7 @@ Stop on unproven staging identity, unavailable/unverified backup, version/schema
 Separate explicit approval is required for:
 
 1. staging connection and backups;
-2. any future Staging replay or recovery involving migrations `014–041`, with all features OFF;
+2. any future Staging replay or recovery involving migrations `014–042`, with all features OFF;
 3. restricted Read Model activation;
 4. restricted Controlled Write activation;
 5. synthetic staging acceptance;
@@ -226,7 +229,7 @@ Separate explicit approval is required for:
 
 ### Step 1 — database only
 
-For a fresh/recovered Staging database only, apply `014–041` to proven `tashira_staging`, verify integrity, keep all flags OFF, then stop for review. On the current Staging database, verify the existing applied schema; never blindly reapply historical migrations.
+For a fresh/recovered Staging database only, apply `014–042` to proven `tashira_staging`, verify integrity, keep all flags OFF, then stop for review. On the current Staging database, verify migrations `014–041`, create and verify a new backup, then apply only pending Migration `042`; never blindly reapply historical migrations.
 
 ### Step 2 — restricted Read Model
 

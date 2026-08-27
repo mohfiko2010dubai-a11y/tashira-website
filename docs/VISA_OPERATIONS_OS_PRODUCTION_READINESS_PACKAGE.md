@@ -6,7 +6,7 @@ Status: **prepared, not authorized for execution**.
 
 - Source branch: `codex/visa-operations-os-v1`
 - Latest exact Staging implementation/runtime SHA: `4058dcd897e3719447e279feed992e392005a6f6`. Later branch commits add local rehearsal, verification, tests and documentation. The release candidate is therefore the exact clean local/remote-matched SHA reported by `scripts/verify-operations-production-readiness.ts`, never a manually retained historical SHA. No SHA is authorized for Production.
-- Database chain: reviewed additive migrations `014` through `041`; re-rehearse the exact chain against an isolated restored Production-shaped copy before authorization.
+- Database chain: reviewed additive migrations `014` through `042`; re-rehearse the exact chain against an isolated restored Production-shaped copy before authorization. Migration `042` is locally rehearsed but not yet applied to Staging or Production.
 - Production changes performed by this package: none.
 
 ## Required Production sequence
@@ -17,7 +17,7 @@ Status: **prepared, not authorized for execution**.
 4. Create root-only database, document, private-config and Git backups; verify SHA-256 and restore rehearsal evidence.
 5. Enter maintenance/write freeze without changing customer documents.
 6. Rehearse the exact release and migrations against an isolated restored copy.
-7. Apply `014`–`041` in order using the guarded wrapper. Stop on drift or failure. Migration `030` replaces the historical answer-value uniqueness rule with predecessor-linked transition uniqueness; later migrations add the separately reviewed Support Inbox, SLA, typing/authority, regulatory, visa-delivery, email-dispatch, operational-policy, travel-date evidence, optional-requirement, source-authority and rule-lifecycle governance contracts.
+7. Apply `014`–`042` in order using the guarded wrapper. Stop on drift or failure. Migration `030` replaces the historical answer-value uniqueness rule with predecessor-linked transition uniqueness; later migrations add the separately reviewed Support Inbox, SLA, typing/authority, regulatory, visa-delivery, email-dispatch, operational-policy, travel-date evidence, optional-requirement, source-authority, rule-lifecycle and Document Intelligence governance contracts.
 8. Deploy the exact approved SHA through the protected manual workflow.
 9. Keep every Operations flag OFF; verify legacy/customer/payment/email regressions.
 10. Enable `OPERATIONS_CASE_READ_MODEL` for named internal scopes only and verify RBAC/finance isolation.
@@ -26,7 +26,7 @@ Status: **prepared, not authorized for execution**.
 
 ## Latest Staging evidence
 
-- Isolated migration rehearsal: the exact `014–041` chain is now reproducible through `scripts/rehearse-operations-migration-chain.ts`. The runner rejects non-MySQL, remote hosts, ports other than `33306`, databases outside `tashira_ops_rehearsal_*`, and any destructive run without the separate `OPS_REHEARSAL_RECREATE=YES` confirmation. It parses MySQL `DELIMITER` trigger blocks, creates a synthetic legacy baseline plus the real Migration `004` timeline dependency, applies all 28 migrations, rolls back `041→014`, then reapplies `014→041`. The verified run used local-only MySQL `8.4.11` and produced 73 tables / 101 triggers with protected synthetic counts of 2 applications / 5 applicants / 5 documents / 1 payment / 1 invoice. The subsequent persistence suite passed environment identity, legacy integrity, Rule governance, evaluation immutability, family/requirement isolation, Controlled Writes, concurrency, idempotency, transaction rollback/atomicity and finance non-mutation. No remote database or Production credential/data was used.
+- Isolated migration rehearsal: the exact `014–042` chain is reproducible through `scripts/rehearse-operations-migration-chain.ts`. The runner rejects non-MySQL, remote hosts, ports other than `33306`, databases outside `tashira_ops_rehearsal_*`, and any destructive run without the separate `OPS_REHEARSAL_RECREATE=YES` confirmation. It parses MySQL `DELIMITER` trigger blocks, creates a synthetic legacy baseline plus the real Migration `004` timeline dependency, applies all 29 migrations, rolls back `042→014`, then reapplies `014→042`. The verified run used local-only MySQL `8.4.11` and produced 79 tables / 113 triggers with protected synthetic counts of 2 applications / 5 applicants / 5 documents / 1 payment / 1 invoice. No remote database or Production credential/data was used.
 - Release manifest gate: native Node execution at exact branch SHA `cbd8132d670d1aafe1a1ed182332eef24b17da85` returned `PASS`, proved a clean worktree and exact local/remote feature-branch match, and produced SHA-256 evidence for all 28 ordered forward/rollback migration pairs from `014` through `041`. Run with `node --experimental-strip-types scripts/verify-operations-production-readiness.ts`; it performs no server, database, environment or secret access.
 - Typing Pack output gate: applicant/evaluation/travel fields are explicitly marked for human verification; nested sensitive names, duplicate field identities, control characters and oversized output fail closed. Historical persisted pack hashes remain unchanged because the verification projection is deterministic and derived from already integrity-bound fields. The feature remains OFF and the owner-approved template/output format remains a separate gate.
 
@@ -40,7 +40,7 @@ Status: **prepared, not authorized for execution**.
 
 - Unified Interview authenticated read API: start/resume/current question/eligibility/requirements/upload requirements/scheduler/review all use one canonical persisted state path.
 - Scoped synthetic E2E: PASS for lifecycle equivalence, anonymous denial, application ownership and finance isolation.
-- Quality gates: TypeScript PASS; full ESLint PASS; 700 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
+- Quality gates: TypeScript PASS; full ESLint PASS; 725 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
 - Runtime: PM2 `tashira-staging` online; local/public Staging HTTP 200; read-only Production HTTP 200.
 - Closed state after the latest deployment: Controlled Writes, customer-facing Operations scopes, Typing Pack and external-provider capabilities are OFF; no Production-scoped flag exists in the Staging database. Any retained internal test scope does not make an unreviewed source authoritative.
 - Production, Production database, Production documents, main/master, Stripe, Resend, pricing, payment and invoice behavior were not modified by this milestone.

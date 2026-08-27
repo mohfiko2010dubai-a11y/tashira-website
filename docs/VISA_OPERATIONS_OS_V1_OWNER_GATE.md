@@ -48,7 +48,7 @@ This document maps the 25 owner-approved policy/program sections to repository e
 3. Complete protected authenticated Browser E2E/owner acceptance for the Unified Dynamic Interview and Operations workspaces. Automated API/MySQL evidence does not replace this sign-off.
 4. Decide the outstanding legal retention and deletion durations recorded in `BLOCKED_DECISIONS.md`.
 5. Select the exact release SHA by running `node --experimental-strip-types scripts/verify-operations-production-readiness.ts` on a clean local/remote-matched branch. Do not use a stale hard-coded SHA.
-6. Separately authorize main/master merge, Production backup/rehearsal, migrations `014–041`, exact-SHA deployment, named RBAC scopes, and each feature activation.
+6. Separately authorize main/master merge, Production backup/rehearsal, migrations `014–042`, exact-SHA deployment, named RBAC scopes, and each feature activation.
 
 ## Release safety conclusion
 
@@ -60,4 +60,3 @@ This document maps the 25 owner-approved policy/program sections to repository e
 - Production database modified: **NO**.
 - main/master modified: **NO**.
 - Stripe, Resend, payment, pricing, and invoice behavior modified: **NO**.
-

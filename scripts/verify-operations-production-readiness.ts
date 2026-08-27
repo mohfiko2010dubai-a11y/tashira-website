@@ -26,7 +26,7 @@ process.stdout.write(`${JSON.stringify({
   exactSha: localSha,
   remoteMatch: true,
   worktreeClean: true,
-  migrationRange: "014-041",
+  migrationRange: "014-042",
   migrationPairs: migrations.length,
   migrations,
   productionModified: false,

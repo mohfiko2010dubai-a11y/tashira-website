@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { operationsMigrationArtifacts, sha256 } from "./production-readiness-manifest";
 
-const chain = Array.from({ length: 28 }, (_, index) => {
+const chain = Array.from({ length: 29 }, (_, index) => {
   const number = String(index + 14).padStart(3, "0");
   return [`${number}_migration.sql`, `${number}_migration.rollback.sql`];
 }).flat();
@@ -9,9 +9,9 @@ const chain = Array.from({ length: 28 }, (_, index) => {
 describe("Operations Production readiness manifest", () => {
   it("requires the complete ordered forward and rollback chain", () => {
     const artifacts = operationsMigrationArtifacts(chain);
-    expect(artifacts).toHaveLength(28);
+    expect(artifacts).toHaveLength(29);
     expect(artifacts[0]).toEqual({ number: 14, forward: "014_migration.sql", rollback: "014_migration.rollback.sql" });
-    expect(artifacts.at(-1)?.number).toBe(41);
+    expect(artifacts.at(-1)?.number).toBe(42);
   });
 
   it("fails closed on a missing rollback", () => {

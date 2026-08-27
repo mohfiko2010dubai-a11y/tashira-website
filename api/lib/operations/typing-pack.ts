@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { ApplicantFieldResolution, AuthorityFieldRequirement } from "../document-intelligence/contracts";
 
 export type TypingPackField = { key: string; label: string; source: "APPLICANT" | "APPLICATION" | "EVALUATION" | "TRAVEL"; value: string };
 export type TypingPack = {
@@ -14,6 +15,45 @@ export type TypingPack = {
   integritySha256: string;
   state: "DRAFT_REQUIRES_HUMAN_REVIEW";
 };
+
+export type AuthorityTypingFieldStatus = "VERIFIED" | "CONFIRMED" | "EXTRACTED" | "MISSING" | "CONFLICT" | "NEEDS_HUMAN_VERIFICATION";
+export type AuthorityTypingField = {
+  fieldCode: string;
+  label: string;
+  value: string | null;
+  sourceEvidenceId: string | null;
+  confidence: number | null;
+  customerConfirmed: boolean;
+  staffVerified: boolean;
+  status: AuthorityTypingFieldStatus;
+  blocking: boolean;
+  reason: string;
+};
+
+export function projectAuthorityTypingFields(input: {
+  applicantId: number;
+  requirements: readonly AuthorityFieldRequirement[];
+  resolutions: readonly ApplicantFieldResolution[];
+}): { fields: readonly AuthorityTypingField[]; readyForTyping: boolean; blockingFieldCodes: readonly string[] } {
+  if (input.resolutions.some((resolution) => resolution.applicantId !== input.applicantId)) throw new Error("TYPING_PACK_AUTHORITY_APPLICANT_SCOPE_MISMATCH");
+  const byCode = new Map(input.resolutions.map((resolution) => [resolution.fieldCode, resolution]));
+  const fields = input.requirements.map((requirement): AuthorityTypingField => {
+    const resolution = byCode.get(requirement.fieldCode);
+    const selected = resolution?.evidence.find((evidence) => evidence.evidenceId === resolution.selectedEvidenceId);
+    let status: AuthorityTypingFieldStatus = "MISSING";
+    if (resolution?.state === "CONFLICTED") status = "CONFLICT";
+    else if (resolution?.state === "VERIFIED") status = "VERIFIED";
+    else if (resolution?.state === "CONFIRMED") status = "CONFIRMED";
+    else if (resolution?.state === "EXTRACTED" || resolution?.state === "DECLARED") status = "NEEDS_HUMAN_VERIFICATION";
+    const blocking = requirement.requirement === "REQUIRED" && !["VERIFIED", "CONFIRMED"].includes(status);
+    return { fieldCode: requirement.fieldCode, label: requirement.fieldLabel, value: resolution?.selectedValue ?? null,
+      sourceEvidenceId: resolution?.selectedEvidenceId ?? null, confidence: selected?.confidence ?? null,
+      customerConfirmed: selected?.customerConfirmed ?? false, staffVerified: selected?.staffVerified ?? false,
+      status, blocking, reason: resolution?.reason ?? "MISSING_REQUIRED_AUTHORITY_FIELD" };
+  });
+  const blockingFieldCodes = fields.filter((field) => field.blocking).map((field) => field.fieldCode).sort();
+  return { fields, readyForTyping: blockingFieldCodes.length === 0, blockingFieldCodes };
+}
 
 const prohibitedKeyFragments = ["cardnumber", "cvc", "cardexpiry", "stripesecret", "passportfilecontents", "storagepath", "documentcontents"] as const;
 const humanVerificationSources: ReadonlySet<TypingPackField["source"]> = new Set(["APPLICANT", "EVALUATION", "TRAVEL"]);
