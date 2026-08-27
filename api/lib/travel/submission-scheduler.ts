@@ -62,6 +62,7 @@ export function evaluateSubmissionSchedule(input: {
   readinessSatisfied: boolean;
   applicable?: boolean;
   alreadySubmitted?: boolean;
+  travelDateChangedAfterSubmission?: boolean;
   manualReviewRequired?: boolean;
   hardBlockBeforeWindow?: boolean;
   blockingReasons?: readonly string[];
@@ -74,7 +75,10 @@ export function evaluateSubmissionSchedule(input: {
   let earliest: string | null = null;
   let target: string | null = null;
   let latest: string | null = null;
-  if (input.alreadySubmitted === true) {
+  if (input.travelDateChangedAfterSubmission === true) {
+    state = "HUMAN_REVIEW_REQUIRED";
+    reason = "TRAVEL_DATE_CHANGED_AFTER_SUBMISSION";
+  } else if (input.alreadySubmitted === true) {
     state = "ALREADY_SUBMITTED";
     reason = "GOVERNMENT_SUBMISSION_ALREADY_RECORDED";
   } else if (input.applicable === false) {
