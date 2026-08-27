@@ -1,6 +1,6 @@
 # Document Intelligence Provider Decision (Owner Gate)
 
-Status: `DRAFT — NO PROVIDER ACTIVATED`  
+Status: `DRAFT — NO PROVIDER ACTIVATED`
 Verified: 2026-08-27
 
 ## Recommendation

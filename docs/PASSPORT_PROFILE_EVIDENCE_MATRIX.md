@@ -1,6 +1,6 @@
 # Passport Profile Evidence Matrix
 
-Status: `REVIEW REQUIRED — NO REAL PROFILE ACTIVE`  
+Status: `REVIEW REQUIRED — NO REAL PROFILE ACTIVE`
 Verified: 2026-08-27
 
 ## Evidence boundary
