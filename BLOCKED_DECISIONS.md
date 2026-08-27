@@ -1,5 +1,11 @@
 # TASHIRA Blocked Decisions
 
+## Visa Operations OS owner-policy decisions resolved
+
+The owner has approved the V1 Submission Scheduler thresholds (`45/21/7/3`), dashboard alerts (`14/7/0`), fail-safe Human Review, pre/post-submission travel-date behavior, AI advisory boundary, official-source hierarchy, rule-driven ticket requirements, per-applicant family evaluation, Travel Party behavior, minor/accompaniment safety, and separation of Entry Validity from Stay Duration. These items are implemented as versioned, configurable and auditable governance and must not be reported as unresolved owner business configuration.
+
+Remaining Visa Operations OS gates are limited to reviewed official content/source approvals, external provider or operating-procedure selection, protected Browser E2E acceptance, legal retention/deletion durations, and separately authorized main/Production actions. See `docs/VISA_OPERATIONS_OS_V1_OWNER_GATE.md`.
+
 ## Resolved during Phase 6D
 
 The wizard now persists its primary applicant at applicant index `0` in the canonical `applicants` table. No schema migration was introduced. Production was not inspected or changed.

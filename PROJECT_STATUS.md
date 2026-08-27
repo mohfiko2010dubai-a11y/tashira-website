@@ -240,12 +240,16 @@ Last verified: 2026-08-27
 - Interactive browser completion of the 3DS challenge and a future reviewed Payment Element migration for conditional provider-requested billing fields. Automated TEST verification reached the expected `requires_action` state, but the interactive challenge was not completed in this phase.
 - Final V1 candidate `TSH-V1-1786901526429` reached READY with three documents but Stripe TEST confirmation failed before webhook completion; the fresh paid E2E remains blocked by account capability.
 - Manual authenticated browser confirmation of the staff logout control. The implementation and automated session tests pass, but the browser interaction still requires explicit approval before entering a synthetic password.
-- Owner-approved business configuration.
+- Visa Operations OS provider/content gates: approved official rule/catalog content and source decisions, external provider/procedure selection, protected Browser E2E acceptance, and legal retention/deletion durations. The owner-approved Scheduler, alert, Human Review, travel-date, AI-boundary, source-hierarchy, ticket, family, Travel Party, and Entry/Stay separation policies are implemented and are no longer unresolved business configuration.
 - Remaining npm audit findings requiring upstream, major-version, or package-replacement decisions.
 - Large XLSX/invoice chunks and the 35.1 MB bundled server artifact.
 
 ## Owner decisions/actions required
 
+- Approve the reviewed official Visa Rule/requirement-catalog content and source-classification decisions before any real-customer regulatory activation.
+- Approve external provider/procedure choices for AI, inbound mailbox, Typing Pack/authority workflow and supplier integrations where live operation requires them.
+- Complete protected Browser E2E acceptance and decide the legal retention/deletion durations recorded in `BLOCKED_DECISIONS.md`.
+- Separately authorize the exact main merge, Production backup/rehearsal, migrations, deployment, named RBAC grants and each feature activation. None is implied by engineering completion.
 - Approve production pricing/company/VAT/exchange-rate/invoice values.
 - Review any production credential rotation and migration plan as separate authorized changes.
 - Resolve Stripe TEST card-payment capability, confirm the Resend domain/sender in its dashboard, and provide Google Tag/Ads conversion IDs plus the purchase label.
