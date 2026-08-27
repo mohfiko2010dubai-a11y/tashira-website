@@ -5,7 +5,7 @@ Status: **prepared, not authorized for execution**.
 ## Release identity
 
 - Source branch: `codex/visa-operations-os-v1`
-- Latest exact Staging implementation/runtime SHA: `4058dcd897e3719447e279feed992e392005a6f6`. Current release-candidate branch SHA `cbd8132d670d1aafe1a1ed182332eef24b17da85` adds only the read-only release-manifest verifier after that runtime deployment. No SHA is authorized for Production.
+- Latest exact Staging implementation/runtime SHA: `4058dcd897e3719447e279feed992e392005a6f6`. Later branch commits add local rehearsal, verification, tests and documentation. The release candidate is therefore the exact clean local/remote-matched SHA reported by `scripts/verify-operations-production-readiness.ts`, never a manually retained historical SHA. No SHA is authorized for Production.
 - Database chain: reviewed additive migrations `014` through `041`; re-rehearse the exact chain against an isolated restored Production-shaped copy before authorization.
 - Production changes performed by this package: none.
 
@@ -40,7 +40,7 @@ Status: **prepared, not authorized for execution**.
 
 - Unified Interview authenticated read API: start/resume/current question/eligibility/requirements/upload requirements/scheduler/review all use one canonical persisted state path.
 - Scoped synthetic E2E: PASS for lifecycle equivalence, anonymous denial, application ownership and finance isolation.
-- Quality gates: TypeScript PASS; full ESLint PASS; 694 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
+- Quality gates: TypeScript PASS; full ESLint PASS; 700 tests PASS with 19 documented environment-gated skips; client/static/server build PASS.
 - Runtime: PM2 `tashira-staging` online; local/public Staging HTTP 200; read-only Production HTTP 200.
 - Closed state after the latest deployment: Controlled Writes, customer-facing Operations scopes, Typing Pack and external-provider capabilities are OFF; no Production-scoped flag exists in the Staging database. Any retained internal test scope does not make an unreviewed source authoritative.
 - Production, Production database, Production documents, main/master, Stripe, Resend, pricing, payment and invoice behavior were not modified by this milestone.
@@ -75,3 +75,5 @@ Monitor health, error rate, denied access, concurrency conflicts, audit insert f
 - Production role/scope grants and feature activation.
 - Official rule content and regulatory activation.
 - AI/mailbox external providers, retention policy, Typing Pack/authority workflow.
+
+The requirement-by-requirement closure and exact remaining gates are maintained in `docs/VISA_OPERATIONS_OS_V1_OWNER_GATE.md`.
