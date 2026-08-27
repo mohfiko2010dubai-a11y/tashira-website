@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS `document_intelligence_governance_events` (
 
 CREATE TABLE IF NOT EXISTS `document_intelligence_runs` (
   `id` varchar(36) NOT NULL,
+  `request_key` varchar(100) NOT NULL,
+  `request_sha256` varchar(64) NOT NULL,
   `application_id` bigint unsigned NOT NULL,
   `applicant_id` bigint unsigned NOT NULL,
   `document_id` bigint unsigned NOT NULL,
@@ -71,6 +73,7 @@ CREATE TABLE IF NOT EXISTS `document_intelligence_runs` (
   `provider` varchar(100) NOT NULL,
   `model_version` varchar(100) NOT NULL,
   `processing_tier` enum('DETERMINISTIC','MRZ','LOW_COST_OCR','PROFILE_MAPPING','ADVANCED_AI','HUMAN_REVIEW') NOT NULL,
+  `processing_tiers_json` json NOT NULL,
   `page_count` int unsigned NOT NULL,
   `call_count` int unsigned NOT NULL,
   `processing_cost` decimal(12,6) NOT NULL,
@@ -80,6 +83,7 @@ CREATE TABLE IF NOT EXISTS `document_intelligence_runs` (
   `result_sha256` varchar(64) NOT NULL,
   `processed_at` datetime(3) NOT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `document_intelligence_run_request_uq` (`application_id`,`request_key`),
   KEY `document_intelligence_run_owner_idx` (`application_id`,`applicant_id`,`document_id`,`processed_at`),
   CONSTRAINT `document_intelligence_run_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `document_intelligence_run_applicant_fk` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`id`) ON DELETE RESTRICT,
@@ -114,6 +118,7 @@ CREATE TABLE IF NOT EXISTS `document_field_evidence` (
 
 CREATE TABLE IF NOT EXISTS `applicant_field_selection_events` (
   `id` varchar(36) NOT NULL,
+  `run_id` varchar(36) NOT NULL,
   `application_id` bigint unsigned NOT NULL,
   `applicant_id` bigint unsigned NOT NULL,
   `field_requirement_id` varchar(36) NOT NULL,
@@ -125,7 +130,9 @@ CREATE TABLE IF NOT EXISTS `applicant_field_selection_events` (
   `evidence_integrity_sha256` varchar(64) NOT NULL,
   `occurred_at` datetime(3) NOT NULL,
   PRIMARY KEY (`id`),
+  KEY `applicant_field_selection_run_idx` (`run_id`,`occurred_at`,`id`),
   KEY `applicant_field_selection_history_idx` (`application_id`,`applicant_id`,`field_code`,`occurred_at`,`id`),
+  CONSTRAINT `applicant_field_selection_run_fk` FOREIGN KEY (`run_id`) REFERENCES `document_intelligence_runs` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `applicant_field_selection_application_fk` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `applicant_field_selection_applicant_fk` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `applicant_field_selection_requirement_fk` FOREIGN KEY (`field_requirement_id`) REFERENCES `authority_application_field_requirements` (`id`) ON DELETE RESTRICT,
@@ -158,4 +165,3 @@ FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Applicant field selection
 CREATE TRIGGER `applicant_field_selection_no_delete` BEFORE DELETE ON `applicant_field_selection_events`
 FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Applicant field selection history is append-only'$$
 DELIMITER ;
-

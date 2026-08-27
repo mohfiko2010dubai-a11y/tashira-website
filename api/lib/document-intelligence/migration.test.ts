@@ -7,9 +7,11 @@ describe("document intelligence governance migration", () => {
   it("models governed authority fields, passport profiles, provenance, cost and immutable selections", () => {
     for (const value of ["authority_application_field_requirements", "passport_profile_versions", "document_intelligence_governance_events",
       "document_intelligence_runs", "document_field_evidence", "applicant_field_selection_events", "preferred_sources_json",
-      "profile_sha256", "processing_cost", "raw_value_reference", "evidence_integrity_sha256", "staging_test_only"]) {
+      "profile_sha256", "processing_cost", "processing_tiers_json", "raw_value_reference", "evidence_integrity_sha256", "staging_test_only"]) {
       expect(forward).toContain(value);
     }
+    expect(forward).toContain("document_intelligence_run_request_uq");
+    expect(forward).toContain("applicant_field_selection_run_fk");
     for (const trigger of ["authority_field_requirement_no_update", "passport_profile_version_no_update",
       "document_intelligence_run_no_update", "document_field_evidence_no_update", "applicant_field_selection_no_update"]) {
       expect(forward).toContain(trigger);
