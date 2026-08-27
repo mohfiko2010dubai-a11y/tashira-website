@@ -18,7 +18,8 @@ const valid = {
   conditionsJson: JSON.stringify([{ field: "nationality", operator: "EQUALS", value: "EG" }]),
   outcomeJson: JSON.stringify({ eligibility: "ELIGIBLE", requirementCodes: ["PASSPORT"],
     conditionalDocuments: [{ code: "RETURN_TICKET", reason: "Only when requested" }], explanationCode: "SUPPORTED_ROUTE" }),
-  routeCode: "UAE_VISIT", authority: "Synthetic Official Authority",
+  routeCode: "UAE_VISIT", authority: "Synthetic Official Authority", sourceUrl: "https://official.example.invalid/rules",
+  authorityType: "OTHER_UAE_GOVERNMENT_AUTHORITY", authorityPolicyVersion: "UAE_OFFICIAL_SOURCE_POLICY_V1", authorityDecision: "APPROVED",
 };
 
 describe("MySQL active rule provider", () => {
@@ -29,11 +30,21 @@ describe("MySQL active rule provider", () => {
     expect(sql.statement).toContain("v.research_status='VALIDATED'");
     expect(sql.statement).toContain("ss.retrieval_status='SUCCESS'");
     expect(sql.statement).toContain("s.is_active='ACTIVE'");
+    expect(sql.statement).toContain("visa_rule_source_authority_events");
+    expect(sql.statement).toContain("sae.decision='APPROVED'");
     expect(sql.parameters).toEqual(["UAE_VISIT"]);
     expect(rules[0]).toMatchObject({ id: "UAE-VISIT-BASE", version: 2, eligibilityEffect: "ELIGIBLE" });
   });
   it("fails closed when ACTIVE evidence is malformed", async () => {
     await expect(new MysqlActiveRuleProvider(new FixtureSql([{ ...valid, outcomeJson: "{}" }])).activeForRoute("UAE_VISIT"))
       .rejects.toThrow("ACTIVE_RULE_EVIDENCE_INVALID");
+  });
+  it("fails closed when an OFFICIAL rule lacks approved authority governance", async () => {
+    await expect(new MysqlActiveRuleProvider(new FixtureSql([{ ...valid, authorityType: null }])).activeForRoute("UAE_VISIT"))
+      .rejects.toThrow("ACTIVE_RULE_EVIDENCE_INVALID");
+  });
+  it("rejects a commercial source even if its latest event was approved incorrectly", async () => {
+    await expect(new MysqlActiveRuleProvider(new FixtureSql([{ ...valid, authorityType: "COMMERCIAL" }])).activeForRoute("UAE_VISIT"))
+      .rejects.toThrow("ACTIVE_RULE_SOURCE_AUTHORITY_INVALID");
   });
 });

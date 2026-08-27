@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { EligibilityRule } from "../eligibility/eligibility-engine";
 import type { OperationsSqlClient } from "../operations/mysql-access-provider";
 import { ruleClassificationSchema, ruleLayerSchema } from "./rule-import";
+import { assertSourceClassification, sourceAuthorityTypeSchema } from "./source-authority-policy";
 
 const conditionSchema = z.array(z.object({
   field: z.string().min(1).max(100),
@@ -54,17 +55,23 @@ export class MysqlActiveRuleProvider {
       `SELECT v.version,v.classification,v.rule_layer AS ruleLayer,
               v.effective_from AS effectiveFrom,v.effective_to AS effectiveTo,
               v.conditions_json AS conditionsJson,v.outcome_json AS outcomeJson,
-              rs.stable_id AS stableId,rs.route_code AS routeCode,s.authority
+              rs.stable_id AS stableId,rs.route_code AS routeCode,s.authority,s.source_url AS sourceUrl,
+              sae.authority_type AS authorityType,sae.policy_version AS authorityPolicyVersion,
+              sae.decision AS authorityDecision
          FROM visa_rule_versions v
          JOIN visa_rule_sets rs ON rs.id=v.rule_set_id
          JOIN visa_rule_source_snapshots ss ON ss.id=v.source_snapshot_id
          JOIN visa_rule_sources s ON s.id=ss.source_id
+         JOIN visa_rule_source_authority_events sae ON sae.source_id=s.id
+          AND sae.id=(SELECT latest.id FROM visa_rule_source_authority_events latest
+                       WHERE latest.source_id=s.id ORDER BY latest.occurred_at DESC,latest.id DESC LIMIT 1)
         WHERE v.status='ACTIVE'
           AND v.research_status='VALIDATED'
           AND v.rule_layer IS NOT NULL
           AND v.classification <> 'INTERNAL'
           AND ss.retrieval_status='SUCCESS'
           AND s.is_active='ACTIVE'
+          AND sae.decision='APPROVED'
           AND rs.route_code=?
         ORDER BY rs.stable_id,v.version`, [routeCode],
     );
@@ -73,6 +80,10 @@ export class MysqlActiveRuleProvider {
       const version = numberField(row, "version");
       const storedRoute = stringField(row, "routeCode");
       const authority = stringField(row, "authority");
+      const sourceUrl = stringField(row, "sourceUrl");
+      const authorityType = sourceAuthorityTypeSchema.safeParse(stringField(row, "authorityType"));
+      const authorityPolicyVersion = stringField(row, "authorityPolicyVersion");
+      const authorityDecision = stringField(row, "authorityDecision");
       const layer = ruleLayerSchema.safeParse(stringField(row, "ruleLayer"));
       const classification = ruleClassificationSchema.safeParse(stringField(row, "classification"));
       const effectiveFrom = dateField(row, "effectiveFrom");
@@ -80,10 +91,17 @@ export class MysqlActiveRuleProvider {
       const effectiveTo = effectiveToValue === null ? null : dateField(row, "effectiveTo");
       const conditions = conditionSchema.safeParse(jsonField(row, "conditionsJson"));
       const outcome = outcomeSchema.safeParse(jsonField(row, "outcomeJson"));
-      if (!id || !version || storedRoute !== routeCode || !authority || !layer.success
+      if (!id || !version || storedRoute !== routeCode || !authority || !sourceUrl || !authorityType.success
+        || !authorityPolicyVersion || authorityDecision !== "APPROVED" || !layer.success
         || !classification.success || !effectiveFrom || effectiveToValue !== null && !effectiveTo
         || !conditions.success || !outcome.success) {
         throw new Error("ACTIVE_RULE_EVIDENCE_INVALID");
+      }
+      try {
+        assertSourceClassification({ classification: classification.data, authorityType: authorityType.data,
+          policyVersion: authorityPolicyVersion, url: sourceUrl });
+      } catch {
+        throw new Error("ACTIVE_RULE_SOURCE_AUTHORITY_INVALID");
       }
       return {
         id, version, routeCode, layer: layer.data, classification: classification.data,
