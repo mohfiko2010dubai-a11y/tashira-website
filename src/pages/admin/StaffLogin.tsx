@@ -14,7 +14,7 @@ export default function StaffLogin() {
     onSuccess: (data) => {
       login(data.token, data.staff);
       // Use full page reload instead of navigate to ensure StaffGuard picks up the token
-      window.location.href = '/staff/dashboard';
+      window.location.href = '/staff/operations/dashboard';
     },
     onError: (err) => {
       setError(err.message || 'Invalid username or password');

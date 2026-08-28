@@ -4,9 +4,10 @@ import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { trpc } from '@/providers/trpc-client';
 import { ViewInvoiceButton } from '@/components/shared/InvoiceButton';
 import {
-  Search, Eye, LogOut, RefreshCw, Calendar, DollarSign,
-  Users, FileText,
+  Search, Eye, RefreshCw, Calendar,
+  Users, FileText, AlertTriangle, Clock3, CheckCircle2,
 } from 'lucide-react';
+import OperationsShell from '@/components/operations/OperationsShell';
 
 const statusColors: Record<string, string> = {
   submitted: 'bg-gray-100 text-gray-700',
@@ -22,7 +23,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function StaffDashboard() {
-  const { logout, staff } = useStaffAuth();
+  const { staff } = useStaffAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'' | 'submitted' | 'payment_received' | 'documents_pending' | 'documents_received' | 'under_review' | 'visa_processing' | 'visa_received' | 'completed' | 'rejected' | 'cancelled'>('');
   const [dateFrom, setDateFrom] = useState('');
@@ -48,52 +49,27 @@ export default function StaffDashboard() {
     );
   });
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-[#1A2332] text-white px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold">TASHIRA Staff</h1>
-          {staff && (
-            <span className="text-xs bg-[#C9A04C]/20 text-[#C9A04C] px-2 py-0.5 rounded-full">
-              {staff.name}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
-            <RefreshCw size={14} /> Refresh
-          </button>
-          <button onClick={logout} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
-            <LogOut size={14} /> Logout
-          </button>
-        </div>
-      </header>
+  const newCases = filtered.filter((app) => app.status === 'submitted').length;
+  const waitingDocuments = filtered.filter((app) => app.status === 'documents_pending').length;
+  const inReview = filtered.filter((app) => app.status === 'under_review').length;
+  const readyOrPaid = filtered.filter((app) => app.status === 'documents_received' || app.paymentStatus === 'paid').length;
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+  return (
+    <OperationsShell title="Applications" subtitle={`Welcome ${staff?.name ?? ''}. Search, triage and open the complete Operations case workspace.`}>
+      <div>
+        <div className="mb-4 flex justify-end"><button onClick={() => refetch()} className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw size={14} /> Refresh</button></div>
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6 lg:grid-cols-5">
           <div className="bg-white rounded-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-[#C9A04C]" /><p className="text-xs text-gray-500">Total Applications</p></div>
             <p className="text-2xl font-bold text-[#C9A04C]">{filtered.length}</p>
           </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-100"><div className="flex items-center gap-2 mb-1"><AlertTriangle size={14} className="text-amber-500"/><p className="text-xs text-gray-500">New</p></div><p className="text-2xl font-bold text-amber-600">{newCases}</p></div>
+          <div className="bg-white rounded-lg p-4 border border-gray-100"><div className="flex items-center gap-2 mb-1"><FileText size={14} className="text-blue-500"/><p className="text-xs text-gray-500">Waiting documents</p></div><p className="text-2xl font-bold text-blue-600">{waitingDocuments}</p></div>
+          <div className="bg-white rounded-lg p-4 border border-gray-100"><div className="flex items-center gap-2 mb-1"><Clock3 size={14} className="text-purple-500"/><p className="text-xs text-gray-500">Under review</p></div><p className="text-2xl font-bold text-purple-600">{inReview}</p></div>
           <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-1"><DollarSign size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">Total Revenue</p></div>
-            <p className="text-2xl font-bold text-emerald-600">
-              ${filtered.reduce((sum, app) => sum + Number(app.totalAmountUsd || 0), 0).toFixed(2)}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-1"><FileText size={14} className="text-blue-500" /><p className="text-xs text-gray-500">Paid</p></div>
-            <p className="text-2xl font-bold text-blue-600">
-              {filtered.filter((app) => app.paymentStatus === 'paid').length}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-1"><Users size={14} className="text-purple-500" /><p className="text-xs text-gray-500">Pending</p></div>
-            <p className="text-2xl font-bold text-purple-600">
-              {filtered.filter((app) => app.paymentStatus === 'pending').length}
-            </p>
+            <div className="flex items-center gap-2 mb-1"><CheckCircle2 size={14} className="text-emerald-500" /><p className="text-xs text-gray-500">Ready / Paid</p></div>
+            <p className="text-2xl font-bold text-emerald-600">{readyOrPaid}</p>
           </div>
         </div>
 
@@ -157,7 +133,7 @@ export default function StaffDashboard() {
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex gap-1">
-                            <Link to={`/staff/applications/${app.referenceNumber}`} className="p-1 text-gray-400 hover:text-[#C9A04C]"><Eye size={14} /></Link>
+                            <Link aria-label={`Open ${app.referenceNumber}`} to={`/staff/operations/${app.referenceNumber}`} className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2 py-1 text-white hover:bg-slate-700"><Eye size={14} /><span>Open</span></Link>
                             {app.invoiceNumber && (
                               <ViewInvoiceButton
                                 invoiceNumber={app.invoiceNumber}
@@ -181,6 +157,6 @@ export default function StaffDashboard() {
           </div>
         )}
       </div>
-    </div>
+    </OperationsShell>
   );
 }

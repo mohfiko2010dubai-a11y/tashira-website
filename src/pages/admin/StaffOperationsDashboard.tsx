@@ -1,15 +1,15 @@
 import OperationsManagerDashboard from "@/components/operations/OperationsManagerDashboard";
 import { trpc } from "@/providers/trpc-client";
 import { Link } from "react-router-dom";
+import OperationsShell from "@/components/operations/OperationsShell";
 
 export default function StaffOperationsDashboard() {
   const query = trpc.operationsRead.managerDashboard.useQuery({}, { retry: false });
   if (query.isLoading) return <main className="min-h-screen bg-slate-50 p-8 text-center">Loading Operations dashboard…</main>;
-  if (query.isError || !query.data) return <main className="min-h-screen bg-slate-50 p-8 text-center">Operations manager dashboard unavailable for this scope.</main>;
-  return <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900"><div className="mx-auto max-w-7xl">
-    <header className="mb-6 rounded-2xl bg-slate-950 p-6 text-white"><p className="text-xs font-semibold uppercase tracking-[.2em] text-amber-300">Operations</p>
-      <div className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="mt-2 text-2xl font-bold">Manager Dashboard</h1><p className="mt-1 text-sm text-slate-300">Scoped operational evidence without financial disclosure.</p></div>
-        <Link to="/staff/operations/policies" className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-200">Submission Policy</Link></div></header>
+  if (query.isError || !query.data) return <main className="min-h-screen bg-slate-50 p-8 text-center">Operations dashboard unavailable for this permission scope.</main>;
+  return <OperationsShell title="Operations Dashboard" subtitle="Live scoped workload, readiness, deadlines and review signals.">
+    <div className="mb-5 flex flex-wrap gap-2"><Link to="/staff/dashboard" className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Open applications</Link>
+      <Link to="/staff/operations" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Submission queue</Link></div>
     <OperationsManagerDashboard model={query.data} />
-  </div></main>;
+  </OperationsShell>;
 }

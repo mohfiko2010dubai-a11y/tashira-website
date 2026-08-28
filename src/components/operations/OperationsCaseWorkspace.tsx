@@ -3,6 +3,7 @@ import type { OperationsCaseReadModel } from "../../../api/lib/operations/case-r
 type Props = {
   enabled: boolean;
   model: OperationsCaseReadModel;
+  embedded?: boolean;
 };
 
 function Section(props: { id: string; title: string; children: React.ReactNode }) {
@@ -18,16 +19,16 @@ function StateBadge({ children }: { children: React.ReactNode }) {
   return <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{children}</span>;
 }
 
-export default function OperationsCaseWorkspace({ enabled, model }: Props) {
+export default function OperationsCaseWorkspace({ enabled, model, embedded = false }: Props) {
   if (!enabled) return null;
   const memberState = new Map(model.familyReadiness.member_states.map((member) => [member.applicant_id, member.readiness_state]));
   const travelGroups = model.travelGroups ?? [];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
+    <main className={embedded ? "text-slate-900" : "min-h-screen bg-slate-50 px-4 py-8 text-slate-900"}>
       <div className="mx-auto max-w-7xl space-y-6" data-testid="operations-case-workspace">
         <header className="rounded-2xl bg-slate-950 p-6 text-white shadow-lg">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Operations Case Workspace · Read only</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Operations Case Workspace</p>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold">{model.summary.reference}</h1>

@@ -116,9 +116,9 @@ export default function StaffApplicationDetail() {
               {app.paymentStatus}
             </span>
           </div>
-          <div className="ml-auto text-xs text-gray-400">
-            Staff View Only
-          </div>
+          <Link to={`/staff/operations/${app.referenceNumber}`} className="ml-auto rounded-lg bg-[#C9A04C] px-4 py-2 text-xs font-semibold text-slate-950">
+            Open Operations Workspace
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

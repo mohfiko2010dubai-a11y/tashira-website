@@ -2,6 +2,8 @@ import { Link, useParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
 import OperationsCaseWorkspace from "@/components/operations/OperationsCaseWorkspace";
 import SchedulerAlertPanel from "@/components/operations/SchedulerAlertPanel";
+import { OperationsControlledWritePanelLive } from "@/components/operations/OperationsControlledWritePanel";
+import OperationsShell from "@/components/operations/OperationsShell";
 
 export default function StaffOperationsCase() {
   const { referenceNumber = "" } = useParams<{ referenceNumber: string }>();
@@ -20,5 +22,11 @@ export default function StaffOperationsCase() {
       </section>
     </main>
   );
-  return <><OperationsCaseWorkspace enabled model={query.data} /><SchedulerAlertPanel applicationId={query.data.summary.applicationId} /></>;
+  return <OperationsShell title={`Case ${query.data.summary.reference}`} subtitle="Applicant-isolated requirements, evidence, review and controlled actions.">
+    <div className="space-y-6">
+      <OperationsCaseWorkspace enabled model={query.data} embedded />
+      <OperationsControlledWritePanelLive enabled model={query.data} onRefresh={async () => { await query.refetch(); }} />
+      <SchedulerAlertPanel applicationId={query.data.summary.applicationId} />
+    </div>
+  </OperationsShell>;
 }
