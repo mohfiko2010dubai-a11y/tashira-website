@@ -136,7 +136,7 @@ const submitted = await mutation("wizard.submitApplication", {
   whoTraveling: "Family",
   applicantCount: 2,
   totalAmount: 1,
-  policyVersion: "terms-2026-08-11",
+  policyVersion: "legal-bundle-2026-08-19-v2",
   applicants,
 });
 assert(submitted.quote.totalPrice === quote.totalPrice, "Submit did not preserve the server-authoritative aggregate quote");

@@ -100,7 +100,7 @@ try {
   const created = await trpc("application.create", {
     referenceNumber, baseType: "single", residenceType: "non-gcc", visaType: "14days-single",
     processingType: "regular", contactEmail: recipient, contactPhone: "+971500000000",
-    arrivalDate: "2027-01-01", policyVersion: "terms-2026-08-11", applicants: [applicant],
+    arrivalDate: "2027-01-01", policyVersion: "legal-bundle-2026-08-19-v2", applicants: [applicant],
   });
   assert(created.ok, "Synthetic V1 application creation failed");
 
@@ -158,7 +158,7 @@ try {
   const unpaid = await trpc("application.create", {
     referenceNumber: unpaidReference, baseType: "single", residenceType: "non-gcc", visaType: "14days-single",
     processingType: "regular", contactEmail: recipient, contactPhone: "+971500000000",
-    policyVersion: "terms-2026-08-11", applicants: [applicant],
+    policyVersion: "legal-bundle-2026-08-19-v2", applicants: [applicant],
   });
   assert(unpaid.ok, "Unpaid gate fixture creation failed");
   const blockedProcessing = await trpc("application.updateStatus", { id: unpaid.data.id, status: "under_review" });

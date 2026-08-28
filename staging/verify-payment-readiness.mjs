@@ -13,7 +13,7 @@ function assert(condition, message) { if (!condition) throw new Error(message); 
 async function create(applicantCount) {
   const referenceNumber = `TSH-READY-${Date.now()}-${applicantCount}`;
   const applicants = Array.from({ length: applicantCount }, (_, index) => ({ fullName: `Synthetic Ready ${index + 1}`, nationality: "Testland", passportNumber: `READY${Date.now()}${index}`, passportType: "ordinary", travelingFrom: "Testland", passportExpiry: "2030-01-01", profession: "Tester" }));
-  const result = await call("application.create", { referenceNumber, baseType: applicantCount > 1 ? "family" : "single", residenceType: "non-gcc", visaType: "14days-single", processingType: "regular", contactEmail: "readiness-uat@example.test", contactPhone: "+971500000000", arrivalDate: "2027-01-01", policyVersion: "terms-2026-08-11", applicants });
+  const result = await call("application.create", { referenceNumber, baseType: applicantCount > 1 ? "family" : "single", residenceType: "non-gcc", visaType: "14days-single", processingType: "regular", contactEmail: "readiness-uat@example.test", contactPhone: "+971500000000", arrivalDate: "2027-01-01", policyVersion: "legal-bundle-2026-08-19-v2", applicants });
   assert(result.ok, `Application creation failed: ${JSON.stringify(result.payload)}`);
   return { ...result.data, applicants };
 }

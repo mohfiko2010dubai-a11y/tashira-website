@@ -50,7 +50,7 @@ try {
         contactEmail: recipient,
         contactPhone: "+971500000000",
         arrivalDate: "2027-01-01",
-        policyVersion: "terms-2026-08-11",
+        policyVersion: "legal-bundle-2026-08-19-v2",
         applicants: [{ fullName: "Synthetic Recovery UAT", nationality: "Testland" }],
       } }),
     });
