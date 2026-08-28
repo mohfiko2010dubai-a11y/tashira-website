@@ -46,7 +46,7 @@ try {
     (SELECT COUNT(*) FROM payments) payments,
     (SELECT COUNT(*) FROM invoices) invoices`);
   process.stdout.write(`${JSON.stringify({ result: "PASS", target: { ...target, remote: false }, mysqlVersion: identity.version,
-    migrationRange: "014-042", migrationPairs: artifacts.length, rollbackReapply: "PASS", schema }, null, 2)}\n`);
+    migrationRange: "014-043", migrationPairs: artifacts.length, rollbackReapply: "PASS", schema }, null, 2)}\n`);
 } finally {
   await connection.end();
 }

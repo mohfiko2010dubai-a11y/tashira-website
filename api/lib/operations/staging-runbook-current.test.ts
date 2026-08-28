@@ -8,6 +8,7 @@ describe("Operations Staging runbook release alignment", () => {
   it("requires the full current migration chain and release manifest gate", () => {
     expect(source).toContain("migrations/014_operations_rbac.sql");
     expect(source).toContain("migrations/042_document_intelligence_governance.sql");
+    expect(source).toContain("migrations/043_operations_permission_catalog.sql");
     expect(source).toContain("verify-operations-production-readiness.ts");
     expect(source).toContain("never blindly reapply historical migrations");
   });
