@@ -1,4 +1,5 @@
 import type { ApplicationStatus } from "./controlled-write-repository";
+import { canEnterApplicationState } from "../processing-gate";
 
 export const CONTROLLED_STATUS_TRANSITIONS: Readonly<Record<ApplicationStatus, readonly ApplicationStatus[]>> = {
   submitted: ["payment_received", "cancelled", "rejected"],
@@ -15,4 +16,11 @@ export const CONTROLLED_STATUS_TRANSITIONS: Readonly<Record<ApplicationStatus, r
 
 export function assertControlledTransition(from: ApplicationStatus, to: ApplicationStatus): void {
   if (!CONTROLLED_STATUS_TRANSITIONS[from].includes(to)) throw new Error("INVALID_STATUS_TRANSITION");
+}
+
+export function controlledTransitionsForPaymentState(
+  from: ApplicationStatus,
+  paymentStatus: string,
+): readonly ApplicationStatus[] {
+  return CONTROLLED_STATUS_TRANSITIONS[from].filter((next) => canEnterApplicationState(paymentStatus, next));
 }

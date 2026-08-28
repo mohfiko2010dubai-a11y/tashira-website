@@ -8,10 +8,11 @@ import type { EvaluationEvidenceSnapshot } from "../eligibility/evaluation-evide
 import type { EligibilityRule } from "../eligibility/eligibility-engine";
 import { InMemoryEligibilitySnapshotRepository } from "../eligibility/snapshot-repository";
 import { isOperationsFlagEnabled, type FeatureFlagRecord } from "../feature-flags/feature-flags";
+import { canEnterApplicationState } from "../processing-gate";
 import { ruleClassificationSchema, ruleLayerSchema } from "../rules/rule-import";
 import { MysqlOperationsAccessProvider, runtimeFlagEnvironment } from "./mysql-access-provider";
 import { assignCase, recordHumanReview, requestReevaluation, reviewDocument, transitionCaseStatus } from "./controlled-actions";
-import { CONTROLLED_STATUS_TRANSITIONS } from "./controlled-state-machine";
+import { controlledTransitionsForPaymentState } from "./controlled-state-machine";
 import { InMemoryControlledWriteRepository, type ApplicationStatus, type ControlledAuditEvent, type WriteResult } from "./controlled-write-repository";
 
 type SqlValue = string | number | bigint | boolean | Date | null | Buffer | Uint8Array;
@@ -130,6 +131,7 @@ function mappedError(error: unknown): OperationsWriteError {
   if (message === "INVALID_STATUS_TRANSITION") return new OperationsWriteError("INVALID_STATE_TRANSITION");
   if (message === "CONTROLLED_CASE_NOT_FOUND") return new OperationsWriteError("NOT_FOUND");
   if (message === "OPERATIONS_CONTROLLED_WRITES_DISABLED") return new OperationsWriteError("FEATURE_DISABLED");
+  if (message === "PAYMENT_REQUIRED_FOR_APPLICATION_STATE") return new OperationsWriteError("PRECONDITION_FAILED");
   if (/^(AUTHENTICATED_ACTOR_REQUIRED|ACTOR_REQUIRED)$/.test(message)) return new OperationsWriteError("UNAUTHENTICATED");
   if (/^(HUMAN_REVIEW_PREREQUISITE_FAILED|DOCUMENT_REVIEW_PREREQUISITE_FAILED|APPLICANT_OWNERSHIP_MISMATCH|DOCUMENT_OWNERSHIP_MISMATCH|TERMINAL_CASE_IS_READ_ONLY|ASSIGNEE_|CASE_|ASSIGNMENT_|CLAIM_|ACTION_REASON_REQUIRED|INVALID_)/.test(message)) return new OperationsWriteError("PRECONDITION_FAILED");
   return new OperationsWriteError("PERSISTENCE_FAILURE", error);
@@ -138,6 +140,7 @@ function mappedError(error: unknown): OperationsWriteError {
 type LockedCase = {
   repository: InMemoryControlledWriteRepository;
   referenceNumber: string;
+  paymentStatus: string;
   departmentId?: number;
 };
 
@@ -165,13 +168,14 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
         "INSERT IGNORE INTO operations_case_controls (application_id,version) SELECT id,0 FROM applications WHERE id=?",
         [applicationId]);
       const cases = await rows(connection,
-        `SELECT c.version,c.assigned_staff_user_id AS assignedStaffId,c.team_id AS teamId,t.department_id AS departmentId,a.status
+        `SELECT c.version,c.assigned_staff_user_id AS assignedStaffId,c.team_id AS teamId,t.department_id AS departmentId,a.status,a.payment_status AS paymentStatus
            FROM operations_case_controls c JOIN applications a ON a.id=c.application_id
            LEFT JOIN operations_teams t ON t.id=c.team_id WHERE c.application_id=?`, [applicationId]);
       const value = cases[0];
       const version=value?numberField(value,"version"):null, status=applicationStatusSchema.safeParse(value?stringField(value,"status"):null);
       if (!value || version===null || !status.success) throw new OperationsWriteError("NOT_FOUND");
       const assignedStaffId=numberField(value,"assignedStaffId"), teamId=numberField(value,"teamId"), departmentId=numberField(value,"departmentId");
+      const paymentStatus=stringField(value,"paymentStatus") ?? "pending";
       const resource={assignedActorId:assignedStaffId===null?undefined:`staff:${assignedStaffId}`,teamId:teamId??undefined,departmentId:departmentId??undefined};
       const canRead=authorize(trustedActor,trustedActor.permissions.has("case.read")?"case.read":"case.read_assigned",resource).allowed;
       if(!canRead) throw new OperationsWriteError("OUT_OF_SCOPE");
@@ -198,7 +202,7 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
         humanReview:can("case.transition")&&["documents_received","under_review"].includes(status.data),
         documentReview:can("document.review")&&["documents_pending","documents_received","under_review"].includes(status.data),
         assignmentModes,
-        validStatusTransitions:can("case.transition")?CONTROLLED_STATUS_TRANSITIONS[status.data]:[],
+        validStatusTransitions:can("case.transition")?controlledTransitionsForPaymentState(status.data, paymentStatus):[],
         reevaluationApplicantIds:can("rule.review")?applicants.flatMap((row)=>{const applicantId=numberField(row,"applicantId");return numberField(row,"evaluated")===1&&applicantId!==null?[applicantId]:[]}):[],
         documents:documents.flatMap((row)=>{const documentId=numberField(row,"documentId"),applicantId=numberField(row,"applicantId"),documentVersion=numberField(row,"version");return documentId===null||applicantId===null||documentVersion===null?[]:[{documentId,applicantId,version:documentVersion}]}),
         permittedAssignees:assignees.flatMap((row)=>{const id=numberField(row,"id"),name=stringField(row,"name");return id===null||!name?[]:[{actorId:`staff:${id}`,displayName:name}]}),
@@ -238,8 +242,10 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
   }
 
   statusTransition(input: Parameters<OperationsWriteExecutor["statusTransition"]>[0], actor: AuthorizationActor): Promise<WriteResult> {
-    return this.execute("STATUS_TRANSITION", input, actor, async ({ repository, trustedActor, flags, now }) =>
-      transitionCaseStatus({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository }, { now: () => now, newId: randomUUID }));
+    return this.execute("STATUS_TRANSITION", input, actor, async ({ repository, trustedActor, flags, now, locked }) => {
+      if (!canEnterApplicationState(locked.paymentStatus, input.to)) throw new Error("PAYMENT_REQUIRED_FOR_APPLICATION_STATE");
+      return transitionCaseStatus({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository }, { now: () => now, newId: randomUUID });
+    });
   }
 
   requestReevaluation(input: Parameters<OperationsWriteExecutor["requestReevaluation"]>[0], actor: AuthorizationActor): Promise<WriteResult> {
@@ -345,15 +351,16 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
     await affected(connection, "INSERT IGNORE INTO operations_case_controls (application_id,version) SELECT id,0 FROM applications WHERE id=?", [applicationId]);
     const cases = await rows(connection,
       `SELECT c.version, c.assigned_staff_user_id AS assignedStaffId, c.team_id AS teamId,
-              t.department_id AS departmentId, a.status, a.reference_number AS referenceNumber
+              t.department_id AS departmentId, a.status, a.payment_status AS paymentStatus, a.reference_number AS referenceNumber
          FROM operations_case_controls c JOIN applications a ON a.id=c.application_id
          LEFT JOIN operations_teams t ON t.id=c.team_id WHERE c.application_id=? FOR UPDATE`, [applicationId]);
     const value = cases[0];
     const version = value ? numberField(value, "version") : null;
     const status = value ? stringField(value, "status") : null;
     const referenceNumber = value ? stringField(value, "referenceNumber") : null;
+    const paymentStatus = value ? stringField(value, "paymentStatus") : null;
     const parsedStatus = applicationStatusSchema.safeParse(status);
-    if (version === null || !parsedStatus.success || !referenceNumber) throw new OperationsWriteError("NOT_FOUND");
+    if (version === null || !parsedStatus.success || !referenceNumber || !paymentStatus) throw new OperationsWriteError("NOT_FOUND");
     const applicantRows = await rows(connection, "SELECT id FROM applicants WHERE application_id=?", [applicationId]);
     const documentRows = await rows(connection,
       `SELECT d.id, d.applicant_id AS applicantId, COALESCE(dc.version,0) AS version
@@ -375,7 +382,7 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
         const documentId = numberField(row, "id"); const applicantId = numberField(row, "applicantId"); const documentVersion = numberField(row, "version");
         return documentId === null || applicantId === null || documentVersion === null ? [] : [{ documentId, applicantId, version: documentVersion }];
       }), finance: {} });
-    return { repository, referenceNumber, departmentId: departmentId ?? undefined };
+    return { repository, referenceNumber, paymentStatus, departmentId: departmentId ?? undefined };
   }
 
   private async persistMutation(connection: PoolConnection, action: Action, input: CommonInput,

@@ -25,6 +25,7 @@ integration("persistent Operations executor and internal API", () => {
   let team1 = 0;
   let team2 = 0;
   let applicationId = 0;
+  let unpaidApplicationId = 0;
   let applicant1 = 0;
   let applicant2 = 0;
   let document1 = 0;
@@ -78,6 +79,11 @@ integration("persistent Operations executor and internal API", () => {
       "INSERT INTO applications (reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,total_amount_aed,status,payment_status) VALUES (?,'family','non-gcc','ROUTE_TEST','regular','synthetic@example.invalid','000',1,100,'documents_received','paid')",
       [`OPS-${Date.now()}`]);
     applicationId = insertedId(application);
+    const [unpaidApplication] = await pool.execute(
+      "INSERT INTO applications (reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,total_amount_aed,status,payment_status) VALUES (?,'single','non-gcc','ROUTE_TEST','regular','synthetic-unpaid@example.invalid','000',1,100,'submitted','pending')",
+      [`OPS-UNPAID-${Date.now()}`]);
+    unpaidApplicationId = insertedId(unpaidApplication);
+    await pool.execute("INSERT INTO operations_case_controls (application_id,version,assigned_staff_user_id,team_id) VALUES (?,0,?,?)", [unpaidApplicationId, staff1, team1]);
     const createApplicant = async (index: number, name: string) => {
       const [result] = await pool.execute("INSERT INTO applicants (application_id,applicant_index,full_name,nationality) VALUES (?,?,?,'SYNTHETIC')", [applicationId, index, name]);
       return insertedId(result);
@@ -118,6 +124,18 @@ integration("persistent Operations executor and internal API", () => {
     expect(capabilities.validStatusTransitions).toEqual(["under_review", "documents_pending", "cancelled", "rejected"]);
     expect(capabilities.documents).toContainEqual({ documentId: document1, applicantId: applicant1, version: 0 });
     expect(JSON.stringify(capabilities)).not.toMatch(/supplierCost|internalCost|margin|markup|profit|stripe|payout/i);
+  });
+
+  it("never lets Operations assert payment truth for an unpaid application", async () => {
+    const capabilities = await caller.capabilities({ applicationId: unpaidApplicationId });
+    expect(capabilities.status).toBe("submitted");
+    expect(capabilities.validStatusTransitions).toEqual(["cancelled", "rejected"]);
+    await expect(caller.statusTransition({ applicationId: unpaidApplicationId, expectedVersion: 0,
+      idempotencyKey: "unpaid-payment-state-001", reason: "Synthetic invalid payment assertion", to: "payment_received" }))
+      .rejects.toMatchObject({ message: "PRECONDITION_FAILED" });
+    expect(await scalar("SELECT COUNT(*) value FROM operations_action_events WHERE application_id=?", [unpaidApplicationId])).toBe(0);
+    expect(await scalar("SELECT COUNT(*) value FROM operations_idempotency_records WHERE application_id=?", [unpaidApplicationId])).toBe(0);
+    expect(await scalar("SELECT COUNT(*) value FROM applications WHERE id=? AND status='submitted' AND payment_status='pending'", [unpaidApplicationId])).toBe(1);
   });
 
   it("persists human review, audit, and restart-safe idempotency", async () => {
