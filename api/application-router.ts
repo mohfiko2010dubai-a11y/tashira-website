@@ -47,6 +47,7 @@ export const applicationRouter = createRouter({
       contactEmail: z.string().email(),
       contactPhone: z.string(),
       arrivalDate: z.string().optional(),
+      journeyMode: z.enum(["LEGACY", "DYNAMIC"]).default("LEGACY"),
       policyVersion: z.literal(TERMS_POLICY_VERSION),
       applicants: z.array(z.object({
         fullName: z.string(),
@@ -132,14 +133,16 @@ export const applicationRouter = createRouter({
             summary: `Applicant ${i + 1} added`,
           });
         }
-        await recordTimelineEvent({
-          applicationId: appId,
-          eventName: "APPLICATION_SUBMITTED",
-          eventSource: "APPLICATION_API",
-          actorType: "CUSTOMER",
-          resultingState: "submitted",
-          summary: "Application submitted",
-        });
+        if (input.journeyMode === "LEGACY") {
+          await recordTimelineEvent({
+            applicationId: appId,
+            eventName: "APPLICATION_SUBMITTED",
+            eventSource: "APPLICATION_API",
+            actorType: "CUSTOMER",
+            resultingState: "submitted",
+            summary: "Application submitted",
+          });
+        }
         const dynamicJourneyEnabled = await enableDynamicJourneyForStaging(input.referenceNumber);
         ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
         return { id: appId, referenceNumber: input.referenceNumber, applicantIds, dynamicJourneyEnabled };

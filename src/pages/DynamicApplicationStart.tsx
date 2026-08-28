@@ -36,7 +36,7 @@ export default function DynamicApplicationStart() {
     <form className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9" onSubmit={(event) => {
       event.preventDefault(); if (!accepted || create.isPending) return;
       create.mutate({ referenceNumber: createReference(), baseType: applicationType, residenceType: "non-gcc", visaType,
-        processingType, contactEmail: email, contactPhone: phone, ...(arrivalDate ? { arrivalDate } : {}),
+        processingType, contactEmail: email, contactPhone: phone, journeyMode: "DYNAMIC", ...(arrivalDate ? { arrivalDate } : {}),
         policyVersion: TERMS_POLICY_VERSION, applicants });
     }}>
       <fieldset><legend className="text-sm font-semibold text-slate-900">Who is travelling?</legend><div className="mt-3 grid gap-3 sm:grid-cols-2">{(["single", "family"] as const).map((type) => <button key={type} type="button" onClick={() => { setApplicationType(type); setApplicantCount(type === "single" ? 1 : Math.max(2, applicantCount)); }} className={`rounded-2xl border p-5 text-left ${applicationType === type ? "border-amber-500 bg-amber-50" : "border-slate-200"}`}><strong>{type === "single" ? "Single applicant" : "Family / multiple applicants"}</strong><span className="mt-1 block text-sm text-slate-600">{type === "single" ? "One traveller" : "Separate questions and documents for every traveller"}</span></button>)}</div></fieldset>

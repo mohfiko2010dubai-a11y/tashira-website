@@ -10,8 +10,10 @@ describe("integrated staging customer and Operations journey", () => {
     ]);
     expect(start).toContain("Continue to dynamic interview");
     expect(start).toContain("Family / multiple applicants");
+    expect(start).toContain('journeyMode: "DYNAMIC"');
     expect(application).toContain("runtimeFlagEnvironment() !== \"STAGING\"");
     expect(application).toContain("'APPLICATION'");
+    expect(application).toContain('if (input.journeyMode === "LEGACY")');
     expect(interview).toContain("Continue to secure payment");
     expect(interview).toContain("Save & view application");
   });
