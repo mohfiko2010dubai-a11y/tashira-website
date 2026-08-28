@@ -13,6 +13,8 @@ describe("MySQL Operations Manager analytics provider", () => {
       assignedActorId: "staff:7", teamId: 2, departmentId: 3, supplierId: 4, reworkCount: 1 })]);
     expect(result[0]).toMatchObject({ documentIntelligenceEscalated: true, manualReviewApplicantCount: 2 });
     const sql = String(query.mock.calls[0]?.[0]).toLowerCase();
+    expect(sql).toContain("visa_rule_evaluation_runs");
+    expect(sql).not.toContain("visa_rule_evaluations ");
     expect(sql).not.toMatch(/payment|stripe|price|amount|cost|margin|profit|storage/);
   });
 });

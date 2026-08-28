@@ -27,8 +27,8 @@ export class MysqlOperationsManagerAnalyticsProvider {
       EXISTS(SELECT 1 FROM document_intelligence_runs intelligence WHERE intelligence.application_id=a.id
         AND intelligence.processing_tier IN ('ADVANCED_AI','HUMAN_REVIEW')) AS documentIntelligenceEscalated,
       (SELECT COUNT(*) FROM applicants review_applicant WHERE review_applicant.application_id=a.id
-        AND EXISTS(SELECT 1 FROM visa_rule_evaluations evaluation WHERE evaluation.applicant_id=review_applicant.id
-          AND evaluation.id=(SELECT current_evaluation.id FROM visa_rule_evaluations current_evaluation
+        AND EXISTS(SELECT 1 FROM visa_rule_evaluation_runs evaluation WHERE evaluation.applicant_id=review_applicant.id
+          AND evaluation.id=(SELECT current_evaluation.id FROM visa_rule_evaluation_runs current_evaluation
             WHERE current_evaluation.applicant_id=review_applicant.id ORDER BY current_evaluation.evaluated_at DESC,current_evaluation.id DESC LIMIT 1)
           AND evaluation.final_eligibility_state IN ('HUMAN_REVIEW_REQUIRED','RULE_CONFLICT'))) AS manualReviewApplicantCount,
       (SELECT COUNT(*) FROM operations_action_events rework WHERE rework.application_id=a.id
