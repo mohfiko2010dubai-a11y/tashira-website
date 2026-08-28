@@ -197,7 +197,9 @@ export default function OperationsCaseWorkspace({ enabled, model, embedded = fal
         <Section id="timeline" title="Timeline">
           <ol className="space-y-3">{model.operationalHistory.map((event) => (
             <li key={event.id} className="grid gap-1 border-l-2 border-slate-200 pl-4 text-sm sm:grid-cols-[1fr_auto]">
-              <span>{event.event} · {event.actorType}</span><time>{event.occurredAt}</time>
+              <span><strong>{event.event}</strong> · {event.actorType}{event.actorReference ? ` · ${event.actorReference}` : ""}
+                {event.reason && <small className="mt-1 block text-slate-500">{event.reason}</small>}
+              </span><time>{event.occurredAt}</time>
             </li>
           ))}</ol>
         </Section>

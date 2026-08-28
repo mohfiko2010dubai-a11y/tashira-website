@@ -119,8 +119,16 @@ export class MysqlOperationsCaseReadProvider {
                        FROM applicant_requirement_events e
                        JOIN applicant_requirement_instances i ON i.id=e.requirement_instance_id
                       WHERE i.application_id=? ORDER BY e.occurred_at,e.id`, [applicationId]),
-      this.sql.query(`SELECT id, event_name AS event, actor_type AS actorType, created_at AS occurredAt
-                       FROM application_timeline_events WHERE application_id=? ORDER BY created_at,id`, [applicationId]),
+      this.sql.query(`SELECT id,event,actorType,actorReference,reason,occurredAt FROM (
+                         SELECT id,event_name AS event,actor_type AS actorType,actor_reference AS actorReference,
+                                summary AS reason,created_at AS occurredAt
+                           FROM application_timeline_events WHERE application_id=?
+                         UNION ALL
+                         SELECT id,CONCAT('OPERATIONS_',action_type) AS event,
+                                CASE WHEN actor_reference='admin' THEN 'ADMIN' ELSE 'STAFF' END AS actorType,
+                                actor_reference AS actorReference,reason,created_at AS occurredAt
+                           FROM operations_action_events WHERE application_id=?
+                       ) history ORDER BY occurredAt,id`, [applicationId, applicationId]),
       nullableNumber(application, "supplierId") === undefined ? Promise.resolve([]) : this.sql.query(
         `SELECT id, name FROM suppliers WHERE id=? AND is_active='active' LIMIT 1`, [nullableNumber(application, "supplierId") ?? 0]),
       this.sql.query(`SELECT id, version, travel_group_reference AS reference, arrangement,
@@ -304,7 +312,8 @@ export class MysqlOperationsCaseReadProvider {
           legacy: selectionRows.length === 0 },
         applicants, documents, supplier,
         operationalHistory: timelineRows.map((row) => ({ id: text(row, "id"), event: text(row, "event"),
-          actorType: text(row, "actorType"), occurredAt: text(row, "occurredAt") })), travelGroups, schedulerAlerts,
+          actorType: text(row, "actorType"), actorReference: nullableText(row, "actorReference"),
+          reason: nullableText(row, "reason"), occurredAt: text(row, "occurredAt") })), travelGroups, schedulerAlerts,
       }, snapshots, family,
     };
   }

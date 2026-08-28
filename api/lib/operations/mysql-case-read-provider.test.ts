@@ -20,6 +20,7 @@ class FixtureSql implements OperationsSqlClient {
     if (sql.includes("FROM travel_group_applicants")) return [{ travelGroupId: "trip-1", applicantId: 71 }, { travelGroupId: "trip-1", applicantId: 72 }];
     if (sql.includes("FROM travel_document_applicant_links")) return [{ documentId: 701, applicantId: 71, documentType: "FAMILY_BOOKING" }, { documentId: 701, applicantId: 72, documentType: "FAMILY_BOOKING" }];
     if (sql.includes("FROM submission_schedule_snapshots")) return [{ id: "schedule-1", travelGroupId: "trip-1", routeCode: "30-days", plannedArrivalDate: new Date("2026-12-20T00:00:00.000Z"), earliestSafeSubmissionDate: new Date("2026-11-20T00:00:00.000Z"), targetSubmissionDate: new Date("2026-12-12T00:00:00.000Z"), latestSafeSubmissionDate: new Date("2026-12-15T00:00:00.000Z"), state: "SCHEDULED_FOR_SUBMISSION", reason: "SUBMISSION_WINDOW_NOT_OPEN", blockingReasons: [], recalculationReason: "INITIAL_EVALUATION", ruleVersions: [], sourceEvidenceReferences: [], evaluatorVersion: "v1", evidenceSha256: "a".repeat(64), evaluatedAt: "2026-08-25T00:00:00.000Z" }];
+    if (sql.includes("operations_action_events")) return [{ id: "action-1", event: "OPERATIONS_DOCUMENT_REVIEW", actorType: "STAFF", actorReference: "staff:11", reason: "Synthetic manual review", occurredAt: "2026-08-24T01:00:00.000Z" }];
     return [];
   }
 }
@@ -42,6 +43,12 @@ describe("MysqlOperationsCaseReadProvider", () => {
       currentSchedule: expect.objectContaining({ state: "SCHEDULED_FOR_SUBMISSION", targetSubmissionDate: "2026-12-12" }),
       sharedDocuments: [{ documentId: 701, documentType: "FAMILY_BOOKING", applicantIds: [71, 72] }],
     })]);
+  });
+
+  it("projects append-only controlled actions into the operational timeline", async () => {
+    const result = await new MysqlOperationsCaseReadProvider(new FixtureSql()).load("TSH-LEGACY-7");
+    expect(result?.source.operationalHistory).toEqual([{ id: "action-1", event: "OPERATIONS_DOCUMENT_REVIEW", actorType: "STAFF",
+      actorReference: "staff:11", reason: "Synthetic manual review", occurredAt: "2026-08-24T01:00:00.000Z" }]);
   });
 
   it("uses finance-minimized SQL projections and never selects storage paths", async () => {

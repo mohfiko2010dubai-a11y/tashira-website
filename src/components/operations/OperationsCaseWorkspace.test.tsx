@@ -47,7 +47,7 @@ function model(legacy = false): OperationsCaseReadModel {
       required_customer_actions: [{ applicant_id: 12, action: "Complete MOTHER_PASSPORT" }], manual_review_required: legacy, route_compatibility_warnings: [],
     },
     supplier: { id: 5, name: "Synthetic Supplier", slaHours: 24, reliabilityScore: 95 },
-    operationalHistory: [{ id: "event-1", event: "CASE_CREATED", actorType: "SYSTEM", occurredAt: "2026-06-01" }],
+    operationalHistory: [{ id: "event-1", event: "OPERATIONS_DOCUMENT_REVIEW", actorType: "STAFF", actorReference: "staff:7", reason: "Manual review requested", occurredAt: "2026-06-01" }],
     travelGroups: legacy ? [] : [{ id: "trip-a", version: 1, reference: "Travel Group A", arrangement: "TOGETHER", primaryTravellerId: 11,
       accompanyingAdultId: 11, applicantIds: [11, 12], origin: "CAI", destination: "DXB", plannedArrivalDate: "2026-12-20",
       plannedDepartureDate: "2026-12-30", ticketStatus: "CONFIRMED", sharedDocuments: [{ documentId: 101, applicantIds: [11, 12], documentType: "FAMILY_BOOKING" }],
@@ -90,6 +90,13 @@ describe("Operations Case Workspace", () => {
     expect(html).toContain("MOTHER_PASSPORT");
     expect(html).toContain("EGYPT-UAE v2");
     expect(html).toContain("INDIA-QATAR v7");
+  });
+
+  it("renders controlled action audit details in the visible timeline", () => {
+    const html = renderToStaticMarkup(<OperationsCaseWorkspace enabled model={model()} />);
+    expect(html).toContain("OPERATIONS_DOCUMENT_REVIEW");
+    expect(html).toContain("staff:7");
+    expect(html).toContain("Manual review requested");
   });
 
   it("never renders supplier financial fields", () => {

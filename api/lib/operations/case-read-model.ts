@@ -53,7 +53,7 @@ export type OperationsCaseSource = {
     readiness: "MISSING" | "UPLOADED" | "VALIDATED" | "REJECTED";
   }[];
   supplier: SupplierOperationalView | SupplierFinancialView | null;
-  operationalHistory: readonly { id: string; event: string; actorType: string; occurredAt: string }[];
+  operationalHistory: readonly { id: string; event: string; actorType: string; actorReference?: string | null; reason?: string | null; occurredAt: string }[];
   travelGroups?: readonly OperationsTravelGroup[];
   schedulerAlerts?: readonly SchedulerAlertEvent[];
 };
