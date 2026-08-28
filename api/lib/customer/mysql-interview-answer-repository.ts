@@ -1,9 +1,20 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
+import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import type { QuestionCatalogDefinition } from "../requirements/requirement-catalog";
 import { InMemoryInterviewAnswerHistory, type InterviewAnswer, type InterviewAnswerEvent } from "./dynamic-interview";
 
 function hash(answer: InterviewAnswer): string { return createHash("sha256").update(JSON.stringify(answer)).digest("hex"); }
+type ApplicantProfileProjection = { column: "nationality" | "gcc_residence_country" | "profession"; value: string };
+
+/** The immutable answer event remains history; this updates only the current applicant-scoped staff read model. */
+export function applicantProfileProjection(code: string, answer: InterviewAnswer): ApplicantProfileProjection | null {
+  if (typeof answer !== "string" || !answer.trim()) return null;
+  const value = answer.trim();
+  if (code === "NATIONALITY") return { column: "nationality", value };
+  if (code === "RESIDENCE_COUNTRY" || code === "GCC_COUNTRY") return { column: "gcc_residence_country", value };
+  if (code === "PROFESSION") return { column: "profession", value };
+  return null;
+}
 export function parseStoredInterviewAnswer(value: unknown, answerType: QuestionCatalogDefinition["answerType"]): InterviewAnswer {
   if (answerType === "BOOLEAN") {
     if (typeof value === "boolean") return value;
@@ -74,6 +85,14 @@ export class MysqlInterviewAnswerRepository {
         VALUES (?,?,?,?,?,?,?,?,?,'CUSTOMER',?,?)`, [eventId, input.applicationId, input.applicantId, input.definition.definitionId,
         input.definition.version, JSON.stringify(input.answer), answerSha256, previous ? String(previous.id) : null,
         input.changeReason.trim() || "INITIAL_ANSWER", input.actorReference, input.occurredAt]);
+      const profile = applicantProfileProjection(input.definition.code, input.answer);
+      if (input.applicantId !== null && profile) {
+        const [updated] = await connection.execute<ResultSetHeader>(
+          `UPDATE applicants SET ${profile.column}=? WHERE id=? AND application_id=?`,
+          [profile.value, input.applicantId, input.applicationId],
+        );
+        if (updated.affectedRows !== 1) throw new Error("INTERVIEW_APPLICANT_PROFILE_SYNC_FAILED");
+      }
       return { eventId, applicationId: input.applicationId, applicantId: input.applicantId, questionDefinitionId: input.definition.definitionId,
         questionDefinitionVersion: input.definition.version, answer: input.answer, answerSha256,
         supersedesEventId: previous ? String(previous.id) : null, changeReason: input.changeReason.trim() || "INITIAL_ANSWER",

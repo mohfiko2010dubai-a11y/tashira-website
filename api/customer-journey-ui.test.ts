@@ -33,4 +33,10 @@ describe("integrated staging customer and Operations journey", () => {
     expect(visa).toContain("Approve & prepare secure delivery");
     expect(notes).toContain("Add internal note");
   });
+
+  it("initializes missing case concurrency state before controlled capabilities", async () => {
+    const executor = await readFile(new URL("./lib/operations/mysql-controlled-write-executor.ts", import.meta.url), "utf8");
+    expect(executor).toContain("INSERT IGNORE INTO operations_case_controls");
+    expect(executor).toContain("does not assign staff, change status, or mutate financial values");
+  });
 });

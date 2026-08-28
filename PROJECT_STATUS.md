@@ -286,6 +286,7 @@ Last verified: 2026-08-28
 Continue the authorized Document Intelligence package after the Migration `042` foundation: add the single MySQL persistence adapter and internal read/review contracts behind `DOCUMENT_INTELLIGENCE`, then connect verified field readiness to the Unified Dynamic Interview without creating a parallel eligibility or requirement path. Keep real rule/profile research in DRAFT/REVIEW, use synthetic Staging profiles until authoritative evidence is approved, and keep all customer/provider flags OFF until scoped Staging E2E.
 # Integrated Staging acceptance candidate (2026-08-28)
 
+- Authenticated Browser E2E found and corrected two integration gaps: customer-created cases now receive lazy optimistic-concurrency control before capabilities are exposed, and immutable Dynamic Interview profile answers project applicant-scoped nationality/residence/profession into the Operations read model without cross-applicant leakage.
 - The customer Dynamic Application now supports individual/family creation, applicant-scoped adaptive interview answers, relationship completion, save/resume, document readiness and a server-authoritative payment gate.
 - The Operations workspace preserves applicant isolation and exposes read model, controlled review/actions, assignment, status, timeline, notes, document handling and visa delivery behind scoped Staging flags. Legacy Admin routes remain available.
 - Dynamic applications no longer receive a premature `APPLICATION_SUBMITTED` event; legacy creation behavior remains compatible.

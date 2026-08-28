@@ -158,6 +158,12 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
     if (!isOperationsFlagEnabled("OPERATIONS_CONTROLLED_WRITES", this.flagContext(trustedActor), flags)) throw new OperationsWriteError("FEATURE_DISABLED");
     const connection = await this.pool.getConnection();
     try {
+      // Migration 020 permits additive lazy initialization for legacy and
+      // customer-created applications. This row carries concurrency state only;
+      // it does not assign staff, change status, or mutate financial values.
+      await affected(connection,
+        "INSERT IGNORE INTO operations_case_controls (application_id,version) SELECT id,0 FROM applications WHERE id=?",
+        [applicationId]);
       const cases = await rows(connection,
         `SELECT c.version,c.assigned_staff_user_id AS assignedStaffId,c.team_id AS teamId,t.department_id AS departmentId,a.status
            FROM operations_case_controls c JOIN applications a ON a.id=c.application_id
