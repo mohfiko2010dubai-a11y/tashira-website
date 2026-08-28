@@ -11,7 +11,8 @@ describe("Staging V1 closed-state verification", () => {
   });
 
   it("is read-only and checks migrations, closed capabilities and Production-scope absence", () => {
-    expect(source).toContain("STAGING_V1_SCHEMA_OBJECTS_014_042=PASS");
+    expect(source).toContain("STAGING_V1_SCHEMA_OBJECTS_014_043=PASS");
+    expect(source).toContain("STAGING_V1_GATE_PERMISSION_CATALOG_INCOMPLETE");
     expect(source).toContain('"DOCUMENT_INTELLIGENCE"');
     expect(source).toContain('"OPERATIONS_CONTROLLED_WRITES"');
     expect(source).toContain('"DYNAMIC_CUSTOMER_APPLICATION"');

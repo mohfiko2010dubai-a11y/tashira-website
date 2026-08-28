@@ -51,6 +51,17 @@ try {
   const missing = migrationObjects.filter((table) => !present.has(table));
   if (missing.length > 0) throw new Error(`STAGING_V1_GATE_SCHEMA_INCOMPLETE:${missing.join(",")}`);
 
+  const requiredPermissionCodes = [
+    "support.read", "support.reply", "rule.propose", "rule.activate", "role.manage", "authority.record_submission",
+  ] as const;
+  const [permissionRows] = await pool.execute<RowDataPacket[]>(`SELECT code FROM operations_permissions
+    WHERE code IN (${requiredPermissionCodes.map(() => "?").join(",")})`, [...requiredPermissionCodes]);
+  const presentPermissionCodes = new Set(permissionRows.map((row) => String(row.code)));
+  const missingPermissionCodes = requiredPermissionCodes.filter((code) => !presentPermissionCodes.has(code));
+  if (missingPermissionCodes.length > 0) {
+    throw new Error(`STAGING_V1_GATE_PERMISSION_CATALOG_INCOMPLETE:${missingPermissionCodes.join(",")}`);
+  }
+
   const [enabledClosed] = await pool.execute<RowDataPacket[]>(`SELECT flag_key AS flagKey,scope_type AS scopeType,scope_reference AS scopeReference
     FROM operations_feature_flags WHERE environment='STAGING' AND enabled='YES'
     AND flag_key IN (${closedFlags.map(() => "?").join(",")}) ORDER BY flag_key,scope_type,scope_reference`, [...closedFlags]);
@@ -64,7 +75,7 @@ try {
 
   console.log("STAGING_V1_ENVIRONMENT_IDENTITY=PASS");
   console.log(`STAGING_V1_MYSQL_VERSION=${String(identity[0].mysqlVersion)}`);
-  console.log("STAGING_V1_SCHEMA_OBJECTS_014_042=PASS");
+  console.log("STAGING_V1_SCHEMA_OBJECTS_014_043=PASS");
   console.log("STAGING_V1_CONTROLLED_WRITES=OFF");
   console.log("STAGING_V1_CUSTOMER_FEATURES=OFF");
   console.log("STAGING_V1_EXTERNAL_PROVIDER_FEATURES=OFF");

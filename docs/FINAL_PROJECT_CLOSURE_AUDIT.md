@@ -36,7 +36,7 @@ All provider-independent engineering work found by the final fast-gap audit is c
 - Server bundle: PASS.
 - Exact feature SHA deployed to isolated Staging: `031e0af74fdc7e8e936d90fe6e92acfb18015904`.
 - Staging identity: `/var/www/tashira-staging`, database `tashira_staging`, private port `3002`.
-- Staging MySQL: `8.0.46`; schema objects for Migrations `014–042`: PASS.
+- Staging MySQL: `8.0.46`; schema objects and canonical permission catalog for Migrations `014–043`: PASS.
 - Controlled Writes: OFF.
 - Customer-facing Operations features: OFF.
 - External-provider features: OFF.
