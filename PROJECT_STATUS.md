@@ -284,3 +284,11 @@ Last verified: 2026-08-28
 ## Next highest-priority task
 
 Continue the authorized Document Intelligence package after the Migration `042` foundation: add the single MySQL persistence adapter and internal read/review contracts behind `DOCUMENT_INTELLIGENCE`, then connect verified field readiness to the Unified Dynamic Interview without creating a parallel eligibility or requirement path. Keep real rule/profile research in DRAFT/REVIEW, use synthetic Staging profiles until authoritative evidence is approved, and keep all customer/provider flags OFF until scoped Staging E2E.
+# Integrated Staging acceptance candidate (2026-08-28)
+
+- The customer Dynamic Application now supports individual/family creation, applicant-scoped adaptive interview answers, relationship completion, save/resume, document readiness and a server-authoritative payment gate.
+- The Operations workspace preserves applicant isolation and exposes read model, controlled review/actions, assignment, status, timeline, notes, document handling and visa delivery behind scoped Staging flags. Legacy Admin routes remain available.
+- Dynamic applications no longer receive a premature `APPLICATION_SUBMITTED` event; legacy creation behavior remains compatible.
+- Staging payment-readiness verification passes for complete, incomplete and family applications without cross-applicant leakage.
+- A staging-only interactive password reset utility is available for the persistent `staging-owner` account. It accepts hidden terminal input, updates through the existing authorized Admin API and never prints or commits the password.
+- Final external authenticated Browser E2E requires the owner to set the hidden password and confirm login. Production and `main/master` remain untouched.
