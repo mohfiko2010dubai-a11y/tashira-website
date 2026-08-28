@@ -1,5 +1,28 @@
 # TASHIRA Blocked Decisions
 
+## Current authoritative remaining gates — 2026-08-28
+
+The historical sections below preserve decisions and launch evidence from earlier
+phases. They do not override this current gate list.
+
+Only these Visa Operations OS V1 decisions remain open:
+
+1. Approval and governed activation of reviewed official Visa Rule and Requirement
+   Catalog content/source classifications.
+2. Selection and approval of external AI/OCR, inbound-mailbox, authority/Typing
+   Pack and supplier procedures/providers where live operation requires them.
+3. Owner visual Staging acceptance and any resulting concrete change requests.
+   Engineering Browser E2E is complete and is not tool-blocked.
+4. Legal/business retention and deletion durations by evidence/data category.
+5. Separate exact authorization for `main`/Production merge, backup/rehearsal,
+   Migrations `014–043`, deployment, named RBAC grants and each Production feature
+   activation.
+
+Public Staging DNS/TLS, Staging authentication, Stripe Test wiring, transactional
+email foundations and external Browser access have already been established in
+later phases. Historical entries below that describe those items as absent are
+superseded and must not be treated as current blockers.
+
 ## Visa Operations OS owner-policy decisions resolved
 
 The owner has approved the V1 Submission Scheduler thresholds (`45/21/7/3`), dashboard alerts (`14/7/0`), fail-safe Human Review, pre/post-submission travel-date behavior, AI advisory boundary, official-source hierarchy, rule-driven ticket requirements, per-applicant family evaluation, Travel Party behavior, minor/accompaniment safety, and separation of Entry Validity from Stay Duration. These items are implemented as versioned, configurable and auditable governance and must not be reported as unresolved owner business configuration.

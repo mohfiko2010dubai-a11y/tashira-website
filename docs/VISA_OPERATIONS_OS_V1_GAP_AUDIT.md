@@ -8,7 +8,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Eligibility Engine / precedence | DONE | Yes | Persistence | Real rule content remains human-approved |
 | Immutable evaluations | DONE | Yes | Yes | None in engineering scope |
 | Family Engine / readiness | DONE | Yes | Read Model | Customer activation remains off |
-| Dynamic Questions / Requirements / Documents | DONE | Yes | API/MySQL scoped E2E | Unified applicant-scoped interview, immutable evaluations, dynamic requirements and owned document upload/link are complete behind closed flags. Explicit start/resume/current-question/eligibility/requirements/upload/scheduler/review API operations are thin projections over the same canonical persisted state and inherit the same ownership gate; approved Production catalog content and activation remain owner gates |
+| Dynamic Questions / Requirements / Documents | DONE | Yes | API/MySQL + protected Browser E2E | Unified applicant-scoped interview, immutable evaluations, dynamic requirements and owned document upload/link are complete behind scoped Staging flags. External Browser E2E verified family creation/resume, independent EG/PK applicant profiles, a persisted SPOUSE relationship and the same applicant-isolated state in Operations. Approved Production catalog content and activation remain owner gates. |
 | AI Document Pre-Screening | EXTERNAL DEPENDENCY | Yes | No | Provider-independent classification/extraction validation is complete; live AI provider credentials/adapter remain, human remains final authority |
 | Human / Document Review | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
 | Assignment / State Machine / Re-evaluation | DONE | Yes | Persistent MySQL | Restricted pilot/UAT only |
@@ -20,8 +20,8 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Effective Cost History | PARTIAL | Existing snapshots | No | Finance policy and supplier-cost history integration |
 | Multi-Team RBAC | DONE | Yes | Yes | Production grants require owner approval |
 | Audit Trail | DONE | Yes | Yes | Monitoring/retention decision |
-| Operations Dashboard / Manager Dashboard | DONE | Yes | API/MySQL scoped E2E | Finance-free persistent aggregates, manager-only scoped API and protected dashboard UI are complete; final human browser sign-off remains tool-blocked |
-| Case Workspace | DONE | Yes | Yes | Controlled UI browser sign-off |
+| Operations Dashboard / Manager Dashboard | DONE | Yes | API/MySQL + authenticated Browser E2E | Finance-free persistent aggregates, manager-only scoped API and protected dashboard UI are complete. External Browser E2E verified Dashboard, queues, Support, SLA and Policies; final owner visual acceptance remains an owner decision rather than an engineering/tool blocker. |
+| Case Workspace | DONE | Yes | Authenticated Browser E2E | External Browser E2E verified applicant isolation, server-derived assignment, Document Review, Human Review, controlled status transition and visible append-only Timeline evidence. Final owner visual/change-request decision remains. |
 | Customer Pre-Check | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Safe guidance contract, rate-limited Active/validated/source-verified MySQL runtime API and responsive public UI are complete behind a closed flag; approved Production rules dataset and activation remain owner gates |
 | Trust Center | PARTIAL | Existing legal UI | Existing app | Final legal owner review |
 | Customer Portal Timeline | DONE | Yes | Staging scoped E2E | Canonical finance-free portal projection, registered customer route and authenticated application-scoped read-only runtime API are complete behind a closed flag; Production activation remains an owner gate |
@@ -29,7 +29,7 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 | Authenticated Case Chat / Handoff | COMPLETE (provider-independent) | Yes | Staging scoped E2E | Owned customer runtime reuses the canonical case bundle, assistant grounding and Support Inbox persistence; team/current-evaluation fail-closed gates, transactionality, replay/conflict handling and append-only audit are verified. External provider messaging remains deliberately absent |
 | Email Automation | PERSISTENCE COMPLETE | Yes | Migration 036 + Staging scoped E2E | Immutable timeline-owned dispatch queue, recipient-hash minimization, append-only delivery evidence, replay/conflict behavior and provider-ledger isolation are complete behind an OFF flag. Approved trigger/template policy and external provider dispatch remain owner gates; no email was sent |
 | Inbound Email / Employee Reply | COMPLETE (provider-independent ingestion) | Yes | Synthetic MySQL E2E | Verified-envelope normalization, application/team scope validation, append-only audit/message persistence, sender hashing and replay/conflict handling are complete behind an OFF Support Inbox flag; the live mailbox signature adapter and credentials remain an external dependency |
-| Support Inbox | PARTIAL | Yes | Staging MySQL runtime verified | Persistent team-scoped store, RBAC API, internal UI, concurrency, idempotency and append-only messages/notes/audit are deployed on Staging behind an OFF flag; real Staging repository integration passes, while browser sign-off and the external mailbox provider remain |
+| Support Inbox | COMPLETE (provider-independent) | Yes | Staging MySQL + authenticated Browser E2E | Persistent team-scoped store, RBAC API, internal UI, concurrency, idempotency and append-only messages/notes/audit are deployed on Staging behind scoped internal acceptance. The external mailbox signature/provider remains an owner/provider gate. |
 | Regulatory Watcher / Change Center | PARTIAL | Yes | Staging scoped E2E | Immutable proposal/impact and Rule Registry lifecycle persistence, explicit RBAC APIs and a read-only lifecycle/source-evidence UI are complete behind an OFF flag and cannot auto-activate; official-source connector and approved content remain |
 | Feature Flags | DONE | Yes | Yes | Production activation is a separate owner gate |
 | Legacy Compatibility | DONE | Yes | Yes | Explicit re-evaluation only |
@@ -49,7 +49,12 @@ Verified baseline: feature branch `codex/visa-operations-os-v1`, Staging Step 3.
 
 ## Honest completion
 
-Core case-operations foundation is approximately **91% complete**. Full Master Program V1 is approximately **73% complete** because external supplier/authority, AI/mailbox providers, approved policy/rule/template content, final human browser acceptance and Production activation remain incomplete. No percentage includes Production activation.
+The remaining work is no longer an unbounded engineering percentage. The safe,
+provider-independent V1 case-operations scope is complete through the isolated
+Staging owner gate. Remaining work is explicitly bounded to approved official
+content, external provider/procedure choices, owner visual acceptance, legal
+retention decisions and separately authorized Production actions. No completion
+claim includes Production activation.
 
 ## Unified Interview runtime update — 2026-08-26
 
@@ -76,7 +81,7 @@ Core case-operations foundation is approximately **91% complete**. Full Master P
 - Typing Pack templates and accepted output format.
 - Finance-approved effective supplier-cost history policy and access/activation review.
 - Operations KPI definitions, retention period, Trust Center wording and legal review.
-- Human interactive browser acceptance for the protected Operations UI; the desktop Browser plugin remains blocked by its trusted-path failure.
+- Owner visual acceptance/change requests for the protected Operations UI. Engineering Browser E2E is complete; this is no longer a browser-tool blocker.
 - Separate approval for Production migration/deployment/flags.
 # Requirement Catalog and Dynamic Runtime Update — 2026-08-26
 
