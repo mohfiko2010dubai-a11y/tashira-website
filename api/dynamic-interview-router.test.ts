@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./context";
-import { createDynamicInterviewRouter } from "./dynamic-interview-router";
+import { createDynamicInterviewRouter, recoverableUnifiedInterviewSetupIssue } from "./dynamic-interview-router";
 import type { FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
 import type { QuestionCatalogDefinition, RequirementCatalogDefinition } from "./lib/requirements/requirement-catalog";
 import type { EligibilityRule } from "./lib/eligibility/eligibility-engine";
@@ -57,6 +57,12 @@ function deps(currentFlags = flags) {
 }
 
 describe("authenticated Dynamic Interview API", () => {
+  it("recovers only the expected incomplete family-relationship setup", () => {
+    expect(recoverableUnifiedInterviewSetupIssue(new Error("UNIFIED_INTERVIEW_RELATIONSHIP_MISSING:22"))).toBe("RELATIONSHIP_REQUIRED");
+    expect(recoverableUnifiedInterviewSetupIssue(new Error("UNIFIED_INTERVIEW_CURRENT_EVALUATION_MISSING:22"))).toBeNull();
+    expect(recoverableUnifiedInterviewSetupIssue(new Error("UNIFIED_INTERVIEW_APPLICANT_OWNERSHIP_INVALID"))).toBeNull();
+  });
+
   it("denies missing and cross-application customer capability", async () => {
     const caller = createDynamicInterviewRouter(deps()).createCaller(context(["TSH-OTHER"]));
     await expect(caller.current({ referenceNumber: reference })).rejects.toMatchObject({ code: "FORBIDDEN" });

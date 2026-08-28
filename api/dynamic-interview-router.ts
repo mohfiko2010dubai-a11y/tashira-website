@@ -60,6 +60,11 @@ type Dependencies = {
   now(): Date;
 };
 
+export function recoverableUnifiedInterviewSetupIssue(error: unknown): "RELATIONSHIP_REQUIRED" | null {
+  if (!(error instanceof Error)) return null;
+  return error.message.startsWith("UNIFIED_INTERVIEW_RELATIONSHIP_MISSING:") ? "RELATIONSHIP_REQUIRED" : null;
+}
+
 function logDynamicInterviewFailure(operation: string, error: unknown): void {
   const candidate = error as { code?: unknown; errno?: unknown; sqlState?: unknown } | null;
   const internalCode = error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : undefined;
@@ -99,13 +104,19 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     const partyBundle = unifiedEnabled ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
     const bundle = interview.currentQuestions.length === 0 ? partyBundle : null;
     let unifiedReview = null;
+    let unifiedReviewBlocker: "RELATIONSHIP_REQUIRED" | null = null;
     if (bundle) {
-      const persistent = adaptPersistentUnifiedInterview(bundle);
-      const answers = Object.fromEntries(application.applicantIds.map((id) => [id, Object.fromEntries(interview.knownAnswers
-        .filter((answer) => answer.applicantId === id).map((answer) => [answer.code, String(answer.answer)]))]));
-      unifiedReview = (await buildUnifiedInterviewRuntime({ context, flags,
-        catalogProvider: { active: async () => catalog }, evaluatedAt: now,
-        applicationId: application.applicationId, ...persistent, answers, travelQuestions: [] })).review;
+      try {
+        const persistent = adaptPersistentUnifiedInterview(bundle);
+        const answers = Object.fromEntries(application.applicantIds.map((id) => [id, Object.fromEntries(interview.knownAnswers
+          .filter((answer) => answer.applicantId === id).map((answer) => [answer.code, String(answer.answer)]))]));
+        unifiedReview = (await buildUnifiedInterviewRuntime({ context, flags,
+          catalogProvider: { active: async () => catalog }, evaluatedAt: now,
+          applicationId: application.applicationId, ...persistent, answers, travelQuestions: [] })).review;
+      } catch (error) {
+        unifiedReviewBlocker = recoverableUnifiedInterviewSetupIssue(error);
+        if (!unifiedReviewBlocker) throw error;
+      }
     }
     return { application, context, flags, catalogVersion: catalog.catalogVersion, questions, requirements, rules, events,
       state: { ...interview, currentApplicant: applicantId === null ? null
@@ -134,7 +145,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
                 state: currentState ?? "MISSING" };
             });
         }) : [] } : null,
-      unifiedReview } };
+      unifiedReview, unifiedReviewBlocker } };
   };
   const persistCompletion = async (runtime: Awaited<ReturnType<typeof state>>, trigger: InterviewAnswerEvent, reason: string) => {
     if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags)) return;
