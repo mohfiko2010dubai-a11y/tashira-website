@@ -4,6 +4,7 @@ import OperationsCaseWorkspace from "@/components/operations/OperationsCaseWorks
 import SchedulerAlertPanel from "@/components/operations/SchedulerAlertPanel";
 import { OperationsControlledWritePanelLive } from "@/components/operations/OperationsControlledWritePanel";
 import OperationsShell from "@/components/operations/OperationsShell";
+import DocumentManager from "@/components/shared/DocumentManager";
 
 export default function StaffOperationsCase() {
   const { referenceNumber = "" } = useParams<{ referenceNumber: string }>();
@@ -23,8 +24,18 @@ export default function StaffOperationsCase() {
     </main>
   );
   return <OperationsShell title={`Case ${query.data.summary.reference}`} subtitle="Applicant-isolated requirements, evidence, review and controlled actions.">
+    <nav className="mb-6 flex flex-wrap gap-2" aria-label="Case quick actions">
+      <a href="#document-files" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">View & download documents</a>
+      <a href="#actions" className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950">Employee actions</a>
+      <a href="#timeline" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Case timeline</a>
+    </nav>
     <div className="space-y-6">
       <OperationsCaseWorkspace enabled model={query.data} embedded />
+      <section id="document-files" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold">Secure document viewer</h2>
+        <p className="mb-4 mt-1 text-sm text-slate-500">Preview or download the files attached to this case. Destructive document controls are disabled in the Operations workspace.</p>
+        <DocumentManager applicationId={query.data.summary.applicationId} readOnly />
+      </section>
       <OperationsControlledWritePanelLive enabled model={query.data} onRefresh={async () => { await query.refetch(); }} />
       <SchedulerAlertPanel applicationId={query.data.summary.applicationId} />
     </div>

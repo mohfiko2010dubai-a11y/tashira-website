@@ -46,9 +46,10 @@ const STATUS_COLORS: Record<string, string> = {
 
 interface DocumentManagerProps {
   applicationId: number;
+  readOnly?: boolean;
 }
 
-export default function DocumentManager({ applicationId }: DocumentManagerProps) {
+export default function DocumentManager({ applicationId, readOnly = false }: DocumentManagerProps) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"" | DocumentListItem["documentType"]>("");
   const [previewDoc, setPreviewDoc] = useState<DocumentListItem | null>(null);
@@ -216,14 +217,14 @@ export default function DocumentManager({ applicationId }: DocumentManagerProps)
                   >
                     <Download size={14} />
                   </button>
-                  <button
-                    onClick={() => handleDelete(doc)}
+                    {!readOnly && <button
+                      onClick={() => handleDelete(doc)}
                     disabled={deleteDoc.isPending && deletingId === doc.id}
                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                     title="Delete"
                   >
                     <Trash2 size={14} />
-                  </button>
+                    </button>}
                 </div>
               </div>
             );

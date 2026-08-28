@@ -109,5 +109,11 @@ export function OperationsControlledWritePanelLive({ enabled, model, onRefresh }
     await Promise.all([capabilities.refetch(),onRefresh()]);
   };
   const refresh=async()=>{await Promise.all([capabilities.refetch(),onRefresh()]);};
-  return <OperationsControlledWritePanel enabled={enabled&&capabilities.isSuccess} model={model} capabilities={capabilities.data??null} execute={execute} refresh={refresh} />;
+  if (enabled && capabilities.isLoading) return <section id="actions" className="rounded-2xl border bg-white p-5 text-sm text-slate-600">Loading authorized Operations actions…</section>;
+  if (enabled && capabilities.isError) return <section id="actions" role="alert" className="rounded-2xl border border-amber-300 bg-amber-50 p-5">
+    <h2 className="font-semibold text-amber-950">Operations actions are not available for this case</h2>
+    <p className="mt-1 text-sm text-amber-900">The current role, feature scope, or case prerequisites do not permit a write action. No hidden action has been performed.</p>
+    <button type="button" className="mt-3 rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-semibold" onClick={()=>void refresh()}>Retry permissions</button>
+  </section>;
+  return <div id="actions"><OperationsControlledWritePanel enabled={enabled&&capabilities.isSuccess} model={model} capabilities={capabilities.data??null} execute={execute} refresh={refresh} /></div>;
 }
