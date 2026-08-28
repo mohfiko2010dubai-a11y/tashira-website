@@ -26,7 +26,13 @@ async function upload(applicationId, applicantId, documentType, suffix) {
   const created = await call("document.create", { applicationId, applicantId, documentType, originalFileName: fileName, storedFileName: stored.data.storedFileName, mimeType, fileSize: contents.length, storagePath: stored.data.storagePath, uploadStatus: "uploaded", uploadedBy: "readiness-uat@example.test" });
   assert(created.ok, `Document record failed: ${JSON.stringify(created.payload)}`);
 }
-async function intent(referenceNumber) { return call("payment.createIntent", { referenceNumber }); }
+async function intent(referenceNumber) { return call("payment.createIntent", {
+  referenceNumber,
+  payerName: "Synthetic Ready Payer",
+  payerRelationship: "SELF",
+  payerAuthorizationAccepted: true,
+  payerAuthorizationVersion: "payer-authorization-2026-08-19-v1",
+}); }
 
 const single = await create(1);
 const missingAll = await intent(single.referenceNumber);
