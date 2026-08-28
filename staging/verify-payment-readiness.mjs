@@ -10,6 +10,11 @@ async function call(path, input, query = false) {
   return { ok: response.ok, status: response.status, data: payload.result?.data?.json, payload };
 }
 function assert(condition, message) { if (!condition) throw new Error(message); }
+function businessCode(result) {
+  const message = result.payload?.error?.json?.message;
+  if (typeof message !== "string") return null;
+  try { return JSON.parse(message).code ?? null; } catch { return null; }
+}
 async function create(applicantCount) {
   const referenceNumber = `TSH-READY-${Date.now()}-${applicantCount}`;
   const applicants = Array.from({ length: applicantCount }, (_, index) => ({ fullName: `Synthetic Ready ${index + 1}`, nationality: "Testland", passportNumber: `READY${Date.now()}${index}`, passportType: "ordinary", travelingFrom: "Testland", passportExpiry: "2030-01-01", profession: "Tester" }));
@@ -28,15 +33,16 @@ async function upload(applicationId, applicantId, documentType, suffix) {
 }
 async function intent(referenceNumber) { return call("payment.createIntent", {
   referenceNumber,
-  payerName: "Synthetic Ready Payer",
-  payerRelationship: "SELF",
+  payerName: "Synthetic Ready 1",
+  payerRelationship: "Self",
   payerAuthorizationAccepted: true,
   payerAuthorizationVersion: "payer-authorization-2026-08-19-v1",
 }); }
 
 const single = await create(1);
 const missingAll = await intent(single.referenceNumber);
-assert(!missingAll.ok && JSON.stringify(missingAll.payload).includes("APPLICATION_INCOMPLETE"), "Incomplete direct payment API call was not rejected");
+assert(!missingAll.ok && businessCode(missingAll) === "APPLICATION_INCOMPLETE",
+  `Incomplete direct payment API call was not rejected safely (${missingAll.status}/${missingAll.payload?.error?.json?.data?.code ?? "UNKNOWN"}/${businessCode(missingAll) ?? "NO_BUSINESS_CODE"})`);
 await upload(single.id, single.applicantIds[0], "passport", "copy");
 await upload(single.id, single.applicantIds[0], "photo", "face");
 const partial = await intent(single.referenceNumber);
