@@ -50,6 +50,11 @@ This document maps the 25 owner-approved policy/program sections to repository e
 5. Select the exact release SHA by running `node --experimental-strip-types scripts/verify-operations-production-readiness.ts` on a clean local/remote-matched branch. Do not use a stale hard-coded SHA.
 6. Separately authorize main/master merge, Production backup/rehearsal, migrations `014–043`, exact-SHA deployment, named RBAC scopes, and each feature activation.
 
+The owner can execute and record the protected browser acceptance in
+`docs/STAGING_OWNER_ACCEPTANCE_GUIDE.md`. The guide contains only Staging links,
+synthetic references and Stripe Test data; it deliberately contains no password,
+token, customer data or Production secret.
+
 ## Release safety conclusion
 
 - Safe engineering work audited here: complete through the closed Production owner gate.
