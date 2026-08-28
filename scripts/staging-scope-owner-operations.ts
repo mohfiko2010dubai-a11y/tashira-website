@@ -55,7 +55,11 @@ try {
       `SELECT id,code FROM operations_permissions WHERE code IN (${PERMISSIONS.map(() => "?").join(",")})`,
       [...PERMISSIONS],
     );
-    if (permissionRows.length !== PERMISSIONS.length) throw new Error("STAGING_OWNER_SCOPE_PERMISSION_CATALOG_INCOMPLETE");
+    if (permissionRows.length !== PERMISSIONS.length) {
+      const existing = new Set(permissionRows.map((row) => String(row.code)));
+      console.log(`STAGING_OWNER_MISSING_PERMISSIONS=${PERMISSIONS.filter((code) => !existing.has(code)).join(",")}`);
+      throw new Error("STAGING_OWNER_SCOPE_PERMISSION_CATALOG_INCOMPLETE");
+    }
 
     if (mode === "enable") {
       for (const permission of permissionRows) {
