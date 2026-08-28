@@ -17,5 +17,15 @@ describe("CustomerOperationsPortal", () => {
     expect(html).toContain("DOCUMENTS REQUIRED");
     expect(html).toContain("Applicant 1: Passport");
     expect(html).toContain("APPLICATION RECEIVED");
+    expect(html).toContain("Resume application");
+    expect(html).toContain("/apply/TSH-1/interview");
+    expect(html).toContain("Review payment readiness");
+  });
+
+  it("does not offer resume actions after a terminal outcome", () => {
+    const html = renderToStaticMarkup(<CustomerOperationsPortal enabled model={{ ...model,
+      currentStatus: { ...model.currentStatus, code: "COMPLETED" } }} />);
+    expect(html).not.toContain("Resume application");
+    expect(html).not.toContain("Review payment readiness");
   });
 });
