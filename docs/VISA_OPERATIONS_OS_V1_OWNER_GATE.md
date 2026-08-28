@@ -45,7 +45,7 @@ This document maps the 25 owner-approved policy/program sections to repository e
 
 1. Approve and activate authoritative visa-rule and requirement-catalog content with reviewed official sources. Existing synthetic/legacy records must not be treated as official evidence.
 2. Approve the external AI, mailbox/inbound-email, authority/Typing Pack, and supplier procedures or providers needed for live use. Provider-independent code remains closed and does not imply a live integration.
-3. Complete protected authenticated Browser E2E/owner acceptance for the Unified Dynamic Interview and Operations workspaces. Automated API/MySQL evidence does not replace this sign-off.
+3. Owner visual sign-off remains. Protected authenticated engineering Browser E2E now covers Unified Dynamic Interview family creation/resume, applicant isolation, initial server-derived team routing, applicant-scoped Document Review, Human Review, controlled status transition and the visible immutable Audit Timeline. Automated evidence does not replace the owner's final visual/change-request decision.
 4. Decide the outstanding legal retention and deletion durations recorded in `BLOCKED_DECISIONS.md`.
 5. Select the exact release SHA by running `node --experimental-strip-types scripts/verify-operations-production-readiness.ts` on a clean local/remote-matched branch. Do not use a stale hard-coded SHA.
 6. Separately authorize main/master merge, Production backup/rehearsal, migrations `014–043`, exact-SHA deployment, named RBAC scopes, and each feature activation.
