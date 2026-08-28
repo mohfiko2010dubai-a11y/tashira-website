@@ -88,6 +88,8 @@ type Assignee = { id: string; active: boolean; teamIds: ReadonlySet<number>; wor
 export function assignCase(input: Common & {
   mode: "ASSIGN" | "CLAIM" | "REASSIGN";
   assignee: Assignee;
+  routingTeamId?: number;
+  routingDepartmentId?: number;
   reason: string;
 }, deps: Dependencies): WriteResult {
   gate(input, input.mode === "CLAIM" ? "case.read_assigned" : "case.assign");
@@ -99,6 +101,14 @@ export function assignCase(input: Common & {
       assertNonTerminal(draft.status);
       if (!input.assignee.active) throw new Error("ASSIGNEE_INACTIVE");
       if (input.mode === "CLAIM" && input.assignee.id !== input.actor.id) throw new Error("CLAIM_MUST_TARGET_ACTOR");
+      if (draft.teamId === undefined) {
+        if (input.mode !== "ASSIGN" || !input.actor.scopes.includes("ALL")) throw new Error("CASE_ROUTING_REQUIRED");
+        if (!Number.isSafeInteger(input.routingTeamId) || !input.routingTeamId || !input.assignee.teamIds.has(input.routingTeamId)) {
+          throw new Error("CASE_ROUTING_TEAM_INVALID");
+        }
+        draft.teamId = input.routingTeamId;
+        if (Number.isSafeInteger(input.routingDepartmentId) && input.routingDepartmentId) draft.departmentId = input.routingDepartmentId;
+      }
       if (draft.teamId === undefined || !input.assignee.teamIds.has(draft.teamId)) throw new Error("ASSIGNEE_TEAM_SCOPE_MISMATCH");
       if (input.repository.workload(input.assignee.id) >= input.assignee.workloadLimit) throw new Error("ASSIGNEE_WORKLOAD_LIMIT_REACHED");
       if (draft.assignedActorId === input.assignee.id) throw new Error("ASSIGNEE_ALREADY_ASSIGNED");
@@ -107,7 +117,7 @@ export function assignCase(input: Common & {
       if (input.mode === "REASSIGN" && !draft.assignedActorId) throw new Error("CASE_IS_NOT_ASSIGNED");
       const previous = draft.assignedActorId;
       draft.assignedActorId = input.assignee.id;
-      return { details: { previousAssigneeId: previous ?? null, assigneeId: input.assignee.id }, workloadChange: { from: previous, to: input.assignee.id } };
+      return { details: { previousAssigneeId: previous ?? null, assigneeId: input.assignee.id, teamId: draft.teamId }, workloadChange: { from: previous, to: input.assignee.id } };
     },
   });
 }

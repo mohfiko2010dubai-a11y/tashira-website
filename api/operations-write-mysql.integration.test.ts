@@ -26,6 +26,7 @@ integration("persistent Operations executor and internal API", () => {
   let team2 = 0;
   let applicationId = 0;
   let unpaidApplicationId = 0;
+  let unroutedApplicationId = 0;
   let applicant1 = 0;
   let applicant2 = 0;
   let document1 = 0;
@@ -72,6 +73,7 @@ integration("persistent Operations executor and internal API", () => {
       await pool.execute("INSERT INTO operations_staff_workload_limits (staff_user_id,workload_limit,configured_by,reason) VALUES (?,10,'synthetic','Synthetic limit')", [staffId]);
     }
     await pool.execute("INSERT INTO operations_scope_grants (staff_user_id,scope_type,team_id,granted_by) VALUES (?,'TEAM',?,'synthetic'),(?,'TEAM',?,'synthetic'),(?,'TEAM',?,'synthetic')", [staff1, team1, staff2, team1, wrongTeamStaff, team2]);
+    await pool.execute("INSERT INTO operations_scope_grants (staff_user_id,scope_type,granted_by) VALUES (?,'ALL','synthetic')", [staff1]);
     await pool.execute(`INSERT INTO operations_feature_flags (flag_key,environment,enabled,scope_type,scope_reference,reason,changed_by)
       VALUES ('OPERATIONS_CONTROLLED_WRITES','TEST','YES','GLOBAL','','Synthetic API gate','synthetic'),('VISA_RULES_EVALUATION','TEST','YES','GLOBAL','','Synthetic API gate','synthetic')
       ON DUPLICATE KEY UPDATE enabled='YES',reason=VALUES(reason),changed_by=VALUES(changed_by)`);
@@ -84,6 +86,10 @@ integration("persistent Operations executor and internal API", () => {
       [`OPS-UNPAID-${Date.now()}`]);
     unpaidApplicationId = insertedId(unpaidApplication);
     await pool.execute("INSERT INTO operations_case_controls (application_id,version,assigned_staff_user_id,team_id) VALUES (?,0,?,?)", [unpaidApplicationId, staff1, team1]);
+    const [unroutedApplication] = await pool.execute(
+      "INSERT INTO applications (reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,total_amount_aed,status,payment_status) VALUES (?,'single','non-gcc','ROUTE_TEST','regular','synthetic-unrouted@example.invalid','000',1,100,'submitted','pending')",
+      [`OPS-UNROUTED-${Date.now()}`]);
+    unroutedApplicationId = insertedId(unroutedApplication);
     const createApplicant = async (index: number, name: string) => {
       const [result] = await pool.execute("INSERT INTO applicants (application_id,applicant_index,full_name,nationality) VALUES (?,?,?,'SYNTHETIC')", [applicationId, index, name]);
       return insertedId(result);
@@ -136,6 +142,17 @@ integration("persistent Operations executor and internal API", () => {
     expect(await scalar("SELECT COUNT(*) value FROM operations_action_events WHERE application_id=?", [unpaidApplicationId])).toBe(0);
     expect(await scalar("SELECT COUNT(*) value FROM operations_idempotency_records WHERE application_id=?", [unpaidApplicationId])).toBe(0);
     expect(await scalar("SELECT COUNT(*) value FROM applications WHERE id=? AND status='submitted' AND payment_status='pending'", [unpaidApplicationId])).toBe(1);
+  });
+
+  it("routes an unscoped intake case only through a trusted single-team assignee", async () => {
+    const capabilities = await caller.capabilities({ applicationId: unroutedApplicationId });
+    expect(capabilities).toMatchObject({ version: 0, teamId: null, assignedActorId: null });
+    expect(capabilities.assignmentModes).toEqual(["ASSIGN"]);
+    expect(capabilities.permittedAssignees).toContainEqual(expect.objectContaining({ actorId: `staff:${staff1}` }));
+    expect(await caller.assignment({ applicationId: unroutedApplicationId, expectedVersion: 0, idempotencyKey: "initial-route-001",
+      reason: "Synthetic initial intake routing", mode: "ASSIGN", assigneeId: `staff:${staff1}` })).toMatchObject({ version: 1 });
+    expect(await scalar("SELECT team_id value FROM operations_case_controls WHERE application_id=?", [unroutedApplicationId])).toBe(team1);
+    expect(await scalar("SELECT team_id value FROM operations_action_events WHERE application_id=? AND correlation_id='initial-route-001'", [unroutedApplicationId])).toBe(team1);
   });
 
   it("persists human review, audit, and restart-safe idempotency", async () => {

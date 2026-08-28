@@ -111,6 +111,20 @@ describe("controlled Operations write layer", () => {
     expect(repo.audit(1)[0]).toMatchObject({ action: "ASSIGN", details: { previousAssigneeId: null, assigneeId: "staff:9" } });
   });
 
+  it("lets only an ALL-scope manager route an unscoped case through a trusted assignee team", () => {
+    const unrouted = new InMemoryControlledWriteRepository();
+    unrouted.seed({ applicationId: 1, version: 0, status: "submitted", applicantIds: [11], documents: [], finance: {} });
+    const input = { ...common(unrouted, ["case.assign"], 0), actor: actor(["case.assign"], [], ["ALL"]), mode: "ASSIGN" as const,
+      assignee: { id: "staff:9", active: true, teamIds: new Set([7]), workloadLimit: 5 }, routingTeamId: 7, routingDepartmentId: 2, reason: "Initial intake routing" };
+    expect(assignCase(input, dependencies())).toMatchObject({ status: "APPLIED", version: 1 });
+    expect(unrouted.get(1)).toMatchObject({ teamId: 7, departmentId: 2, assignedActorId: "staff:9" });
+    expect(unrouted.audit(1)[0]).toMatchObject({ details: { teamId: 7, assigneeId: "staff:9" } });
+
+    const denied = new InMemoryControlledWriteRepository();
+    denied.seed({ applicationId: 1, version: 0, status: "submitted", applicantIds: [11], documents: [], finance: {} });
+    expect(() => assignCase({ ...input, repository: denied, actor: actor(["case.assign"], [7], ["TEAM"]) }, dependencies())).toThrow("OPERATIONS_WRITE_ACCESS_DENIED");
+  });
+
   it("allows only controlled status transitions", () => {
     const valid = repository();
     expect(transitionCaseStatus({ ...common(valid, ["case.transition"]), to: "under_review", reason: "Documents complete" }, dependencies()).status).toBe("APPLIED");

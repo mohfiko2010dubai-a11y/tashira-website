@@ -189,13 +189,19 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
            FROM applicants a WHERE a.application_id=?`,[applicationId]);
       const assignmentModes:("ASSIGN"|"CLAIM"|"REASSIGN")[]=[];
       if(!terminal && can("case.assign")) assignmentModes.push(assignedStaffId===null?"ASSIGN":"REASSIGN");
-      if(!terminal && assignedStaffId===null && can("case.read_assigned") && trustedActor.id!=="admin") assignmentModes.push("CLAIM");
-      const assignees=teamId===null||!can("case.assign")?[]:await rows(connection,
+      if(!terminal && assignedStaffId===null && teamId!==null && can("case.read_assigned") && trustedActor.id!=="admin") assignmentModes.push("CLAIM");
+      const assignees=!can("case.assign")?[]:teamId!==null?await rows(connection,
         `SELECT DISTINCT s.id,s.name FROM staff_users s
            JOIN operations_scope_grants sg ON sg.staff_user_id=s.id AND sg.team_id=? AND sg.revoked_at IS NULL
            JOIN operations_staff_workload_limits wl ON wl.staff_user_id=s.id
           WHERE s.is_active='active' AND (SELECT COUNT(*) FROM operations_case_controls c WHERE c.assigned_staff_user_id=s.id)<wl.workload_limit
-          ORDER BY s.name,s.id`,[teamId]);
+          ORDER BY s.name,s.id`,[teamId]):trustedActor.scopes.includes("ALL")?await rows(connection,
+        `SELECT s.id,s.name FROM staff_users s
+           JOIN operations_scope_grants sg ON sg.staff_user_id=s.id AND sg.team_id IS NOT NULL AND sg.revoked_at IS NULL
+           JOIN operations_staff_workload_limits wl ON wl.staff_user_id=s.id
+          WHERE s.is_active='active' AND (SELECT COUNT(*) FROM operations_case_controls c WHERE c.assigned_staff_user_id=s.id)<wl.workload_limit
+          GROUP BY s.id,s.name HAVING COUNT(DISTINCT sg.team_id)=1
+          ORDER BY s.name,s.id`):[];
       return {
         applicationId,version,status:status.data,currentActorId:trustedActor.id,
         assignedActorId:assignedStaffId===null?null:`staff:${assignedStaffId}`,teamId,
@@ -232,12 +238,19 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
       const assignee = assigneeRows[0];
       const workloadLimit = assignee ? numberField(assignee, "workloadLimit") : null;
       if (!assignee || stringField(assignee, "active") !== "active" || workloadLimit === null) throw new Error("ASSIGNEE_CONFIGURATION_REQUIRED");
-      const scopes = await rows(connection, "SELECT team_id AS teamId FROM operations_scope_grants WHERE staff_user_id=? AND revoked_at IS NULL AND team_id IS NOT NULL", [assigneeId]);
+      const scopes = await rows(connection, `SELECT DISTINCT sg.team_id AS teamId,t.department_id AS departmentId
+        FROM operations_scope_grants sg JOIN operations_teams t ON t.id=sg.team_id
+        WHERE sg.staff_user_id=? AND sg.revoked_at IS NULL AND sg.team_id IS NOT NULL`, [assigneeId]);
       const teamIds = new Set(scopes.map((row) => numberField(row, "teamId")).filter((id): id is number => id !== null));
+      const current = repository.get(input.applicationId);
+      if (!current) throw new Error("CONTROLLED_CASE_NOT_FOUND");
+      const initialRoute = current.teamId === undefined && input.mode === "ASSIGN" && trustedActor.scopes.includes("ALL") && teamIds.size === 1;
+      const routingTeamId = initialRoute ? [...teamIds][0] : undefined;
+      const routingDepartmentId = initialRoute ? numberField(scopes[0] ?? {}, "departmentId") ?? undefined : undefined;
       const workloadRows = await rows(connection, "SELECT COUNT(*) AS count FROM operations_case_controls WHERE assigned_staff_user_id=?", [assigneeId]);
       repository.seedWorkload(input.assigneeId, numberField(workloadRows[0] ?? {}, "count") ?? 0);
       return assignCase({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository,
-        assignee: { id: input.assigneeId, active: true, teamIds, workloadLimit } }, { now: () => now, newId: randomUUID });
+        assignee: { id: input.assigneeId, active: true, teamIds, workloadLimit }, routingTeamId, routingDepartmentId }, { now: () => now, newId: randomUUID });
     });
   }
 
@@ -390,8 +403,8 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
     after: NonNullable<ReturnType<InMemoryControlledWriteRepository["get"]>>, event: ControlledAuditEvent): Promise<void> {
     const assignedId = after.assignedActorId ? this.staffId(after.assignedActorId) : null;
     const advanced = await affected(connection,
-      "UPDATE operations_case_controls SET version=?, assigned_staff_user_id=? WHERE application_id=? AND version=?",
-      [after.version, assignedId, input.applicationId, before.version]);
+      "UPDATE operations_case_controls SET version=?, assigned_staff_user_id=?, team_id=? WHERE application_id=? AND version=?",
+      [after.version, assignedId, after.teamId ?? null, input.applicationId, before.version]);
     if (advanced !== 1) throw new OperationsWriteError("CONCURRENCY_CONFLICT");
     if (action === "STATUS_TRANSITION") {
       const changed = await affected(connection, "UPDATE applications SET status=? WHERE id=? AND status=?", [after.status, input.applicationId, before.status]);
