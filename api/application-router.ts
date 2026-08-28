@@ -143,7 +143,9 @@ export const applicationRouter = createRouter({
             summary: "Application submitted",
           });
         }
-        const dynamicJourneyEnabled = await enableDynamicJourneyForStaging(input.referenceNumber);
+        const dynamicJourneyEnabled = input.journeyMode === "DYNAMIC"
+          ? await enableDynamicJourneyForStaging(input.referenceNumber)
+          : false;
         ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
         return { id: appId, referenceNumber: input.referenceNumber, applicantIds, dynamicJourneyEnabled };
       } catch (err: unknown) {

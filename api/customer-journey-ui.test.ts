@@ -14,6 +14,7 @@ describe("integrated staging customer and Operations journey", () => {
     expect(application).toContain("runtimeFlagEnvironment() !== \"STAGING\"");
     expect(application).toContain("'APPLICATION'");
     expect(application).toContain('if (input.journeyMode === "LEGACY")');
+    expect(application).toContain('input.journeyMode === "DYNAMIC"');
     expect(interview).toContain("Continue to secure payment");
     expect(interview).toContain("Save & view application");
   });
