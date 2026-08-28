@@ -49,6 +49,15 @@ const staff = await query("staff.list");
 const owner = staff.find((entry) => entry.username === username);
 if (!owner || owner.isActive !== "active") throw new Error("Active staging owner account was not found");
 
-await mutation("staff.update", { id: owner.id, password });
+await mutation("staff.update", {
+  id: owner.id,
+  username: owner.username,
+  name: owner.name,
+  ...(owner.email ? { email: owner.email } : {}),
+  ...(owner.phone ? { phone: owner.phone } : {}),
+  isActive: "active",
+  password,
+});
+const verified = await mutation("staff.login", { username, password });
+if (verified.staff?.username !== username) throw new Error("Staging owner login verification failed");
 console.log("STAGING_OWNER_PASSWORD_UPDATED");
-
