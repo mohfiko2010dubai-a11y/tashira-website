@@ -8,6 +8,10 @@ describe("staging owner Operations acceptance scope", () => {
     expect(source).toContain('expectedDirectory = "/var/www/tashira-staging"');
     expect(source).toContain('ownerUsername = "staging-owner"');
     expect(source).toContain("scope_type='STAFF'");
+    expect(source).toContain('acceptanceRoleCode = "STAGING_OWNER_ACCEPTANCE"');
+    expect(source).toContain("STAGING_OWNER_ACCEPTANCE_SCOPE");
+    expect(source).toContain("operations_audit_events");
+    expect(source).toContain("permissionRows.length !== PERMISSIONS.length");
     expect(source).not.toContain("'PRODUCTION'");
     expect(source).not.toContain('"REGULATORY_WATCHER",');
   });
