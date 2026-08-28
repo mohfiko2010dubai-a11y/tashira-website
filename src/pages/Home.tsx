@@ -4,7 +4,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import HeroSection from '@/sections/HeroSection';
 import DubaiShowcase from '@/sections/DubaiShowcase';
-import VisaApplicationForm from '@/sections/VisaApplicationForm';
+import DynamicApplicationStart from '@/pages/DynamicApplicationStart';
 import WhyChooseTashira from '@/sections/WhyChooseTashira';
 import CountriesSection from '@/sections/CountriesSection';
 import FAQSection from '@/sections/FAQSection';
@@ -45,7 +45,7 @@ export default function Home() {
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #FAFAF7 0%, #F5F3EE 15%, #FFFFFF 30%)' }}>
       <HeroSection />
       <DubaiShowcase />
-      <VisaApplicationForm />
+      <DynamicApplicationStart />
       <WhyChooseTashira />
       <div ref={countriesRef}>
         <CountriesSection />

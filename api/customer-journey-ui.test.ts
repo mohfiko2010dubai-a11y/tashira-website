@@ -1,0 +1,33 @@
+import { readFile } from "node:fs/promises";
+import { describe, expect, it } from "vitest";
+
+describe("integrated staging customer and Operations journey", () => {
+  it("starts the dynamic journey and preserves applicant-scoped continuation", async () => {
+    const [start, application, interview] = await Promise.all([
+      readFile(new URL("../src/pages/DynamicApplicationStart.tsx", import.meta.url), "utf8"),
+      readFile(new URL("./application-router.ts", import.meta.url), "utf8"),
+      readFile(new URL("../src/pages/DynamicApplication.tsx", import.meta.url), "utf8"),
+    ]);
+    expect(start).toContain("Continue to dynamic interview");
+    expect(start).toContain("Family / multiple applicants");
+    expect(application).toContain("runtimeFlagEnvironment() !== \"STAGING\"");
+    expect(application).toContain("'APPLICATION'");
+    expect(interview).toContain("Continue to secure payment");
+    expect(interview).toContain("Save & view application");
+  });
+
+  it("exposes scoped staff documents, notes, controlled status and visa delivery", async () => {
+    const [casePage, writes, documents, visa, notes] = await Promise.all([
+      readFile(new URL("../src/pages/admin/StaffOperationsCase.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/operations/OperationsControlledWritePanel.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/shared/DocumentManager.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/operations/VisaDeliveryPanel.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/operations/CaseNotePanel.tsx", import.meta.url), "utf8"),
+    ]);
+    expect(casePage).toContain("OperationsControlledWritePanelLive");
+    expect(writes).toContain("Status Transition");
+    expect(documents).toContain("Upload to selected applicant");
+    expect(visa).toContain("Approve & prepare secure delivery");
+    expect(notes).toContain("Add internal note");
+  });
+});

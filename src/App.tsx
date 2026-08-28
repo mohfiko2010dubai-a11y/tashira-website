@@ -45,6 +45,7 @@ const StaffRegulatoryChanges = lazy(() => importWithStaleChunkRecovery(() => imp
 const StaffOperationalPolicies = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationalPolicies')));
 const AdminFinanceCockpit = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFinanceCockpit')));
 const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplication')));
+const DynamicApplicationStart = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplicationStart')));
 const CustomerApplicationPortal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerApplicationPortal')));
 const CustomerPrecheck = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerPrecheck')));
 
@@ -72,6 +73,7 @@ function AppContent() {
           <Route path="/how-to-apply" element={<HowToApply />} />
           <Route path="/track" element={<Track />} />
           <Route path="/pay/:referenceNumber" element={<PaymentPage />} />
+          <Route path="/apply" element={<DynamicApplicationStart />} />
           <Route path="/apply/:referenceNumber/interview" element={<DynamicApplication />} />
           <Route path="/applications/:referenceNumber/status" element={<CustomerApplicationPortal />} />
           <Route path="/visa-pre-check" element={<CustomerPrecheck />} />

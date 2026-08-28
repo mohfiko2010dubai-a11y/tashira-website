@@ -47,13 +47,32 @@ const STATUS_COLORS: Record<string, string> = {
 interface DocumentManagerProps {
   applicationId: number;
   readOnly?: boolean;
+  allowUpload?: boolean;
+  applicants?: readonly { applicantId: number; displayName: string }[];
 }
 
-export default function DocumentManager({ applicationId, readOnly = false }: DocumentManagerProps) {
+const uploadTypes = ["passport", "photo", "national_id", "supporting", "visa", "gcc_residence", "sponsor_id"] as const;
+
+const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error("File could not be read"));
+  reader.onload = () => {
+    const value = reader.result;
+    if (typeof value !== "string" || !value.includes(",")) return reject(new Error("File could not be encoded"));
+    resolve(value.slice(value.indexOf(",") + 1));
+  };
+  reader.readAsDataURL(file);
+});
+
+export default function DocumentManager({ applicationId, readOnly = false, allowUpload = false, applicants = [] }: DocumentManagerProps) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"" | DocumentListItem["documentType"]>("");
   const [previewDoc, setPreviewDoc] = useState<DocumentListItem | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadApplicantId, setUploadApplicantId] = useState("");
+  const [uploadType, setUploadType] = useState<typeof uploadTypes[number]>("supporting");
+  const [uploadMessage, setUploadMessage] = useState("");
 
   const utils = trpc.useUtils();
   const { data: docs, isLoading } = trpc.document.listByApplication.useQuery({
@@ -72,6 +91,26 @@ export default function DocumentManager({ applicationId, readOnly = false }: Doc
       setDeletingId(null);
     },
   });
+  const uploadStorage = trpc.storage.upload.useMutation();
+  const createDocument = trpc.document.create.useMutation();
+
+  const handleUpload = async () => {
+    if (!uploadFile || !uploadApplicantId) return;
+    setUploadMessage("");
+    try {
+      const applicantId = Number(uploadApplicantId);
+      const stored = await uploadStorage.mutateAsync({ applicationId, applicantId, documentType: uploadType,
+        fileName: uploadFile.name, mimeType: uploadFile.type || "application/octet-stream", fileSize: uploadFile.size,
+        base64Data: await readFileAsBase64(uploadFile), uploadedBy: "operations-staff" });
+      await createDocument.mutateAsync({ applicationId, applicantId, documentType: uploadType,
+        originalFileName: uploadFile.name, storedFileName: stored.storedFileName, mimeType: uploadFile.type || "application/octet-stream",
+        fileSize: uploadFile.size, storagePath: stored.storagePath, uploadStatus: "uploaded", uploadedBy: "operations-staff" });
+      await Promise.all([utils.document.listByApplication.invalidate({ applicationId }), utils.document.countByApplication.invalidate({ applicationId })]);
+      setUploadFile(null); setUploadMessage("Document uploaded and recorded in the case timeline.");
+    } catch {
+      setUploadMessage("Upload failed. Verify the applicant, file type and permission, then retry.");
+    }
+  };
 
   const handleDelete = (doc: DocumentListItem) => {
     if (!confirm(`Delete "${doc.originalFileName}"? This cannot be undone.`)) return;
@@ -105,6 +144,17 @@ export default function DocumentManager({ applicationId, readOnly = false }: Doc
 
   return (
     <div className="space-y-4">
+      {allowUpload && applicants.length > 0 && <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="font-semibold text-slate-900">Upload a case document</h3>
+        <p className="mt-1 text-xs text-slate-600">The file is attached only to the selected applicant. Visa files remain subject to review and secure delivery controls.</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <select aria-label="Document applicant" value={uploadApplicantId} onChange={(event) => setUploadApplicantId(event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">Select applicant</option>{applicants.map((applicant) => <option key={applicant.applicantId} value={applicant.applicantId}>{applicant.displayName}</option>)}</select>
+          <select aria-label="Document type" value={uploadType} onChange={(event) => setUploadType(event.target.value as typeof uploadType)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">{uploadTypes.map((type) => <option key={type} value={type}>{TYPE_LABELS[type] ?? type}</option>)}</select>
+          <input aria-label="Choose document" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+        </div>
+        <button type="button" disabled={!uploadFile || !uploadApplicantId || uploadStorage.isPending || createDocument.isPending} onClick={() => void handleUpload()} className="mt-3 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{uploadStorage.isPending || createDocument.isPending ? "Uploading…" : "Upload to selected applicant"}</button>
+        {uploadMessage && <p role="status" className="mt-2 text-sm text-slate-700">{uploadMessage}</p>}
+      </section>}
       {/* Stats Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

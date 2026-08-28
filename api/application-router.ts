@@ -13,10 +13,28 @@ import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/prici
 import { activeBusinessSettings } from "./lib/pricing-engine";
 import { canEnterApplicationState } from "./lib/processing-gate";
 import { TRPCError } from "@trpc/server";
+import { runtimeFlagEnvironment } from "./lib/operations/mysql-access-provider";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
 const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
+const DYNAMIC_STAGING_FLAGS = [
+  "DYNAMIC_CUSTOMER_APPLICATION", "DYNAMIC_REQUIREMENTS", "VISA_RULES_EVALUATION",
+  "CUSTOMER_OPERATIONS_PORTAL", "VISA_DELIVERY",
+] as const;
+
+async function enableDynamicJourneyForStaging(referenceNumber: string): Promise<boolean> {
+  if (runtimeFlagEnvironment() !== "STAGING") return false;
+  const db = getDb();
+  for (const flag of DYNAMIC_STAGING_FLAGS) {
+    await db.execute(sql`INSERT INTO operations_feature_flags
+      (flag_key, environment, enabled, scope_type, scope_reference, reason, changed_by)
+      VALUES (${flag}, 'STAGING', 'YES', 'APPLICATION', ${referenceNumber},
+        'Customer started the integrated Dynamic Application journey', 'application-api')
+      ON DUPLICATE KEY UPDATE enabled='YES', reason=VALUES(reason), changed_by=VALUES(changed_by)`);
+  }
+  return true;
+}
 
 export const applicationRouter = createRouter({
   create: applicationSubmissionQuery
@@ -122,8 +140,9 @@ export const applicationRouter = createRouter({
           resultingState: "submitted",
           summary: "Application submitted",
         });
+        const dynamicJourneyEnabled = await enableDynamicJourneyForStaging(input.referenceNumber);
         ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
-        return { id: appId, referenceNumber: input.referenceNumber, applicantIds };
+        return { id: appId, referenceNumber: input.referenceNumber, applicantIds, dynamicJourneyEnabled };
       } catch (err: unknown) {
         const message = getErrorMessage(err);
         console.error('[API ERROR]', message);
