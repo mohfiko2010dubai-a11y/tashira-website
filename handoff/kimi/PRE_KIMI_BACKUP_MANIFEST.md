@@ -51,7 +51,7 @@ DB/document restore commands must be executed through the constrained Staging ru
 
 ## Revoke Kimi
 
-Lock/remove the `kimi-deploy` SSH account or its authorized key/forced-command entry; remove its sudo rule; revoke/drop MySQL user `kimi_staging`; revoke the repository-scoped GitHub token/App; retain backup/audit evidence.
+Lock/remove the `kimi-deploy` SSH account or its authorized key/forced-command entry; revoke/drop the read-only MySQL user `kimi_staging`; revoke the repository-scoped GitHub token/App; retain backup/audit evidence. No Kimi sudo rule exists.
 
 ## Production exclusion
 
