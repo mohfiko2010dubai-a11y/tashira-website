@@ -31,7 +31,8 @@
     "refund": "Refund Policy",
     "cookies": "Cookie Policy",
     "copyright": "© 2026 TASHIRA. All Rights Reserved.",
-    "paymentMethods": "VISA | MASTERCARD | AMEX"
+    "paymentMethods": "VISA | MASTERCARD | AMEX",
+    "supportCenter": "Support Center"
   },
   "validation": {
     "required": "This field is required",

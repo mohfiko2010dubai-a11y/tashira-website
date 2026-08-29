@@ -56,7 +56,7 @@ export default function Track() {
               value={reference}
               onChange={(event) => setReference(event.target.value)}
               onKeyDown={(event) => event.key === "Enter" && handleTrack()}
-              placeholder={t("placeholder")}
+              placeholder={t("refPlaceholder")}
               className="w-full px-5 py-4 border border-gray-200 rounded-lg focus:border-[#C9A04C] focus:ring-1 focus:ring-[#C9A04C] outline-none text-center text-lg"
             />
             <button onClick={handleTrack} className="w-full mt-4 py-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A]">
