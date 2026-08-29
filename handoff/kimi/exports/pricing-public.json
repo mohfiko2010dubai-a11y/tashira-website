@@ -1,0 +1,8 @@
+{
+  "exportVersion":"public-pricing-reference-v1",
+  "currency":"USD",
+  "authoritativeAtCheckout":"immutable server application_price_snapshot",
+  "internalSupplierCostIncluded":false,
+  "source":"visa-products.json",
+  "note":"Reference export only; import through Pricing Rule governance and never overwrite historical snapshots."
+}

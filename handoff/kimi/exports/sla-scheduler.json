@@ -1,0 +1,7 @@
+{
+  "exportVersion":"submission-scheduler-policy-v1",
+  "classification":"OPERATIONAL",
+  "thresholds":{"scheduledAfterDays":45,"recommendedMinDays":21,"recommendedMaxDays":45,"readyMinDays":8,"readyMaxDays":20,"urgentMinDays":4,"urgentMaxDays":7,"humanReviewMinDays":0,"humanReviewMaxDays":3,"dueSoonDays":14,"alertUrgentDays":7,"dueTodayDays":0},
+  "states":["NOT_EVALUATED","NOT_APPLICABLE","TOO_EARLY","SCHEDULED_FOR_SUBMISSION","RECOMMENDED_WINDOW","SUBMISSION_WINDOW_OPEN","READY_FOR_SUBMISSION","URGENT","BLOCKED_BY_REQUIREMENTS","BLOCKED_BY_MANUAL_REVIEW","OVERDUE","ALREADY_SUBMITTED","HUMAN_REVIEW_REQUIRED"],
+  "note":"Operational timing never overrides official eligibility. Supplier-specific SLA remains separately governed."
+}

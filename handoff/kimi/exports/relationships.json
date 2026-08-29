@@ -1,0 +1,6 @@
+{
+  "exportVersion":"applicant-relationships-v1",
+  "relationships":["LEAD_APPLICANT","SPOUSE","CHILD","PARENT","SIBLING","OTHER"],
+  "travelPartyTypes":["INDIVIDUAL","FAMILY","GROUP"],
+  "isolation":"Every relationship links trusted applicant IDs in one application; no cross-application relationship is permitted."
+}

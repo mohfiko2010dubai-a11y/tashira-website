@@ -1,0 +1,7 @@
+{
+  "exportVersion":"transactional-email-contract-v1",
+  "templates":["APPLICATION_RECEIVED","PAYMENT_SUCCESS","PAYMENT_FAILED","DOCUMENTS_REQUIRED","SUBMITTED","STATUS_CHANGED","VISA_ISSUED","RESUME_LINK","RECOVERY_OTP","SECURITY_DEPOSIT_REQUEST","REFUND_COMPLETED"],
+  "providerActivation":"OWNER_GATE",
+  "containsSecrets":false,
+  "note":"Template names/contracts only. Preserve idempotency and Staging recipient restrictions."
+}
