@@ -5,8 +5,8 @@ import { UnifiedInterviewReviewPanel } from "@/components/UnifiedInterviewReview
 import { InterviewPartySetup } from "@/components/customer/InterviewPartySetup";
 import { InterviewRequirementDocuments } from "@/components/customer/InterviewRequirementDocuments";
 import { legacyDocumentType } from "@/components/customer/requirement-document-type";
+import WizardShell, { StepHeader } from "@/components/customer/WizardShell";
 
-const steps = ["Applicant Profile", "Travel Details", "Requirements", "Documents", "Review"] as const;
 type AnswerValue = string | number | boolean;
 const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
@@ -43,21 +43,21 @@ export default function DynamicApplication() {
   if (query.error) return <main className="mx-auto min-h-[60vh] max-w-3xl px-5 py-12"><section className="rounded-2xl border border-amber-200 bg-amber-50 p-6"><h1 className="text-xl font-semibold text-slate-900">Application interview unavailable</h1><p className="mt-2 text-slate-700">Use the secure link sent for this application, or contact TASHIRA support.</p></section></main>;
   const state = query.data;
   if (!state) return null;
-  const activeStep = state.currentStep === "PROFILE" ? 0 : state.currentStep === "TRAVEL_PARTY" || state.currentStep === "TRAVEL_DATES" ? 1 : 4;
+  const wizardStep = question ? 5 : 7; // 5 Details (rules-driven interview), 7 Review; 6 Documents surfaced inline below
   const submit = () => {
     if (!question || answer === "") return;
     answerMutation.mutate({ referenceNumber, applicantId: question.applicantId, questionCode: question.code, answer, changeReason: "CUSTOMER_ANSWER" });
   };
-  return <main className="min-h-[70vh] bg-slate-50 px-4 py-8 sm:py-12">
-    <div className="mx-auto max-w-3xl">
-      <header className="mb-7">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#9b7425]">Secure visa application</p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-950">Tell us about your trip</h1>
-        <p className="mt-2 text-slate-600">We ask only the questions needed for your application.</p>
-      </header>
-      <ol className="mb-8 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5" aria-label="Application progress">
-        {steps.map((step, index) => <li key={step} className={`rounded-full px-3 py-2 text-center ${index <= activeStep ? "bg-[#cda64f] font-semibold text-slate-950" : "bg-white text-slate-500"}`}>{step}</li>)}
-      </ol>
+  return <WizardShell currentStep={wizardStep}>
+    <div>
+      <StepHeader
+        step={wizardStep}
+        title={question ? "Tell us about your trip" : "Review your application"}
+        subtitle={question
+          ? "We ask only the questions needed for your application — driven by your nationality, residence and visa rules."
+          : "Check every traveller and the documents your visa rules require before payment."}
+      />
+      <p className="mb-6 text-xs text-gray-400">Reference <span className="font-semibold text-[#C9A04C]">{referenceNumber}</span></p>
       {state.partySetup && <InterviewPartySetup setup={state.partySetup}
         busy={addApplicantMutation.isPending || editApplicantMutation.isPending || relationshipMutation.isPending || createTravelGroupMutation.isPending || updateTravelGroupMutation.isPending || linkSharedDocumentMutation.isPending}
         error={Boolean(addApplicantMutation.error || editApplicantMutation.error || relationshipMutation.error || createTravelGroupMutation.error || updateTravelGroupMutation.error || linkSharedDocumentMutation.error)}
@@ -76,6 +76,11 @@ export default function DynamicApplication() {
         onLinkSharedDocument={async (document, applicantIds) => { await linkSharedDocumentMutation.mutateAsync({ referenceNumber,
           documentId: document.documentId, documentType: document.documentType, applicantIds, idempotencyKey: crypto.randomUUID() });
           await query.refetch(); }} />}
+      {state.partySetup && state.partySetup.requirementReadiness.length > 0 && <div className="mb-3 mt-8">
+        <span className="inline-block rounded-full bg-[#C9A04C]/10 px-4 py-1.5 text-xs font-bold text-[#C9A04C]">Step 6 of 8 · Documents</span>
+        <h2 className="mt-3 text-xl font-extrabold text-[#0A1628]">Documents required by your visa rules</h2>
+        <p className="mt-1 text-sm text-gray-500">This checklist is generated per traveller from nationality, residence status and visa type — additional documents appear automatically when the rules require them.</p>
+      </div>}
       {state.partySetup && <InterviewRequirementDocuments applicants={state.partySetup.applicants} requirements={state.partySetup.requirementReadiness}
         busy={storageUploadMutation.isPending || documentCreateMutation.isPending || linkRequirementDocumentMutation.isPending}
         error={Boolean(storageUploadMutation.error || documentCreateMutation.error || linkRequirementDocumentMutation.error)}
@@ -91,7 +96,7 @@ export default function DynamicApplication() {
           await linkRequirementDocumentMutation.mutateAsync({ referenceNumber, applicantId: requirement.applicantId,
             requirementCode: requirement.requirementCode, documentId: document.id, idempotencyKey: crypto.randomUUID() });
           await query.refetch(); }} />}
-      {question ? <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
+      {question ? <section className="rounded-2xl border border-gray-100 bg-[#FAFAF7] p-6 sm:p-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div><p className="text-sm font-semibold text-[#9b7425]">{state.currentApplicant?.label ?? "Whole application"}</p><p className="text-sm text-slate-500">{state.currentStep.replaceAll("_", " ")}</p></div>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Reference {referenceNumber}</span>
@@ -105,14 +110,14 @@ export default function DynamicApplication() {
           : <input type={question.answerType === "DATE" ? "date" : question.answerType === "NUMBER" ? "number" : "text"} value={String(answer)} onChange={(event) => setAnswer(question.answerType === "NUMBER" ? Number(event.target.value) : event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-4" autoComplete="off" />}
         </div>
         {answerMutation.error && <p className="mt-4 text-sm text-red-700">We could not save that answer. Please review it and try again.</p>}
-        <button type="button" disabled={answer === "" || answerMutation.isPending} onClick={submit} className="mt-7 w-full rounded-xl bg-[#cda64f] px-6 py-4 font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{answerMutation.isPending ? "Saving…" : "Continue"}</button>
-      </section> : <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm sm:p-8"><p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Interview complete</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Review your applicants and requirements</h2><p className="mt-3 text-slate-600">Application status: {state.eligibilityState.replaceAll("_", " ")}</p><div className="mt-6 space-y-4">{state.review.applicants.map((applicant) => <article key={applicant.applicantId} className="rounded-2xl border border-slate-200 p-5"><h3 className="font-semibold text-slate-950">{applicant.label}</h3><p className="mt-1 text-sm text-slate-600">{applicant.customerMessage}</p><p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Requirements</p>{applicant.requirements.length ? <ul className="mt-2 grid gap-2 sm:grid-cols-2">{applicant.requirements.map((requirement) => <li key={`${requirement.code}-${requirement.state}`} className="rounded-lg bg-slate-50 px-3 py-3 text-sm"><span className="font-semibold text-slate-900">{requirement.label}</span><span className="mt-1 block text-xs text-[#8a6721]">{requirement.classification.replaceAll("_", " ")}</span><span className="mt-1 block text-xs text-slate-600">{requirement.explanation}</span></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">No verified requirement list is available yet.</p>}</article>)}</div>{state.review.manualReviewRequired && <p className="mt-5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">A specialist review is required before payment. Your saved application is already visible to the Operations team.</p>}<div className="mt-6 grid gap-3 sm:grid-cols-2"><Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-center font-semibold text-slate-800">Save & view application</Link><Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className={`rounded-xl px-5 py-3 text-center font-bold ${state.review.manualReviewRequired ? "pointer-events-none bg-slate-200 text-slate-500" : "bg-[#cda64f] text-slate-950"}`}>Continue to secure payment</Link></div></section>}
+        <button type="button" disabled={answer === "" || answerMutation.isPending} onClick={submit} className="mt-7 w-full rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-6 py-4 font-bold text-white shadow-md shadow-[#C9A04C]/30 disabled:cursor-not-allowed disabled:opacity-50">{answerMutation.isPending ? "Saving…" : "Continue"}</button>
+      </section> : <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm sm:p-8"><p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Interview complete</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Review your applicants and requirements</h2><p className="mt-3 text-slate-600">Application status: {state.eligibilityState.replaceAll("_", " ")}</p><div className="mt-6 space-y-4">{state.review.applicants.map((applicant) => <article key={applicant.applicantId} className="rounded-2xl border border-slate-200 p-5"><h3 className="font-semibold text-slate-950">{applicant.label}</h3><p className="mt-1 text-sm text-slate-600">{applicant.customerMessage}</p><p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Requirements</p>{applicant.requirements.length ? <ul className="mt-2 grid gap-2 sm:grid-cols-2">{applicant.requirements.map((requirement) => <li key={`${requirement.code}-${requirement.state}`} className="rounded-lg bg-slate-50 px-3 py-3 text-sm"><span className="font-semibold text-slate-900">{requirement.label}</span><span className="mt-1 block text-xs text-[#8a6721]">{requirement.classification.replaceAll("_", " ")}</span><span className="mt-1 block text-xs text-slate-600">{requirement.explanation}</span></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">No verified requirement list is available yet.</p>}</article>)}</div>{state.review.manualReviewRequired && <p className="mt-5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">A specialist review is required before payment. Your saved application is already visible to the Operations team.</p>}<div className="mt-6 grid gap-3 sm:grid-cols-2"><Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-center font-semibold text-slate-800">Save & view application</Link><Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className={`rounded-xl px-5 py-3 text-center font-bold ${state.review.manualReviewRequired ? "pointer-events-none bg-slate-200 text-slate-500" : "bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white shadow-md shadow-[#C9A04C]/30"}`}>Continue to secure payment</Link></div></section>}
       {state.unifiedReview && <UnifiedInterviewReviewPanel review={state.unifiedReview} />}
       {state.unifiedReviewBlocker === "RELATIONSHIP_REQUIRED" && <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
         <strong>Complete the family relationships above.</strong>
         <p className="mt-1">Every family member must be linked to the lead applicant before the final family readiness review can be generated.</p>
       </section>}
-      {state.knownAnswers.length > 0 && <details className="mt-6 rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer font-semibold text-slate-900">Review previous answers</summary><ul className="mt-4 space-y-3 text-sm text-slate-700">{state.knownAnswers.map((item) => <li key={`${item.applicantId}-${item.code}`} className="border-b border-slate-100 pb-3">{editing?.code === item.code && editing.applicantId === item.applicantId ? <div className="space-y-2"><label className="block font-medium" htmlFor={`edit-${item.applicantId}-${item.code}`}>{item.code.replaceAll("_", " ")}</label><input id={`edit-${item.applicantId}-${item.code}`} value={String(editing.answer)} onChange={(event) => setEditing({ ...editing, answer: typeof item.answer === "boolean" ? event.target.value === "true" : typeof item.answer === "number" ? Number(event.target.value) : event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2"/><div className="flex gap-2"><button type="button" className="rounded-lg bg-[#cda64f] px-3 py-2 font-semibold text-slate-950" disabled={editMutation.isPending} onClick={() => editMutation.mutate({ referenceNumber, applicantId: editing.applicantId, questionCode: editing.code, answer: editing.answer, changeReason: "CUSTOMER_CORRECTION" })}>Save correction</button><button type="button" className="rounded-lg border border-slate-300 px-3 py-2" onClick={() => setEditing(null)}>Cancel</button></div></div> : <div className="flex items-center justify-between gap-4"><span>{item.code.replaceAll("_", " ")}</span><span className="flex items-center gap-3"><strong>{String(item.answer)}</strong><button type="button" className="text-[#8a6721] underline" onClick={() => setEditing(item)}>Edit</button></span></div>}</li>)}</ul>{editMutation.error && <p className="mt-3 text-sm text-red-700">We could not save that correction. Please try again.</p>}</details>}
+      {state.knownAnswers.length > 0 && <details className="mt-6 rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer font-semibold text-slate-900">Review previous answers</summary><ul className="mt-4 space-y-3 text-sm text-slate-700">{state.knownAnswers.map((item) => <li key={`${item.applicantId}-${item.code}`} className="border-b border-slate-100 pb-3">{editing?.code === item.code && editing.applicantId === item.applicantId ? <div className="space-y-2"><label className="block font-medium" htmlFor={`edit-${item.applicantId}-${item.code}`}>{item.code.replaceAll("_", " ")}</label><input id={`edit-${item.applicantId}-${item.code}`} value={String(editing.answer)} onChange={(event) => setEditing({ ...editing, answer: typeof item.answer === "boolean" ? event.target.value === "true" : typeof item.answer === "number" ? Number(event.target.value) : event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2"/><div className="flex gap-2"><button type="button" className="rounded-lg bg-[#C9A04C] px-3 py-2 font-semibold text-white" disabled={editMutation.isPending} onClick={() => editMutation.mutate({ referenceNumber, applicantId: editing.applicantId, questionCode: editing.code, answer: editing.answer, changeReason: "CUSTOMER_CORRECTION" })}>Save correction</button><button type="button" className="rounded-lg border border-slate-300 px-3 py-2" onClick={() => setEditing(null)}>Cancel</button></div></div> : <div className="flex items-center justify-between gap-4"><span>{item.code.replaceAll("_", " ")}</span><span className="flex items-center gap-3"><strong>{String(item.answer)}</strong><button type="button" className="text-[#8a6721] underline" onClick={() => setEditing(item)}>Edit</button></span></div>}</li>)}</ul>{editMutation.error && <p className="mt-3 text-sm text-red-700">We could not save that correction. Please try again.</p>}</details>}
     </div>
-  </main>;
+  </WizardShell>;
 }

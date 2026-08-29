@@ -8,8 +8,9 @@ describe("integrated staging customer and Operations journey", () => {
       readFile(new URL("./application-router.ts", import.meta.url), "utf8"),
       readFile(new URL("../src/pages/DynamicApplication.tsx", import.meta.url), "utf8"),
     ]);
-    expect(start).toContain("Continue to dynamic interview");
-    expect(start).toContain("Family / multiple applicants");
+    expect(start).toContain("Start my application");
+    expect(start).toContain("WizardShell");
+    expect(start).toContain("Family / group");
     expect(start).toContain('journeyMode: "DYNAMIC"');
     expect(application).toContain("runtimeFlagEnvironment() !== \"STAGING\"");
     expect(application).toContain("'APPLICATION'");

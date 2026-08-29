@@ -2,12 +2,16 @@ import { useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import HeroSection from '@/sections/HeroSection';
-import DubaiShowcase from '@/sections/DubaiShowcase';
-import DynamicApplicationStart from '@/pages/DynamicApplicationStart';
+import RHero from '@/sections/redesign/RHero';
+import RStats from '@/sections/redesign/RStats';
+import RVisaTypes from '@/sections/redesign/RVisaTypes';
+import RHowItWorks from '@/sections/redesign/RHowItWorks';
 import WhyChooseTashira from '@/sections/WhyChooseTashira';
+import DubaiShowcase from '@/sections/DubaiShowcase';
 import CountriesSection from '@/sections/CountriesSection';
+import RTestimonials from '@/sections/redesign/RTestimonials';
 import FAQSection from '@/sections/FAQSection';
+import RCTA from '@/sections/redesign/RCTA';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -42,18 +46,22 @@ export default function Home() {
         <meta property="og:description" content="Private UAE visa-application support with estimated processing subject to authority review; approval is not guaranteed." />
         <meta property="og:url" content="https://tashiraev.com/" />
       </Helmet>
-    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #FAFAF7 0%, #F5F3EE 15%, #FFFFFF 30%)' }}>
-      <HeroSection />
-      <DubaiShowcase />
-      <DynamicApplicationStart />
-      <WhyChooseTashira />
-      <div ref={countriesRef}>
-        <CountriesSection />
+      <div className="min-h-screen bg-[#FAFAF7]">
+        <RHero />
+        <RStats />
+        <RVisaTypes />
+        <RHowItWorks />
+        <WhyChooseTashira />
+        <DubaiShowcase />
+        <div ref={countriesRef}>
+          <CountriesSection />
+        </div>
+        <RTestimonials />
+        <div ref={faqRef}>
+          <FAQSection />
+        </div>
+        <RCTA />
       </div>
-      <div ref={faqRef}>
-        <FAQSection />
-      </div>
-    </div>
     </>
   );
 }
