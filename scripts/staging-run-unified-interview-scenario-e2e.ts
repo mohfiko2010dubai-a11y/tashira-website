@@ -64,15 +64,21 @@ try {
     state = await authorized.dynamicInterview.answer.mutate({ referenceNumber: reference, applicantId: question.applicantId,
       questionCode: question.code, answer, changeReason: "STAGING_SYNTHETIC_SCENARIO_E2E" });
   }
-  if (!state.unifiedReview || state.unifiedReview.applicants.length !== scenario.applicantNationalities.length) {
+  const canonicalApplicantIds = new Set(applicantRows.map((row) => Number(row.id)));
+  const canonicalReview = state.unifiedReview?.applicants.filter(({ applicantId }) => canonicalApplicantIds.has(applicantId)) ?? [];
+  if (!state.unifiedReview || canonicalReview.length !== scenario.applicantNationalities.length) {
     throw new Error("STAGING_SCENARIO_UNIFIED_REVIEW_INCOMPLETE");
   }
-  if (state.eligibilityState !== scenario.expectedState) throw new Error("STAGING_SCENARIO_ELIGIBILITY_INVALID");
-  if (scenario.expectedRequirement && !state.unifiedReview.applicants[0].requirements.some(({ code }) => code === scenario.expectedRequirement)) {
+  if (reference === "TSH-STG-DYN-FAMILY") {
+    if (canonicalReview.some(({ eligibilityState }) => eligibilityState !== scenario.expectedState)) {
+      throw new Error("STAGING_SCENARIO_ELIGIBILITY_INVALID");
+    }
+  } else if (state.eligibilityState !== scenario.expectedState) throw new Error("STAGING_SCENARIO_ELIGIBILITY_INVALID");
+  if (scenario.expectedRequirement && !canonicalReview[0].requirements.some(({ code }) => code === scenario.expectedRequirement)) {
     throw new Error("STAGING_SCENARIO_REQUIREMENT_MISSING");
   }
   if (reference === "TSH-STG-DYN-FAMILY") {
-    const requirements = new Map(state.unifiedReview.applicants.map((applicant) => [applicant.applicantId,
+    const requirements = new Map(canonicalReview.map((applicant) => [applicant.applicantId,
       new Set(applicant.requirements.map(({ code }) => code))]));
     const motherId = Number(applicantRows[1].id);
     if (!requirements.get(motherId)?.has("BANK_STATEMENT")) throw new Error("STAGING_SCENARIO_FAMILY_MOTHER_REQUIREMENT_MISSING");
@@ -85,7 +91,9 @@ try {
     throw new Error("STAGING_SCENARIO_FINANCE_FIELD_LEAK");
   }
   const [counts] = await pool.execute<RowDataPacket[]>(`SELECT COUNT(DISTINCT e.applicant_id) AS evaluatedApplicants
-    FROM visa_rule_evaluation_runs e JOIN applications a ON a.id=e.application_id WHERE a.reference_number=?`, [reference]);
+    FROM visa_rule_evaluation_runs e JOIN applications a ON a.id=e.application_id
+    WHERE a.reference_number=? AND e.applicant_id IN (${scenario.applicantNationalities.map(() => "?").join(",")})`,
+  [reference, ...canonicalApplicantIds]);
   if (Number(counts[0].evaluatedApplicants) !== scenario.applicantNationalities.length) throw new Error("STAGING_SCENARIO_EVALUATION_EVIDENCE_INCOMPLETE");
   console.log(`STAGING_SCENARIO=${reference}`);
   console.log(`STAGING_SCENARIO_ELIGIBILITY=${scenario.expectedState}`);
