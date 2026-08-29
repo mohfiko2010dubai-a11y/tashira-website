@@ -6,7 +6,7 @@ import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operati
 import { MysqlRuleGovernanceRepository } from "./lib/rules/mysql-rule-governance-repository";
 import { visaRuleImportSchema } from "./lib/rules/rule-import";
 import { importRuleDraft, listRuleGovernanceHistory, transitionRuleVersion } from "./lib/rules/rule-governance-service";
-import { createRouter, staffOrAdminQuery } from "./middleware";
+import { adminQuery, createRouter, staffOrAdminQuery } from "./middleware";
 
 type Access = Pick<MysqlOperationsAccessProvider, "actorForContext" | "flagContextForContext" | "featureFlags">;
 type Repository = Pick<MysqlRuleGovernanceRepository, "list" | "importDraft" | "transition">;
@@ -39,12 +39,12 @@ export function createRuleGovernanceRouter(deps: Dependencies) {
         try { return await transitionRuleVersion({ ...await context(deps, ctx), ...input, now: deps.now() }); } catch (error) { safe(error); }
       }),
     /** Read-only Staging feature flags for the Owner/Admin UI. Production flags are never returned here. */
-    stagingFeatureFlags: staffOrAdminQuery.input(z.object({}).strict()).query(async ({ ctx }) => {
+    stagingFeatureFlags: adminQuery.input(z.object({}).strict()).query(async ({ ctx }) => {
       const { flags } = await context(deps, ctx);
       return flags.filter((flag) => flag.environment === "STAGING");
     }),
     /** Read-only recent governed rule evaluation runs for the Rule Evaluations screen. */
-    recentEvaluations: staffOrAdminQuery.input(z.object({ limit: z.number().int().min(1).max(200).default(100) }).strict()).query(async ({ input }) => {
+    recentEvaluations: adminQuery.input(z.object({ limit: z.number().int().min(1).max(200).default(100) }).strict()).query(async ({ input }) => {
       const rows = await defaultOperationsSqlClient().query(
         `SELECT r.id AS evaluationId, a.reference_number AS referenceNumber, r.applicant_id AS applicantId,
                 r.route_code AS routeCode, r.final_eligibility_state AS finalState, r.decision_reason AS decisionReason,

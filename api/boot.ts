@@ -18,7 +18,8 @@ import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage"
 import { isSupportedStripeWebhookEvent, verifyStripeWebhook } from "./lib/stripe-webhook";
 import { finalizeStripeTestPayment, recordStripeTestPaymentFailure } from "./lib/payment-finalization";
 import { auditLog } from "./lib/audit-log";
-import { verifyAdminSession } from "./lib/admin-session";
+import { createAdminSessionCookie, verifyAdminSession } from "./lib/admin-session";
+import { BrowserAuthRateLimiter, consumeStagingOwnerBrowserToken } from "./lib/staging-owner-browser-auth";
 import { hasCustomerApplicationAccess } from "./lib/customer-session";
 import { getStaffSession } from "./lib/staff-session";
 import { hasTimelineEventReference, recordTimelineEvent } from "./lib/application-timeline";
@@ -40,10 +41,28 @@ import {
 } from "./lib/security-deposit-finalization";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
+const stagingOwnerAuthLimiter = new BrowserAuthRateLimiter();
 validateStripeRuntimeConfig();
 
 app.use(bodyLimit({ maxSize: 500 * 1024 * 1024 })); // 500MB total request
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
+
+app.get("/staging-owner-auth/:token", (c) => {
+  const forwardedFor = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+  const identity = forwardedFor || c.req.header("x-real-ip") || "unknown";
+  if (!stagingOwnerAuthLimiter.allow(identity)) {
+    auditLog("staging-owner.login", "failure", "anonymous");
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const result = consumeStagingOwnerBrowserToken(c.req.param("token"));
+  if (result !== "CONSUMED") {
+    auditLog("staging-owner.login", "failure", "anonymous");
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  c.header("set-cookie", createAdminSessionCookie(c.req.raw.headers));
+  auditLog("staging-owner.login", "success", "admin");
+  return c.redirect("/admin");
+});
 
 app.post("/api/stripe/webhook", async (c) => {
   let claimedEventId: string | null = null;

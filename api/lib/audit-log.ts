@@ -1,5 +1,6 @@
 export type AuditEvent =
   | "admin.login"
+  | "staging-owner.login"
   | "admin.logout"
   | "staff.login"
   | "staff.logout"

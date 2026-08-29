@@ -28,6 +28,7 @@ process.env.VITE_STRIPE_PUBLISHABLE_KEY = publishableKey;
 process.env.STRIPE_MODE = "TEST";
 process.env.STRIPE_SECRET_KEY = readSecret("stripe_secret_key");
 process.env.STRIPE_WEBHOOK_SECRET = readSecret("stripe_webhook_secret");
+process.env.STAGING_BROWSER_AUTH_DIR = "/var/lib/tashira-staging/browser-auth";
 for (const name of ["STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "FROM_NAME", "FROM_EMAIL", "PUBLIC_APP_URL"]) {
   if (stagingConfig[name]) process.env[name] = stagingConfig[name];
 }

@@ -24,6 +24,7 @@ import { applicationAccessQuery, createRouter, publicQuery } from "./middleware"
 
 /** Question codes whose answer must be a governed ISO 3166-1 alpha-2 nationality/country code. */
 const NATIONALITY_QUESTION_CODES: ReadonlySet<string> = new Set(["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "GCC_COUNTRY"]);
+const governedCountryCodeSchema = z.string().trim().length(2).refine(isNationalityCode, "Select a country from the governed catalog");
 
 type ApplicationInterviewRecord = { applicationId: number; referenceNumber: string; routeCode: string; applicantIds: readonly number[];
   applicantLabels: Readonly<Record<number, string>>; applicants: readonly { applicantId: number; applicantIndex: number; fullName: string;
@@ -256,8 +257,8 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       }
     }),
     addApplicant: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50),
-      profile: z.object({ fullName: z.string().trim().min(2).max(255), nationality: z.string().trim().min(2).max(100).nullable(),
-        residenceCountry: z.string().trim().min(2).max(100).nullable() }).strict(), reason: z.string().trim().min(3).max(500),
+      profile: z.object({ fullName: z.string().trim().min(2).max(255), nationality: governedCountryCodeSchema.nullable(),
+        residenceCountry: governedCountryCodeSchema.nullable() }).strict(), reason: z.string().trim().min(3).max(500),
       idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
       if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.addApplicant) {
@@ -272,7 +273,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     }),
     editApplicant: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive(),
       expectedVersion: z.number().int().positive(), profile: z.object({ fullName: z.string().trim().min(2).max(255),
-        nationality: z.string().trim().min(2).max(100).nullable(), residenceCountry: z.string().trim().min(2).max(100).nullable() }).strict(),
+        nationality: governedCountryCodeSchema.nullable(), residenceCountry: governedCountryCodeSchema.nullable() }).strict(),
       reason: z.string().trim().min(3).max(500), idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
       if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.editApplicant) {

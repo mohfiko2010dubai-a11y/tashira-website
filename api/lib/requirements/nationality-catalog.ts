@@ -137,7 +137,6 @@ export const NATIONALITY_CATALOG: readonly NationalityEntry[] = [
   entry("AL", "Albania", "ألبانيا", "EUROPE"),
   entry("MK", "North Macedonia", "مقدونيا الشمالية", "EUROPE"),
   entry("ME", "Montenegro", "الجبل الأسود", "EUROPE"),
-  entry("XK", "Kosovo", "كوسوفو", "EUROPE"),
   // Americas
   entry("US", "United States", "الولايات المتحدة", "AMERICAS"),
   entry("CA", "Canada", "كندا", "AMERICAS"),

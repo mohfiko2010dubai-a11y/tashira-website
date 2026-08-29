@@ -162,11 +162,23 @@ describe("authenticated Dynamic Interview API", () => {
       requirementCode: "PASSPORT", documentId: 78 }));
   });
 
+  it("rejects free-text nationality and residence values before applicant persistence", async () => {
+    const dynamicRequirements: FeatureFlagRecord = { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true,
+      scopeType: "APPLICATION", scopeReference: reference };
+    const current = deps([...flags, dynamicRequirements]); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    await expect(caller.addApplicant({ referenceNumber: reference,
+      profile: { fullName: "Free Text", nationality: "Egyptian", residenceCountry: "United Arab Emirates" },
+      reason: "Add family member", idempotencyKey: "invalid-profile-123" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(current.addApplicant).not.toHaveBeenCalled();
+  });
+
   it("accepts only the authoritative current question and returns the next state", async () => {
     const current = deps(); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
     expect(await caller.current({ referenceNumber: reference })).toMatchObject({ currentApplicant: { applicantId: 21, label: "Ahmed — Father" }, currentQuestions: [{ code: "NATIONALITY", applicantId: 21 }] });
     await expect(caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "GCC_COUNTRY", answer: "AE", changeReason: "INITIAL_ANSWER" }))
       .rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "Egyptian",
+      changeReason: "INITIAL_ANSWER" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG", changeReason: "INITIAL_ANSWER" }))
       .toMatchObject({ eligibilityState: "ELIGIBLE_ROUTE_FOUND", nextAction: "REVIEW_REQUIREMENTS" });
     expect(current.append).toHaveBeenCalledTimes(1);
