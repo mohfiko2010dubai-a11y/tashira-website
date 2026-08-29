@@ -12,7 +12,7 @@ type EvaluationRow = {
 /** Governed rule evaluation evidence — who was evaluated, against which route, and why. */
 export default function AdminRuleEvaluations() {
   const [search, setSearch] = useState('');
-  const query = trpc.ruleGovernance.recentEvaluations.useQuery({ limit: 100 });
+  const query = trpc.ruleGovernance.recentEvaluations.useQuery({ limit: 100 }, { retry: false });
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return ((query.data ?? []) as EvaluationRow[]).filter((r) =>

@@ -31,6 +31,7 @@ describe("rule governance Admin projections", () => {
   it("denies ordinary staff access to Staging flags and cross-case evaluation evidence", async () => {
     const caller = createRuleGovernanceRouter(dependencies()).createCaller(context({ staffId: 7 }));
     await expect(caller.stagingFeatureFlags({})).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.adminList({})).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.recentEvaluations({ limit: 10 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
@@ -40,5 +41,17 @@ describe("rule governance Admin projections", () => {
     await expect(caller.stagingFeatureFlags({})).resolves.toEqual([
       expect.objectContaining({ environment: "STAGING", flagKey: "VISA_RULES_EVALUATION" }),
     ]);
+  });
+
+  it("returns immutable rule evidence read-only while Regulatory Watcher is off", async () => {
+    const deps = dependencies();
+    deps.repository.list.mockResolvedValueOnce([{ ruleVersionId: "rule-version" }] as never);
+    const caller = createRuleGovernanceRouter(deps).createCaller(context({ isAdmin: true }));
+
+    await expect(caller.adminList({})).resolves.toEqual({
+      rows: [{ ruleVersionId: "rule-version" }],
+      mutationsEnabled: false,
+    });
+    expect(deps.repository.list).toHaveBeenCalledTimes(1);
   });
 });

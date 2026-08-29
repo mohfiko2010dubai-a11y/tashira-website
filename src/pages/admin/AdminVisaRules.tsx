@@ -25,18 +25,18 @@ export default function AdminVisaRules() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [reason, setReason] = useState<Record<string, string>>({});
-  const query = trpc.ruleGovernance.list.useQuery({});
+  const query = trpc.ruleGovernance.adminList.useQuery({}, { retry: false });
   const transition = trpc.ruleGovernance.transition.useMutation({ onSuccess: () => query.refetch() });
 
   const rows = useMemo(() => {
-    const all = (query.data ?? []) as RuleRow[];
+    const all = (query.data?.rows ?? []) as RuleRow[];
     // Latest event per rule version defines its current status row set
     const q = search.trim().toLowerCase();
     return all.filter((r) =>
       (!statusFilter || r.status === statusFilter) &&
       (!q || r.stableId.toLowerCase().includes(q) || r.sourceAuthority.toLowerCase().includes(q) || r.sourceTitle.toLowerCase().includes(q)) &&
       (!id || r.ruleVersionId === id || r.stableId === id));
-  }, [query.data, search, statusFilter, id]);
+  }, [query.data?.rows, search, statusFilter, id]);
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -58,6 +58,11 @@ export default function AdminVisaRules() {
 
         {query.isLoading && <p className="text-sm text-gray-500">Loading governed rules…</p>}
         {query.isError && <p className="rounded-xl bg-rose-50 p-4 text-sm text-rose-800">Rule governance is unavailable or access was denied. Audit has been recorded.</p>}
+        {query.data && !query.data.mutationsEnabled && (
+          <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            Read-only evidence view. Regulatory Watcher is OFF, so rule lifecycle actions remain disabled.
+          </p>
+        )}
         {transition.isError && <p className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">Transition rejected — check permissions, current status and concurrency, then refresh.</p>}
 
         <div className="space-y-3">
@@ -78,7 +83,7 @@ export default function AdminVisaRules() {
               <p className="mt-2 text-xs text-gray-500">
                 {rule.fromStatus ? `${rule.fromStatus} → ` : ''}{rule.toStatus} by {rule.actorReference} at {new Date(rule.occurredAt).toLocaleString()} — {rule.reason}
               </p>
-              {(ACTIONS[rule.toStatus] ?? []).length > 0 && (
+              {query.data?.mutationsEnabled && (ACTIONS[rule.toStatus] ?? []).length > 0 && (
                 <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
                   <input
                     value={reason[rule.ruleVersionId] ?? ''}
