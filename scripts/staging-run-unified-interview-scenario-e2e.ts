@@ -40,8 +40,14 @@ try {
   const authorized = client([reference]);
   await expectDenied(() => client([]).dynamicInterview.current.query({ referenceNumber: reference }));
   await expectDenied(() => authorized.dynamicInterview.current.query({ referenceNumber: "TSH-STG-DYN-INDIVIDUAL" }));
+  // The party-setup E2E intentionally adds a synthetic applicant to the family
+  // fixture. Keep this rules scenario repeatable by selecting only the canonical
+  // fixture members (indexes 0..N-1), while leaving the separately audited party
+  // member intact for its own scenario.
   const [applicantRows] = await pool.execute<RowDataPacket[]>(`SELECT p.id,p.applicant_index AS applicantIndex FROM applicants p
-    JOIN applications a ON a.id=p.application_id WHERE a.reference_number=? ORDER BY p.applicant_index,p.id`, [reference]);
+    JOIN applications a ON a.id=p.application_id
+    WHERE a.reference_number=? AND p.applicant_index<? ORDER BY p.applicant_index,p.id`,
+  [reference, scenario.applicantNationalities.length]);
   if (applicantRows.length !== scenario.applicantNationalities.length) throw new Error("STAGING_SCENARIO_APPLICANT_COUNT_INVALID");
   const nationalityByApplicant = new Map(applicantRows.map((row) => [Number(row.id), scenario.applicantNationalities[Number(row.applicantIndex)]]));
   let state = await authorized.dynamicInterview.current.query({ referenceNumber: reference });
