@@ -60,4 +60,4 @@ These modules are not evidence of a connected external provider. Customer-facing
 
 - Staging: MySQL `tashira_staging`, PM2 `tashira-staging`, port `127.0.0.1:3002`, public health 200 at handoff.
 - Production: read-only health 200 at handoff; no code/data/service change performed.
-- Kimi server access: locked `kimi-deploy` account and read-only `kimi_staging` database user are prepared. The SSH account remains unusable until the owner installs Kimi's Ed25519 public key. There is no general shell, `sudo`, deployment, migration, document, Production or database-write permission.
+- Kimi server access: the supplied Ed25519 public key is installed on the locked `kimi-deploy` account through the forced read-only command gateway. The `kimi_staging` database user is read-only. There is no general shell, `sudo`, deployment, migration, document, Production or database-write permission.

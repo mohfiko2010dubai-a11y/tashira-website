@@ -1,6 +1,8 @@
-Kimi must provide exactly one public SSH key in OpenSSH format, preferably:
+STATUS: COMPLETED on 2026-08-29. The owner-supplied Kimi Ed25519 public key was installed on the constrained Staging account.
+
+Future replacement keys must use exactly one public SSH key in OpenSSH format, preferably:
 
 ssh-ed25519 <base64-public-key> <non-secret-comment>
 
 Do not provide a private key, passphrase, password, token or certificate in chat.
-The public key will be installed only for the revocable Staging account `kimi-deploy`.
+Any replacement public key must be installed only for the revocable Staging account `kimi-deploy`.

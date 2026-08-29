@@ -4,7 +4,7 @@
 |---|---|---|---|---|---|
 | Git branch `kimi/staging-final-recovery` | GitHub | read/write branch only | fetch/push review branch | revoke fine-grained token/App or branch access | branch prepared separately |
 | `main/master` | GitHub | none | none | branch protection | prohibited |
-| SSH account `kimi-deploy` | Staging host | locked, key-only, forced command | `status`, `health`, `db-status`, `feature-flags` only | remove authorized key or lock/remove user | account ready; Kimi Ed25519 public key required |
+| SSH account `kimi-deploy` | Staging host | locked, key-only, forced command | `status`, `health`, `db-status`, `feature-flags` only | remove authorized key or lock/remove user | Kimi Ed25519 public key installed and constrained |
 | `/var/www/tashira-staging` | Staging | read-only identity through forced command | inspect exact deployed SHA only | remove authorized key | no shell or filesystem mutation |
 | Staging documents | Staging | none | none | not applicable | intentionally denied |
 | MySQL user `kimi_staging` | Staging DB | `SELECT` and `SHOW VIEW` on `tashira_staging` only | read-only diagnosis | `DROP USER` / revoke grants | credential stored server-side only |
