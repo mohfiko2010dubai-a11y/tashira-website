@@ -1,6 +1,6 @@
 # TASHIRA Authoritative Handoff Audit
 
-Date: 2026-08-29  
+Date: 2026-08-29
 Branch: `handoff/kimi-authoritative-latest`
 
 ## Branch audit
