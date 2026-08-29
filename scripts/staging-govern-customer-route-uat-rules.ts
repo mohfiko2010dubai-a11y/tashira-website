@@ -54,7 +54,7 @@ const rules: readonly RuleSeed[] = CUSTOMER_ROUTES.flatMap((routeCode) => {
       conditions: [{ field: "gccCountry", operator: "EXISTS" }, { field: "residenceExpiry", operator: "EXISTS" }], eligibility: "NO_CHANGE",
       requirements: ["GCC_RESIDENCE"],
       explanation: "Synthetic GCC-resident overlay for UAT document variation." },
-    { stableId: `STAGING_TEST_ROUTE_${tag}_TICKETS`, routeCode, profileCode: "SYNTHETIC_TICKETS", layer: "TRAVEL_OVERLAY",
+    { stableId: `STAGING_TEST_ROUTE_${tag}_TICKETS`, routeCode, profileCode: "SYNTHETIC_TICKETS", layer: "OPERATIONAL_OVERLAY",
       conditions: [{ field: "hasConfirmedTickets", operator: "EQUALS", value: "true" }], eligibility: "NO_CHANGE",
       requirements: ["RETURN_TICKET"],
       explanation: "Synthetic confirmed-ticket overlay for UAT document variation." },

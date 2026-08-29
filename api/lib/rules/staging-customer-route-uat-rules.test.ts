@@ -16,6 +16,8 @@ describe("Staging customer-route UAT rule fixture", () => {
     expect(script).toContain("'COMMERCIAL','APPROVED'");
     expect(script).not.toContain("'OFFICIAL','VALIDATED'");
     expect(script).not.toContain('eligibility: "ELIGIBLE"');
+    expect(script).toContain('layer: "OPERATIONAL_OVERLAY"');
+    expect(script).not.toContain('layer: "TRAVEL_OVERLAY"');
   });
 
   it("supports an explicit idempotent deactivation path", () => {
