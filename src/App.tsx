@@ -10,6 +10,7 @@ import ChatBot from '@/components/shared/ChatBot';
 import AdminGuard from '@/components/shared/AdminGuard';
 import StaffGuard from '@/components/shared/StaffGuard';
 import ChunkLoadErrorBoundary from '@/components/shared/ChunkLoadErrorBoundary';
+import { documentDirection, isRtlLanguage } from '@/lib/rtl';
 import { importWithStaleChunkRecovery } from '@/lib/lazy-import';
 
 const Home = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/Home')));
@@ -54,7 +55,7 @@ function AppContent() {
   const location = useLocation();
 
   useEffect(() => {
-    document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = documentDirection(i18n.language);
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
 
@@ -62,7 +63,7 @@ function AppContent() {
 
   return (
     <HelmetProvider>
-    <div className={`min-h-screen bg-white ${i18n.language === 'ar' ? 'font-tajawal' : 'font-inter'}`}>
+    <div className={`min-h-screen bg-white ${isRtlLanguage(i18n.language) ? 'font-tajawal' : 'font-inter'}`}>
       {!isAdminRoute && <Header />}
       <main>
         <ChunkLoadErrorBoundary>
