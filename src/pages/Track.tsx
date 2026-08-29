@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle, Mail, Search } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
 import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
 import { buildChatbotPaymentPath } from "@/lib/chatbot-application";
@@ -62,6 +62,9 @@ export default function Track() {
             <button onClick={handleTrack} className="w-full mt-4 py-4 rounded-lg font-semibold text-white flex items-center justify-center gap-2 bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A]">
               <Search size={18} /> {t("button")}
             </button>
+            <Link to="/recover" className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-[#9C792D] hover:underline">
+              <Mail size={14} /> {isAr ? "استئناف طلبك بأمان عبر رابط البريد الإلكتروني" : "Resume your application securely via email link"}
+            </Link>
           </div>
         </div>
 
@@ -95,7 +98,7 @@ export default function Track() {
                     { label: t("result.applicant"), value: application.applicants[0]?.fullName || "—" },
                     { label: t("result.visaType"), value: application.visaType },
                     { label: t("result.submittedDate"), value: new Date(application.createdAt).toLocaleDateString() },
-                    { label: "Current status", value: application.status.replaceAll("_", " ") },
+                    { label: isAr ? "الحالة الحالية" : "Current status", value: application.status.replaceAll("_", " ") },
                   ].map((item) => (
                     <div key={item.label}>
                       <p className="text-xs text-gray-400 uppercase tracking-wider">{item.label}</p>
@@ -122,6 +125,10 @@ export default function Track() {
               <div className="text-center py-10">
                 <p className="text-gray-500 text-lg mb-4">{isAr ? "تعذر عرض الطلب" : "Application unavailable"}</p>
                 <p className="text-gray-400 text-sm mb-6">{isAr ? "يمكن عرض الطلبات التي أنشأتها على هذا الجهاز فقط." : "For your security, only applications created on this device can be viewed."}</p>
+                <Link to="/recover" className="mb-4 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#C9A04C] to-[#DDBB7A] px-5 py-3 text-sm font-semibold text-white">
+                  <Mail size={16} /> {isAr ? "استئناف عبر رابط بريد إلكتروني آمن" : "Resume via a secure email link"}
+                </Link>
+                <br />
                 <Link to="/" className="inline-flex items-center gap-2 text-[#C9A04C] hover:underline font-medium">
                   {isAr ? "قدّم طلبًا جديدًا" : "Apply for a new visa"} <ArrowRight size={16} />
                 </Link>

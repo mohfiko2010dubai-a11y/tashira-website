@@ -45,6 +45,11 @@ const StaffSupplierSla = lazy(() => importWithStaleChunkRecovery(() => import('@
 const StaffRegulatoryChanges = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffRegulatoryChanges')));
 const StaffOperationalPolicies = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationalPolicies')));
 const AdminFinanceCockpit = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFinanceCockpit')));
+const AdminVisaRules = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminVisaRules')));
+const AdminCatalogs = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminCatalogs')));
+const AdminDynamicForm = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminDynamicForm')));
+const AdminFeatureFlags = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFeatureFlags')));
+const AdminRuleEvaluations = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminRuleEvaluations')));
 const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplication')));
 const DynamicApplicationStart = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplicationStart')));
 const CustomerApplicationPortal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerApplicationPortal')));
@@ -98,6 +103,13 @@ function AppContent() {
           <Route path="/admin/vat" element={<AdminGuard><AdminVat /></AdminGuard>} />
           <Route path="/admin/finance" element={<AdminGuard><AdminFinanceCockpit /></AdminGuard>} />
           <Route path="/admin/chat" element={<AdminGuard><AdminChat /></AdminGuard>} />
+          <Route path="/admin/visa-rules" element={<AdminGuard><AdminVisaRules /></AdminGuard>} />
+          <Route path="/admin/visa-rules/:id" element={<AdminGuard><AdminVisaRules /></AdminGuard>} />
+          <Route path="/admin/catalogs" element={<AdminGuard><AdminCatalogs /></AdminGuard>} />
+          <Route path="/admin/catalogs/:section" element={<AdminGuard><AdminCatalogs /></AdminGuard>} />
+          <Route path="/admin/dynamic-form" element={<AdminGuard><AdminDynamicForm /></AdminGuard>} />
+          <Route path="/admin/feature-flags" element={<AdminGuard><AdminFeatureFlags /></AdminGuard>} />
+          <Route path="/admin/rule-evaluations" element={<AdminGuard><AdminRuleEvaluations /></AdminGuard>} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />

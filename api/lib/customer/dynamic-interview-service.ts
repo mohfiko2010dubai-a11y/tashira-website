@@ -106,7 +106,10 @@ export function buildPersistentDynamicInterview(input: PersistentInterviewInput)
       };
       const required = result.requiredDocuments.map((code) => project(code, "REQUIRED"));
       const conditional = [...new Set(result.conditionalDocuments.map(({ code }) => code))].sort().map((code) => project(code, "CONDITIONAL"));
-      return { applicantId, eligibilityState, requirements: [...required, ...conditional], customerMessage: customerMessage(eligibilityState) };
+      return { applicantId, eligibilityState, requirements: [...required, ...conditional], customerMessage: customerMessage(eligibilityState),
+        evidence: { manualReviewReason: result.manualReviewReason, reason: result.reason,
+          matchedRules: result.matchedRules.map((rule) => ({ ruleId: rule.ruleId, ruleVersion: rule.ruleVersion,
+            layer: rule.layer, classification: rule.classification, sourceAuthority: rule.sourceAuthority, reason: rule.reason })) } };
   });
   const evaluatedState = prepared.unanswered ? undefined : aggregate(applicantReview.map(({ eligibilityState }) => eligibilityState));
   return buildDynamicInterviewState({ applicationId: input.applicationId, applicantIds: input.applicantIds,

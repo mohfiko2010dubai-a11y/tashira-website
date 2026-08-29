@@ -1,4 +1,5 @@
 import { useState } from "react";
+import NationalitySelect from "./NationalitySelect";
 import { buildNewTravelGroupDraft } from "./interview-party-draft";
 
 export type PartyApplicant = { applicantId: number; applicantIndex: number; fullName: string; nationality: string | null;
@@ -97,8 +98,8 @@ export function InterviewPartySetup({ setup, busy = false, error = false, onAddA
 
 function ProfileFields({ profile, setProfile }: { profile: Profile; setProfile: (profile: Profile) => void }) {
   return <div className="mt-3 grid gap-3 sm:grid-cols-3"><label className="grid gap-1 text-sm font-medium">Full name<input className="rounded-lg border border-slate-300 px-3 py-2" value={profile.fullName} onChange={(event) => setProfile({ ...profile, fullName: event.target.value })}/></label>
-    <label className="grid gap-1 text-sm font-medium">Nationality<input className="rounded-lg border border-slate-300 px-3 py-2" value={profile.nationality ?? ""} onChange={(event) => setProfile({ ...profile, nationality: asNullable(event.target.value) })}/></label>
-    <label className="grid gap-1 text-sm font-medium">Country of residence<input className="rounded-lg border border-slate-300 px-3 py-2" value={profile.residenceCountry ?? ""} onChange={(event) => setProfile({ ...profile, residenceCountry: asNullable(event.target.value) })}/></label></div>;
+    <div className="grid gap-1 text-sm font-medium">Nationality<NationalitySelect value={profile.nationality ?? ""} onChange={(code) => setProfile({ ...profile, nationality: code || null })}/></div>
+    <div className="grid gap-1 text-sm font-medium">Country of residence<NationalitySelect value={profile.residenceCountry ?? ""} onChange={(code) => setProfile({ ...profile, residenceCountry: code || null })}/></div></div>;
 }
 
 function TravelFields({ setup, draft, setDraft, busy, onCancel, onSave }: { setup: PartySetup; draft: TravelInput;

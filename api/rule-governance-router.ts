@@ -38,6 +38,21 @@ export function createRuleGovernanceRouter(deps: Dependencies) {
       reason: z.string().trim().min(3).max(1000), commandId: z.string().uuid() }).strict()).mutation(async ({ ctx, input }) => {
         try { return await transitionRuleVersion({ ...await context(deps, ctx), ...input, now: deps.now() }); } catch (error) { safe(error); }
       }),
+    /** Read-only Staging feature flags for the Owner/Admin UI. Production flags are never returned here. */
+    stagingFeatureFlags: staffOrAdminQuery.input(z.object({}).strict()).query(async ({ ctx }) => {
+      const { flags } = await context(deps, ctx);
+      return flags.filter((flag) => flag.environment === "STAGING");
+    }),
+    /** Read-only recent governed rule evaluation runs for the Rule Evaluations screen. */
+    recentEvaluations: staffOrAdminQuery.input(z.object({ limit: z.number().int().min(1).max(200).default(100) }).strict()).query(async ({ input }) => {
+      const rows = await defaultOperationsSqlClient().query(
+        `SELECT r.id AS evaluationId, a.reference_number AS referenceNumber, r.applicant_id AS applicantId,
+                r.route_code AS routeCode, r.final_eligibility_state AS finalState, r.decision_reason AS decisionReason,
+                r.manual_review_reason AS manualReviewReason, r.engine_version AS engineVersion, r.evaluated_at AS evaluatedAt
+           FROM visa_rule_evaluation_runs r JOIN applications a ON a.id = r.application_id
+          ORDER BY r.evaluated_at DESC, r.id LIMIT ?`, [input.limit]);
+      return rows;
+    }),
   });
 }
 const access = new MysqlOperationsAccessProvider(defaultOperationsSqlClient());

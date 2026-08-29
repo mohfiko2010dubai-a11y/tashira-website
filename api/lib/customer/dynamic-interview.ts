@@ -52,6 +52,12 @@ export type DynamicInterviewState = {
       requirements: readonly { code: string; label: string; classification: "AUTHORITY_REQUIRED" | "TASHIRA_PROCESSING" | "MAY_BE_REQUIRED" | "OPTIONAL";
         state: "REQUIRED" | "CONDITIONAL"; explanation: string }[];
       customerMessage: string;
+      /** Governed evaluation evidence — present once the applicant was evaluated. */
+      evidence?: {
+        manualReviewReason: string | null;
+        reason: string;
+        matchedRules: readonly { ruleId: string; ruleVersion: number; layer: string; classification: string; sourceAuthority: string; reason: string }[];
+      };
     }[];
     manualReviewRequired: boolean;
   };

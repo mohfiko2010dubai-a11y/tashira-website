@@ -19,7 +19,11 @@ import { MysqlActiveRuleProvider } from "./lib/rules/mysql-active-rule-provider"
 import { MysqlOperationsCaseReadProvider, type MysqlOperationsCaseBundle } from "./lib/operations/mysql-case-read-provider";
 import type { EligibilityRule } from "./lib/eligibility/eligibility-engine";
 import type { QuestionCatalogDefinition, RequirementCatalogDefinition, VersionedRequirementCatalog } from "./lib/requirements/requirement-catalog";
-import { applicationAccessQuery, createRouter } from "./middleware";
+import { isNationalityCode, NATIONALITY_CATALOG } from "./lib/requirements/nationality-catalog";
+import { applicationAccessQuery, createRouter, publicQuery } from "./middleware";
+
+/** Question codes whose answer must be a governed ISO 3166-1 alpha-2 nationality/country code. */
+const NATIONALITY_QUESTION_CODES: ReadonlySet<string> = new Set(["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "GCC_COUNTRY"]);
 
 type ApplicationInterviewRecord = { applicationId: number; referenceNumber: string; routeCode: string; applicantIds: readonly number[];
   applicantLabels: Readonly<Record<number, string>>; applicants: readonly { applicantId: number; applicantIndex: number; fullName: string;
@@ -168,6 +172,11 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
   };
   const referenceInput = z.object({ referenceNumber: z.string().trim().min(3).max(50) }).strict();
   return createRouter({
+    /** Public governed nationality catalog (ISO codes + EN/AR labels) for the customer-facing interview. */
+    nationalityCatalog: publicQuery.input(z.object({}).strict()).query(() => ({
+      version: "iso-3166-1-alpha-2@2026-08",
+      nationalities: NATIONALITY_CATALOG,
+    })),
     current: applicationAccessQuery.input(referenceInput).query(({ input, ctx }) => readState(ctx, input.referenceNumber, "current")),
     start: applicationAccessQuery.input(referenceInput).query(({ input, ctx }) => readState(ctx, input.referenceNumber, "start")),
     resume: applicationAccessQuery.input(referenceInput).query(({ input, ctx }) => readState(ctx, input.referenceNumber, "resume")),
@@ -208,6 +217,9 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         if (!current || current.code !== input.questionCode || current.applicantId !== input.applicantId) throw new TRPCError({ code: "CONFLICT", message: "Interview question is no longer current" });
         const definition = runtime.questions.find((question) => question.code === input.questionCode);
         if (!definition) throw new TRPCError({ code: "CONFLICT", message: "Interview question unavailable" });
+        if (NATIONALITY_QUESTION_CODES.has(definition.code) && !isNationalityCode(input.answer)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Select a nationality from the governed catalog" });
+        }
         const appended = await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
           answer: input.answer, changeReason: input.changeReason, actorReference: `customer:${input.referenceNumber}`, occurredAt: deps.now() });
         await persistCompletion(runtime, appended, "CUSTOMER_INTERVIEW_COMPLETED");
@@ -229,6 +241,9 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         if (JSON.stringify(previous.answer) === JSON.stringify(input.answer)) return runtime.state;
         const definition = runtime.questions.find((question) => question.code === input.questionCode);
         if (!definition) throw new TRPCError({ code: "CONFLICT", message: "Interview question unavailable" });
+        if (NATIONALITY_QUESTION_CODES.has(definition.code) && !isNationalityCode(input.answer)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Select a nationality from the governed catalog" });
+        }
         const appended = await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
           answer: input.answer, changeReason: input.changeReason, actorReference: `customer:${input.referenceNumber}`, occurredAt: deps.now() });
         await persistCompletion(runtime, appended, input.changeReason);
