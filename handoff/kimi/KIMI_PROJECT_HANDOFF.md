@@ -1,4 +1,10 @@
-# TASHIRA — Kimi Project Handoff
+# SUPERSEDED — DO NOT USE FOR IMPLEMENTATION
+
+This historical handoff is retained only as audit evidence. The canonical
+implementation handoff is `KIMI_AUTHORITATIVE_HANDOFF.md` on branch
+`handoff/kimi-authoritative-latest`.
+
+# TASHIRA — Kimi Project Handoff (Historical)
 
 Baseline: `codex/visa-operations-os-v1` at `4e0f520b72e047e590a646774576eec2614a2e22`
 Target: isolated Staging completion only. Production and `main/master` are outside scope.

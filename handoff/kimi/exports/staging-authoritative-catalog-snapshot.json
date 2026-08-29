@@ -1,0 +1,36 @@
+{
+  "snapshotVersion": "staging-authoritative-2026-08-29-v1",
+  "environment": "STAGING",
+  "database": "tashira_staging",
+  "containsSecrets": false,
+  "pricing": {
+    "currency": "USD",
+    "authority": "pricing_rules and immutable application_price_snapshots",
+    "productsExpected": 8,
+    "processingModesExpected": ["regular", "express"],
+    "fourteenDayMultipleEntry": {
+      "serviceCode": "14days-multiple",
+      "regularPrice": 265,
+      "expressPrice": 295,
+      "source": "staging/seed-reference.sql",
+      "internalCosts": "synthetic staging-only; not exported"
+    }
+  },
+  "requirementCatalog": {
+    "importVersion": "generic-requirement-catalog-v1",
+    "contentSha256": "77be1bdff302f7a1492774460a19a6c205de41ea8ee3c52a905f7bdeac560289",
+    "activeDefinitions": 13,
+    "activeQuestions": 18,
+    "classification": "synthetic/generic staging acceptance content"
+  },
+  "visaRules": {
+    "activeSyntheticRuleVersions": 8,
+    "rejectedSyntheticRuleVersions": 1,
+    "customerWideOfficialProductionRulesActivated": false
+  },
+  "featureFlags": {
+    "scopeModel": ["GLOBAL", "STAFF", "TEAM", "APPLICATION"],
+    "sensitiveValuesOrScopeReferencesExported": false,
+    "note": "Current Staging contains scoped acceptance flags. This snapshot does not authorize broader activation."
+  }
+}

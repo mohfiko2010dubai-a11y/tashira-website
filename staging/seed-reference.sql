@@ -19,6 +19,8 @@ INSERT IGNORE INTO `pricing_rules` (
 ) VALUES
   ('14days-single','regular',1,100.00,10.00,55.00,165.00,NULL,150.00,'USD','2026-01-01 00:00:00',NULL,'staging-seed'),
   ('14days-single','express',1,110.00,10.00,75.00,195.00,NULL,175.00,'USD','2026-01-01 00:00:00',NULL,'staging-seed'),
+  ('14days-multiple','regular',1,180.00,15.00,70.00,265.00,NULL,240.00,'USD','2026-01-01 00:00:00',NULL,'staging-seed'),
+  ('14days-multiple','express',1,195.00,15.00,85.00,295.00,NULL,270.00,'USD','2026-01-01 00:00:00',NULL,'staging-seed'),
   ('30days-single','regular',1,115.00,10.00,60.00,185.00,NULL,165.00,'USD','2026-01-01 00:00:00',NULL,'staging-seed'),
   ('30days-single','express',1,125.00,10.00,80.00,215.00,NULL,195.00,'USD','2026-01-01 00:00:00',NULL,'staging-seed'),
   ('60days-single','regular',1,200.00,15.00,80.00,295.00,NULL,270.00,'USD','2026-01-01 00:00:00',NULL,'staging-seed'),
