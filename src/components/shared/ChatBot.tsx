@@ -398,11 +398,16 @@ export default function ChatBot() {
     setInput('');
     addUserMessage(msg);
     setLoading(true);
-    processInput(msg);
+    processInput(msg, wizardRef.current);
   };
 
-  const processInput = (msg: string) => {
-    const w = wizard;
+  /**
+   * Process one user command against an explicit, immutable wizard snapshot.
+   * The snapshot is always read from wizardRef.current at dispatch time, so
+   * rapid interactions never act on a stale render closure.
+   */
+  const processInput = (msg: string, snapshot: Wizard) => {
+    const w = snapshot;
 
     switch (w.step) {
 
@@ -950,7 +955,7 @@ export default function ChatBot() {
             <p className="text-xs font-semibold text-gray-500 mb-1">Select:</p>
             <div className="grid grid-cols-2 gap-2">
               {WHO_TRAVELING.map(opt => (
-                <button key={opt} onClick={() => { addUserMessage(opt); setLoading(true); processInput(opt); }}
+                <button key={opt} onClick={() => { addUserMessage(opt); setLoading(true); processInput(opt, wizardRef.current); }}
                   className="px-3 py-2 bg-white border border-[#C9A04C] rounded-lg text-[13px] font-semibold text-[#C9A04C] hover:bg-[#FFF8E7] transition-all">
                   {opt}
                 </button>
@@ -964,7 +969,7 @@ export default function ChatBot() {
           <div className="p-3 bg-gray-50 border-t border-gray-100 space-y-1">
             <p className="text-xs font-semibold text-gray-500 mb-1">Residence Status:</p>
             {RESIDENCE_OPTIONS.map(r => (
-              <button key={r} onClick={() => { addUserMessage(r); setLoading(true); processInput(r); }}
+              <button key={r} onClick={() => { addUserMessage(r); setLoading(true); processInput(r, wizardRef.current); }}
                 className="w-full text-left px-3 py-2 bg-white border border-gray-200 rounded-lg text-[12px] hover:bg-[#FFF8E7] hover:border-[#C9A04C] transition-all mb-1">
                 {r}
               </button>
@@ -978,7 +983,7 @@ export default function ChatBot() {
             <p className="text-xs font-semibold text-gray-500 mb-2">Select Visa Type:</p>
             <div className="grid grid-cols-1 gap-2">
               {VISA_OPTIONS.map(v => (
-                <button key={v.label} onClick={() => { addUserMessage(`${v.emoji} ${v.label}`); setLoading(true); processInput(v.label); }}
+                <button key={v.label} onClick={() => { addUserMessage(`${v.emoji} ${v.label}`); setLoading(true); processInput(v.label, wizardRef.current); }}
                   className="flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-[#FFF8E7] hover:border-[#C9A04C] transition-all">
                   <span className="text-[13px]">{v.emoji} {v.label}</span>
                   <span className="text-[11px] font-semibold text-[#C9A04C]">Server quote</span>
@@ -994,7 +999,7 @@ export default function ChatBot() {
             <p className="text-xs font-semibold text-gray-500 mb-1">Processing:</p>
             <div className="grid grid-cols-2 gap-2">
               {PROCESSING_OPTIONS.map(p => (
-                <button key={p.label} onClick={() => { addUserMessage(p.label); setLoading(true); processInput(p.label); }}
+                <button key={p.label} onClick={() => { addUserMessage(p.label); setLoading(true); processInput(p.label, wizardRef.current); }}
                   className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-[13px] hover:bg-[#FFF8E7] hover:border-[#C9A04C] transition-all">
                   <div>{p.emoji} {p.label}</div>
                   <div className="text-[11px] text-gray-500">Price verified by server</div>
@@ -1037,7 +1042,7 @@ export default function ChatBot() {
                 <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-[#C9A04C] underline">Refund/Cancellation Policy</a>.
               </span>
             </label>
-            <button onClick={() => { addUserMessage('CONFIRM'); setLoading(true); processInput('CONFIRM'); }}
+            <button onClick={() => { addUserMessage('CONFIRM'); setLoading(true); processInput('CONFIRM', wizardRef.current); }}
               disabled={!wizard.acceptedTerms}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all font-bold disabled:cursor-not-allowed disabled:opacity-50">
               <Lock size={18} />

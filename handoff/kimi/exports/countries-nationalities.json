@@ -1,0 +1,8 @@
+{
+  "exportVersion":"canonical-country-catalog-pending",
+  "status":"NOT_GOVERNED",
+  "countries":[],
+  "nationalities":[],
+  "gccCountryCodes":["AE","BH","KW","OM","QA","SA"],
+  "note":"Do not invent or activate a country/nationality list. Owner must approve a versioned ISO-based source and labels."
+}

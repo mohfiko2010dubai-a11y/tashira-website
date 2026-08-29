@@ -1,0 +1,9 @@
+{
+  "exportVersion":"status-catalogs-v1",
+  "applicationDatabase":["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"],
+  "customerOperations":["APPLICATION_RECEIVED","DOCUMENTS_REQUIRED","DOCUMENTS_UNDER_REVIEW","ADDITIONAL_DOCUMENTS_REQUIRED","READY_FOR_SUBMISSION","GOVERNMENT_PROCESSING","VISA_APPROVED","VISA_ISSUED","COMPLETED","CANCELLED","REJECTED"],
+  "payment":["pending","paid","failed"],
+  "refundCase":["DRAFT","PENDING_APPROVAL","APPROVED","PROCESSING","REFUNDED","PARTIALLY_REFUNDED","FAILED","REJECTED","CANCELLED"],
+  "documentReview":["ACCEPTED","REJECTED","NEEDS_REPLACEMENT","UNREADABLE","MISMATCH","MANUAL_REVIEW"],
+  "eligibility":["ELIGIBLE","INELIGIBLE","HUMAN_REVIEW_REQUIRED","RULE_CONFLICT"]
+}

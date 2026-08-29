@@ -6,6 +6,7 @@ import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
+import { getCanonicalApplicationByReference } from "./lib/application-projection";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { recordTimelineEvent, type TimelineEventName } from "./lib/application-timeline";
 import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
@@ -159,23 +160,7 @@ export const applicationRouter = createRouter({
     .input(z.object({ referenceNumber: z.string() }))
     .query(async ({ input, ctx }) => {
       assertApplicationReferenceAccess(ctx, input.referenceNumber);
-      const db = getDb();
-      const [app] = await db.select().from(applications)
-        .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
-      if (!app) return null;
-      const applicantList = await db.select().from(applicants)
-        .where(eq(applicants.applicationId, app.id));
-      let supplier = null;
-      try {
-        if (app.supplierId) {
-          const [s] = await db.select().from(suppliers)
-            .where(eq(suppliers.id, app.supplierId)).limit(1);
-          supplier = s || null;
-        }
-      } catch {
-        // supplierId column may not exist yet
-      }
-      return { ...app, applicants: applicantList, supplier };
+      return getCanonicalApplicationByReference(input.referenceNumber);
     }),
 
   list: staffOrAdminQuery

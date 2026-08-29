@@ -1,0 +1,6 @@
+{
+  "exportVersion":"residence-types-v1",
+  "applicationResidenceTypes":["non-gcc","gcc-resident","non-gcc-accompany","gcc-accompany"],
+  "dynamicQuestionCodes":["RESIDENCE_COUNTRY","RESIDENCE_TYPE","GCC_RESIDENT","GCC_COUNTRY","RESIDENCE_EXPIRY","PROFESSION"],
+  "eligibilityPolicy":"No residence outcome without an approved effective rule; otherwise HUMAN_REVIEW_REQUIRED."
+}

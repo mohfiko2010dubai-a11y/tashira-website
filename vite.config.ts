@@ -39,7 +39,11 @@ export default defineConfig({
     // tabs opened before a deployment can finish their lazy imports safely.
     // A release-based deployment may replace this with atomic directory swaps.
     emptyOutDir: false,
-    minify: false,
+    // Minification restored (default esbuild). The previous `minify: false`
+    // was a workaround for a TDZ crash whose root cause (wizardRef declared
+    // before the wizard state it referenced) has been fixed at the source.
+    minify: 'esbuild',
+    sourcemap: true,
   },
   optimizeDeps: {
     include: ['react-router-dom', '@tanstack/react-query', '@trpc/client', '@trpc/react-query'],

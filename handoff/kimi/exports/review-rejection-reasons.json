@@ -1,0 +1,7 @@
+{
+  "exportVersion":"controlled-review-outcomes-v1",
+  "humanReviewOutcomes":["APPROVED_FOR_NEXT_STEP","NEEDS_CORRECTION","MANUAL_REVIEW_REQUIRED","REJECTED_OPERATIONALLY"],
+  "documentReviewOutcomes":["ACCEPTED","REJECTED","NEEDS_REPLACEMENT","UNREADABLE","MISMATCH","MANUAL_REVIEW"],
+  "prescreenReasons":["DOCUMENT_TYPE_MISMATCH","APPLICANT_FIELD_MISMATCH","TICKET_PASSENGER_MISMATCH","DOCUMENT_EXPIRED","LOW_CONFIDENCE","GLARE","UNREADABLE"],
+  "policy":"Actor identity, reason, timestamp, entity version and audit event are required; do not accept client-provided roles/scopes."
+}

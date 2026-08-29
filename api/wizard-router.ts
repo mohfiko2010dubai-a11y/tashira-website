@@ -9,6 +9,7 @@ import { LOCAL_STORAGE_METADATA, storageDelete, storageUpload } from "./lib/loca
 import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
+import { getCanonicalApplicationByReference } from "./lib/application-projection";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { documentUploadEvent, hasTimelineEvent, hasTimelinePolicyAcceptance, recordTimelineEvent } from "./lib/application-timeline";
 import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
@@ -435,18 +436,15 @@ export const wizardRouter = createRouter({
       }
     }),
 
-  // Get single application by reference number
+  // Compatibility adapter: delegates to the single canonical application
+  // projection (api/lib/application-projection.ts) shared with
+  // application.getByReference, so the two read surfaces can never drift.
   getByReference: applicationAccessQuery
     .input(z.object({ referenceNumber: z.string() }))
     .query(async ({ input, ctx }) => {
       try {
         assertApplicationReferenceAccess(ctx, input.referenceNumber);
-        const db = getDb();
-        const [app] = await db.select()
-          .from(applications)
-          .where(eq(applications.referenceNumber, input.referenceNumber))
-          .limit(1);
-        return app || null;
+        return await getCanonicalApplicationByReference(input.referenceNumber);
       } catch (error: unknown) {
         const message = getErrorMessage(error);
         console.error("[Wizard] Failed to get application:", message);

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 import { paymentViewState } from '@/lib/payment-view-state';
+import { resolvePaymentDisplayAmount } from '@/lib/payment-display-amount';
 import { PaymentSuccessExperience } from '@/components/shared/PaymentSuccessExperience';
 import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-preflight';
 import { trackFunnelEventOnce, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
@@ -259,21 +260,11 @@ export default function PaymentPage() {
     );
   }
 
-  // Calculate amount from visa type if database values are missing
-  const visaPrices: Record<string, number> = {
-    '14 Days': 145, '30 Days': 170, '60 Days': 250, '90 Days': 330, '96 Hours': 99,
-    '14 days': 145, '30 days': 170, '60 days': 250, '90 days': 330, '96 hours': 99,
-  };
-  const expressFee = app.processingType === 'express' ? 40 : 0;
-  const basePrice = visaPrices[app.visaType || ''] || 170;
-  const count = app.applicants.length || 1;
-  const calculatedAmount = (basePrice + expressFee) * count;
-  
-  const dbAmount = typeof app.totalAmountUsd === 'string' 
-    ? parseFloat(app.totalAmountUsd) 
-    : (typeof app.totalAmountAed === 'string' ? parseFloat(app.totalAmountAed) / 3.67 : 0);
-  
-  const amount = dbAmount > 0 ? dbAmount : calculatedAmount;
+  // Authoritative amount comes only from the server-side price snapshot.
+  // Never fall back to hard-coded client prices: if the snapshot is missing
+  // we fail closed instead of displaying an amount that can disagree with
+  // the amount Stripe will actually charge.
+  const { amount, priceSnapshotMissing } = resolvePaymentDisplayAmount(app);
   const applicantName = app.applicants.find((applicant) => Number(applicant.applicantIndex) === 0)?.fullName || 'Applicant';
   const completionGroups = readiness.data?.status === 'INCOMPLETE'
     ? completionPanelGroups(readiness.data)
@@ -348,7 +339,11 @@ export default function PaymentPage() {
             </div>
             <div className="border-t border-gray-100 pt-3 flex justify-between">
               <span className="font-semibold text-[#1A2332]">Total</span>
-              <span className="text-2xl font-bold text-[#C9A04C]">${amount || 0}</span>
+              {priceSnapshotMissing ? (
+                <span className="text-sm font-medium text-red-500">Unavailable</span>
+              ) : (
+                <span className="text-2xl font-bold text-[#C9A04C]">${amount}</span>
+              )}
             </div>
           </div>
         </div>
@@ -371,7 +366,12 @@ export default function PaymentPage() {
 
         {/* Payment Form */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          {readiness.error ? (
+          {priceSnapshotMissing ? (
+            <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+              The price for this application is not configured yet, so payment is not available.
+              Please contact support and we will complete it for you.
+            </div>
+          ) : readiness.error ? (
             <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
               We could not verify that this application is ready for payment. Please refresh the page or contact support.
             </div>
