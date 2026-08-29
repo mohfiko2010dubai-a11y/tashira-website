@@ -69,11 +69,7 @@ try {
   if (!state.unifiedReview || canonicalReview.length !== scenario.applicantNationalities.length) {
     throw new Error("STAGING_SCENARIO_UNIFIED_REVIEW_INCOMPLETE");
   }
-  if (reference === "TSH-STG-DYN-FAMILY") {
-    if (canonicalReview.some(({ eligibilityState }) => eligibilityState !== scenario.expectedState)) {
-      throw new Error("STAGING_SCENARIO_ELIGIBILITY_INVALID");
-    }
-  } else if (state.eligibilityState !== scenario.expectedState) throw new Error("STAGING_SCENARIO_ELIGIBILITY_INVALID");
+  if (state.eligibilityState !== scenario.expectedState) throw new Error("STAGING_SCENARIO_ELIGIBILITY_INVALID");
   if (scenario.expectedRequirement && !canonicalReview[0].requirements.some(({ code }) => code === scenario.expectedRequirement)) {
     throw new Error("STAGING_SCENARIO_REQUIREMENT_MISSING");
   }
