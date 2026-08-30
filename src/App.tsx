@@ -50,6 +50,7 @@ const AdminCatalogs = lazy(() => importWithStaleChunkRecovery(() => import('@/pa
 const AdminDynamicForm = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminDynamicForm')));
 const AdminFeatureFlags = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFeatureFlags')));
 const AdminRuleEvaluations = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminRuleEvaluations')));
+const AdminSecurity = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminSecurity')));
 const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplication')));
 const DynamicApplicationStart = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplicationStart')));
 const CustomerApplicationPortal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerApplicationPortal')));
@@ -110,6 +111,7 @@ function AppContent() {
           <Route path="/admin/dynamic-form" element={<AdminGuard><AdminDynamicForm /></AdminGuard>} />
           <Route path="/admin/feature-flags" element={<AdminGuard><AdminFeatureFlags /></AdminGuard>} />
           <Route path="/admin/rule-evaluations" element={<AdminGuard><AdminRuleEvaluations /></AdminGuard>} />
+          <Route path="/admin/security" element={<AdminGuard><AdminSecurity /></AdminGuard>} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />

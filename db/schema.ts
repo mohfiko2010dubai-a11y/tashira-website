@@ -1,4 +1,5 @@
 import {
+  int,
   mysqlTable,
   serial,
   varchar,
@@ -473,3 +474,11 @@ export const documentLifecycleEvents = mysqlTable("document_lifecycle_events", {
   foreignKey({ name: "document_lifecycle_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
   foreignKey({ name: "document_lifecycle_applicant_fk", columns: [table.applicantId], foreignColumns: [applicants.id] }).onDelete("restrict"),
 ]);
+
+export const adminSecuritySettings = mysqlTable("admin_security_settings", {
+  id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  passwordHash: varchar("password_hash", { length: 255 }),
+  sessionEpoch: int("session_epoch").notNull().default(1),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: varchar("updated_by", { length: 100 }).notNull().default("system"),
+});

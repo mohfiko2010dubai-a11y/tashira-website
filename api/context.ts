@@ -1,7 +1,7 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { staffUsers, type users } from "@db/schema";
 import { authenticateRequest } from "./kimi/auth";
-import { verifyAdminSession } from "./lib/admin-session";
+import { verifyAdminSessionAsync } from "./lib/admin-session";
 import { getStaffSession } from "./lib/staff-session";
 import { getDb } from "./queries/connection";
 import { eq } from "drizzle-orm";
@@ -22,7 +22,7 @@ export async function createContext(
   const ctx: TrpcContext = {
     req: opts.req,
     resHeaders: opts.resHeaders,
-    isAdmin: verifyAdminSession(opts.req.headers),
+    isAdmin: await verifyAdminSessionAsync(opts.req.headers),
     customerApplicationReferences: getCustomerApplicationReferences(opts.req.headers),
   };
   try {

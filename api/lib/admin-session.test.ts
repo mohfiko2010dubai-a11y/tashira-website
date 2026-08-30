@@ -50,3 +50,32 @@ describe("admin server session", () => {
     expect(clearAdminSessionCookie(secureHeaders)).toContain("Max-Age=0");
   });
 });
+
+describe("admin password hashing and policy", () => {
+  it("hashes and verifies with scrypt, rejecting wrong passwords", async () => {
+    const { hashAdminPassword, verifyAdminPasswordHash } = await import("./admin-session");
+    const hash = hashAdminPassword("NewStrongPass123");
+    expect(hash.startsWith("scrypt:")).toBe(true);
+    expect(verifyAdminPasswordHash("NewStrongPass123", hash)).toBe(true);
+    expect(verifyAdminPasswordHash("WrongPass123", hash)).toBe(false);
+    expect(verifyAdminPasswordHash("NewStrongPass123", "garbage")).toBe(false);
+  });
+
+  it("enforces the new-password policy", async () => {
+    const { validateNewAdminPassword } = await import("./admin-session");
+    expect(validateNewAdminPassword("short")).toMatch(/12/);
+    expect(validateNewAdminPassword("alllowercase123")).toMatch(/upper/);
+    expect(validateNewAdminPassword("NoDigitsHere")).toMatch(/digit/);
+    expect(validateNewAdminPassword("ValidPass123")).toBeNull();
+  });
+
+  it("embeds the session epoch in the cookie and still verifies", async () => {
+    const { createAdminSessionCookie: create, verifyAdminSession: verify } = await import("./admin-session");
+    const setCookie = create(secureHeaders, 7);
+    const cookieHeader = setCookie.split(";")[0];
+    expect(verify(new Headers({ cookie: cookieHeader }))).toBe(true);
+    // payload must carry the epoch segment
+    const payload = decodeURIComponent(cookieHeader.split("=")[1]).split(".")[0];
+    expect(payload.split(":")[1]).toBe("7");
+  });
+});

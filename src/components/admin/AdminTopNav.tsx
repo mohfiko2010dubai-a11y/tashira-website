@@ -8,6 +8,7 @@ const LINKS = [
   { to: '/admin/catalogs', label: 'Catalogs' },
   { to: '/admin/dynamic-form', label: 'Dynamic Form' },
   { to: '/admin/feature-flags', label: 'Feature Flags' },
+  { to: '/admin/security', label: 'Security' },
   { to: '/admin/rule-evaluations', label: 'Evaluations' },
   { to: '/admin/invoices', label: 'Invoices' },
   { to: '/admin/finance', label: 'Finance' },

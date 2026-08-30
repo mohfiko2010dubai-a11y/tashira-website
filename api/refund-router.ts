@@ -14,7 +14,7 @@ import {
 } from "@db/schema";
 import { adminQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
-import { verifyAdminPassword } from "./lib/admin-session";
+import { verifyAdminPasswordAsync } from "./lib/admin-session";
 import { assertRefundSource, calculateRefund, deriveRefundCaseStatus, reconcileRefundStatus, type RefundDeduction } from "./lib/refund-domain";
 import { createStripeRefund, retrieveStripeRefund } from "./lib/stripe";
 import { sendRefundOutcomeEmail } from "./lib/refund-outcome-email";
@@ -236,7 +236,7 @@ export const refundRouter = createRouter({
     refundCaseId: z.string().uuid(),
     adminPassword: z.string().min(1).max(500),
   })).mutation(async ({ input, ctx }) => {
-    if (!verifyAdminPassword(input.adminPassword)) {
+    if (!(await verifyAdminPasswordAsync(input.adminPassword))) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Administrator re-authentication failed" });
     }
     await getDb().transaction(async (tx) => {
@@ -270,7 +270,7 @@ export const refundRouter = createRouter({
     adminPassword: z.string().min(1).max(500),
     confirmation: z.literal("EXECUTE REFUND"),
   })).mutation(async ({ input, ctx }) => {
-    if (!verifyAdminPassword(input.adminPassword)) {
+    if (!(await verifyAdminPasswordAsync(input.adminPassword))) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Administrator re-authentication failed" });
     }
 
@@ -400,7 +400,7 @@ export const refundRouter = createRouter({
     adminPassword: z.string().min(1).max(500),
     confirmation: z.literal("RECONCILE REFUND"),
   })).mutation(async ({ input, ctx }) => {
-    if (!verifyAdminPassword(input.adminPassword)) {
+    if (!(await verifyAdminPasswordAsync(input.adminPassword))) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Administrator re-authentication failed" });
     }
 
