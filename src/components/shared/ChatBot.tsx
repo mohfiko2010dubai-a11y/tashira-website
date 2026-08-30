@@ -12,6 +12,7 @@ import {
   type ChatbotApplicant,
 } from '@/lib/chatbot-application';
 import { ChatbotReview } from './ChatbotReview';
+import { ChatCountryPicker, ChatDatePicker } from './ChatPickers';
 import { trackFunnelEventOnce } from '@/lib/google-conversion';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -396,6 +397,11 @@ export default function ChatBot() {
     if (!input.trim() || loading) return;
     const msg = input.trim();
     setInput('');
+    submitValue(msg);
+  };
+
+  /** Submit one answer through the normal pipeline (used by text input and smart pickers). */
+  const submitValue = (msg: string) => {
     addUserMessage(msg);
     setLoading(true);
     processInput(msg, wizardRef.current);
@@ -1166,6 +1172,11 @@ export default function ChatBot() {
 
           {/* Input */}
           <div className="p-3 border-t border-gray-100 bg-white">
+            {wizard.step === 'nationality' || wizard.step === 'country_from' ? (
+              <ChatCountryPicker disabled={loading} onPick={(name) => submitValue(name)} />
+            ) : wizard.step === 'passport_expiry' || wizard.step === 'arrival_date' ? (
+              <ChatDatePicker disabled={loading} min={new Date().toISOString().slice(0, 10)} onPick={(date) => submitValue(date)} />
+            ) : (
             <div className="flex gap-2">
               <input type="text" value={input} onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSend()}
@@ -1177,6 +1188,7 @@ export default function ChatBot() {
                 <Send size={16} />
               </button>
             </div>
+            )}
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle, FileCheck, Loader2, Pencil, ShieldCheck } from 'lucide-react';
+import { trpc } from '@/providers/trpc-client';
 import type { ChatbotApplicant } from '@/lib/chatbot-application';
 
 type ApplicantChanges = Pick<ChatbotApplicant, 'fullName' | 'nationality' | 'passportNumber' | 'passportExpiry' | 'profession' | 'countryFrom'>;
@@ -56,6 +57,8 @@ export function ChatbotReview({
 
   const maskPassport = (value: string) => value.length <= 4 ? value : `${'•'.repeat(Math.min(value.length - 4, 8))}${value.slice(-4)}`;
   const inputClass = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-800 outline-none focus:border-[#C9A04C]';
+  const catalog = trpc.dynamicInterview.nationalityCatalog.useQuery({});
+  const countries = catalog.data?.nationalities ?? [];
 
   return (
     <div className="border-t border-gray-100 bg-[#FAFAF7] p-3">
@@ -79,7 +82,19 @@ export function ChatbotReview({
                 {isEditing && applicantDraft ? (
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     {(['fullName', 'nationality', 'passportNumber', 'passportExpiry', 'profession', 'countryFrom'] as const).map((field) => (
+                      field === 'nationality' || field === 'countryFrom' ? (
+                        <select key={field} aria-label={field} value={applicantDraft[field]}
+                          onChange={(event) => setApplicantDraft({ ...applicantDraft, [field]: event.target.value })} className={inputClass}>
+                          <option value="">Select country…</option>
+                          {countries.map((c) => <option key={c.code} value={c.nameEn}>{c.nameEn}</option>)}
+                        </select>
+                      ) : field === 'passportExpiry' ? (
+                        <input key={field} type="date" aria-label={field} value={applicantDraft[field]}
+                          min={new Date().toISOString().slice(0, 10)}
+                          onChange={(event) => setApplicantDraft({ ...applicantDraft, [field]: event.target.value })} className={inputClass} />
+                      ) : (
                       <input key={field} aria-label={field} value={applicantDraft[field]} onChange={(event) => setApplicantDraft({ ...applicantDraft, [field]: event.target.value })} className={inputClass} />
+                      )
                     ))}
                     <div className="col-span-2 flex gap-2">
                       <button type="button" onClick={() => setEditing(null)} className="flex-1 rounded-lg border px-3 py-2 text-xs">Cancel</button>
