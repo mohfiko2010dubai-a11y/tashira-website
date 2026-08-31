@@ -118,7 +118,7 @@ export const documentRouter = createRouter({
         actorReference: `document:${result.id}`,
         summary: `${input.documentType} document uploaded`,
       });
-      const replacementEvent = await recordDocumentLifecycleEvent({
+      await recordDocumentLifecycleEvent({
         applicationId: input.applicationId,
         documentId: result.id,
         applicantId: input.applicantId,
@@ -147,10 +147,11 @@ export const documentRouter = createRouter({
   requestReplacement: applicationUploadQuery
     .input(z.object({ id: z.number().positive(), reason: z.string().min(1).max(255) }))
     .mutation(async ({ input, ctx }) => {
-      const [doc] = await getDb().select().from(documents).where(eq(documents.id, input.id)).limit(1);
+      const db = getDb();
+      const [doc] = await db.select().from(documents).where(eq(documents.id, input.id)).limit(1);
       if (!doc) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
       await assertApplicationIdAccess(ctx, doc.applicationId);
-      await recordDocumentLifecycleEvent({
+      const replacementEvent = await recordDocumentLifecycleEvent({
         applicationId: doc.applicationId,
         documentId: doc.id,
         applicantId: doc.applicantId ?? undefined,
