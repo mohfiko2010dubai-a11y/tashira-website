@@ -12,7 +12,8 @@ export type AuditEvent =
   | "payment.readiness_rejected"
   | "payment.confirm"
   | "customer.recovery_requested"
-  | "customer.recovery_verified";
+  | "customer.recovery_verified"
+  | "email.notification";
 
 export function auditLog(
   event: AuditEvent,

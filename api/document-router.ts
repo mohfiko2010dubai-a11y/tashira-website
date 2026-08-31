@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { applicationUploadQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { documents } from "@db/schema";
+import { applications, documents } from "@db/schema";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
@@ -9,6 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { documentUploadEvent, recordTimelineEvent } from "./lib/application-timeline";
 import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
 import { LOCAL_STORAGE_METADATA, storageDelete } from "./lib/local-storage";
+import { sendDocumentsRequiredNotification } from "./lib/customer-notification-email";
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -117,7 +118,7 @@ export const documentRouter = createRouter({
         actorReference: `document:${result.id}`,
         summary: `${input.documentType} document uploaded`,
       });
-      await recordDocumentLifecycleEvent({
+      const replacementEvent = await recordDocumentLifecycleEvent({
         applicationId: input.applicationId,
         documentId: result.id,
         applicantId: input.applicantId,
@@ -165,6 +166,20 @@ export const documentRouter = createRouter({
         actorReference: `document:${doc.id}`,
         summary: "Document replacement requested",
       });
+      const [application] = await db.select({
+        contactEmail: applications.contactEmail,
+        referenceNumber: applications.referenceNumber,
+      }).from(applications).where(eq(applications.id, doc.applicationId)).limit(1);
+      if (application?.contactEmail) {
+        await sendDocumentsRequiredNotification({
+          applicationId: doc.applicationId,
+          recipient: application.contactEmail,
+          referenceNumber: application.referenceNumber,
+          documentLabel: doc.documentType.replaceAll("_", " "),
+          reason: input.reason,
+          dedupReference: `document-event:${replacementEvent.id}`,
+        });
+      }
       return { success: true };
     }),
 

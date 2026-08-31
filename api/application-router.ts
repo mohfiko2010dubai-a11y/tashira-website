@@ -7,6 +7,7 @@ import { getErrorMessage } from "./lib/errors";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { getCanonicalApplicationByReference } from "./lib/application-projection";
+import { sendStatusChangeNotification } from "./lib/customer-notification-email";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { recordTimelineEvent, type TimelineEventName } from "./lib/application-timeline";
 import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
@@ -210,7 +211,11 @@ export const applicationRouter = createRouter({
     .input(z.object({ id: z.number(), status: z.enum(STATUS_ENUM) }))
     .mutation(async ({ input }) => {
       const db = getDb();
-      const [application] = await db.select({ paymentStatus: applications.paymentStatus }).from(applications)
+      const [application] = await db.select({
+        paymentStatus: applications.paymentStatus,
+        referenceNumber: applications.referenceNumber,
+        contactEmail: applications.contactEmail,
+      }).from(applications)
         .where(eq(applications.id, input.id)).limit(1);
       if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
       if (!canEnterApplicationState(application.paymentStatus, input.status)) {
@@ -239,6 +244,14 @@ export const applicationRouter = createRouter({
         });
       }
       auditLog("application.status_change", "success", "admin");
+      if (application.contactEmail) {
+        await sendStatusChangeNotification({
+          applicationId: input.id,
+          recipient: application.contactEmail,
+          referenceNumber: application.referenceNumber,
+          newStatus: input.status,
+        });
+      }
       return { success: true };
     }),
 

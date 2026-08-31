@@ -53,7 +53,7 @@ export function renderTransactionalEmail(template: EmailTemplate, variables: Rec
       body: `Your payment was verified. Application: ${reference}. Invoice: ${variables.invoiceNumber}. Amount paid: ${variables.amountPaid} ${variables.currency}. Current status: ${variables.currentStatus}. View or download your invoice securely: ${variables.invoiceUrl}. Next step: TASHIRA will review the paid application. Payment confirmation does not mean government submission.${variables.trackingUrl ? ` Track securely: ${variables.trackingUrl}` : ""}`,
     },
     PAYMENT_FAILED: { subject: `Payment needs attention — ${reference}`, body: `The payment was not completed. No visa-processing claim is being made.` },
-    DOCUMENTS_REQUIRED: { subject: `Documents required — ${reference}`, body: `Additional documents are required. Sign in securely to review the request.` },
+    DOCUMENTS_REQUIRED: { subject: `Documents required — ${reference}`, body: `Additional documents are required. Sign in securely to review the request.${variables.documentList ? `\n\n${variables.documentList}` : ""}` },
     SUBMITTED: { subject: `Ready for processing — ${reference}`, body: `Application ${reference} is submitted and ready for TASHIRA processing.` },
     STATUS_CHANGED: { subject: `Application status updated — ${reference}`, body: `The current TASHIRA status is: ${variables.statusLabel}.` },
     VISA_ISSUED: { subject: `Visa issued — ${reference}`, body: `The authoritative application status now records the visa as issued.` },
