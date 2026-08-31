@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderTransactionalEmail } from "./transactional-email";
+import fs from "node:fs";
 
 describe("customer notification email templates", () => {
   it("renders a status update with the human-readable status", () => {
@@ -30,5 +31,11 @@ describe("customer notification email templates", () => {
   it("rejects status notifications without a status label", () => {
     expect(() => renderTransactionalEmail("STATUS_CHANGED", { referenceNumber: "TSH-UAT-123" }))
       .toThrow(/statusLabel/);
+  });
+
+  it("keeps notification delivery and evidence failures non-blocking", () => {
+    const source = fs.readFileSync(new URL("./customer-notification-email.ts", import.meta.url), "utf8");
+    expect(source).toContain("Notification evidence is best-effort");
+    expect(source).toMatch(/catch \{[\s\S]*auditLog\("email\.notification", "failure", "system"\);[\s\S]*return \{ status: "FAILED" \}/u);
   });
 });

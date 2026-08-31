@@ -28,12 +28,11 @@ async function sendCustomerNotification(input: {
   failureCategory: string;
 }): Promise<NotificationResult> {
   const db = getDb();
-  if (await findSentNotification(input.applicationId, input.template, input.sourceReference)) {
-    return { status: "ALREADY_SENT" };
-  }
-
   let providerName = "unavailable";
   try {
+    if (await findSentNotification(input.applicationId, input.template, input.sourceReference)) {
+      return { status: "ALREADY_SENT" };
+    }
     const provider = transactionalEmailProvider();
     providerName = provider.name;
     const sent = await provider.send({
@@ -55,16 +54,21 @@ async function sendCustomerNotification(input: {
     auditLog("email.notification", "success", "system");
     return { status: "SENT" };
   } catch {
-    await db.insert(outboundEmailEvents).values({
-      id: randomUUID(),
-      applicationId: input.applicationId,
-      template: input.template,
-      sourceReference: input.sourceReference,
-      recipientHash: recipientHash(input.recipient),
-      provider: providerName,
-      status: "FAILED",
-      failureCategory: input.failureCategory,
-    });
+    try {
+      await db.insert(outboundEmailEvents).values({
+        id: randomUUID(),
+        applicationId: input.applicationId,
+        template: input.template,
+        sourceReference: input.sourceReference,
+        recipientHash: recipientHash(input.recipient),
+        provider: providerName,
+        status: "FAILED",
+        failureCategory: input.failureCategory,
+      });
+    } catch {
+      // Notification evidence is best-effort here: the underlying operational
+      // mutation has already committed and must never be reported as failed.
+    }
     auditLog("email.notification", "failure", "system");
     return { status: "FAILED" };
   }
