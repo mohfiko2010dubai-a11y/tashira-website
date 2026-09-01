@@ -20,7 +20,7 @@ export type PartySetup = { applicationId: number; applicants: readonly PartyAppl
 
 type Profile = { fullName: string; nationality: string | null; residenceCountry: string | null };
 export type TravelInput = Omit<PartyTravelGroup, "travelGroupId" | "version" | "applicantIds"> & { applicantIds: number[] };
-type Props = { setup: PartySetup; busy?: boolean; error?: boolean;
+type Props = { setup: PartySetup; busy?: boolean; error?: boolean; hideTravelGroups?: boolean;
   onAddApplicant: (profile: Profile) => Promise<void>; onEditApplicant: (applicant: PartyApplicant, profile: Profile) => Promise<void>;
   onDefineRelationship: (fromApplicantId: number, toApplicantId: number, relationship: WritableRelationship) => Promise<void>;
   onCreateTravelGroup: (group: TravelInput) => Promise<void>; onUpdateTravelGroup: (group: PartyTravelGroup, update: TravelInput) => Promise<void>;
@@ -29,7 +29,7 @@ type Props = { setup: PartySetup; busy?: boolean; error?: boolean;
 const emptyProfile: Profile = { fullName: "", nationality: null, residenceCountry: null };
 const asNullable = (value: string) => value.trim() || null;
 
-export function InterviewPartySetup({ setup, busy = false, error = false, onAddApplicant, onEditApplicant,
+export function InterviewPartySetup({ setup, busy = false, error = false, hideTravelGroups = false, onAddApplicant, onEditApplicant,
   onDefineRelationship, onCreateTravelGroup, onUpdateTravelGroup, onLinkSharedDocument }: Props) {
   const [adding, setAdding] = useState(false); const [newProfile, setNewProfile] = useState(emptyProfile);
   const [editingId, setEditingId] = useState<number | null>(null); const [editingProfile, setEditingProfile] = useState(emptyProfile);
@@ -70,12 +70,14 @@ export function InterviewPartySetup({ setup, busy = false, error = false, onAddA
       onChange={(event) => setRelationship({ ...relationship, type: event.target.value as WritableRelationship })}>{["SPOUSE", "PARENT", "CHILD", "GUARDIAN", "DEPENDENT"].map((item) => <option key={item}>{item}</option>)}</select></label>
       <button type="button" disabled={busy} className="rounded-lg bg-[#cda64f] px-4 py-2 font-semibold" onClick={async () => { await onDefineRelationship(relationship.from, relationship.to, relationship.type); setRelationship(null); }}>Save relationship</button>
       <button type="button" className="rounded-lg border border-slate-300 px-4 py-2" onClick={() => setRelationship(null)}>Cancel</button></div>}
+    {!hideTravelGroups && <>
     <div className="mt-7 flex items-center justify-between"><h3 className="font-semibold text-slate-950">Travel groups</h3><button type="button" onClick={() => startTravel()} className="text-sm font-semibold text-[#795918] underline">Create travel group</button></div>
     <div className="mt-3 grid gap-3">{setup.travelGroups.map((group) => <article key={group.travelGroupId} className="rounded-2xl border border-slate-200 p-4"><div className="flex justify-between gap-4"><div><p className="font-semibold">{group.reference}</p><p className="mt-1 text-sm text-slate-600">{group.origin} → {group.destination} · {group.plannedArrivalDate} · {group.applicantIds.length} applicant(s)</p></div>
       <button type="button" className="text-sm font-semibold text-[#795918] underline" onClick={() => startTravel(group)}>Edit</button></div></article>)}</div>
     {travelDraft && <TravelFields setup={setup} draft={travelDraft} setDraft={setTravelDraft} busy={busy} onCancel={() => { setTravelDraft(null); setEditingTravelGroupId(null); }}
       onSave={async () => { const current = setup.travelGroups.find((item) => item.travelGroupId === editingTravelGroupId);
         if (current) await onUpdateTravelGroup(current, travelDraft); else await onCreateTravelGroup(travelDraft); setTravelDraft(null); setEditingTravelGroupId(null); }} />}
+    </>}
     {setup.sharedDocuments.length > 0 && <div className="mt-7"><h3 className="font-semibold text-slate-950">Shared travel documents</h3>
       <p className="mt-1 text-sm text-slate-600">Link one existing booking or ticket to every traveller it covers. The original file remains unchanged.</p>
       <div className="mt-3 grid gap-3">{setup.sharedDocuments.map((document) => <article key={document.documentId} className="rounded-2xl border border-slate-200 p-4">

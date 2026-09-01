@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Check, Plus } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
-import { UnifiedInterviewReviewPanel } from "@/components/UnifiedInterviewReviewPanel";
 import { InterviewPartySetup, type PartyRequirementReadiness } from "@/components/customer/InterviewPartySetup";
 import { InterviewRequirementDocuments } from "@/components/customer/InterviewRequirementDocuments";
 import { legacyDocumentType } from "@/components/customer/requirement-document-type";
@@ -155,6 +154,7 @@ export default function DynamicApplication() {
 
       {/* Manage party (add travellers, family links, shared tickets) */}
       {state.partySetup && <div id="party-setup"><InterviewPartySetup setup={state.partySetup}
+        hideTravelGroups
         busy={partyBusy}
         error={partyError}
         onAddApplicant={async (profile) => { await addApplicantMutation.mutateAsync({ referenceNumber, profile,
@@ -185,7 +185,7 @@ export default function DynamicApplication() {
         <div className="mt-7">
           {["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "GCC_COUNTRY"].includes(questionForActive.code)
             ? <NationalitySelect value={typeof answer === "string" ? answer : ""} onChange={(code) => setAnswer(code)} />
-          : questionForActive.answerType === "BOOLEAN" ? <div className="grid grid-cols-2 gap-3">{[true, false].map((value) => <button type="button" key={String(value)} onClick={() => setAnswer(value)} className={`rounded-xl border px-5 py-4 font-semibold ${answer === value ? "border-[#b48a36] bg-amber-50" : "border-slate-200"}`}>{value ? "Yes" : "No"}</button>)}</div>
+          : questionForActive.answerType === "BOOLEAN" ? <div className="grid grid-cols-2 gap-4">{[{ v: true, icon: "✅", title: t("step2.yes"), hint: t("step2.yesHint") }, { v: false, icon: "🕐", title: t("step2.no"), hint: t("step2.noHint") }].map((opt) => <button type="button" key={String(opt.v)} onClick={() => setAnswer(opt.v)} className={`rounded-2xl border-2 p-6 text-center transition-all ${answer === opt.v ? "border-[#C9A04C] bg-gradient-to-b from-[#C9A04C]/10 to-transparent shadow-sm" : "border-gray-200 hover:border-[#DDBB7A]"}`}><span className="text-2xl">{opt.icon}</span><strong className="mt-2 block text-[#0A1628]">{opt.title}</strong><span className="mt-1 block text-xs text-gray-500">{opt.hint}</span></button>)}</div>
           : questionForActive.answerType === "SELECT" && questionForActive.allowedValues ? <select value={String(answer)} onChange={(event) => setAnswer(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-4"><option value="">Select an answer</option>{questionForActive.allowedValues.map((value) => <option key={value} value={value}>{value}</option>)}</select>
           : <input type={questionForActive.answerType === "DATE" ? "date" : questionForActive.answerType === "NUMBER" ? "number" : "text"} value={String(answer)} onChange={(event) => setAnswer(questionForActive.answerType === "NUMBER" ? Number(event.target.value) : event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-4" autoComplete="off" />}
         </div>
@@ -212,9 +212,47 @@ export default function DynamicApplication() {
         error={docsError}
         onUpload={uploadHandler} />}
 
-      {/* Review when interview is complete */}
-      {!question && <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm sm:p-8"><p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Interview complete</p><h2 className="mt-2 text-2xl font-bold text-slate-950">{t("step2.reviewTitle")}</h2><p className="mt-3 text-slate-600">Application status: {state.eligibilityState.replaceAll("_", " ")}</p><div className="mt-6 space-y-4">{state.review.applicants.map((applicant) => <article key={applicant.applicantId} className="rounded-2xl border border-slate-200 p-5"><h3 className="font-semibold text-slate-950">{applicant.label}</h3><p className="mt-1 text-sm text-slate-600">{applicant.customerMessage}</p><p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Requirements</p>{applicant.requirements.length ? <ul className="mt-2 grid gap-2 sm:grid-cols-2">{applicant.requirements.map((requirement) => <li key={`${requirement.code}-${requirement.state}`} className="rounded-lg bg-slate-50 px-3 py-3 text-sm"><span className="font-semibold text-slate-900">{requirement.label}</span><span className="mt-1 block text-xs text-[#8a6721]">{requirement.classification.replaceAll("_", " ")}</span><span className="mt-1 block text-xs text-slate-600">{requirement.explanation}</span></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">No verified requirement list is available yet.</p>}{applicant.evidence && <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4 text-xs text-slate-600"><p className="font-semibold uppercase tracking-wide text-slate-500">Evaluation evidence</p><p className="mt-1">{applicant.evidence.reason}</p>{applicant.evidence.manualReviewReason && <p className="mt-1 font-semibold text-amber-800">Review reason: {applicant.evidence.manualReviewReason}</p>}{applicant.evidence.matchedRules.length > 0 && <ul className="mt-2 space-y-1">{applicant.evidence.matchedRules.map((rule) => <li key={`${rule.ruleId}-${rule.ruleVersion}`}><span className="font-mono text-[11px] text-slate-800">{rule.ruleId} v{rule.ruleVersion}</span><span className="mx-1 text-slate-400">·</span>{rule.layer.replaceAll("_", " ")}<span className="mx-1 text-slate-400">·</span>{rule.sourceAuthority}<span className="mt-0.5 block text-slate-500">{rule.reason}</span></li>)}</ul>}</div>}</article>)}</div>{state.review.manualReviewRequired && <section className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-950"><p className="font-bold">Specialist review required before payment</p><p className="mt-1">Your saved application is already visible to the Operations team.</p><ul className="mt-3 list-disc space-y-1 ps-5">{state.review.applicants.filter((a) => a.evidence?.manualReviewReason || ["HUMAN_REVIEW_REQUIRED", "NOT_RESEARCHED", "RULE_CONFLICT"].includes(a.eligibilityState)).map((a) => <li key={a.applicantId}><strong>{a.label}:</strong> {a.evidence?.manualReviewReason ?? a.customerMessage}</li>)}</ul><p className="mt-3 text-xs text-amber-800">Next step: a TASHIRA specialist reviews the evaluated rules and any missing data above, then contacts you or clears the application for payment. Nothing is lost — your confirmed requirements remain attached to each traveller.</p></section>}<div className="mt-6 grid gap-3 sm:grid-cols-2"><Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-center font-semibold text-slate-800">{t("step2.saveView")}</Link><Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className={`rounded-xl px-5 py-3 text-center font-bold ${state.review.manualReviewRequired ? "pointer-events-none bg-slate-200 text-slate-500" : "bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white shadow-md shadow-[#C9A04C]/30"}`}>{t("step2.continueToPay")}</Link></div></section>}
-      {state.unifiedReview && <UnifiedInterviewReviewPanel review={state.unifiedReview} />}
+      {/* Review when interview is complete — minimal, customer-friendly */}
+      {!question && <section>
+        <div className="rounded-3xl bg-gradient-to-br from-[#0A1628] to-[#16283f] p-8 text-center text-white shadow-sm">
+          <p className="text-3xl">✅</p>
+          <h2 className="mt-3 text-2xl font-extrabold">{t("step2.done.title")}</h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#DDBB7A]">
+            {state.review.manualReviewRequired ? t("step2.done.underReview") : t("step2.done.ready")}
+          </p>
+          <span className="mt-5 inline-block rounded-full border border-[#DDBB7A]/30 bg-white/5 px-5 py-2 text-sm font-semibold text-[#DDBB7A]">{referenceNumber}</span>
+        </div>
+
+        <div className="mt-5 space-y-4">
+          {state.review.applicants.map((applicant) => <article key={applicant.applicantId} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-bold text-[#0A1628]">{applicant.label}</h3>
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${state.review.manualReviewRequired ? "bg-amber-50 text-[#9b7425]" : "bg-emerald-50 text-emerald-700"}`}>
+                {state.review.manualReviewRequired ? t("step2.done.underReviewBadge") : t("step2.done.readyBadge")}
+              </span>
+            </div>
+            {applicant.requirements.length > 0 && <ul className="mt-4 divide-y divide-gray-50">
+              {applicant.requirements.map((requirement) => {
+                const needed = requirement.classification !== "MAY_BE_REQUIRED" && !["UPLOADED", "VALIDATED", "WAIVED"].includes(requirement.state);
+                const received = ["UPLOADED", "VALIDATED", "WAIVED"].includes(requirement.state);
+                return <li key={`${requirement.code}-${requirement.state}`} className="flex items-center justify-between py-2.5 text-sm">
+                  <span className="font-medium text-[#0A1628]">{requirement.label}</span>
+                  {received
+                    ? <span className="text-xs font-bold text-emerald-700">✓ {t("step2.done.received")}</span>
+                    : needed
+                      ? <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-[#9b7425]">{t("step2.done.needed")}</span>
+                      : <span className="text-xs text-gray-400">{t("step2.done.ifAsked")}</span>}
+                </li>;
+              })}
+            </ul>}
+          </article>)}
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">{t("step2.saveView")}</Link>
+          {!state.review.manualReviewRequired && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
+        </div>
+      </section>}
       {state.unifiedReviewBlocker === "RELATIONSHIP_REQUIRED" && <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
         <strong>Complete the family relationships above.</strong>
         <p className="mt-1">Every family member must be linked to the lead applicant before the final family readiness review can be generated.</p>

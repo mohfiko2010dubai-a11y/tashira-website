@@ -74,7 +74,21 @@
     "waiting": "This traveller's questions unlock as you progress — keep going with the highlighted traveller.",
     "reviewTitle": "Review your travellers",
     "continueToPay": "Continue to review & payment",
-    "saveView": "Save & view application"
+    "saveView": "Save & view application",
+    "yes": "Yes",
+    "yesHint": "This applies to me",
+    "no": "Not yet",
+    "noHint": "No problem — we'll guide you",
+    "done": {
+      "title": "Done — we'll take it from here",
+      "underReview": "Your application is complete and with our review team. We'll email you the secure payment link as soon as it clears.",
+      "ready": "Your application is complete. Review the summary and continue to secure payment.",
+      "underReviewBadge": "Under review",
+      "readyBadge": "Ready for payment",
+      "received": "Received",
+      "needed": "Needed",
+      "ifAsked": "If requested"
+    }
   },
   "step3": {
     "title": "Review & pay",
