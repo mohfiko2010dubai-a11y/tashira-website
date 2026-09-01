@@ -1,29 +1,25 @@
 import type { ReactNode } from 'react';
 import { Check, MessageCircleQuestion } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export const WIZARD_STEPS = [
-  { id: 1, label: 'Travel', labelAr: 'السفر' },
-  { id: 2, label: 'Residence', labelAr: 'الإقامة' },
-  { id: 3, label: 'Visa Type', labelAr: 'نوع التأشيرة' },
-  { id: 4, label: 'Processing', labelAr: 'المعالجة' },
-  { id: 5, label: 'Details', labelAr: 'البيانات' },
-  { id: 6, label: 'Documents', labelAr: 'المستندات' },
-  { id: 7, label: 'Review', labelAr: 'المراجعة' },
-  { id: 8, label: 'Payment', labelAr: 'الدفع' },
+  { id: 1, key: 'trip' },
+  { id: 2, key: 'travellers' },
+  { id: 3, key: 'review' },
 ] as const;
 
 interface WizardShellProps {
-  currentStep: number; // 1..8
-  isArabic?: boolean;
+  currentStep: number; // 1..3
   children: ReactNode;
 }
 
 /**
- * Approved wizard chrome: top progress bar with 8 dots, navy sidebar with
+ * Approved wizard chrome: top progress bar with 3 steps, navy sidebar with
  * step navigation, and the white content card. Content (each step's body)
  * is injected by the caller — this component owns presentation only.
  */
-export default function WizardShell({ currentStep, isArabic = false, children }: WizardShellProps) {
+export default function WizardShell({ currentStep, children }: WizardShellProps) {
+  const { t } = useTranslation('wizard');
   const progress = (currentStep / WIZARD_STEPS.length) * 100;
 
   return (
@@ -33,17 +29,17 @@ export default function WizardShell({ currentStep, isArabic = false, children }:
         <div className="max-w-6xl mx-auto px-4 pt-5 pb-3">
           <div className="relative h-1.5 rounded-full bg-gray-200">
             <div
-              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] transition-all duration-500"
+              className="absolute inset-y-0 start-0 rounded-full bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <ol className="mt-3 grid grid-cols-8 text-[10px] sm:text-xs">
+          <ol className="mt-3 grid grid-cols-3 text-[10px] sm:text-xs">
             {WIZARD_STEPS.map((s) => (
               <li
                 key={s.id}
                 className={`text-center ${s.id === currentStep ? 'font-bold text-[#C9A04C]' : s.id < currentStep ? 'text-[#C9A04C]' : 'text-gray-400'}`}
               >
-                {isArabic ? s.labelAr : s.label}
+                {t(`steps.${s.key}`)}
               </li>
             ))}
           </ol>
@@ -64,7 +60,7 @@ export default function WizardShell({ currentStep, isArabic = false, children }:
                 }`}
               >
                 {s.id < currentStep ? <Check size={14} /> : <span className={`w-3.5 h-3.5 rounded-full border-2 ${s.id === currentStep ? 'border-[#C9A04C] bg-[#C9A04C]' : 'border-gray-600'}`} />}
-                {isArabic ? s.labelAr : s.label}
+                {t(`steps.${s.key}`)}
               </li>
             ))}
           </ol>
@@ -86,10 +82,11 @@ export default function WizardShell({ currentStep, isArabic = false, children }:
 }
 
 export function StepHeader({ step, title, subtitle }: { step: number; title: string; subtitle?: string }) {
+  const { t } = useTranslation('wizard');
   return (
     <header className="mb-8">
       <span className="inline-block rounded-full bg-[#C9A04C]/10 px-4 py-1.5 text-xs font-bold text-[#C9A04C]">
-        Step {step} of 8
+        {t('stepOf', { current: step })}
       </span>
       <h1 className="mt-4 text-2xl sm:text-3xl font-extrabold text-[#0A1628]">{title}</h1>
       {subtitle && <p className="mt-2 text-gray-500">{subtitle}</p>}
@@ -97,18 +94,19 @@ export function StepHeader({ step, title, subtitle }: { step: number; title: str
   );
 }
 
-export function WizardNav({ onBack, onNext, nextDisabled, nextLabel = 'Continue →', busy }: {
+export function WizardNav({ onBack, onNext, nextDisabled, nextLabel = 'Continue →', backLabel = '← Back', busy }: {
   onBack?: () => void;
   onNext?: () => void;
   nextDisabled?: boolean;
   nextLabel?: string;
+  backLabel?: string;
   busy?: boolean;
 }) {
   return (
     <div className="mt-10 flex items-center justify-between">
       {onBack ? (
         <button type="button" onClick={onBack} className="rounded-xl bg-gray-100 border border-gray-200 px-8 py-3 font-bold text-gray-500 hover:bg-gray-200 transition-colors">
-          ← Back
+          {backLabel}
         </button>
       ) : <span />}
       {onNext && (

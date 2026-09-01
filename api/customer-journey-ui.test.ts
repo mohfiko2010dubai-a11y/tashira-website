@@ -8,16 +8,16 @@ describe("integrated staging customer and Operations journey", () => {
       readFile(new URL("./application-router.ts", import.meta.url), "utf8"),
       readFile(new URL("../src/pages/DynamicApplication.tsx", import.meta.url), "utf8"),
     ]);
-    expect(start).toContain("Start my application");
+    expect(start).toContain('t("step1.start")');
     expect(start).toContain("WizardShell");
-    expect(start).toContain("Family / group");
+    expect(start).toContain('t("step1.family")');
     expect(start).toContain('journeyMode: "DYNAMIC"');
     expect(application).toContain("runtimeFlagEnvironment() !== \"STAGING\"");
     expect(application).toContain("'APPLICATION'");
     expect(application).toContain('if (input.journeyMode === "LEGACY")');
     expect(application).toContain('input.journeyMode === "DYNAMIC"');
-    expect(interview).toContain("Continue to secure payment");
-    expect(interview).toContain("Save & view application");
+    expect(interview).toContain('t("step2.continueToPay")');
+    expect(interview).toContain('t("step2.saveView")');
   });
 
   it("exposes scoped staff documents, notes, controlled status and visa delivery", async () => {

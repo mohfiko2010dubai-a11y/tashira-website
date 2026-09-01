@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { trpc } from '@/providers/trpc-client';
 import { loadStripe } from '@stripe/stripe-js/pure';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import {
   CreditCard, Lock, AlertCircle, Loader2,
-  Shield, Clock, FileText, ArrowLeft
+  Shield, Clock, FileText
 } from 'lucide-react';
 import { safeStripeFailureCategory, usePaymentTimeline } from '@/hooks/usePaymentTimeline';
 import { paymentViewState } from '@/lib/payment-view-state';
@@ -15,6 +16,9 @@ import { completionPanelGroups, safeCheckoutErrorMessage } from '@/lib/checkout-
 import { trackFunnelEventOnce, trackVerifiedPaymentConversion } from '@/lib/google-conversion';
 import { validatedStripePublishableKey } from '@/lib/stripe-client-config';
 import { PayerAuthorizationFields } from '@/components/shared/PayerAuthorizationFields';
+import WizardShell, { StepHeader } from '@/components/customer/WizardShell';
+import { PolicyAcceptance } from '@/components/customer/PolicyAcceptance';
+import { SaveContinueButton } from '@/components/customer/SaveContinueButton';
 import {
   PAYER_AUTHORIZATION_VERSION,
   isThirdPartyPayer,
@@ -27,13 +31,15 @@ const stripePublishableKey = validatedStripePublishableKey(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
 );
 
-function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
+function PaymentForm({ referenceNumber, amount, applicantName, policiesAccepted, onConfirmed }: {
   referenceNumber: string;
   amount: number;
   visaType: string;
   applicantName: string;
+  policiesAccepted: boolean;
   onConfirmed: () => void;
 }) {
+  const { t } = useTranslation('wizard');
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -59,6 +65,11 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
+    // Policies gate: payment cannot proceed without ticking the box above.
+    if (!policiesAccepted) {
+      setError(t('policies.required'));
+      return;
+    }
     const thirdParty = isThirdPartyPayer(payerName, applicantName);
     if (!payerAuthorizationAccepted) {
       setError('Please confirm that you are authorized to use this payment method.');
@@ -77,7 +88,7 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
     try {
       // Convert amount from dollars to cents for Stripe
       const amountInCents = Math.round(amount * 100);
-      
+
       // Create payment intent via tRPC
       const result = await createIntent.mutateAsync({
         referenceNumber,
@@ -138,7 +149,7 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
           <AlertCircle size={20} className="text-red-500 shrink-0" />
           <p className="text-sm text-red-600">{error}</p>
         </div>
@@ -146,7 +157,7 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
 
       <div>
         <label className="block text-sm font-medium text-[#1A2332] mb-2">
-          <CreditCard size={16} className="inline mr-2" />
+          <CreditCard size={16} className="inline me-2" />
           Card Details
         </label>
         <div className="border border-gray-200 rounded-lg p-4 focus-within:border-[#C9A04C] focus-within:ring-1 focus-within:ring-[#C9A04C]">
@@ -184,7 +195,11 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
       <button
         type="submit"
         disabled={!stripe || loading}
-        className="w-full py-4 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+        className={`w-full py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+          policiesAccepted
+            ? 'bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white hover:shadow-lg'
+            : 'bg-gray-200 text-gray-500'
+        } disabled:opacity-50`}
       >
         {loading ? (
           <>
@@ -194,7 +209,7 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
         ) : (
           <>
             <Lock size={18} />
-            Pay ${amount || 0}
+            {policiesAccepted ? t('step3.payNow', { amount: amount || 0 }) : t('policies.required')}
           </>
         )}
       </button>
@@ -205,7 +220,9 @@ function PaymentForm({ referenceNumber, amount, applicantName, onConfirmed }: {
 export default function PaymentPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation('wizard');
   const [confirmed, setConfirmed] = useState(false);
+  const [policiesAccepted, setPoliciesAccepted] = useState(false);
 
   // Get application details
   const { data: app, isLoading, error } = trpc.application.getByReference.useQuery(
@@ -293,144 +310,137 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FAFAF7] to-white">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-gray-500 hover:text-[#C9A04C] transition-colors"
-          >
-            <ArrowLeft size={18} />
-            Back
-          </button>
-          <h1 className="text-lg font-bold text-[#1A2332]">Secure Payment</h1>
-          <div className="flex items-center gap-1 text-emerald-600 text-sm">
-            <Lock size={14} />
-            <span>SSL</span>
+    <WizardShell currentStep={3}>
+      <StepHeader step={3} title={t('step3.title')} subtitle={t('step3.subtitle')} />
+
+      {/* Review summary — everything on screen before payment */}
+      <div className="bg-[#FAFAF7] rounded-xl border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-[#1A2332] mb-4">{t('step3.summary')}</h2>
+        <div className="space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">{t('step3.reference')}</span>
+            <span className="font-mono font-medium">{referenceNumber}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">{t('step3.applicant')}</span>
+            <span className="font-medium">{applicantName}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">{t('step3.visaType')}</span>
+            <span className="font-medium">{app.visaType}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">{t('step3.processing')}</span>
+            <span className="font-medium">{app.processingType}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">{t('step3.applicants')}</span>
+            <span className="font-medium">{app.applicants.length || 1}</span>
+          </div>
+          <div className="border-t border-gray-200 pt-3 flex justify-between">
+            <span className="font-semibold text-[#1A2332]">{t('step3.total')}</span>
+            {priceSnapshotMissing ? (
+              <span className="text-sm font-medium text-red-500">Unavailable</span>
+            ) : (
+              <span className="text-2xl font-bold text-[#C9A04C]">${amount}</span>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 py-8">
-        {/* Order Summary */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold text-[#1A2332] mb-4">Order Summary</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Reference</span>
-              <span className="font-mono font-medium">{referenceNumber}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Applicant</span>
-              <span className="font-medium">{applicantName}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Visa Type</span>
-              <span className="font-medium">{app.visaType}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Processing</span>
-              <span className="font-medium">{app.processingType}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Applicants</span>
-              <span className="font-medium">{app.applicants.length || 1}</span>
-            </div>
-            <div className="border-t border-gray-100 pt-3 flex justify-between">
-              <span className="font-semibold text-[#1A2332]">Total</span>
-              {priceSnapshotMissing ? (
-                <span className="text-sm font-medium text-red-500">Unavailable</span>
-              ) : (
-                <span className="text-2xl font-bold text-[#C9A04C]">${amount}</span>
-              )}
-            </div>
-          </div>
+      {/* Security Badges */}
+      <div className="flex items-center justify-center gap-6 mb-6 text-gray-400">
+        <div className="flex items-center gap-1 text-xs">
+          <Shield size={14} />
+          <span>256-bit SSL</span>
         </div>
-
-        {/* Security Badges */}
-        <div className="flex items-center justify-center gap-6 mb-6 text-gray-400">
-          <div className="flex items-center gap-1 text-xs">
-            <Shield size={14} />
-            <span>256-bit SSL</span>
-          </div>
-          <div className="flex items-center gap-1 text-xs">
-            <Clock size={14} />
-            <span>Instant Confirmation</span>
-          </div>
-          <div className="flex items-center gap-1 text-xs">
-            <FileText size={14} />
-            <span>Auto Invoice</span>
-          </div>
+        <div className="flex items-center gap-1 text-xs">
+          <Clock size={14} />
+          <span>Instant Confirmation</span>
         </div>
+        <div className="flex items-center gap-1 text-xs">
+          <FileText size={14} />
+          <span>Auto Invoice</span>
+        </div>
+      </div>
 
-        {/* Payment Form */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          {priceSnapshotMissing ? (
-            <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
-              The price for this application is not configured yet, so payment is not available.
-              Please contact support and we will complete it for you.
-            </div>
-          ) : readiness.error ? (
-            <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
-              We could not verify that this application is ready for payment. Please refresh the page or contact support.
-            </div>
-          ) : readiness.data?.status === 'INCOMPLETE' ? (
-            <div role="alert" className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-amber-950">
-              <div className="flex items-start gap-3">
-                <AlertCircle size={22} className="mt-0.5 shrink-0 text-amber-700" />
-                <div className="flex-1">
-                  <h2 className="font-semibold text-lg">Complete your application before payment</h2>
-                  <p className="mt-1 text-sm text-amber-800">Your information is saved. Please add the following details and documents:</p>
-                  <div className="mt-4 space-y-3">
-                    {completionGroups.map((group) => (
-                      <div key={group.heading}>
-                        <h3 className="text-sm font-semibold">{group.heading}</h3>
-                        <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-800">
-                          {group.items.map((item) => <li key={item}>{item}</li>)}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={continueApplication}
-                    className="mt-5 w-full rounded-lg bg-amber-800 px-4 py-3 font-semibold text-white transition-colors hover:bg-amber-900"
-                  >
-                    Complete Application
-                  </button>
+      {/* Policies acceptance — mandatory before payment */}
+      <div className="mb-6">
+        <PolicyAcceptance accepted={policiesAccepted} onChange={setPoliciesAccepted} />
+      </div>
+
+      {/* Payment Form */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        {priceSnapshotMissing ? (
+          <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+            The price for this application is not configured yet, so payment is not available.
+            Please contact support and we will complete it for you.
+          </div>
+        ) : readiness.error ? (
+          <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+            We could not verify that this application is ready for payment. Please refresh the page or contact support.
+          </div>
+        ) : readiness.data?.status === 'INCOMPLETE' ? (
+          <div role="alert" className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-amber-950">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={22} className="mt-0.5 shrink-0 text-amber-700" />
+              <div className="flex-1">
+                <h2 className="font-semibold text-lg">Complete your application before payment</h2>
+                <p className="mt-1 text-sm text-amber-800">Your information is saved. Please add the following details and documents:</p>
+                <div className="mt-4 space-y-3">
+                  {completionGroups.map((group) => (
+                    <div key={group.heading}>
+                      <h3 className="text-sm font-semibold">{group.heading}</h3>
+                      <ul className="mt-1 list-disc space-y-1 ps-5 text-sm text-amber-800">
+                        {group.items.map((item) => <li key={item}>{item}</li>)}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={continueApplication}
+                  className="mt-5 w-full rounded-lg bg-amber-800 px-4 py-3 font-semibold text-white transition-colors hover:bg-amber-900"
+                >
+                  Complete Application
+                </button>
               </div>
             </div>
-          ) : stripePromise && readiness.data?.status === 'READY' ? (
-            <Elements stripe={stripePromise}>
-              <PaymentForm
-                referenceNumber={referenceNumber!}
-                amount={amount}
-                visaType={app.visaType || 'Tourist Visa'}
-                applicantName={applicantName}
-                onConfirmed={() => setConfirmed(true)}
-              />
-            </Elements>
-          ) : (
-            <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
-              Stripe payments are not configured correctly.
-            </div>
-          )}
-        </div>
-
-        {/* Support */}
-        <div className="text-center mt-6 text-sm text-gray-500">
-          <p>Need help? Contact us:</p>
-          <p className="mt-1">
-            <a href="https://wa.me/971589896644" className="text-[#C9A04C] hover:underline">WhatsApp</a>
-            {' | '}
-            <a href="tel:+971502101784" className="text-[#C9A04C] hover:underline">+971 50 210 1784</a>
-            {' | '}
-            <a href="mailto:admin@tashiraev.com" className="text-[#C9A04C] hover:underline">admin@tashiraev.com</a>
-          </p>
-        </div>
+          </div>
+        ) : stripePromise && readiness.data?.status === 'READY' ? (
+          <Elements stripe={stripePromise}>
+            <PaymentForm
+              referenceNumber={referenceNumber!}
+              amount={amount}
+              visaType={app.visaType || 'Tourist Visa'}
+              applicantName={applicantName}
+              policiesAccepted={policiesAccepted}
+              onConfirmed={() => setConfirmed(true)}
+            />
+          </Elements>
+        ) : (
+          <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+            Stripe payments are not configured correctly.
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Save & continue via email */}
+      <div className="mt-6 flex justify-center">
+        <SaveContinueButton email={(app as { contactEmail?: string }).contactEmail} />
+      </div>
+
+      {/* Support */}
+      <div className="text-center mt-6 text-sm text-gray-500">
+        <p>Need help? Contact us:</p>
+        <p className="mt-1">
+          <a href="https://wa.me/971589896644" className="text-[#C9A04C] hover:underline">WhatsApp</a>
+          {' | '}
+          <a href="tel:+971502101784" className="text-[#C9A04C] hover:underline">+971 50 210 1784</a>
+          {' | '}
+          <a href="mailto:admin@tashiraev.com" className="text-[#C9A04C] hover:underline">admin@tashiraev.com</a>
+        </p>
+      </div>
+    </WizardShell>
   );
 }

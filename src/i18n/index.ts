@@ -10,6 +10,7 @@ import enTrack from './locales/en/track.json';
 import enLegal from './locales/en/legal.json';
 import enSaudiVisa from './locales/en/saudiVisa.json';
 import enTravelDeals from './locales/en/travelDeals.json';
+import enWizard from './locales/en/wizard.json';
 
 import arCommon from './locales/ar/common.json';
 import arHome from './locales/ar/home.json';
@@ -19,6 +20,7 @@ import arTrack from './locales/ar/track.json';
 import arLegal from './locales/ar/legal-v2.json';
 import arSaudiVisa from './locales/ar/saudiVisa.json';
 import arTravelDeals from './locales/ar/travelDeals.json';
+import arWizard from './locales/ar/wizard.json';
 
 // Build resources from all available languages
 const enResources = {
@@ -30,6 +32,7 @@ const enResources = {
   legal: enLegal,
   saudiVisa: enSaudiVisa,
   travelDeals: enTravelDeals,
+  wizard: enWizard,
 };
 
 const arResources = {
@@ -41,6 +44,7 @@ const arResources = {
   legal: arLegal,
   saudiVisa: arSaudiVisa,
   travelDeals: arTravelDeals,
+  wizard: arWizard,
 };
 
 // All languages use English fallback for missing keys

@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Building2, Globe2, Home, Plane, UserRound, UsersRound, Zap, Clock3, Check } from "lucide-react";
-import WizardShell, { StepHeader, WizardNav } from "@/components/customer/WizardShell";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Building2, Globe2, Home, Plane, UserRound, UsersRound, Zap, Clock3, Check, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import WizardShell, { StepHeader } from "@/components/customer/WizardShell";
+import { SaveContinueButton } from "@/components/customer/SaveContinueButton";
 import { trpc } from "@/providers/trpc-client";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
 
@@ -14,16 +16,16 @@ const visaRoutes = [
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 
-const residenceOptions: { key: ResidenceType; icon: typeof Home; title: string; desc: string }[] = [
-  { key: "non-gcc", icon: Globe2, title: "Non-GCC Resident", desc: "I live outside the GCC countries" },
-  { key: "gcc-resident", icon: Building2, title: "GCC Resident", desc: "I hold a valid GCC residence permit" },
-  { key: "non-gcc-accompany", icon: UserRound, title: "Non-GCC Accompanying", desc: "Travelling with a GCC-national sponsor" },
-  { key: "gcc-accompany", icon: UsersRound, title: "GCC Resident Accompanying", desc: "GCC resident travelling with a sponsor" },
+const residenceOptions: { key: ResidenceType; icon: typeof Home; titleKey: string; descKey: string }[] = [
+  { key: "non-gcc", icon: Globe2, titleKey: "residenceNonGcc", descKey: "residenceNonGccDesc" },
+  { key: "gcc-resident", icon: Building2, titleKey: "residenceGcc", descKey: "residenceGccDesc" },
+  { key: "non-gcc-accompany", icon: UserRound, titleKey: "residenceNonGccAcc", descKey: "residenceNonGccAccDesc" },
+  { key: "gcc-accompany", icon: UsersRound, titleKey: "residenceGccAcc", descKey: "residenceGccAccDesc" },
 ];
 
 const processingOptions = [
-  { key: "regular" as const, icon: Clock3, title: "Regular", desc: "Standard processing — 24 to 48 hours" },
-  { key: "express" as const, icon: Zap, title: "Express", desc: "Priority processing — as fast as 6 hours" },
+  { key: "regular" as const, icon: Clock3, titleKey: "regular", descKey: "regularDesc" },
+  { key: "express" as const, icon: Zap, titleKey: "express", descKey: "expressDesc" },
 ];
 
 function createReference(): string {
@@ -37,31 +39,35 @@ function SelectCard({ selected, onClick, title, desc, icon: Icon }: {
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex flex-col items-center gap-2 rounded-2xl border-2 p-5 text-center transition-all ${
+      className={`relative flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-center transition-all ${
         selected
           ? "border-[#C9A04C] bg-gradient-to-br from-[#C9A04C]/10 to-[#C9A04C]/5 shadow-sm"
           : "border-gray-200 hover:border-[#DDBB7A]"
       }`}
     >
       {selected && (
-        <span className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#C9A04C] text-white">
+        <span className="absolute top-3 end-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#C9A04C] text-white">
           <Check size={12} />
         </span>
       )}
       {Icon && (
-        <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${selected ? "bg-[#C9A04C] text-white" : "bg-gray-100 text-gray-400"}`}>
-          <Icon size={22} />
+        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${selected ? "bg-[#C9A04C] text-white" : "bg-gray-100 text-gray-400"}`}>
+          <Icon size={20} />
         </span>
       )}
-      <strong className="text-[#0A1628]">{title}</strong>
-      {desc && <span className="text-sm text-gray-500">{desc}</span>}
+      <strong className="text-sm text-[#0A1628]">{title}</strong>
+      {desc && <span className="text-xs text-gray-500">{desc}</span>}
     </button>
   );
 }
 
+function SectionTitle({ children }: { children: string }) {
+  return <h2 className="mb-3 mt-8 text-base font-extrabold text-[#0A1628] first:mt-0">{children}</h2>;
+}
+
 export default function DynamicApplicationStart() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1 Travel, 2 Residence, 3 Visa Type, 4 Processing
+  const { t } = useTranslation("wizard");
   const [applicationType, setApplicationType] = useState<"single" | "family">("single");
   const [applicantCount, setApplicantCount] = useState(2);
   const [residenceType, setResidenceType] = useState<ResidenceType>("non-gcc");
@@ -70,24 +76,29 @@ export default function DynamicApplicationStart() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [arrivalDate, setArrivalDate] = useState("");
-  const [accepted, setAccepted] = useState(false);
 
+  const travellerCount = applicationType === "single" ? 1 : applicantCount;
   const applicants = useMemo(
-    () => Array.from({ length: applicationType === "single" ? 1 : applicantCount }, (_, index) => ({
-      fullName: `Applicant ${index + 1}`,
-    })),
-    [applicationType, applicantCount],
+    () => Array.from({ length: travellerCount }, (_, index) => ({ fullName: `Applicant ${index + 1}` })),
+    [travellerCount],
   );
+
+  // Live, authoritative server-side quote — the customer sees the exact
+  // price (same pricing engine the payment uses) before starting.
+  const quote = trpc.wizard.quoteApplication.useMutation();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      quote.mutate({ visaType, processingType, applicantCount: travellerCount });
+    }, 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visaType, processingType, travellerCount]);
 
   const create = trpc.application.create.useMutation({
     onSuccess: ({ referenceNumber }) => navigate(`/apply/${encodeURIComponent(referenceNumber)}/interview`, { replace: true }),
   });
 
-  const stepValid =
-    step === 1 ? (applicationType === "single" || applicantCount >= 2)
-    : step === 2 ? Boolean(residenceType)
-    : step === 3 ? Boolean(visaType)
-    : Boolean(email && phone && accepted);
+  const stepValid = Boolean(email && phone && (applicationType === "single" || applicantCount >= 2));
 
   const submit = () => {
     if (!stepValid || create.isPending) return;
@@ -107,128 +118,103 @@ export default function DynamicApplicationStart() {
   };
 
   return (
-    <WizardShell currentStep={step}>
-      {step === 1 && (
-        <section>
-          <StepHeader step={1} title="Who is travelling?" subtitle="Every traveller gets their own questions and document checklist." />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SelectCard
-              icon={UserRound}
-              selected={applicationType === "single"}
-              onClick={() => setApplicationType("single")}
-              title="Single applicant"
-              desc="One traveller"
-            />
-            <SelectCard
-              icon={UsersRound}
-              selected={applicationType === "family"}
-              onClick={() => setApplicationType("family")}
-              title="Family / group"
-              desc="Separate questions and documents per traveller"
-            />
-          </div>
-          {applicationType === "family" && (
-            <label className="mt-6 block text-sm font-medium text-[#0A1628]">
-              Number of travellers
-              <input
-                type="number"
-                min={2}
-                max={10}
-                value={applicantCount}
-                onChange={(event) => setApplicantCount(Math.min(10, Math.max(2, Number(event.target.value))))}
-                className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none"
-              />
-            </label>
-          )}
-          <WizardNav onNext={() => setStep(2)} nextDisabled={!stepValid} />
-        </section>
-      )}
+    <WizardShell currentStep={1}>
+      <section>
+        <StepHeader step={1} title={t("step1.title")} subtitle={t("step1.subtitle")} />
 
-      {step === 2 && (
-        <section>
-          <StepHeader step={2} title="Residence status" subtitle="Your residence status defines which visa rules and documents apply to you." />
-          <div className="grid gap-4 sm:grid-cols-2">
-            {residenceOptions.map((opt) => (
-              <SelectCard
-                key={opt.key}
-                icon={opt.icon}
-                selected={residenceType === opt.key}
-                onClick={() => setResidenceType(opt.key)}
-                title={opt.title}
-                desc={opt.desc}
-              />
-            ))}
-          </div>
-          <WizardNav onBack={() => setStep(1)} onNext={() => setStep(3)} nextDisabled={!stepValid} />
-        </section>
-      )}
-
-      {step === 3 && (
-        <section>
-          <StepHeader step={3} title="Choose your visa" subtitle="Select the visa duration and entry type that matches your trip." />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {visaRoutes.map(([value, label]) => (
-              <SelectCard
-                key={value}
-                icon={Plane}
-                selected={visaType === value}
-                onClick={() => setVisaType(value)}
-                title={label}
-              />
-            ))}
-          </div>
-          <WizardNav onBack={() => setStep(2)} onNext={() => setStep(4)} nextDisabled={!stepValid} />
-        </section>
-      )}
-
-      {step === 4 && (
-        <section>
-          <StepHeader step={4} title="Processing & contact" subtitle="Choose your processing speed and where we send your visa." />
-          <div className="grid gap-4 sm:grid-cols-2">
-            {processingOptions.map((opt) => (
-              <SelectCard
-                key={opt.key}
-                icon={opt.icon}
-                selected={processingType === opt.key}
-                onClick={() => setProcessingType(opt.key)}
-                title={opt.title}
-                desc={opt.desc}
-              />
-            ))}
-          </div>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <label className="text-sm font-medium text-[#0A1628]">
-              Email
-              <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
-            </label>
-            <label className="text-sm font-medium text-[#0A1628]">
-              Mobile number
-              <input required value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
-            </label>
-            <label className="text-sm font-medium text-[#0A1628] sm:col-span-2">
-              Planned arrival date <span className="text-gray-400">(optional)</span>
-              <input type="date" value={arrivalDate} onChange={(event) => setArrivalDate(event.target.value)} className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
-            </label>
-          </div>
-          <label className="mt-6 flex items-start gap-3 text-sm text-gray-600">
-            <input required type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} className="mt-1 accent-[#C9A04C]" />
-            <span>
-              I agree to the <Link className="text-[#C9A04C] underline" to="/terms" target="_blank">Terms</Link>,{" "}
-              <Link className="text-[#C9A04C] underline" to="/privacy" target="_blank">Privacy Policy</Link> and{" "}
-              <Link className="text-[#C9A04C] underline" to="/refund" target="_blank">Refund/Cancellation Policy</Link>.
-            </span>
+        <SectionTitle>{t("step1.whoTravelling")}</SectionTitle>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SelectCard icon={UserRound} selected={applicationType === "single"} onClick={() => setApplicationType("single")}
+            title={t("step1.single")} desc={t("step1.singleDesc")} />
+          <SelectCard icon={UsersRound} selected={applicationType === "family"} onClick={() => setApplicationType("family")}
+            title={t("step1.family")} desc={t("step1.familyDesc")} />
+        </div>
+        {applicationType === "family" && (
+          <label className="mt-4 block text-sm font-medium text-[#0A1628]">
+            {t("step1.count")}
+            <input type="number" min={2} max={10} value={applicantCount}
+              onChange={(event) => setApplicantCount(Math.min(10, Math.max(2, Number(event.target.value))))}
+              className="mt-2 w-32 rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
           </label>
-          {create.error && (
-            <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">
-              We couldn't start your application. Please check the details and try again.
+        )}
+
+        <SectionTitle>{t("step1.residence")}</SectionTitle>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {residenceOptions.map((opt) => (
+            <SelectCard key={opt.key} icon={opt.icon} selected={residenceType === opt.key}
+              onClick={() => setResidenceType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
+          ))}
+        </div>
+
+        <SectionTitle>{t("step1.visaType")}</SectionTitle>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {visaRoutes.map(([value, label]) => (
+            <SelectCard key={value} icon={Plane} selected={visaType === value} onClick={() => setVisaType(value)} title={label} />
+          ))}
+        </div>
+
+        <SectionTitle>{t("step1.processing")}</SectionTitle>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {processingOptions.map((opt) => (
+            <SelectCard key={opt.key} icon={opt.icon} selected={processingType === opt.key}
+              onClick={() => setProcessingType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
+          ))}
+        </div>
+
+        <SectionTitle>{t("step1.contact")}</SectionTitle>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-sm font-medium text-[#0A1628]">
+            {t("step1.email")}
+            <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email"
+              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+          </label>
+          <label className="text-sm font-medium text-[#0A1628]">
+            {t("step1.phone")}
+            <input required value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel"
+              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+          </label>
+          <label className="text-sm font-medium text-[#0A1628] sm:col-span-2">
+            {t("step1.arrival")} <span className="text-gray-400">({t("step1.optional")})</span>
+            <input type="date" min={new Date().toISOString().slice(0, 10)} value={arrivalDate}
+              onChange={(event) => setArrivalDate(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+          </label>
+        </div>
+
+        {/* Price on screen before starting */}
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#C9A04C]/30 bg-gradient-to-br from-[#C9A04C]/10 to-transparent p-5">
+          <div>
+            <p className="text-sm font-bold text-[#0A1628]">{t("step1.price")}</p>
+            <p className="text-xs text-gray-500">
+              {quote.data
+                ? t("step1.pricePerTraveller", { price: `$${quote.data.unitPrice}` })
+                : t("step1.priceCalculating")}
             </p>
-          )}
-          <WizardNav onBack={() => setStep(3)} onNext={submit} nextDisabled={!stepValid} busy={create.isPending} nextLabel="Start my application →" />
-          <p className="mt-4 text-center text-xs text-gray-400">
-            Your nationality and personal details come next — the interview adapts per traveller and shows only the documents your visa rules require.
-          </p>
-        </section>
-      )}
+          </div>
+          <div className="text-end">
+            {quote.isPending && <Loader2 size={20} className="animate-spin text-[#C9A04C]" />}
+            {quote.data && (
+              <>
+                <p className="text-3xl font-extrabold text-[#C9A04C]">${quote.data.totalPrice}</p>
+                <p className="text-xs text-gray-500">{t("step1.priceTotal", { count: quote.data.applicantCount })}</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {create.error && (
+          <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{t("step1.startError")}</p>
+        )}
+
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+          <SaveContinueButton email={email || undefined} />
+          <button type="button" onClick={submit} disabled={!stepValid || create.isPending}
+            className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+            {create.isPending ? "…" : t("step1.start")}
+          </button>
+        </div>
+        <p className="mt-4 text-center text-xs text-gray-400">{t("step1.nextNote")}</p>
+      </section>
     </WizardShell>
   );
 }
