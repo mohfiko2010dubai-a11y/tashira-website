@@ -15,6 +15,7 @@ import { retentionRouter } from "./retention-router";
 import { riskRouter } from "./risk-router";
 import { createRouter } from "./middleware";
 import { recoveryRouter } from "./recovery-router";
+import { contentRouter } from "./content-router";
 import { refundRouter } from "./refund-router";
 import { securityDepositRouter } from "./security-deposit-router";
 import { operationsWriteRouter } from "./operations-write-router";
@@ -53,6 +54,7 @@ export const appRouter = createRouter({
   retention: retentionRouter,
   risk: riskRouter,
   recovery: recoveryRouter,
+  content: contentRouter,
   refund: refundRouter,
   securityDeposit: securityDepositRouter,
   operationsWrite: operationsWriteRouter,

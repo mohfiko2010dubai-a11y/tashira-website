@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {useNavigate, useSearchParams} from "react-router-dom";
 import { Building2, Globe2, Home, Plane, UserRound, UsersRound, Zap, Clock3, Check, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WizardShell, { StepHeader } from "@/components/customer/WizardShell";
@@ -68,10 +68,16 @@ function SectionTitle({ children }: { children: string }) {
 export default function DynamicApplicationStart() {
   const navigate = useNavigate();
   const { t } = useTranslation("wizard");
-  const [applicationType, setApplicationType] = useState<"single" | "family">("single");
+  const [searchParams] = useSearchParams();
+  const visaParam = searchParams.get("visa") ?? "";
+  const visaPrefill: Record<string, string> = {
+    "14-days": "14days-single", "30-days": "30days-single", "60-days": "60days-single",
+    "multiple-entry": "30days-multiple", "transit": "96hours-transit",
+  };
+    const [applicationType, setApplicationType] = useState<"single" | "family">(visaParam === "family" ? "family" : "single");
   const [applicantCount, setApplicantCount] = useState(2);
-  const [residenceType, setResidenceType] = useState<ResidenceType>("non-gcc");
-  const [visaType, setVisaType] = useState<string>(visaRoutes[2][0]);
+  const [residenceType, setResidenceType] = useState<ResidenceType>(visaParam === "gcc-residents" ? "gcc-resident" : "non-gcc");
+const [visaType, setVisaType] = useState<string>(visaPrefill[visaParam] ?? visaRoutes[2][0]);
   const [processingType, setProcessingType] = useState<"regular" | "express">("regular");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");

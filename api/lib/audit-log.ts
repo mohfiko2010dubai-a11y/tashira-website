@@ -13,7 +13,14 @@ export type AuditEvent =
   | "payment.confirm"
   | "customer.recovery_requested"
   | "customer.recovery_verified"
-  | "email.notification";
+  | "email.notification"
+  | "content.create"
+  | "content.edit"
+  | "content.review"
+  | "content.publish"
+  | "content.unpublish"
+  | "content.archive"
+  | "content.redirect";
 
 export function auditLog(
   event: AuditEvent,

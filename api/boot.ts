@@ -33,6 +33,7 @@ import { getCanonicalInvoiceCustomerIdentity } from "./lib/invoice-customer-name
 import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { getPayerEvidence } from "./lib/payer-authorization";
 import { retrieveStripeTestCardSummary } from "./lib/stripe";
+import { publicAppOrigin } from "./lib/public-app-url";
 import { validateStripeRuntimeConfig } from "./lib/stripe-runtime";
 import {
   finalizeSecurityDepositPayment,
@@ -428,6 +429,46 @@ app.use("/api/trpc/*", async (c) => {
 
 // Health check
 app.get("/api/health", (c) => c.json({ status: "ok", time: new Date().toISOString() }));
+
+// ===== Dynamic XML sitemap (published CMS content + core static routes) =====
+app.get("/sitemap.xml", async (c) => {
+  const base = publicAppOrigin().replace(/\/$/, "");
+  const staticPaths = ["/", "/visa-prices", "/how-to-apply", "/apply", "/visa-pre-check", "/contact", "/terms", "/privacy", "/refund", "/cookies"];
+  let contentRows: { slug: string; language: string; updatedAt: Date }[] = [];
+  try {
+    const db = getDb();
+    const { contentItems } = await import("@db/schema");
+    contentRows = await db.select({
+      slug: contentItems.slug, language: contentItems.language, updatedAt: contentItems.updatedAt,
+    }).from(contentItems).where(eq(contentItems.status, "PUBLISHED"));
+  } catch {
+    contentRows = [];
+  }
+  const urls = [
+    ...staticPaths.map((p) => `  <url><loc>${base}${p}</loc><changefreq>weekly</changefreq></url>`),
+    ...contentRows.map((row) => `  <url><loc>${base}/${row.slug}</loc><lastmod>${new Date(row.updatedAt).toISOString().slice(0, 10)}</lastmod><changefreq>weekly</changefreq></url>`),
+  ];
+  c.header("Content-Type", "application/xml; charset=utf-8");
+  return c.body(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`);
+});
+
+// ===== CMS-managed safe same-site redirects =====
+app.use("*", async (c, next) => {
+  const pathOnly = c.req.path;
+  if (pathOnly.startsWith("/api/") || pathOnly.startsWith("/storage/")) return next();
+  try {
+    const db = getDb();
+    const { contentRedirects } = await import("@db/schema");
+    const [redirect] = await db.select().from(contentRedirects)
+      .where(eq(contentRedirects.fromPath, pathOnly)).limit(1);
+    if (redirect && redirect.isActive === 1 && redirect.toPath.startsWith("/") && !redirect.toPath.startsWith("//")) {
+      return c.redirect(redirect.toPath, redirect.statusCode === 302 ? 302 : 301);
+    }
+  } catch {
+    // Redirect table may not exist yet — fall through to the SPA.
+  }
+  return next();
+});
 
 // Catch-all
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));

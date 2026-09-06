@@ -11,6 +11,7 @@ import enLegal from './locales/en/legal.json';
 import enSaudiVisa from './locales/en/saudiVisa.json';
 import enTravelDeals from './locales/en/travelDeals.json';
 import enWizard from './locales/en/wizard.json';
+import enContent from './locales/en/content.json';
 
 import arCommon from './locales/ar/common.json';
 import arHome from './locales/ar/home.json';
@@ -21,6 +22,7 @@ import arLegal from './locales/ar/legal-v2.json';
 import arSaudiVisa from './locales/ar/saudiVisa.json';
 import arTravelDeals from './locales/ar/travelDeals.json';
 import arWizard from './locales/ar/wizard.json';
+import arContent from './locales/ar/content.json';
 
 // Build resources from all available languages
 const enResources = {
@@ -33,6 +35,7 @@ const enResources = {
   saudiVisa: enSaudiVisa,
   travelDeals: enTravelDeals,
   wizard: enWizard,
+  content: enContent,
 };
 
 const arResources = {
@@ -45,6 +48,7 @@ const arResources = {
   saudiVisa: arSaudiVisa,
   travelDeals: arTravelDeals,
   wizard: arWizard,
+  content: arContent,
 };
 
 // All languages use English fallback for missing keys

@@ -55,6 +55,14 @@ const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import(
 const DynamicApplicationStart = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplicationStart')));
 const CustomerApplicationPortal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerApplicationPortal')));
 const CustomerPrecheck = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerPrecheck')));
+const StaticInfoPage = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/content/StaticInfoPage')));
+const LandingRoute = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/content/LandingRoute')));
+const CmsContentPageWrapper = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/content/CmsContentPageWrapper')));
+const ContentIndexPage = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/content/ContentIndexPage')));
+const AdminContentList = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminContentList')));
+const AdminContentEditor = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminContentEditor')));
+const AdminContentReviewQueue = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminContentReviewQueue')));
+const AdminContentRedirects = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminContentRedirects')));
 
 function AppContent() {
   const { i18n } = useTranslation();
@@ -84,6 +92,21 @@ function AppContent() {
           <Route path="/apply/:referenceNumber/interview" element={<DynamicApplication />} />
           <Route path="/applications/:referenceNumber/status" element={<CustomerApplicationPortal />} />
           <Route path="/visa-pre-check" element={<CustomerPrecheck />} />
+          <Route path="/uae-visa" element={<LandingRoute />} />
+          <Route path="/uae-visa/:slug" element={<LandingRoute />} />
+          <Route path="/dubai-visa" element={<LandingRoute dubai />} />
+          <Route path="/guides" element={<ContentIndexPage type="GUIDE" />} />
+          <Route path="/guides/:slug" element={<CmsContentPageWrapper type="GUIDE" />} />
+          <Route path="/news" element={<ContentIndexPage type="NEWS" />} />
+          <Route path="/news/:slug" element={<CmsContentPageWrapper type="NEWS" />} />
+          <Route path="/about" element={<StaticInfoPage page="about" />} />
+          <Route path="/editorial-policy" element={<StaticInfoPage page="editorial" />} />
+          <Route path="/sources-and-verification" element={<StaticInfoPage page="sources" />} />
+          <Route path="/admin/content" element={<AdminGuard><AdminContentList /></AdminGuard>} />
+          <Route path="/admin/content/new" element={<AdminGuard><AdminContentEditor /></AdminGuard>} />
+          <Route path="/admin/content/review-queue" element={<AdminGuard><AdminContentReviewQueue /></AdminGuard>} />
+          <Route path="/admin/content/redirects" element={<AdminGuard><AdminContentRedirects /></AdminGuard>} />
+          <Route path="/admin/content/:id" element={<AdminGuard><AdminContentEditor /></AdminGuard>} />
           <Route path="/recover" element={<Recovery />} />
           <Route path="/deposit/:token" element={<SecurityDepositPage />} />
           <Route path="/terms" element={<Legal page="terms" />} />

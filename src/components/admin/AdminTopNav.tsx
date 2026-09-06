@@ -15,6 +15,7 @@ const LINKS = [
   { to: '/admin/staff', label: 'Staff' },
   { to: '/admin/suppliers', label: 'Suppliers' },
   { to: '/admin/chat', label: 'Chat' },
+  { to: '/admin/content', label: 'Content' },
 ];
 
 /** Shared Owner/Admin navigation bar used by the governance screens. */

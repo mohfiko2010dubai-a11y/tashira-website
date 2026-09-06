@@ -1,5 +1,7 @@
 import {
   int,
+  json,
+  date,
   mysqlTable,
   serial,
   varchar,
@@ -481,4 +483,70 @@ export const adminSecuritySettings = mysqlTable("admin_security_settings", {
   sessionEpoch: int("session_epoch").notNull().default(1),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   updatedBy: varchar("updated_by", { length: 100 }).notNull().default("system"),
+});
+
+// ===== Content platform (migration 045) =====
+export const contentItems = mysqlTable("content_items", {
+  id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  contentType: mysqlEnum("content_type", ["LANDING", "GUIDE", "NEWS"]).notNull(),
+  language: mysqlEnum("language", ["en", "ar"]).notNull(),
+  translationGroupId: varchar("translation_group_id", { length: 64 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull(),
+  excerpt: varchar("excerpt", { length: 500 }),
+  bodyBlocks: json("body_blocks").notNull(),
+  heroImage: varchar("hero_image", { length: 500 }),
+  heroImageAlt: varchar("hero_image_alt", { length: 255 }),
+  category: varchar("category", { length: 100 }),
+  tags: json("tags"),
+  author: varchar("author", { length: 120 }),
+  reviewer: varchar("reviewer", { length: 120 }),
+  sourceAuthority: varchar("source_authority", { length: 120 }),
+  sourceUrl: varchar("source_url", { length: 500 }),
+  sourcePublishedAt: date("source_published_at"),
+  lastVerifiedAt: date("last_verified_at"),
+  seoTitle: varchar("seo_title", { length: 255 }),
+  metaDescription: varchar("meta_description", { length: 320 }),
+  canonicalUrl: varchar("canonical_url", { length: 500 }),
+  robots: varchar("robots", { length: 50 }).notNull().default("index,follow"),
+  ogTitle: varchar("og_title", { length: 255 }),
+  ogDescription: varchar("og_description", { length: 320 }),
+  ogImage: varchar("og_image", { length: 500 }),
+  structuredData: json("structured_data"),
+  status: mysqlEnum("status", ["DRAFT", "IN_REVIEW", "APPROVED", "PUBLISHED", "ARCHIVED"]).notNull().default("DRAFT"),
+  syntheticLabel: int("synthetic_label").notNull().default(0),
+  scheduledPublishAt: timestamp("scheduled_publish_at"),
+  createdBy: varchar("created_by", { length: 120 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
+  publishedAt: timestamp("published_at"),
+  version: int("version").notNull().default(1),
+}, (table) => [
+  uniqueIndex("content_items_locale_slug_uniq").on(table.language, table.slug),
+  uniqueIndex("content_items_canonical_uniq").on(table.canonicalUrl),
+  index("content_items_type_status_idx").on(table.contentType, table.status),
+]);
+
+export const contentVersions = mysqlTable("content_versions", {
+  id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  contentId: bigint("content_id", { mode: "number", unsigned: true }).notNull(),
+  version: int("version").notNull(),
+  status: varchar("status", { length: 20 }).notNull(),
+  snapshot: json("snapshot").notNull(),
+  actor: varchar("actor", { length: 120 }).notNull(),
+  action: varchar("action", { length: 40 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("content_versions_uniq").on(table.contentId, table.version),
+  foreignKey({ name: "content_versions_item_fk", columns: [table.contentId], foreignColumns: [contentItems.id] }).onDelete("restrict"),
+]);
+
+export const contentRedirects = mysqlTable("content_redirects", {
+  id: bigint("id", { mode: "number", unsigned: true }).autoincrement().primaryKey(),
+  fromPath: varchar("from_path", { length: 500 }).notNull(),
+  toPath: varchar("to_path", { length: 500 }).notNull(),
+  statusCode: int("status_code").notNull().default(301),
+  isActive: int("is_active").notNull().default(1),
+  createdBy: varchar("created_by", { length: 120 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });

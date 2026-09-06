@@ -1,0 +1,35 @@
+{
+ "disclosure": "TASHIRA is a private visa assistance service and is not a government website or government authority. Visa decisions are made solely by the relevant authorities.",
+ "breadcrumbHome": "Home",
+ "ctaApply": "Start your application",
+ "ctaCheck": "Check your eligibility",
+ "relatedTitle": "Related guides",
+ "newsBadge": "Visa news",
+ "verifiedAt": "Last verified",
+ "source": "Source",
+ "author": "Author",
+ "reviewer": "Reviewed by",
+ "readingTime": "min read",
+ "syntheticNotice": "STAGING_TEST_SYNTHETIC_NOT_REGULATORY — synthetic staging content, not a regulatory update.",
+ "notFoundTitle": "Content not found",
+ "notFoundBody": "This page is not available yet. You can start your application or browse our guides.",
+ "updatedOn": "Updated",
+ "languageSwitch": "العربية",
+ "about": {
+  "title": "About TASHIRA",
+  "body": "TASHIRA is a private visa assistance service that helps travellers prepare and submit UAE visa applications. We are not a government website or government authority, and visa decisions are made solely by the relevant authorities. Our role is to make the application journey clear, accurate and supported end to end."
+ },
+ "editorial": {
+  "title": "Editorial Policy",
+  "body": "Our guides and news are written from official sources, reviewed before publication, and re-verified on a regular cycle. We never guarantee visa approval and we never present ourselves as a government body. Every news item names its source authority and shows the date it was last verified. If rules change, we update the guide and record the change in the item history."
+ },
+ "sources": {
+  "title": "Sources & Verification",
+  "body": "We rely on official UAE government channels (such as ICP and GDRFA) and airline/authority publications as primary sources. Each guide lists its source authority and the date of last verification. News items older than 90 days are automatically queued for re-verification before they remain published."
+ },
+ "guidesIndexTitle": "Visa guides",
+ "guidesIndexSubtitle": "Clear, source-verified guides for every step of your UAE visa application.",
+ "newsIndexTitle": "UAE visa news",
+ "newsIndexSubtitle": "Verified updates from official sources — always dated, always sourced.",
+ "indexEmpty": "Nothing published here yet — check back soon."
+}

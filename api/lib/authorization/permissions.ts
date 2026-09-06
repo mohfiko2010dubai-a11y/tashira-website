@@ -19,6 +19,16 @@ export const PERMISSIONS = [
   "rule.activate",
   "role.manage",
   "authority.record_submission",
+  "content.view",
+  "content.create",
+  "content.edit",
+  "content.review",
+  "content.publish",
+  "content.unpublish",
+  "content.archive",
+  "content.manage_seo",
+  "content.manage_redirects",
+  "content.manage_media",
 ] as const;
 
 export type Permission = typeof PERMISSIONS[number];
@@ -32,7 +42,10 @@ export type RoleTemplate =
   | "FINANCE_MANAGER"
   | "CUSTOMER_SERVICE"
   | "OWNER"
-  | "AI_ASSISTANT";
+  | "AI_ASSISTANT"
+  | "CONTENT_WRITER"
+  | "CONTENT_REVIEWER"
+  | "SEO_MANAGER";
 
 export const ROLE_TEMPLATES: Readonly<Record<RoleTemplate, readonly Permission[]>> = {
   OPERATIONS_EMPLOYEE: [
@@ -52,4 +65,7 @@ export const ROLE_TEMPLATES: Readonly<Record<RoleTemplate, readonly Permission[]
   ],
   OWNER: [],
   AI_ASSISTANT: [],
+  CONTENT_WRITER: ["content.view", "content.create", "content.edit"],
+  CONTENT_REVIEWER: ["content.view", "content.edit", "content.review"],
+  SEO_MANAGER: ["content.view", "content.manage_seo", "content.manage_redirects", "content.manage_media"],
 };
