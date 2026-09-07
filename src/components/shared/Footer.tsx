@@ -74,6 +74,8 @@ export default function Footer() {
                 { label: 'Home', path: '/' },
                 { label: 'UAE Visa Prices', path: '/visa-prices' },
                 { label: 'How to Apply', path: '/how-to-apply' },
+                { label: t('nav.guides'), path: '/guides' },
+                { label: t('nav.news'), path: '/news' },
                 { label: 'Track Application', path: '/track' },
               ].map((link) => (
                 <li key={link.path}>

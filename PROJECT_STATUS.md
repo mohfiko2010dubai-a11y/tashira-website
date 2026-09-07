@@ -321,3 +321,10 @@ Complete the remaining protected owner acceptance on isolated Staging: use the a
 - Staging payment-readiness verification passes for complete, incomplete and family applications without cross-applicant leakage.
 - A staging-only interactive password reset utility is available for the persistent `staging-owner` account. It accepts hidden terminal input, updates through the existing authorized Admin API and never prints or commits the password.
 - Final external authenticated Browser E2E requires the owner to set the hidden password and confirm login. Production and `main/master` remain untouched.
+
+## Staging content discovery integration (2026-09-07)
+
+- Added customer-facing navigation for Visa Guides and Visa News in the shared header and footer, with English/Arabic labels.
+- Added a bilingual homepage content-highlights section backed only by published CMS content, with safe empty-state links to the public indexes.
+- Added the Content CMS entry to the legacy Admin Applications navigation and aligned the content list with the canonical Admin navigation shell.
+- Focused navigation coverage and the full quality gates pass. Deployment and any content publication remain Staging-only; Production and `main/master` are unchanged.

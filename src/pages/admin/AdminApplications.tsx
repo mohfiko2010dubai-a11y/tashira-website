@@ -119,6 +119,9 @@ export default function AdminApplications() {
           <Link to="/admin/staff" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <UserCircle size={14} /> Staff
           </Link>
+          <Link to="/admin/content" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
+            <Edit3 size={14} /> Content
+          </Link>
           <button onClick={() => refetch()} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <RefreshCw size={14} /> Refresh
           </button>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
+import AdminTopNav from '@/components/admin/AdminTopNav';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-gray-200 text-gray-700',
@@ -22,7 +23,9 @@ export default function AdminContentList() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
+    <div className="min-h-screen bg-gray-50">
+      <AdminTopNav title="Content" subtitle="SEO, guides and visa news" />
+      <main className="mx-auto max-w-6xl p-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[#0A1628]">Content</h1>
         <div className="flex gap-3">
@@ -69,6 +72,7 @@ export default function AdminContentList() {
           ))}
         </tbody>
       </table>
+      </main>
     </div>
   );
 }

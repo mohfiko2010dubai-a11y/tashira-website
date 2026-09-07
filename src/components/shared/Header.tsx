@@ -6,6 +6,8 @@ import { Menu, X } from 'lucide-react';
 const navLinks = [
   { key: 'home', label: 'HOME', path: '/' },
   { key: 'pricing', label: 'UAE VISAS', path: '/visa-prices' },
+  { key: 'guides', label: 'GUIDES', path: '/guides' },
+  { key: 'news', label: 'VISA NEWS', path: '/news' },
   { key: 'howToApply', label: 'HOW TO APPLY', path: '/how-to-apply' },
 ];
 

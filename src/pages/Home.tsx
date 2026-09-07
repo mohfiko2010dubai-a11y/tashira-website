@@ -12,6 +12,7 @@ import CountriesSection from '@/sections/CountriesSection';
 import RTestimonials from '@/sections/redesign/RTestimonials';
 import FAQSection from '@/sections/FAQSection';
 import RCTA from '@/sections/redesign/RCTA';
+import ContentHighlights from '@/sections/ContentHighlights';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -57,6 +58,7 @@ export default function Home() {
           <CountriesSection />
         </div>
         <RTestimonials />
+        <ContentHighlights />
         <div ref={faqRef}>
           <FAQSection />
         </div>
