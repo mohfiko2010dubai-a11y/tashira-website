@@ -21,5 +21,26 @@
     "96hoursTransit": "تأشيرة عبور 96 ساعة"
   },
   "applyNow": "قدم الآن",
-  "applyExpress": "قدم السريع"
+  "applyExpress": "قدم السريع",
+  "tabs": {
+    "single": "دخول مرة واحدة",
+    "multiple": "دخول متعدد"
+  },
+  "entryType": {
+    "single": "دخول مرة واحدة",
+    "multiple": "دخول متعدد"
+  },
+  "speed": {
+    "regular": "عادي",
+    "express": "سريع"
+  },
+  "perPerson": "للشخص",
+  "validityLabel": "الصلاحية",
+  "entryLabel": "الدخول",
+  "processingLabel": "المدة",
+  "popularBadge": "الأكثر طلبًا",
+  "expressFeature": "أولوية المعالجة",
+  "governmentFees": "شامل الرسوم الحكومية",
+  "loading": "جاري تحميل المنتجات…",
+  "error": "تعذر تحميل الأسعار. يرجى التحديث."
 }

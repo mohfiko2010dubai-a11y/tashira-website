@@ -74,11 +74,13 @@ export default function DynamicApplicationStart() {
     "14-days": "14days-single", "30-days": "30days-single", "60-days": "60days-single",
     "multiple-entry": "30days-multiple", "transit": "96hours-transit",
   };
-    const [applicationType, setApplicationType] = useState<"single" | "family">(visaParam === "family" ? "family" : "single");
+  const [applicationType, setApplicationType] = useState<"single" | "family">(visaParam === "family" ? "family" : "single");
   const [applicantCount, setApplicantCount] = useState(2);
   const [residenceType, setResidenceType] = useState<ResidenceType>(visaParam === "gcc-residents" ? "gcc-resident" : "non-gcc");
-const [visaType, setVisaType] = useState<string>(visaPrefill[visaParam] ?? visaRoutes[2][0]);
-  const [processingType, setProcessingType] = useState<"regular" | "express">("regular");
+  const knownVisaId = visaRoutes.find(([v]) => v === visaParam)?.[0];
+  const [visaType, setVisaType] = useState<string>(knownVisaId ?? visaPrefill[visaParam] ?? visaRoutes[2][0]);
+  const processingParam = searchParams.get("processing") ?? "";
+  const [processingType, setProcessingType] = useState<"regular" | "express">(processingParam === "express" ? "express" : "regular");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [arrivalDate, setArrivalDate] = useState("");

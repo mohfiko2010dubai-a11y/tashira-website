@@ -13,5 +13,26 @@
   "applyNow": "Apply Now",
   "applyExpress": "Apply Express",
   "singleEntry": "Single Entry",
-  "multipleEntry": "Multiple Entry"
+  "multipleEntry": "Multiple Entry",
+  "tabs": {
+    "single": "Single Entry",
+    "multiple": "Multiple Entry"
+  },
+  "entryType": {
+    "single": "Single Entry",
+    "multiple": "Multiple Entry"
+  },
+  "speed": {
+    "regular": "Regular",
+    "express": "Express"
+  },
+  "perPerson": "per person",
+  "validityLabel": "Validity",
+  "entryLabel": "Entry",
+  "processingLabel": "Processing",
+  "popularBadge": "Most Popular",
+  "expressFeature": "Priority Processing",
+  "governmentFees": "Government fees included",
+  "loading": "Loading products…",
+  "error": "Unable to load prices. Please refresh."
 }
