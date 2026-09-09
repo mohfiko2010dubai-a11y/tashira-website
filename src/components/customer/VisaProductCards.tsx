@@ -3,10 +3,26 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Clock, Calendar, Repeat, Check, Zap, Loader2 } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
-import type { inferRouterOutputs } from "@trpc/server";
-import type { AppRouter } from "../../api/router";
 
-type CatalogProduct = inferRouterOutputs<AppRouter>["catalog"]["listActiveProducts"][number];
+type CatalogProduct = {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  entryType: "single" | "multiple";
+  validityEn: string;
+  validityAr: string;
+  validityDays: string;
+  processingTimeRegularEn: string;
+  processingTimeRegularAr: string;
+  processingTimeExpressEn: string;
+  processingTimeExpressAr: string;
+  featuresEn: string[];
+  featuresAr: string[];
+  regularPrice: number;
+  expressPrice: number | null;
+  currency: string;
+  popular?: boolean;
+};
 
 function VisaCard({
   product,

@@ -43,7 +43,7 @@ describe("visa-catalog getActiveCatalogProducts", () => {
           expiresAt: null,
         },
       ]),
-    } as ReturnType<typeof getDb>);
+    } as unknown as ReturnType<typeof getDb>);
 
     const products = await getActiveCatalogProducts();
     const product = products.find((p) => p.id === "30days-single");
@@ -69,7 +69,7 @@ describe("visa-catalog getActiveCatalogProducts", () => {
           expiresAt: null,
         },
       ]),
-    } as ReturnType<typeof getDb>);
+    } as unknown as ReturnType<typeof getDb>);
 
     const products = await getActiveCatalogProducts();
     const product = products.find((p) => p.id === "96hours-transit");
@@ -94,7 +94,7 @@ describe("visa-catalog getActiveCatalogProducts", () => {
           expiresAt: null,
         },
       ]),
-    } as ReturnType<typeof getDb>);
+    } as unknown as ReturnType<typeof getDb>);
 
     const products = await getActiveCatalogProducts();
     expect(products.some((p) => p.id === "unknown-visa")).toBe(false);
@@ -116,7 +116,7 @@ describe("visa-catalog getActiveCatalogProducts", () => {
           expiresAt: null,
         },
       ]),
-    } as ReturnType<typeof getDb>);
+    } as unknown as ReturnType<typeof getDb>);
 
     const products = await getActiveCatalogProducts();
     const product = products.find((p) => p.id === "14days-single");
@@ -150,7 +150,7 @@ describe("visa-catalog getActiveCatalogProducts", () => {
           expiresAt: null,
         },
       ]),
-    } as ReturnType<typeof getDb>);
+    } as unknown as ReturnType<typeof getDb>);
 
     const products = await getActiveCatalogProducts();
     const single = products.filter((p) => p.entryType === "single");
