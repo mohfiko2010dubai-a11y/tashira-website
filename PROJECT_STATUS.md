@@ -1,5 +1,9 @@
 # TASHIRA Project Status
 
+## Five-step wizard Staging candidate — 2026-09-11
+
+The repaired five-step customer form is integrated directly above verified Staging SHA `e0381944e44f6fca1952444c78d1d05a10e0ce05`, exported through the installed Staging guard. Only customer UI, bilingual wizard translations, contact validation and a regression test change; no dependencies, backend rules, migrations, environment files, customer data or provider configuration are imported from the Kimi ZIP. The existing authenticated family/profile/document flow remains canonical, drafts are scoped by application/applicant/question, and checkout navigation requires server readiness. The inactive localStorage prototype and fake success flow are excluded entirely. The isolated repair passed TypeScript, ESLint, 856 tests with 26 environment skips and client/static/server builds. Clean lockfile installation and full release gates will run inside the installed Staging deployment guard before runtime replacement; public Browser verification follows deployment. Production/main/master/Codex branches remain outside scope.
+
 Last verified: 2026-08-30
 
 - Customer operational notifications are integrated safely above the authoritative Staging baseline on `kimi/integrated-chatbot-pickers`. Admin status changes and applicant-scoped document replacement requests now dispatch non-blocking transactional notifications with hashed recipient evidence, provider references, deterministic event-based idempotency, append-only failure evidence and audit outcomes. The integration preserves Staging Owner browser authentication, governed nationality/rule tests, chatbot pickers and all later security work that the incoming rebased Kimi commit would have deleted. TypeScript, ESLint and focused notification template tests pass locally; full Linux gates and exact-SHA Staging deployment are pending. Production/main/master remain unchanged.

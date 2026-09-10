@@ -1,17 +1,19 @@
 {
   "steps": {
-    "trip": "Trip & Visa",
-    "travellers": "Travellers & Documents",
+    "visa": "Visa Selection",
+    "residence": "Residence Type",
+    "data": "Applicant Data",
+    "documents": "Documents",
     "review": "Review & Pay"
   },
-  "stepOf": "Step {{current}} of 3",
+  "stepOf": "Step {{current}} of 5",
   "save": {
-    "button": "Save",
+    "button": "Save & Exit",
     "note": "You can come back via email and continue your application at any time — we will send you a secure link.",
     "emailPlaceholder": "Your email address",
     "sending": "Sending…",
-    "sent": "Saved — check your inbox for the secure link.",
-    "error": "We could not send the link right now. Your progress is saved automatically."
+    "sent": "If a matching application exists, we will send a secure link.",
+    "error": "We could not request the link. Please try again."
   },
   "policies": {
     "lead": "I have read and agree to the",
@@ -22,8 +24,8 @@
     "required": "Please review and accept the policies above to continue with payment."
   },
   "step1": {
-    "title": "Your trip & visa",
-    "subtitle": "Everything on one page — pick your options and see the exact price before you start.",
+    "title": "Visa selection",
+    "subtitle": "Choose your visa type, processing speed, and enter your contact details.",
     "whoTravelling": "Who is travelling?",
     "single": "Single applicant",
     "singleDesc": "One traveller",
@@ -56,12 +58,13 @@
     "priceTotal": "Total for {{count}} traveller(s)",
     "priceCalculating": "Calculating…",
     "start": "Start my application →",
+    "continue": "Continue →",
     "startError": "We couldn't start your application. Please check the details and try again.",
     "nextNote": "Next: one page per traveller — questions and documents matched to each nationality."
   },
   "step2": {
-    "title": "Travellers & documents",
-    "subtitle": "One traveller per page. Answer the questions, upload the documents, then move to the next traveller.",
+    "title": "Residence type",
+    "subtitle": "Select your residence status to determine the required documents.",
     "traveller": "Traveller {{n}}",
     "notStarted": "Not started",
     "completed": "Completed",
@@ -80,15 +83,18 @@
     "no": "Not yet",
     "noHint": "No problem — we'll guide you",
     "done": {
-      "title": "Done — we'll take it from here",
-      "underReview": "Your application is complete and with our review team. We'll email you the secure payment link as soon as it clears.",
+      "title": "Review your application",
+      "underReview": "Check outstanding details, documents and review requirements before payment.",
       "ready": "Your application is complete. Review the summary and continue to secure payment.",
-      "underReviewBadge": "Under review",
+      "underReviewBadge": "Not ready for payment",
       "readyBadge": "Ready for payment",
       "received": "Received",
       "needed": "Needed",
       "ifAsked": "If requested"
-    }
+    },
+    "residence": "Residence status",
+    "back": "← Back",
+    "start": "Continue to application →"
   },
   "step3": {
     "title": "Review & pay",
@@ -101,5 +107,12 @@
     "applicants": "Travellers",
     "total": "Total",
     "payNow": "Pay ${{amount}}"
+  },
+  "flow": {
+    "subtitle": "Review and save each traveller’s details before continuing.",
+    "navigation": "Application steps",
+    "savedOnly": "The secure link restores details already saved to this application. Save any edits before requesting it.",
+    "startBeforeSave": "Create your application in the next step to enable secure save and resume.",
+    "notReady": "Payment is available only after the server confirms all application requirements. Complete any missing details or documents."
   }
 }

@@ -51,7 +51,7 @@ const AdminDynamicForm = lazy(() => importWithStaleChunkRecovery(() => import('@
 const AdminFeatureFlags = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFeatureFlags')));
 const AdminRuleEvaluations = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminRuleEvaluations')));
 const AdminSecurity = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminSecurity')));
-const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplication')));
+const DynamicApplication = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/UnifiedApplicationForm')));
 const DynamicApplicationStart = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/DynamicApplicationStart')));
 const CustomerApplicationPortal = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerApplicationPortal')));
 const CustomerPrecheck = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/CustomerPrecheck')));

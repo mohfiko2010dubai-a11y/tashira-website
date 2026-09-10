@@ -3,7 +3,7 @@ import {useNavigate, useSearchParams} from "react-router-dom";
 import { Building2, Globe2, Home, Plane, UserRound, UsersRound, Zap, Clock3, Check, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WizardShell, { StepHeader } from "@/components/customer/WizardShell";
-import { SaveContinueButton } from "@/components/customer/SaveContinueButton";
+import { validStartContact } from "@/lib/wizard-validation";
 import { trpc } from "@/providers/trpc-client";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
 
@@ -19,7 +19,6 @@ type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-acc
 const residenceOptions: { key: ResidenceType; icon: typeof Home; titleKey: string; descKey: string }[] = [
   { key: "non-gcc", icon: Globe2, titleKey: "residenceNonGcc", descKey: "residenceNonGccDesc" },
   { key: "gcc-resident", icon: Building2, titleKey: "residenceGcc", descKey: "residenceGccDesc" },
-  { key: "non-gcc-accompany", icon: UserRound, titleKey: "residenceNonGccAcc", descKey: "residenceNonGccAccDesc" },
   { key: "gcc-accompany", icon: UsersRound, titleKey: "residenceGccAcc", descKey: "residenceGccAccDesc" },
 ];
 
@@ -94,30 +93,39 @@ export default function DynamicApplicationStart() {
   // Live, authoritative server-side quote — the customer sees the exact
   // price (same pricing engine the payment uses) before starting.
   const quote = trpc.wizard.quoteApplication.useMutation();
+  const quoteMutate = quote.mutate;
   useEffect(() => {
     const timer = setTimeout(() => {
-      quote.mutate({ visaType, processingType, applicantCount: travellerCount });
+      quoteMutate({ visaType, processingType, applicantCount: travellerCount });
     }, 250);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visaType, processingType, travellerCount]);
+  }, [visaType, processingType, travellerCount, quoteMutate]);
 
   const create = trpc.application.create.useMutation({
     onSuccess: ({ referenceNumber }) => navigate(`/apply/${encodeURIComponent(referenceNumber)}/interview`, { replace: true }),
   });
 
-  const stepValid = Boolean(email && phone && (applicationType === "single" || applicantCount >= 2));
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
+
+  const stepValid = wizardStep === 1
+    ? Boolean(validStartContact(email, phone) && Number.isInteger(travellerCount) && travellerCount >= 1 && travellerCount <= 10 && visaType && processingType)
+    : Boolean(residenceType);
 
   const submit = () => {
-    if (!stepValid || create.isPending) return;
+    if (!stepValid || !validStartContact(email, phone)) return;
+    if (wizardStep === 1) {
+      setWizardStep(2);
+      return;
+    }
+    if (create.isPending) return;
     create.mutate({
       referenceNumber: createReference(),
       baseType: applicationType,
       residenceType,
       visaType,
       processingType,
-      contactEmail: email,
-      contactPhone: phone,
+      contactEmail: email.trim(),
+      contactPhone: phone.trim(),
       journeyMode: "DYNAMIC",
       ...(arrivalDate ? { arrivalDate } : {}),
       policyVersion: TERMS_POLICY_VERSION,
@@ -126,102 +134,122 @@ export default function DynamicApplicationStart() {
   };
 
   return (
-    <WizardShell currentStep={1}>
+    <WizardShell currentStep={wizardStep}>
       <section>
-        <StepHeader step={1} title={t("step1.title")} subtitle={t("step1.subtitle")} />
+        {wizardStep === 1 ? (
+          <>
+            <StepHeader step={1} title={t("step1.title")} subtitle={t("step1.subtitle")} />
 
-        <SectionTitle>{t("step1.whoTravelling")}</SectionTitle>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <SelectCard icon={UserRound} selected={applicationType === "single"} onClick={() => setApplicationType("single")}
-            title={t("step1.single")} desc={t("step1.singleDesc")} />
-          <SelectCard icon={UsersRound} selected={applicationType === "family"} onClick={() => setApplicationType("family")}
-            title={t("step1.family")} desc={t("step1.familyDesc")} />
-        </div>
-        {applicationType === "family" && (
-          <label className="mt-4 block text-sm font-medium text-[#0A1628]">
-            {t("step1.count")}
-            <input type="number" min={2} max={10} value={applicantCount}
-              onChange={(event) => setApplicantCount(Math.min(10, Math.max(2, Number(event.target.value))))}
-              className="mt-2 w-32 rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
-          </label>
-        )}
-
-        <SectionTitle>{t("step1.residence")}</SectionTitle>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {residenceOptions.map((opt) => (
-            <SelectCard key={opt.key} icon={opt.icon} selected={residenceType === opt.key}
-              onClick={() => setResidenceType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
-          ))}
-        </div>
-
-        <SectionTitle>{t("step1.visaType")}</SectionTitle>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {visaRoutes.map(([value, label]) => (
-            <SelectCard key={value} icon={Plane} selected={visaType === value} onClick={() => setVisaType(value)} title={label} />
-          ))}
-        </div>
-
-        <SectionTitle>{t("step1.processing")}</SectionTitle>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {processingOptions.map((opt) => (
-            <SelectCard key={opt.key} icon={opt.icon} selected={processingType === opt.key}
-              onClick={() => setProcessingType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
-          ))}
-        </div>
-
-        <SectionTitle>{t("step1.contact")}</SectionTitle>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-[#0A1628]">
-            {t("step1.email")}
-            <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
-          </label>
-          <label className="text-sm font-medium text-[#0A1628]">
-            {t("step1.phone")}
-            <input required value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
-          </label>
-          <label className="text-sm font-medium text-[#0A1628] sm:col-span-2">
-            {t("step1.arrival")} <span className="text-gray-400">({t("step1.optional")})</span>
-            <input type="date" min={new Date().toISOString().slice(0, 10)} value={arrivalDate}
-              onChange={(event) => setArrivalDate(event.target.value)}
-              className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
-          </label>
-        </div>
-
-        {/* Price on screen before starting */}
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#C9A04C]/30 bg-gradient-to-br from-[#C9A04C]/10 to-transparent p-5">
-          <div>
-            <p className="text-sm font-bold text-[#0A1628]">{t("step1.price")}</p>
-            <p className="text-xs text-gray-500">
-              {quote.data
-                ? t("step1.pricePerTraveller", { price: `$${quote.data.unitPrice}` })
-                : t("step1.priceCalculating")}
-            </p>
-          </div>
-          <div className="text-end">
-            {quote.isPending && <Loader2 size={20} className="animate-spin text-[#C9A04C]" />}
-            {quote.data && (
-              <>
-                <p className="text-3xl font-extrabold text-[#C9A04C]">${quote.data.totalPrice}</p>
-                <p className="text-xs text-gray-500">{t("step1.priceTotal", { count: quote.data.applicantCount })}</p>
-              </>
+            <SectionTitle>{t("step1.whoTravelling")}</SectionTitle>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SelectCard icon={UserRound} selected={applicationType === "single"} onClick={() => setApplicationType("single")}
+                title={t("step1.single")} desc={t("step1.singleDesc")} />
+              <SelectCard icon={UsersRound} selected={applicationType === "family"} onClick={() => setApplicationType("family")}
+                title={t("step1.family")} desc={t("step1.familyDesc")} />
+            </div>
+            {applicationType === "family" && (
+              <label className="mt-4 block text-sm font-medium text-[#0A1628]">
+                {t("step1.count")}
+                <input type="number" min={2} max={10} value={applicantCount}
+                  onChange={(event) => setApplicantCount(Math.min(10, Math.max(2, Number(event.target.value))))}
+                  className="mt-2 w-32 rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+              </label>
             )}
-          </div>
-        </div>
 
-        {create.error && (
-          <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{t("step1.startError")}</p>
+            <SectionTitle>{t("step1.visaType")}</SectionTitle>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {visaRoutes.map(([value, label]) => (
+                <SelectCard key={value} icon={Plane} selected={visaType === value} onClick={() => setVisaType(value)} title={label} />
+              ))}
+            </div>
+
+            <SectionTitle>{t("step1.processing")}</SectionTitle>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {processingOptions.map((opt) => (
+                <SelectCard key={opt.key} icon={opt.icon} selected={processingType === opt.key}
+                  onClick={() => setProcessingType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
+              ))}
+            </div>
+
+            <SectionTitle>{t("step1.contact")}</SectionTitle>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-[#0A1628]">
+                {t("step1.email")}
+                <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email"
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+              </label>
+              <label className="text-sm font-medium text-[#0A1628]">
+                {t("step1.phone")}
+                <input required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel"
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+              </label>
+              <label className="text-sm font-medium text-[#0A1628] sm:col-span-2">
+                {t("step1.arrival")} <span className="text-gray-400">({t("step1.optional")})</span>
+                <input type="date" min={new Date().toISOString().slice(0, 10)} value={arrivalDate}
+                  onChange={(event) => setArrivalDate(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+              </label>
+            </div>
+
+            {/* Price on screen before starting */}
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#C9A04C]/30 bg-gradient-to-br from-[#C9A04C]/10 to-transparent p-5">
+              <div>
+                <p className="text-sm font-bold text-[#0A1628]">{t("step1.price")}</p>
+                <p className="text-xs text-gray-500">
+                  {quote.data
+                    ? t("step1.pricePerTraveller", { price: `$${quote.data.unitPrice}` })
+                    : t("step1.priceCalculating")}
+                </p>
+              </div>
+              <div className="text-end">
+                {quote.isPending && <Loader2 size={20} className="animate-spin text-[#C9A04C]" />}
+                {quote.data && (
+                  <>
+                    <p className="text-3xl font-extrabold text-[#C9A04C]">${quote.data.totalPrice}</p>
+                    <p className="text-xs text-gray-500">{t("step1.priceTotal", { count: quote.data.applicantCount })}</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {create.error && (
+              <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{t("step1.startError")}</p>
+            )}
+
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+              <p className="text-sm text-gray-500">{t("flow.startBeforeSave")}</p>
+              <button type="button" onClick={submit} disabled={!stepValid}
+                className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                {t("step1.continue")}
+              </button>
+            </div>
+            <p className="mt-4 text-center text-xs text-gray-400">{t("step1.nextNote")}</p>
+          </>
+        ) : (
+          <>
+            <StepHeader step={2} title={t("step2.title")} subtitle={t("step2.subtitle")} />
+
+            <SectionTitle>{t("step2.residence")}</SectionTitle>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {residenceOptions.map((opt) => (
+                <SelectCard key={opt.key} icon={opt.icon} selected={residenceType === opt.key}
+                  onClick={() => setResidenceType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
+              ))}
+            </div>
+
+            {create.error && <p role="alert" className="mt-4 text-red-700">{t("step1.startError")}</p>}
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+              <button type="button" onClick={() => setWizardStep(1)}
+                className="rounded-xl border-2 border-gray-200 px-6 py-3 font-bold text-gray-600 hover:border-[#C9A04C]/30 transition-all">
+                {t("step2.back")}
+              </button>
+              <button type="button" onClick={submit} disabled={!stepValid || create.isPending}
+                className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                {create.isPending ? "…" : t("step1.start")}
+              </button>
+            </div>
+          </>
         )}
-
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
-          <SaveContinueButton email={email || undefined} />
-          <button type="button" onClick={submit} disabled={!stepValid || create.isPending}
-            className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-            {create.isPending ? "…" : t("step1.start")}
-          </button>
-        </div>
-        <p className="mt-4 text-center text-xs text-gray-400">{t("step1.nextNote")}</p>
       </section>
     </WizardShell>
   );

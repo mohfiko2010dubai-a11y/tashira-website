@@ -28,11 +28,12 @@ export default function DynamicApplication() {
   const { t } = useTranslation("wizard");
   const { referenceNumber = "" } = useParams();
   const query = trpc.dynamicInterview.current.useQuery({ referenceNumber }, { enabled: referenceNumber.length >= 3, retry: false });
-  const [answer, setAnswer] = useState<AnswerValue>("");
+  const [draft, setDraft] = useState<{ key: string; value: AnswerValue } | null>(null);
+  const [phase, setPhase] = useState<3 | 4 | 5 | null>(null);
   const [editing, setEditing] = useState<{ code: string; applicantId: number | null; answer: AnswerValue } | null>(null);
   const [activeTravellerId, setActiveTravellerId] = useState<number | null>(null);
-  const answerMutation = trpc.dynamicInterview.answer.useMutation({ onSuccess: async () => { setAnswer(""); setActiveTravellerId(null); await query.refetch(); } });
-  const editMutation = trpc.dynamicInterview.editAnswer.useMutation({ onSuccess: async () => { setEditing(null); await query.refetch(); } });
+  const answerMutation = trpc.dynamicInterview.answer.useMutation({ onSuccess: async () => { setDraft(null); setPhase(null); setActiveTravellerId(null); await refreshState(); } });
+  const editMutation = trpc.dynamicInterview.editAnswer.useMutation({ onSuccess: async () => { setEditing(null); await refreshState(); } });
   const addApplicantMutation = trpc.dynamicInterview.addApplicant.useMutation();
   const editApplicantMutation = trpc.dynamicInterview.editApplicant.useMutation();
   const relationshipMutation = trpc.dynamicInterview.defineRelationship.useMutation();
@@ -43,6 +44,11 @@ export default function DynamicApplication() {
   const documentCreateMutation = trpc.document.create.useMutation();
   const linkRequirementDocumentMutation = trpc.dynamicInterview.linkRequirementDocument.useMutation();
   const question = query.data?.currentQuestions[0];
+  const questionKey = question ? `${referenceNumber}:${question.applicantId}:${question.code}` : "";
+  const answer = draft?.key === questionKey ? draft.value : "";
+  const setAnswer = (value: AnswerValue) => setDraft({ key: questionKey, value });
+  const readiness = trpc.payment.readiness.useQuery({ referenceNumber },
+    { enabled: referenceNumber.length >= 3 && Boolean(query.data), retry: false });
 
   // Traveller list (from party setup when available, otherwise review/answers)
   const travellers = useMemo(() => {
@@ -62,6 +68,10 @@ export default function DynamicApplication() {
   // a manual tab pick until the next answer is submitted.
   if (query.isLoading) return <main className="mx-auto min-h-[60vh] max-w-3xl px-5 py-12" aria-live="polite">Loading your application…</main>;
   if (query.error) return <main className="mx-auto min-h-[60vh] max-w-3xl px-5 py-12"><section className="rounded-2xl border border-amber-200 bg-amber-50 p-6"><h1 className="text-xl font-semibold text-slate-900">Application interview unavailable</h1><p className="mt-2 text-slate-700">Use the secure link sent for this application, or contact TASHIRA support.</p></section></main>;
+  const refreshState = async () => {
+    await query.refetch();
+    await readiness.refetch();
+  };
   const state = query.data;
   if (!state) return null;
 
@@ -94,7 +104,7 @@ export default function DynamicApplication() {
       uploadedBy: `customer:${referenceNumber}` });
     await linkRequirementDocumentMutation.mutateAsync({ referenceNumber, applicantId: requirement.applicantId,
       requirementCode: requirement.requirementCode, documentId: document.id, idempotencyKey: crypto.randomUUID() });
-    await query.refetch();
+    await refreshState();
   };
 
   const partyBusy = addApplicantMutation.isPending || editApplicantMutation.isPending || relationshipMutation.isPending || createTravelGroupMutation.isPending || updateTravelGroupMutation.isPending || linkSharedDocumentMutation.isPending;
@@ -109,17 +119,26 @@ export default function DynamicApplication() {
     ? state.partySetup.applicants.filter((a) => a.applicantId === activeId)
     : [];
 
-  return <WizardShell currentStep={2}>
+  const currentStep = phase ?? (question ? 3 : 4);
+  return <WizardShell currentStep={currentStep}>
     <div>
       <StepHeader
-        step={2}
-        title={question ? t("step2.title") : t("step2.reviewTitle")}
-        subtitle={question ? t("step2.subtitle") : "Check every traveller and the documents your visa rules require before payment."}
+        step={currentStep}
+        title={t(currentStep === 3 ? "steps.data" : currentStep === 4 ? "steps.documents" : "steps.review")}
+        subtitle={t("flow.subtitle")}
       />
       <p className="mb-6 text-xs text-gray-400">Reference <span className="font-semibold text-[#C9A04C]">{referenceNumber}</span></p>
 
+      <nav className="mb-6 flex flex-wrap gap-3" aria-label={t("flow.navigation")}>
+        {([3, 4, 5] as const).map(step => <button type="button" key={step}
+          aria-current={currentStep === step ? "step" : undefined}
+          disabled={partyBusy || docsBusy || answerMutation.isPending || editMutation.isPending}
+          className="min-h-11 rounded-xl border px-4 py-2" onClick={() => setPhase(step)}>
+          {t(step === 3 ? "steps.data" : step === 4 ? "steps.documents" : "steps.review")}
+        </button>)}
+      </nav>
       {/* Traveller pager — one traveller per page */}
-      {question && travellers.length > 0 && (
+      {currentStep !== 5 && travellers.length > 0 && (
         <nav className="mb-6 flex flex-wrap gap-2" aria-label="Travellers">
           {travellers.map((traveller, i) => {
             const isActive = traveller.applicantId === activeId;
@@ -153,28 +172,28 @@ export default function DynamicApplication() {
       )}
 
       {/* Manage party (add travellers, family links, shared tickets) */}
-      {state.partySetup && <div id="party-setup"><InterviewPartySetup setup={state.partySetup}
+      {state.partySetup && <div id="party-setup" hidden={currentStep !== 3}><InterviewPartySetup setup={state.partySetup}
         hideTravelGroups
         busy={partyBusy}
         error={partyError}
         onAddApplicant={async (profile) => { await addApplicantMutation.mutateAsync({ referenceNumber, profile,
-          reason: "Customer added applicant", idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+          reason: "Customer added applicant", idempotencyKey: crypto.randomUUID() }); await refreshState(); }}
         onEditApplicant={async (applicant, profile) => { await editApplicantMutation.mutateAsync({ referenceNumber,
           applicantId: applicant.applicantId, expectedVersion: applicant.profileVersion, profile, reason: "Customer updated applicant profile",
-          idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+          idempotencyKey: crypto.randomUUID() }); await refreshState(); }}
         onDefineRelationship={async (fromApplicantId, toApplicantId, relationship) => { await relationshipMutation.mutateAsync({ referenceNumber,
-          fromApplicantId, toApplicantId, relationship, reason: "Customer defined family relationship", idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+          fromApplicantId, toApplicantId, relationship, reason: "Customer defined family relationship", idempotencyKey: crypto.randomUUID() }); await refreshState(); }}
         onCreateTravelGroup={async (group) => { await createTravelGroupMutation.mutateAsync({ referenceNumber, group,
-          reason: "Customer created travel group", idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+          reason: "Customer created travel group", idempotencyKey: crypto.randomUUID() }); await refreshState(); }}
         onUpdateTravelGroup={async (current, group) => { await updateTravelGroupMutation.mutateAsync({ referenceNumber,
           travelGroupId: current.travelGroupId, expectedVersion: current.version, group, reason: "Customer updated travel group",
-          idempotencyKey: crypto.randomUUID() }); await query.refetch(); }}
+          idempotencyKey: crypto.randomUUID() }); await refreshState(); }}
         onLinkSharedDocument={async (document, applicantIds) => { await linkSharedDocumentMutation.mutateAsync({ referenceNumber,
           documentId: document.documentId, documentType: document.documentType, applicantIds, idempotencyKey: crypto.randomUUID() });
-          await query.refetch(); }} /></div>}
+          await refreshState(); }} /></div>}
 
       {/* Current traveller question */}
-      {questionForActive ? <section className="rounded-2xl border border-gray-100 bg-[#FAFAF7] p-6 sm:p-8">
+      {currentStep === 3 && (questionForActive ? <section className="rounded-2xl border border-gray-100 bg-[#FAFAF7] p-6 sm:p-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div><p className="text-sm font-semibold text-[#9b7425]">{state.currentApplicant?.label ?? "Whole application"}</p><p className="text-sm text-slate-500">{state.currentStep.replaceAll("_", " ")}</p></div>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">Reference {referenceNumber}</span>
@@ -197,28 +216,28 @@ export default function DynamicApplication() {
             {answeredIds.has(activeId) ? t("step2.noQuestions") : t("step2.waiting")}
           </p>
         </section>
-      ) : null}
+      ) : null)}
 
       {/* Active traveller documents */}
-      {state.partySetup && activeRequirements.length > 0 && <div className="mb-3 mt-8">
-        <span className="inline-block rounded-full bg-[#C9A04C]/10 px-4 py-1.5 text-xs font-bold text-[#C9A04C]">{t("steps.travellers")}</span>
+      {currentStep === 4 && state.partySetup && activeRequirements.length > 0 && <div className="mb-3 mt-8">
+        <span className="inline-block rounded-full bg-[#C9A04C]/10 px-4 py-1.5 text-xs font-bold text-[#C9A04C]">{t("steps.documents")}</span>
         <h2 className="mt-3 text-xl font-extrabold text-[#0A1628]">
           {t("step2.docsTitle", { name: activeTraveller?.name ?? t("step2.traveller", { n: activeIndex + 1 }) })}
         </h2>
         <p className="mt-1 text-sm text-gray-500">{t("step2.docsSub")}</p>
       </div>}
-      {state.partySetup && <InterviewRequirementDocuments applicants={activeApplicants} requirements={activeRequirements}
+      {state.partySetup && <div hidden={currentStep !== 4}><InterviewRequirementDocuments applicants={activeApplicants} requirements={activeRequirements}
         busy={docsBusy}
         error={docsError}
-        onUpload={uploadHandler} />}
+        onUpload={uploadHandler} /></div>}
 
       {/* Review when interview is complete — minimal, customer-friendly */}
-      {!question && <section>
+      {currentStep === 5 && <section>
         <div className="rounded-3xl bg-gradient-to-br from-[#0A1628] to-[#16283f] p-8 text-center text-white shadow-sm">
           <p className="text-3xl">✅</p>
           <h2 className="mt-3 text-2xl font-extrabold">{t("step2.done.title")}</h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#DDBB7A]">
-            {state.review.manualReviewRequired ? t("step2.done.underReview") : t("step2.done.ready")}
+            {readiness.data?.status === "READY" ? t("step2.done.ready") : t("step2.done.underReview")}
           </p>
           <span className="mt-5 inline-block rounded-full border border-[#DDBB7A]/30 bg-white/5 px-5 py-2 text-sm font-semibold text-[#DDBB7A]">{referenceNumber}</span>
         </div>
@@ -227,8 +246,8 @@ export default function DynamicApplication() {
           {state.review.applicants.map((applicant) => <article key={applicant.applicantId} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-bold text-[#0A1628]">{applicant.label}</h3>
-              <span className={`rounded-full px-3 py-1 text-xs font-bold ${state.review.manualReviewRequired ? "bg-amber-50 text-[#9b7425]" : "bg-emerald-50 text-emerald-700"}`}>
-                {state.review.manualReviewRequired ? t("step2.done.underReviewBadge") : t("step2.done.readyBadge")}
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${readiness.data?.status !== "READY" ? "bg-amber-50 text-[#9b7425]" : "bg-emerald-50 text-emerald-700"}`}>
+                {readiness.data?.status !== "READY" ? t("step2.done.underReviewBadge") : t("step2.done.readyBadge")}
               </span>
             </div>
             {applicant.requirements.length > 0 && <ul className="mt-4 divide-y divide-gray-50">
@@ -250,19 +269,19 @@ export default function DynamicApplication() {
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">{t("step2.saveView")}</Link>
-          {!state.review.manualReviewRequired && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
+          {readiness.data?.status === "READY" && !state.review.manualReviewRequired && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
         </div>
       </section>}
       {state.unifiedReviewBlocker === "RELATIONSHIP_REQUIRED" && <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
         <strong>Complete the family relationships above.</strong>
         <p className="mt-1">Every family member must be linked to the lead applicant before the final family readiness review can be generated.</p>
       </section>}
-      {state.knownAnswers.length > 0 && <details className="mt-6 rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer font-semibold text-slate-900">Review previous answers</summary><ul className="mt-4 space-y-3 text-sm text-slate-700">{state.knownAnswers.map((item) => <li key={`${item.applicantId}-${item.code}`} className="border-b border-slate-100 pb-3">{editing?.code === item.code && editing.applicantId === item.applicantId ? <div className="space-y-2"><label className="block font-medium" htmlFor={`edit-${item.applicantId}-${item.code}`}>{item.code.replaceAll("_", " ")}</label>{["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "GCC_COUNTRY"].includes(item.code)
+      {currentStep === 3 && state.knownAnswers.length > 0 && <details className="mt-6 rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer font-semibold text-slate-900">Review previous answers</summary><ul className="mt-4 space-y-3 text-sm text-slate-700">{state.knownAnswers.map((item) => <li key={`${item.applicantId}-${item.code}`} className="border-b border-slate-100 pb-3">{editing?.code === item.code && editing.applicantId === item.applicantId ? <div className="space-y-2"><label className="block font-medium" htmlFor={`edit-${item.applicantId}-${item.code}`}>{item.code.replaceAll("_", " ")}</label>{["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "GCC_COUNTRY"].includes(item.code)
         ? <NationalitySelect value={typeof editing.answer === "string" ? editing.answer : ""} onChange={(code) => setEditing({ ...editing, answer: code })} />
         : <input id={`edit-${item.applicantId}-${item.code}`} value={String(editing.answer)} onChange={(event) => setEditing({ ...editing, answer: typeof item.answer === "boolean" ? event.target.value === "true" : typeof item.answer === "number" ? Number(event.target.value) : event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2"/>}<div className="flex gap-2"><button type="button" className="rounded-lg bg-[#C9A04C] px-3 py-2 font-semibold text-white" disabled={editMutation.isPending} onClick={() => editMutation.mutate({ referenceNumber, applicantId: editing.applicantId, questionCode: editing.code, answer: editing.answer, changeReason: "CUSTOMER_CORRECTION" })}>Save correction</button><button type="button" className="rounded-lg border border-slate-300 px-3 py-2" onClick={() => setEditing(null)}>Cancel</button></div></div> : <div className="flex items-center justify-between gap-4"><span>{item.code.replaceAll("_", " ")}</span><span className="flex items-center gap-3"><strong>{String(item.answer)}</strong><button type="button" className="text-[#8a6721] underline" onClick={() => setEditing(item)}>Edit</button></span></div>}</li>)}</ul>{editMutation.error && <p className="mt-3 text-sm text-red-700">We could not save that correction. Please try again.</p>}</details>}
 
       {/* Action row: previous traveller / save / next traveller */}
-      {question && (
+      {currentStep === 3 && question && (
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
           {activeIndex > 0 ? (
             <button type="button" onClick={() => goToTraveller(activeIndex - 1)}
@@ -270,7 +289,7 @@ export default function DynamicApplication() {
               {t("step2.prevTraveller", { n: activeIndex })}
             </button>
           ) : <span />}
-          <SaveContinueButton />
+
           {activeIndex < travellers.length - 1 ? (
             <button type="button" onClick={() => goToTraveller(activeIndex + 1)}
               className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg transition-all">
@@ -279,6 +298,15 @@ export default function DynamicApplication() {
           ) : <span />}
         </div>
       )}
+      <div className="mt-8 space-y-4">
+        <p className="text-sm text-slate-600">{t("flow.savedOnly")}</p>
+        <SaveContinueButton />
+        {currentStep < 5 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3"
+          onClick={() => setPhase(currentStep === 3 ? 4 : 5)}>{t("step1.continue")}</button>}
+        {currentStep > 3 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3"
+          onClick={() => setPhase(currentStep === 5 ? 4 : 3)}>{t("step2.back")}</button>}
+        {currentStep === 5 && readiness.data?.status !== "READY" && <p role="status">{t("flow.notReady")}</p>}
+      </div>
     </div>
   </WizardShell>;
 }
