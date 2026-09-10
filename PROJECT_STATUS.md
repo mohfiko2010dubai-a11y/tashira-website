@@ -2,6 +2,8 @@
 
 ## Grouped applicant form correction — 2026-09-11
 
+First grouped-form release `6fc186ca0fef2c00a08c6b3cad1918f8356daca7` passed clean TypeScript/lint/858 tests/build and deployed with local/public HTTP 200. Browser UAT on synthetic case `TSH-MTW2UAKM-519862` verified grouped fields, disabled incomplete submission, independent traveller drafts, server persistence after reload, and conditional GCC fields. UAT identified a correction edge case: switching GCC residency to false must immediately remove the dependent required controls. This fix now has three component rendering regressions covering grouped rendering, false-valued answers and applicant isolation; final guard deployment and UAT remain pending.
+
 Owner visual review correctly rejected the five-step shell because Applicant Data still rendered the previous one-question cards. Those cards are replaced with a compact two-column form per traveller, full-name/country profile fields and every currently applicable governed question. Drafts remain independently mounted per applicant in memory; saved answers hydrate from the server. Family management is collapsed, and all applicant data saves through existing versioned profile/answer APIs. An opt-in form answer path rechecks applicability and ownership on every write; the original sequential API behavior is preserved. Conditional fields remain governed by the existing rules, and payment readiness stays authoritative. Local TypeScript, ESLint and 858 tests / 26 environment skips pass; full clean release gates and visual Staging UAT are pending. No policy, dependencies, database schema or provider configuration changes.
 
 ## Five-step wizard Staging candidate — 2026-09-11
