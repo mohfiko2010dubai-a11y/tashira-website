@@ -212,9 +212,14 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     }),
     answer: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive().nullable(),
       questionCode: z.string().regex(/^[A-Z][A-Z0-9_]{1,99}$/), answer: z.union([z.string().max(500), z.number().finite(), z.boolean()]),
+      fromForm: z.boolean().optional(),
       changeReason: z.string().trim().max(500).default("INITIAL_ANSWER") }).strict()).mutation(async ({ input, ctx }) => {
       try {
-        const runtime = await state(ctx, input.referenceNumber); const current = runtime.state.currentQuestions[0];
+        const runtime = await state(ctx, input.referenceNumber);
+        const alreadyAnswered = runtime.state.knownAnswers.some((item) => item.code === input.questionCode && item.applicantId === input.applicantId);
+        const current = input.fromForm && !alreadyAnswered
+          ? runtime.state.formQuestions?.find((item) => item.code === input.questionCode && item.applicantId === input.applicantId)
+          : runtime.state.currentQuestions[0];
         if (!current || current.code !== input.questionCode || current.applicantId !== input.applicantId) throw new TRPCError({ code: "CONFLICT", message: "Interview question is no longer current" });
         const definition = runtime.questions.find((question) => question.code === input.questionCode);
         if (!definition) throw new TRPCError({ code: "CONFLICT", message: "Interview question unavailable" });

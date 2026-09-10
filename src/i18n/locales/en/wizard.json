@@ -114,5 +114,39 @@
     "savedOnly": "The secure link restores details already saved to this application. Save any edits before requesting it.",
     "startBeforeSave": "Create your application in the next step to enable secure save and resume.",
     "notReady": "Payment is available only after the server confirms all application requirements. Complete any missing details or documents."
+  },
+  "simple": {
+    "title": "Applicant details",
+    "subtitle": "Fill in the fields below for this traveller. Required fields are marked *.",
+    "fullName": "Full name as shown on passport",
+    "wholeParty": "All travellers",
+    "select": "Select",
+    "yes": "Yes",
+    "no": "No",
+    "continue": "Save & Continue →",
+    "saving": "Saving…",
+    "error": "Some details could not be saved. Your entries are still here. Please review and try again.",
+    "saveHint": "Save these details before exiting. Additional fields may appear based on your answers.",
+    "family": "Manage travellers & family relationships",
+    "fields": {
+      "NATIONALITY": "Nationality",
+      "PASSPORT_COUNTRY": "Passport country",
+      "RESIDENCE_COUNTRY": "Country of residence",
+      "GCC_RESIDENT": "Do you hold GCC residency?",
+      "GCC_COUNTRY": "GCC country of residence",
+      "RESIDENCE_EXPIRY": "Residence permit expiry",
+      "PROFESSION": "Profession",
+      "DATE_OF_BIRTH": "Date of birth",
+      "INSIDE_OUTSIDE_UAE": "Current location",
+      "PLANNED_ARRIVAL_DATE": "Arrival date",
+      "PLANNED_DEPARTURE_DATE": "Departure date",
+      "HAS_CONFIRMED_TICKETS": "Have you booked your tickets?",
+      "TRAVELLING_TOGETHER": "Are all travellers travelling together?",
+      "RESIDENCE_TYPE": "Residence type"
+    },
+    "options": {
+      "INSIDE": "Inside UAE",
+      "OUTSIDE": "Outside UAE"
+    }
   }
 }

@@ -42,6 +42,8 @@ export class InMemoryInterviewAnswerHistory {
 export type DynamicInterviewState = {
   currentStep: "PROFILE" | "TRAVEL_PARTY" | "TRAVEL_DATES" | "REVIEW";
   currentQuestions: readonly { code: string; applicantId: number | null; label: string; helpText: string; whyQuestionIsNeeded: string; answerType: QuestionCatalogDefinition["answerType"]; allowedValues: readonly string[] | null }[];
+  /** All currently applicable fields, including saved answers, for the grouped customer form. */
+  formQuestions?: DynamicInterviewState["currentQuestions"];
   knownAnswers: readonly { code: string; applicantId: number | null; answer: InterviewAnswer }[];
   eligibilityState: InterviewEligibilityState;
   nextAction: "ANSWER_QUESTIONS" | "REVIEW_REQUIREMENTS" | "HUMAN_REVIEW";
@@ -88,7 +90,9 @@ export function buildDynamicInterviewState(input: {
   const travelCodes = new Set(["TRAVELLING_TOGETHER", "ACCOMPANYING_PERSON", "TRAVEL_GROUP"]);
   const dateCodes = new Set(["PLANNED_ARRIVAL_DATE", "PLANNED_DEPARTURE_DATE", "HAS_CONFIRMED_TICKETS"]);
   return { currentStep: current.some(({ code }) => travelCodes.has(code)) ? "TRAVEL_PARTY" : current.some(({ code }) => dateCodes.has(code)) ? "TRAVEL_DATES" : current.length ? "PROFILE" : "REVIEW",
-    currentQuestions: current, knownAnswers, eligibilityState: state,
+    currentQuestions: current, formQuestions: questions.map(({ required, definition }) => ({ code: definition.code,
+      applicantId: required.applicantId, label: definition.customerLabel, helpText: definition.helpText,
+      whyQuestionIsNeeded: required.reason, answerType: definition.answerType, allowedValues: definition.allowedValues })), knownAnswers, eligibilityState: state,
     nextAction: current.length ? "ANSWER_QUESTIONS" : ["HUMAN_REVIEW_REQUIRED", "NOT_RESEARCHED", "RULE_CONFLICT"].includes(state) ? "HUMAN_REVIEW" : "REVIEW_REQUIREMENTS",
     review: { applicants: input.applicantReview ?? [], manualReviewRequired: (input.applicantReview ?? []).some(({ eligibilityState }) =>
       ["HUMAN_REVIEW_REQUIRED", "NOT_RESEARCHED", "RULE_CONFLICT"].includes(eligibilityState)) } };

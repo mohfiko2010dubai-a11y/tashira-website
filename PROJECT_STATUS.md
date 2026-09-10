@@ -1,5 +1,9 @@
 # TASHIRA Project Status
 
+## Grouped applicant form correction — 2026-09-11
+
+Owner visual review correctly rejected the five-step shell because Applicant Data still rendered the previous one-question cards. Those cards are replaced with a compact two-column form per traveller, full-name/country profile fields and every currently applicable governed question. Drafts remain independently mounted per applicant in memory; saved answers hydrate from the server. Family management is collapsed, and all applicant data saves through existing versioned profile/answer APIs. An opt-in form answer path rechecks applicability and ownership on every write; the original sequential API behavior is preserved. Conditional fields remain governed by the existing rules, and payment readiness stays authoritative. Local TypeScript, ESLint and 858 tests / 26 environment skips pass; full clean release gates and visual Staging UAT are pending. No policy, dependencies, database schema or provider configuration changes.
+
 ## Five-step wizard Staging candidate — 2026-09-11
 
 Deployment completed through the installed ingestion/deployment guards at exact SHA `a7be072883a1f4785d01c2a165f662d838436b5e`, a direct child of the verified baseline below. Clean npm installation, TypeScript, ESLint, 856 tests / 26 environment skips, client/static/server build and native client verification passed. Staging is tracked-clean with local/public HTTP 200; backup is `/var/backups/tashira-staging/20260910T220019Z-kimi-deploy-e0381944e44f`. Browser smoke passed five-step navigation, invalid-email rejection, family creation, Arabic review and blocked payment for incomplete synthetic case `TSH-MTW2UAKM-519862`. The owner can view `https://staging.tashiraev.com/apply`. No Production, Live provider, payment or outbound email was involved. See the local `output/wizard-repair-20260911/STAGING_DEPLOYMENT.md` evidence report.

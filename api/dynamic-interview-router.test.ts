@@ -57,6 +57,40 @@ function deps(currentFlags = flags) {
 }
 
 describe("authenticated Dynamic Interview API", () => {
+  it("lets the form save applicable fields out of order while preserving sequential interview behavior", async () => {
+    const current = deps();
+    const tickets: QuestionCatalogDefinition = { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "HAS_CONFIRMED_TICKETS", answerType: "BOOLEAN" };
+    current.loadCatalog = async () => ({ catalogVersion: "test-catalog-v1", questions: [question, tickets], requirements: [requirement] });
+    current.loadRules = async () => [{ ...rule, conditions: [...rule.conditions, { field: "hasConfirmedTickets", operator: "EXISTS" }] }];
+    const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    expect((await caller.current({ referenceNumber: reference })).formQuestions).toHaveLength(2);
+    const input = { referenceNumber: reference, applicantId: 21, questionCode: "HAS_CONFIRMED_TICKETS", answer: false, changeReason: "CUSTOMER_FORM_SAVE" };
+    await expect(caller.answer(input)).rejects.toMatchObject({ code: "CONFLICT" });
+    const saved = await caller.answer({ ...input, fromForm: true });
+    expect(saved.knownAnswers).toContainEqual({ code: "HAS_CONFIRMED_TICKETS", applicantId: 21, answer: false });
+    expect(saved.currentQuestions[0].code).toBe("NATIONALITY");
+    await expect(caller.answer({ ...input, fromForm: true, applicantId: 999 })).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(caller.answer({ ...input, fromForm: true, questionCode: "PROFESSION" })).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(caller.answer({ ...input, fromForm: true })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(current.append).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects conditionally irrelevant form fields and unauthorized form writes", async () => {
+    const current = deps();
+    const gcc: QuestionCatalogDefinition = { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "GCC_RESIDENT", answerType: "BOOLEAN" };
+    const country: QuestionCatalogDefinition = { ...question, definitionId: "33333333-1111-4111-8111-111111111111", code: "GCC_COUNTRY" };
+    current.loadCatalog = async () => ({ catalogVersion: "test-catalog-v1", questions: [question, gcc, country], requirements: [requirement] });
+    current.loadRules = async () => [{ ...rule, conditions: [{ field: "gccCountry", operator: "EXISTS" }] }];
+    const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    const input = { referenceNumber: reference, applicantId: 21, questionCode: "GCC_COUNTRY", answer: "SA", fromForm: true, changeReason: "CUSTOMER_FORM_SAVE" };
+    await expect(caller.answer(input)).rejects.toMatchObject({ code: "CONFLICT" });
+    await caller.answer({ ...input, questionCode: "GCC_RESIDENT", answer: true });
+    expect((await caller.current({ referenceNumber: reference })).formQuestions?.some(item => item.code === "GCC_COUNTRY")).toBe(true);
+    await caller.editAnswer({ referenceNumber: reference, applicantId: 21, questionCode: "GCC_RESIDENT", answer: false, changeReason: "CUSTOMER_CORRECTION" });
+    await expect(caller.answer(input)).rejects.toMatchObject({ code: "CONFLICT" });
+    const outsider = createDynamicInterviewRouter(current).createCaller(context(["TSH-OTHER"]));
+    await expect(outsider.answer(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
   it("recovers only the expected incomplete family-relationship setup", () => {
     expect(recoverableUnifiedInterviewSetupIssue(new Error("UNIFIED_INTERVIEW_RELATIONSHIP_MISSING:22"))).toBe("RELATIONSHIP_REQUIRED");
     expect(recoverableUnifiedInterviewSetupIssue(new Error("UNIFIED_INTERVIEW_CURRENT_EVALUATION_MISSING:22"))).toBeNull();

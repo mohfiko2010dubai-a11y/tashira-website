@@ -11,9 +11,12 @@ type Entry = { code: string; nameEn: string; nameAr: string; region: string };
  * in-menu search. Stores the ISO 3166-1 alpha-2 CODE (never free text),
  * matching the server-side catalog validation.
  */
-export default function NationalitySelect({ value, onChange }: {
+export default function NationalitySelect({ value, onChange, label, id, compact = false }: {
   value: string;
   onChange: (code: string) => void;
+  label?: string;
+  id?: string;
+  compact?: boolean;
 }) {
   const { i18n } = useTranslation();
   const isArabic = isRtlLanguage(i18n.language);
@@ -43,11 +46,13 @@ export default function NationalitySelect({ value, onChange }: {
   return (
     <div ref={rootRef} className="relative">
       <button
+        id={id}
+        aria-label={label}
         type="button"
         onClick={() => { setOpen((v) => !v); setQuery(""); }}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex w-full items-center justify-between rounded-xl border bg-white px-4 py-4 text-start transition-colors ${
+        className={`flex min-h-11 w-full items-center justify-between rounded-xl border bg-white px-4 ${compact ? "py-2.5" : "py-4"} text-start transition-colors ${
           open ? "border-[#C9A04C] ring-1 ring-[#C9A04C]" : "border-gray-300 hover:border-[#DDBB7A]"
         }`}
       >
