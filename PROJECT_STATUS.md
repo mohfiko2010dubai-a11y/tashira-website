@@ -1,5 +1,10 @@
 # TASHIRA Project Status
 
+## Sequential traveller flow verified on Staging - 2026-09-11
+
+Deployed a2eaac0b051b30d35d13083bdb9f05f14e0f040f through full guard: 887 tests / 26 skips, TypeScript, ESLint, build and both health checks PASS. Browser TSH-MTWYF8D2-C978E0 verifies first-screen residence, mandatory passport/profession, six-month rejection, inline IN/KW documents and disabled Next until uploads, in EN/AR. Live API family TSH-SEQ-MTWYQZH6 verifies first-traveller uploads before second-traveller data, four independently owned synthetic files and preservation on unchanged resave. Report: output/traveller-flow-20260911/VERIFICATION.md. No real customer documents, payments, emails, Production or schema changes.
+
+
 ## Sequential upload UAT correction - 2026-09-11
 
 Candidate 0c81e7cd deployed with all gates and health 200. Browser synthetic TSH-MTWYF8D2-C978E0 verifies first-screen GCC choice, mandatory passport/profession fields, short-expiry rejection, valid save revealing IN/KW documents below the same form, and disabled Next traveller until uploads. API synthetic TSH-SEQ-MTWYBM9Z confirms passport rejection and first-traveller documents before second answers, but exposed initial requirement creation/upload sharing one database second.
