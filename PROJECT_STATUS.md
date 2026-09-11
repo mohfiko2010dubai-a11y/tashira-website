@@ -1,5 +1,11 @@
 # TASHIRA Project Status
 
+## Downstream staging acceptance verified - 2026-09-12
+
+Deployed 46e05f3ba9841c7b318cc8ee4aae1527009dde66 through full guard: TypeScript, ESLint, 900 tests / 26 gated skips, build and local/public HTTP 200 PASS. Live repeat rejects outside-scope legacy case/document/signed URL/payment readiness reads and document mutation; scoped list and manager search PASS. Manager assignment, authorized employee receipt/document review, manager human review/dashboard, stale-write 409, idempotent replay, admin status update and session revocation PASS on synthetic paid family TSH-AUDIT-MTX3USWE. All temporary staff/grants revoked. Final customer family regression TSH-AUDIT-MTXEHM71 uploads and Stripe TEST paid at server price PASS. Prior single TSH-AUDIT-MTX40DWB PASS.
+
+Final admin/staff visual acceptance remains PENDING because browser automatic approval timed out twice; explicit owner browser approval requested. Browser file picker/card widget, real email and unrelated operational functions are not claimed tested. Current report: output/owner-acceptance-20260911/REVIEW.md. Older payment-blocker entries below are historical and superseded by the owner payment-after-upload decision and these results.
+
 ## Downstream owner acceptance and scope repair - 2026-09-11
 
 Staging 2296e10 confirms synthetic family TSH-AUDIT-MTX3USWE and single TSH-AUDIT-MTX40DWB paid through Stripe TEST after required uploads and explicit policy acceptance. Server amount overrides client tampering. Admin reads the paid family case and downloads four files. Temporary scoped manager assigns employee; both receive case, persist document/human reviews, reject stale writes, safely replay identical commands; payment remains unchanged. All temporary staff/grants disabled after tests.
