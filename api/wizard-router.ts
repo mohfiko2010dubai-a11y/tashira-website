@@ -21,6 +21,7 @@ type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-acc
 type ProcessingType = "regular" | "express";
 
 function mapResidenceType(status: string): ResidenceType {
+  if (["non-gcc", "gcc-resident", "gcc-accompany", "non-gcc-accompany"].includes(status)) return status as ResidenceType;
   const s = status.toLowerCase();
   if (s.includes("gcc citizen with")) return "gcc-accompany";
   if (s.includes("accompanying gcc")) return "non-gcc-accompany";

@@ -57,6 +57,39 @@ function deps(currentFlags = flags) {
 }
 
 describe("authenticated Dynamic Interview API", () => {
+  it("completes the merged GCC form without tickets and derives the full owner document matrix", async () => {
+    const current = deps();
+    const loadApplication = current.loadApplication;
+    current.loadApplication = async value => { const application = await loadApplication(value); return application ? { ...application, baseType: "single", residenceType: "gcc-resident", arrivalDate: "2026-10-01" } : null; };
+    current.now = () => new Date("2026-09-12T00:00:00Z");
+    current.loadCatalog = async () => ({ catalogVersion: "test", requirements: [requirement], questions: [question,
+      { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "GCC_RESIDENT", answerType: "BOOLEAN" },
+      { ...question, definitionId: "33333333-1111-4111-8111-111111111111", code: "GCC_COUNTRY" },
+    ] });
+    const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    const answer = (questionCode: string, value: string | boolean) => caller.answer({ referenceNumber: reference, applicantId: 21,
+      questionCode, answer: value, fromForm: true, changeReason: "CUSTOMER_FORM_SAVE" });
+    await answer("GCC_RESIDENT", true);
+    await answer("GCC_COUNTRY", "SA");
+    const completed = await answer("NATIONALITY", "PK");
+    expect(completed.currentQuestions).toEqual([]);
+    expect(completed.nextAction).not.toBe("ANSWER_QUESTIONS");
+    expect(completed.review.applicants[0].requirements.map(item => item.code).sort()).toEqual([
+      "PASSPORT", "PASSPORT_SECOND_PAGE", "HOME_NATIONAL_ID", "RESIDENCE_CARD_FRONT", "RESIDENCE_CARD_BACK", "SA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
+    ].sort());
+    expect(completed.formQuestions?.some(field => ["HAS_CONFIRMED_TICKETS", "RESIDENCE_EXPIRY", "PLANNED_ARRIVAL_DATE"].includes(field.code))).toBe(false);
+  });
+  it("refreshes saved form requirements explicitly and rejects incomplete or foreign submissions", async () => {
+    const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
+    const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    const submission = { referenceNumber: reference, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" };
+    await expect(caller.completeForm(submission)).rejects.toMatchObject({ code: "CONFLICT" });
+    await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG", changeReason: "CUSTOMER_FORM_SAVE" });
+    await caller.completeForm(submission);
+    expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ triggerEventId: `customer-form:${submission.submissionId}`, reason: "CUSTOMER_FORM_REQUIREMENTS_REVIEW" }));
+    const outsider = createDynamicInterviewRouter(current).createCaller(context(["TSH-OTHER"]));
+    await expect(outsider.completeForm(submission)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
   it("lets the form save applicable fields out of order while preserving sequential interview behavior", async () => {
     const current = deps();
     const tickets: QuestionCatalogDefinition = { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "HAS_CONFIRMED_TICKETS", answerType: "BOOLEAN" };

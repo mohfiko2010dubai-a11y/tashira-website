@@ -4,10 +4,9 @@ import { useTranslation } from 'react-i18next';
 
 export const WIZARD_STEPS = [
   { id: 1, key: 'visa' },
-  { id: 2, key: 'residence' },
-  { id: 3, key: 'data' },
-  { id: 4, key: 'documents' },
-  { id: 5, key: 'review' },
+  { id: 2, key: 'data' },
+  { id: 3, key: 'documents' },
+  { id: 4, key: 'review' },
 ] as const;
 
 interface WizardShellProps {
@@ -35,7 +34,7 @@ export default function WizardShell({ currentStep, children }: WizardShellProps)
               style={{ width: `${progress}%` }}
             />
           </div>
-          <ol className="mt-3 grid grid-cols-5 text-[10px] sm:text-xs">
+          <ol className="mt-3 grid grid-cols-4 text-[10px] sm:text-xs">
             {WIZARD_STEPS.map((s) => (
               <li
                 key={s.id}

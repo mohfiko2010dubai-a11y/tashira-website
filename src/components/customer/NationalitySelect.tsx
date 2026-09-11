@@ -11,12 +11,13 @@ type Entry = { code: string; nameEn: string; nameAr: string; region: string };
  * in-menu search. Stores the ISO 3166-1 alpha-2 CODE (never free text),
  * matching the server-side catalog validation.
  */
-export default function NationalitySelect({ value, onChange, label, id, compact = false }: {
+export default function NationalitySelect({ value, onChange, label, id, compact = false, allowedCodes }: {
   value: string;
   onChange: (code: string) => void;
   label?: string;
   id?: string;
   compact?: boolean;
+  allowedCodes?: readonly string[];
 }) {
   const { i18n } = useTranslation();
   const isArabic = isRtlLanguage(i18n.language);
@@ -26,11 +27,11 @@ export default function NationalitySelect({ value, onChange, label, id, compact 
   const catalog = trpc.dynamicInterview.nationalityCatalog.useQuery({});
 
   const entries = useMemo(() => {
-    const all: readonly Entry[] = catalog.data?.nationalities ?? [];
+    const all: readonly Entry[] = (catalog.data?.nationalities ?? []).filter(entry => !allowedCodes || allowedCodes.includes(entry.code));
     const q = query.trim().toLowerCase();
     if (!q) return all;
     return all.filter((e) => e.code.toLowerCase().includes(q) || e.nameEn.toLowerCase().includes(q) || e.nameAr.includes(q));
-  }, [catalog.data, query]);
+  }, [catalog.data, query, allowedCodes]);
 
   const selected = (catalog.data?.nationalities ?? []).find((e) => e.code === value);
 

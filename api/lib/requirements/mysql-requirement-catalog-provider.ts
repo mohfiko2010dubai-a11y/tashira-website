@@ -1,4 +1,6 @@
 import type { OperationsSqlClient } from "../operations/mysql-access-provider";
+import { runtimeFlagEnvironment } from "../operations/mysql-access-provider";
+import { withOwnerDocumentCatalog } from "../customer/owner-document-policy";
 import {
   isDefinitionEffective,
   questionDefinitionSchema,
@@ -78,6 +80,7 @@ export class MysqlRequirementCatalogProvider {
       || questions.some((definition) => !isDefinitionEffective(definition, at))) throw new Error("CATALOG_EFFECTIVE_DATE_INVALID");
     const duplicate = (items: readonly { code: string }[]) => new Set(items.map(({ code }) => code)).size !== items.length;
     if (duplicate(requirements) || duplicate(questions)) throw new Error("CATALOG_ACTIVE_VERSION_CONFLICT");
-    return { catalogVersion: `active-${at.toISOString()}`, requirements, questions };
+    const catalog = { catalogVersion: `active-${at.toISOString()}`, requirements, questions };
+    return runtimeFlagEnvironment() === "STAGING" ? withOwnerDocumentCatalog(catalog) : catalog;
   }
 }

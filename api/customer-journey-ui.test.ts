@@ -8,7 +8,7 @@ describe("integrated staging customer and Operations journey", () => {
       readFile(new URL("./application-router.ts", import.meta.url), "utf8"),
       readFile(new URL("../src/pages/DynamicApplication.tsx", import.meta.url), "utf8"),
     ]);
-    expect(start).toContain('t("step1.start")');
+    expect(start).toContain('t("step1.continue")');
     expect(start).toContain("WizardShell");
     expect(start).toContain('t("step1.family")');
     expect(start).toContain('journeyMode: "DYNAMIC"');

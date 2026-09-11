@@ -12,14 +12,15 @@ const questions: FormQuestion[] = [
   { code: "RESIDENCE_EXPIRY", applicantId: 11, label: "Expiry", answerType: "DATE", allowedValues: null },
 ];
 const render = (answer: boolean, applicantId = 11) => renderToStaticMarkup(createElement(ApplicantDataForm, {
-  applicant, questions, saved: [{ code: "GCC_RESIDENT", applicantId, answer }], onSave: async () => {},
+  applicant, residenceType: "gcc-resident", questions, saved: [{ code: "GCC_RESIDENT", applicantId, answer }], onSave: async () => {},
 }));
 describe("Grouped applicant form", () => {
   it("renders saved profile and all required fields together", () => {
     const html = render(true);
     expect(html).toContain('value="Synthetic Form"');
-    expect(html).toContain('field-11:GCC_RESIDENT');
-    expect(html).toContain('field-11:GCC_COUNTRY');
+    expect(html).not.toContain('field-11:GCC_RESIDENT');
+    expect(html).not.toContain('field-11:GCC_COUNTRY');
+    expect(html).toContain('simple.fields.RESIDENCE_COUNTRY');
     expect(html).toContain('field-11:RESIDENCE_EXPIRY');
     expect(html).toContain('disabled=""');
   });
@@ -28,12 +29,12 @@ describe("Grouped applicant form", () => {
     expect(html).not.toContain('field-11:GCC_COUNTRY');
     expect(html).not.toContain('field-11:RESIDENCE_EXPIRY');
     expect(html).not.toContain('disabled=""');
-    expect(html).toContain('<option value="false" selected="">');
+    expect(html).toContain('aria-pressed="true"');
   });
   it("never hydrates another traveller's answer", () => {
     const html = render(false, 12);
-    expect(html).toContain('field-11:GCC_COUNTRY');
+    expect(html).toContain('field-11:RESIDENCE_EXPIRY');
     expect(html).toContain('disabled=""');
-    expect(html).not.toContain('<option value="false" selected="">');
+    expect(html).not.toContain('field-11:GCC_RESIDENT');
   });
 });

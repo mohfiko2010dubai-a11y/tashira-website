@@ -39,13 +39,14 @@ function customerMessage(state: InterviewEligibilityState): string {
 
 type PersistentInterviewInput = { applicationId: number; routeCode: string; applicantIds: readonly number[];
   questions: readonly QuestionCatalogDefinition[]; requirements?: readonly RequirementCatalogDefinition[]; rules: readonly EligibilityRule[];
-  events: readonly InterviewAnswerEvent[]; evaluatedAt: Date };
+  events: readonly InterviewAnswerEvent[]; evaluatedAt: Date; customerForm?: boolean };
 
 function prepare(input: PersistentInterviewInput) {
   const latest = currentEvents(input.events);
   const codeByDefinition = new Map(input.questions.map((question) => [question.definitionId, question.code]));
   const requiredQuestionCodes = deriveRequiredInterviewQuestions({ applicantIds: input.applicantIds, rules: input.rules,
-    currentAnswers: latest, definitionCodeById: codeByDefinition });
+    currentAnswers: latest, definitionCodeById: codeByDefinition }).filter(question => !input.customerForm
+      || !["HAS_CONFIRMED_TICKETS", "TRAVELLING_TOGETHER", "PLANNED_ARRIVAL_DATE"].includes(question.code));
   const relevantAnswerKeys = new Set(requiredQuestionCodes.map((required) => `${required.applicantId ?? "APPLICATION"}:${required.code}`));
   const latestByKey = new Map(latest.map((event) => [`${event.applicantId ?? "APPLICATION"}:${event.questionDefinitionId}`, event]));
   const lookup: InterviewAnswerLookup = { current: (_applicationId, applicantId, definitionId) => latestByKey.get(`${applicantId ?? "APPLICATION"}:${definitionId}`) ?? null };

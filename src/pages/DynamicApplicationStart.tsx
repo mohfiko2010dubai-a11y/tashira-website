@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {useNavigate, useSearchParams} from "react-router-dom";
-import { Building2, Globe2, Home, Plane, UserRound, UsersRound, Zap, Clock3, Check, Loader2 } from "lucide-react";
+import { Home, Plane, UserRound, UsersRound, Zap, Clock3, Check, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WizardShell, { StepHeader } from "@/components/customer/WizardShell";
 import { validStartContact } from "@/lib/wizard-validation";
@@ -13,14 +13,6 @@ const visaRoutes = [
   ["60days-single", "60 Days Visa"], ["60days-multiple", "60 Days Multiple Entry"],
   ["90days-single", "90 Days Visa"], ["96hours-transit", "96 Hours Transit"],
 ] as const;
-
-type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
-
-const residenceOptions: { key: ResidenceType; icon: typeof Home; titleKey: string; descKey: string }[] = [
-  { key: "non-gcc", icon: Globe2, titleKey: "residenceNonGcc", descKey: "residenceNonGccDesc" },
-  { key: "gcc-resident", icon: Building2, titleKey: "residenceGcc", descKey: "residenceGccDesc" },
-  { key: "gcc-accompany", icon: UsersRound, titleKey: "residenceGccAcc", descKey: "residenceGccAccDesc" },
-];
 
 const processingOptions = [
   { key: "regular" as const, icon: Clock3, titleKey: "regular", descKey: "regularDesc" },
@@ -75,7 +67,6 @@ export default function DynamicApplicationStart() {
   };
   const [applicationType, setApplicationType] = useState<"single" | "family">(visaParam === "family" ? "family" : "single");
   const [applicantCount, setApplicantCount] = useState(2);
-  const [residenceType, setResidenceType] = useState<ResidenceType>(visaParam === "gcc-residents" ? "gcc-resident" : "non-gcc");
   const knownVisaId = visaRoutes.find(([v]) => v === visaParam)?.[0];
   const [visaType, setVisaType] = useState<string>(knownVisaId ?? visaPrefill[visaParam] ?? visaRoutes[2][0]);
   const processingParam = searchParams.get("processing") ?? "";
@@ -105,23 +96,15 @@ export default function DynamicApplicationStart() {
     onSuccess: ({ referenceNumber }) => navigate(`/apply/${encodeURIComponent(referenceNumber)}/interview`, { replace: true }),
   });
 
-  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
-
-  const stepValid = wizardStep === 1
-    ? Boolean(validStartContact(email, phone) && Number.isInteger(travellerCount) && travellerCount >= 1 && travellerCount <= 10 && visaType && processingType)
-    : Boolean(residenceType);
+  const stepValid = Boolean(validStartContact(email, phone) && Number.isInteger(travellerCount) && travellerCount >= 1 && travellerCount <= 10 && visaType && processingType);
 
   const submit = () => {
     if (!stepValid || !validStartContact(email, phone)) return;
-    if (wizardStep === 1) {
-      setWizardStep(2);
-      return;
-    }
     if (create.isPending) return;
     create.mutate({
       referenceNumber: createReference(),
       baseType: applicationType,
-      residenceType,
+      residenceType: visaParam === "gcc-residents" ? "gcc-resident" : "non-gcc",
       visaType,
       processingType,
       contactEmail: email.trim(),
@@ -134,9 +117,9 @@ export default function DynamicApplicationStart() {
   };
 
   return (
-    <WizardShell currentStep={wizardStep}>
+    <WizardShell currentStep={1}>
       <section>
-        {wizardStep === 1 ? (
+        {(
           <>
             <StepHeader step={1} title={t("step1.title")} subtitle={t("step1.subtitle")} />
 
@@ -218,36 +201,12 @@ export default function DynamicApplicationStart() {
 
             <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
               <p className="text-sm text-gray-500">{t("flow.startBeforeSave")}</p>
-              <button type="button" onClick={submit} disabled={!stepValid}
+              <button type="button" onClick={submit} disabled={!stepValid || create.isPending}
                 className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {t("step1.continue")}
               </button>
             </div>
             <p className="mt-4 text-center text-xs text-gray-400">{t("step1.nextNote")}</p>
-          </>
-        ) : (
-          <>
-            <StepHeader step={2} title={t("step2.title")} subtitle={t("step2.subtitle")} />
-
-            <SectionTitle>{t("step2.residence")}</SectionTitle>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {residenceOptions.map((opt) => (
-                <SelectCard key={opt.key} icon={opt.icon} selected={residenceType === opt.key}
-                  onClick={() => setResidenceType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
-              ))}
-            </div>
-
-            {create.error && <p role="alert" className="mt-4 text-red-700">{t("step1.startError")}</p>}
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
-              <button type="button" onClick={() => setWizardStep(1)}
-                className="rounded-xl border-2 border-gray-200 px-6 py-3 font-bold text-gray-600 hover:border-[#C9A04C]/30 transition-all">
-                {t("step2.back")}
-              </button>
-              <button type="button" onClick={submit} disabled={!stepValid || create.isPending}
-                className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                {create.isPending ? "…" : t("step1.start")}
-              </button>
-            </div>
           </>
         )}
       </section>

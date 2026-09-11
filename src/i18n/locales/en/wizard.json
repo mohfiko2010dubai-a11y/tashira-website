@@ -2,11 +2,11 @@
   "steps": {
     "visa": "Visa Selection",
     "residence": "Residence Type",
-    "data": "Applicant Data",
+    "data": "Residence & applicant details",
     "documents": "Documents",
     "review": "Review & Pay"
   },
-  "stepOf": "Step {{current}} of 5",
+  "stepOf": "Step {{current}} of 4",
   "save": {
     "button": "Save & Exit",
     "note": "You can come back via email and continue your application at any time — we will send you a secure link.",
@@ -127,7 +127,7 @@
     "saving": "Saving…",
     "error": "Some details could not be saved. Your entries are still here. Please review and try again.",
     "saveHint": "Save these details before exiting. Additional fields may appear based on your answers.",
-    "family": "Manage travellers & family relationships",
+    "family": "Traveller relationships",
     "fields": {
       "NATIONALITY": "Nationality",
       "PASSPORT_COUNTRY": "Passport country",
@@ -147,6 +147,7 @@
     "options": {
       "INSIDE": "Inside UAE",
       "OUTSIDE": "Outside UAE"
-    }
+    },
+    "residence": "Residence type"
   }
 }

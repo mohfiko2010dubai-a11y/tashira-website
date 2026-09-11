@@ -20,7 +20,7 @@ export type PartySetup = { applicationId: number; applicants: readonly PartyAppl
 
 type Profile = { fullName: string; nationality: string | null; residenceCountry: string | null };
 export type TravelInput = Omit<PartyTravelGroup, "travelGroupId" | "version" | "applicantIds"> & { applicantIds: number[] };
-type Props = { setup: PartySetup; busy?: boolean; error?: boolean; hideTravelGroups?: boolean;
+type Props = { setup: PartySetup; busy?: boolean; error?: boolean; hideTravelGroups?: boolean; relationshipsOnly?: boolean;
   onAddApplicant: (profile: Profile) => Promise<void>; onEditApplicant: (applicant: PartyApplicant, profile: Profile) => Promise<void>;
   onDefineRelationship: (fromApplicantId: number, toApplicantId: number, relationship: WritableRelationship) => Promise<void>;
   onCreateTravelGroup: (group: TravelInput) => Promise<void>; onUpdateTravelGroup: (group: PartyTravelGroup, update: TravelInput) => Promise<void>;
@@ -29,7 +29,7 @@ type Props = { setup: PartySetup; busy?: boolean; error?: boolean; hideTravelGro
 const emptyProfile: Profile = { fullName: "", nationality: null, residenceCountry: null };
 const asNullable = (value: string) => value.trim() || null;
 
-export function InterviewPartySetup({ setup, busy = false, error = false, hideTravelGroups = false, onAddApplicant, onEditApplicant,
+export function InterviewPartySetup({ setup, busy = false, error = false, hideTravelGroups = false, relationshipsOnly = false, onAddApplicant, onEditApplicant,
   onDefineRelationship, onCreateTravelGroup, onUpdateTravelGroup, onLinkSharedDocument }: Props) {
   const [adding, setAdding] = useState(false); const [newProfile, setNewProfile] = useState(emptyProfile);
   const [editingId, setEditingId] = useState<number | null>(null); const [editingProfile, setEditingProfile] = useState(emptyProfile);
@@ -43,7 +43,7 @@ export function InterviewPartySetup({ setup, busy = false, error = false, hideTr
     origin: group.origin, destination: group.destination, plannedArrivalDate: group.plannedArrivalDate,
     plannedDepartureDate: group.plannedDepartureDate, ticketStatus: group.ticketStatus } : buildNewTravelGroupDraft(setup)); };
   return <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" aria-labelledby="party-heading">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-wide text-[#9b7425]">Travel party</p>
+    {!relationshipsOnly && <><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold uppercase tracking-wide text-[#9b7425]">Travel party</p>
       <h2 id="party-heading" className="mt-1 text-2xl font-bold text-slate-950">Applicants and travel arrangements</h2>
       <p className="mt-2 text-sm text-slate-600">Each person keeps an independent profile, requirements and document ownership.</p></div>
       <button type="button" onClick={() => setAdding(true)} className="rounded-xl border border-[#b48a36] px-4 py-2 font-semibold text-[#795918]">Add applicant</button></div>
@@ -62,6 +62,8 @@ export function InterviewPartySetup({ setup, busy = false, error = false, hideTr
       <div className="mt-3 flex gap-2"><button type="button" disabled={busy || newProfile.fullName.trim().length < 2} className="rounded-lg bg-[#cda64f] px-4 py-2 font-semibold disabled:opacity-50"
         onClick={async () => { await onAddApplicant(newProfile); setNewProfile(emptyProfile); setAdding(false); }}>Add applicant</button>
         <button type="button" className="rounded-lg border border-slate-300 bg-white px-4 py-2" onClick={() => setAdding(false)}>Cancel</button></div></div>}
+    </>}
+    {error && relationshipsOnly && <p role="alert">Could not save relationship. Please try again.</p>}
     {lead && setup.applicants.length > 1 && <div className="mt-6 rounded-2xl bg-slate-50 p-4"><h3 className="font-semibold text-slate-950">Relationships to lead applicant</h3>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">{setup.applicants.slice(1).map((applicant) => { const existing = setup.relationships.find((item) => item.fromApplicantId === lead.applicantId && item.toApplicantId === applicant.applicantId);
         return <div key={applicant.applicantId} className="rounded-xl bg-white p-3"><p className="text-sm font-medium">{applicant.fullName}</p><p className="text-xs text-slate-500">{existing?.relationship ?? "Relationship not set"}</p>

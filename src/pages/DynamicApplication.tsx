@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Check, Plus } from "lucide-react";
+import { Check } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
 import { InterviewPartySetup, type PartyRequirementReadiness } from "@/components/customer/InterviewPartySetup";
 import { InterviewRequirementDocuments } from "@/components/customer/InterviewRequirementDocuments";
@@ -31,7 +31,9 @@ export default function DynamicApplication() {
   const [activeTravellerId, setActiveTravellerId] = useState<number | null>(null);
   const [formSaving, setFormSaving] = useState(false);
   const answerMutation = trpc.dynamicInterview.answer.useMutation();
+  const completeFormMutation = trpc.dynamicInterview.completeForm.useMutation();
   const editMutation = trpc.dynamicInterview.editAnswer.useMutation();
+  const updateApplicationMutation = trpc.wizard.updateApplication.useMutation();
   const addApplicantMutation = trpc.dynamicInterview.addApplicant.useMutation();
   const editApplicantMutation = trpc.dynamicInterview.editApplicant.useMutation();
   const relationshipMutation = trpc.dynamicInterview.defineRelationship.useMutation();
@@ -81,6 +83,7 @@ export default function DynamicApplication() {
     try {
     const applicant = state.partySetup?.applicants.find(item => item.applicantId === applicantId);
     if (!applicant) throw new Error("Applicant unavailable");
+    if (submission.residenceType !== state.applicationContext.residenceType) await updateApplicationMutation.mutateAsync({ referenceNumber, residenceStatus: submission.residenceType });
     if (applicant.fullName !== submission.profile.fullName || applicant.nationality !== submission.profile.nationality || applicant.residenceCountry !== submission.profile.residenceCountry) {
       await editApplicantMutation.mutateAsync({ referenceNumber, applicantId, expectedVersion: applicant.profileVersion,
         profile: submission.profile, reason: "Customer saved applicant form", idempotencyKey: crypto.randomUUID() });
@@ -96,14 +99,18 @@ export default function DynamicApplication() {
       const input = { referenceNumber, applicantId: field.applicantId, questionCode: field.code, answer: field.answer, changeReason: "CUSTOMER_FORM_SAVE" };
       latest = previous ? await editMutation.mutateAsync(input) : await answerMutation.mutateAsync({ ...input, fromForm: true });
     }
-    await refreshState();
-    if (latest.currentQuestions.length === 0) setPhase(4);
+    if (latest.currentQuestions.length === 0) {
+      await completeFormMutation.mutateAsync({ referenceNumber, submissionId: crypto.randomUUID() });
+      await refreshState();
+      setPhase(4);
+    }
     else {
       const missing = latest.formQuestions?.filter(item => !latest.knownAnswers.some(answer => answer.code === item.code && answer.applicantId === item.applicantId)) ?? latest.currentQuestions;
       const ownMissing = missing.some(item => item.applicantId === applicantId || item.applicantId === null);
       setActiveTravellerId(ownMissing ? applicantId : latest.currentQuestions[0]?.applicantId ?? applicantId);
       setPhase(3);
     }
+    await refreshState();
     } finally { setFormSaving(false); }
   };
 
@@ -139,11 +146,11 @@ export default function DynamicApplication() {
     ? state.partySetup.applicants.filter((a) => a.applicantId === activeId)
     : [];
 
-  const currentStep = phase ?? (question ? 3 : 4);
-  return <WizardShell currentStep={currentStep}>
+  const currentStep = phase ?? 3;
+  return <WizardShell currentStep={currentStep - 1}>
     <div>
       <StepHeader
-        step={currentStep}
+        step={currentStep - 1}
         title={t(currentStep === 3 ? "steps.data" : currentStep === 4 ? "steps.documents" : "steps.review")}
         subtitle={t("flow.subtitle")}
       />
@@ -158,7 +165,7 @@ export default function DynamicApplication() {
         </button>)}
       </nav>
       {/* Traveller pager — one traveller per page */}
-      {currentStep !== 5 && travellers.length > 0 && (
+      {currentStep !== 5 && travellers.length > 1 && (
         <nav className="mb-6 flex flex-wrap gap-2" aria-label="Travellers">
           {travellers.map((traveller, i) => {
             const isActive = traveller.applicantId === activeId;
@@ -185,17 +192,13 @@ export default function DynamicApplication() {
               </button>
             );
           })}
-          {state.partySetup && (
-            <a href="#party-setup" className="rounded-full border border-dashed border-[#C9A04C] px-4 py-2 text-xs font-bold text-[#C9A04C] hover:bg-[#C9A04C]/10">
-              <Plus size={12} className="me-1 inline" />{t("step1.family")}
-            </a>
-          )}
+
         </nav>
       )}
 
       {/* Manage party (add travellers, family links, shared tickets) */}
-      {state.partySetup && <details id="party-setup" className="mb-5 rounded-xl border border-slate-200 p-4" hidden={currentStep !== 3}><summary className="cursor-pointer text-sm font-semibold">{t("simple.family")}</summary><InterviewPartySetup setup={state.partySetup}
-        hideTravelGroups
+      {state.partySetup && travellers.length > 1 && <details id="party-setup" className="mb-5 rounded-xl border border-slate-200 p-4" hidden={currentStep !== 3}><summary className="cursor-pointer text-sm font-semibold">{t("simple.family")}</summary><InterviewPartySetup setup={state.partySetup}
+        hideTravelGroups relationshipsOnly
         busy={partyBusy}
         error={partyError}
         onAddApplicant={async (profile) => { await addApplicantMutation.mutateAsync({ referenceNumber, profile,
@@ -216,7 +219,7 @@ export default function DynamicApplication() {
 
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep !== 3 || applicant.applicantId !== activeId}>
-        <ApplicantDataForm applicant={applicant}
+        <ApplicantDataForm applicant={applicant} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
           questions={(state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
           saved={state.knownAnswers} onSave={submission => saveApplicantForm(applicant.applicantId, submission)} />
       </div>)}
