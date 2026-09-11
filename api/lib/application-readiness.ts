@@ -4,6 +4,7 @@ import { TERMS_POLICY_VERSION } from "../../contracts/constants";
 import { getDb } from "../queries/connection";
 import { validPassportExpiry } from "../../contracts/traveller-details";
 import { runtimeFlagEnvironment } from "./operations/mysql-access-provider";
+import type { TrpcContext } from "../context";
 
 export type MissingItem = { code: string; label: string };
 export type ApplicantReadiness = {
@@ -101,7 +102,7 @@ export function evaluateApplicationReadiness(input: {
   };
 }
 
-export async function getApplicationReadiness(applicationId: number): Promise<ApplicationReadiness> {
+export async function getApplicationReadiness(applicationId: number, context?: TrpcContext): Promise<ApplicationReadiness> {
   const db = getDb();
   const [application] = await db.select().from(applications).where(eq(applications.id, applicationId)).limit(1);
   if (!application) throw new Error("Application not found");
@@ -118,6 +119,9 @@ export async function getApplicationReadiness(applicationId: number): Promise<Ap
   const sql = defaultOperationsSqlClient();
   const started = await sql.query("SELECT id FROM dynamic_interview_answer_events WHERE application_id=? LIMIT 1", [applicationId]);
   if (!started.length) return legacy;
+  if (!context) throw new Error("Dynamic checkout requires the owned application context");
+  const { dynamicInterviewRouter } = await import("../dynamic-interview-router");
+  const currentInterview = await dynamicInterviewRouter.createCaller(context).current({ referenceNumber: application.referenceNumber });
   const { MysqlOperationsCaseReadProvider } = await import("./operations/mysql-case-read-provider");
   const bundle = await new MysqlOperationsCaseReadProvider(sql).load(application.referenceNumber);
   const links = await sql.query(`SELECT DISTINCT l.requirement_instance_id AS instanceId FROM applicant_requirement_document_links l
@@ -126,7 +130,20 @@ export async function getApplicationReadiness(applicationId: number): Promise<Ap
   const liveDocumentInstances = new Set(links.map(row => String(Reflect.get(row, "instanceId"))));
   const evidence = applicantList.map(applicant => {
     const evaluation = bundle?.snapshots.current(applicationId, applicant.id);
-    return { applicantId: applicant.id, route: evaluation?.selectedRoute, eligibility: evaluation?.eligibilityState,
+    const current = currentInterview.review.applicants.find(item => item.applicantId === applicant.id);
+    const answers = currentInterview.knownAnswers.filter(item => item.applicantId === applicant.id);
+    const nationality = answers.find(item => item.code === "NATIONALITY")?.answer;
+    const country = answers.find(item => item.code === "GCC_COUNTRY")?.answer ?? answers.find(item => item.code === "RESIDENCE_COUNTRY")?.answer;
+    const gcc = answers.find(item => item.code === "GCC_RESIDENT")?.answer;
+    const wantsGcc = application.residenceType === "gcc-resident" || application.residenceType === "gcc-accompany";
+    const countryIsGcc = ["AE", "SA", "KW", "QA", "BH", "OM"].includes(applicant.gccResidenceCountry ?? "");
+    const currentCodes = current?.requirements.map(item => item.code).sort().join(",");
+    const savedCodes = evaluation ? [...evaluation.requiredDocuments, ...evaluation.conditionalDocuments.map(item => item.code)].sort().join(",") : undefined;
+    const unchanged = !currentInterview.currentQuestions.some(item => item.applicantId === applicant.id || item.applicantId === null)
+      && nationality === applicant.nationality && (country === undefined || country === applicant.gccResidenceCountry)
+      && (gcc === undefined || gcc === wantsGcc) && countryIsGcc === wantsGcc && currentCodes === savedCodes;
+    return { applicantId: applicant.id, route: evaluation?.selectedRoute,
+      eligibility: unchanged ? (current?.eligibilityState === "ELIGIBLE_ROUTE_FOUND" ? evaluation?.eligibilityState : "HUMAN_REVIEW_REQUIRED") : undefined,
       expected: evaluation ? [...evaluation.requiredDocuments, ...evaluation.conditionalDocuments.map(item => item.code)] : [],
       documents: evaluation && bundle ? bundle.family.requirements(applicationId, applicant.id, evaluation.evaluationId)
         .filter(item => item.instance.kind === "DOCUMENT").map(item => ({ code: item.instance.code,

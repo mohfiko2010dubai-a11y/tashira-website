@@ -47,7 +47,7 @@ export const paymentRouter = createRouter({
         if (app.paymentStatus === "paid") {
           throw new TRPCError({ code: "CONFLICT", message: "Application is already paid" });
         }
-        const readiness = await getApplicationReadiness(app.id);
+        const readiness = await getApplicationReadiness(app.id, ctx);
         if (readiness.status !== "READY") {
           auditLog("payment.readiness_rejected", "failure", "customer");
           throw new TRPCError({
@@ -138,7 +138,7 @@ export const paymentRouter = createRouter({
       const [app] = await db.select({ id: applications.id, paymentStatus: applications.paymentStatus })
         .from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
       if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
-      return { paymentStatus: app.paymentStatus, ...(await getApplicationReadiness(app.id)) };
+      return { paymentStatus: app.paymentStatus, ...(await getApplicationReadiness(app.id, ctx)) };
     }),
 
   // Confirm payment success
