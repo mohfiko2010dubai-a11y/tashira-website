@@ -41,8 +41,8 @@ describe("InterviewRequirementDocuments", () => {
     expect(fatherStart).toBeGreaterThan(-1);
     expect(childStart).toBeGreaterThan(fatherStart);
     expect(html.slice(fatherStart, childStart)).toContain("Passport — complete, clear personal data page");
-    expect(html.slice(fatherStart, childStart)).not.toContain("PERSONAL PHOTO");
-    expect(html.slice(childStart)).toContain("PERSONAL PHOTO");
+    expect(html.slice(fatherStart, childStart)).not.toContain("Personal photo");
+    expect(html.slice(childStart)).toContain("Personal photo");
     expect(html.match(/type="file"/g)).toHaveLength(1);
   });
 
@@ -54,3 +54,4 @@ describe("InterviewRequirementDocuments", () => {
     expect(html).not.toMatch(/supplier cost|internal cost|margin|profit|stripe|payment intent/i);
   });
 });
+

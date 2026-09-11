@@ -73,7 +73,7 @@ export default function DynamicApplication() {
   if (!state) return null;
 
   const currentQuestionTravellerId = question?.applicantId ?? null;
-  const activeId = activeTravellerId ?? currentQuestionTravellerId ?? travellers[0]?.applicantId ?? -1;
+  const activeId = activeTravellerId ?? travellers[0]?.applicantId ?? -1;
   const activeIndex = Math.max(0, travellers.findIndex((tr) => tr.applicantId === activeId));
   const activeTraveller = travellers[activeIndex] ?? travellers[0];
 
@@ -83,7 +83,8 @@ export default function DynamicApplication() {
     try {
     const applicant = state.partySetup?.applicants.find(item => item.applicantId === applicantId);
     if (!applicant) throw new Error("Applicant unavailable");
-    if (submission.residenceType !== state.applicationContext.residenceType) await updateApplicationMutation.mutateAsync({ referenceNumber, residenceStatus: submission.residenceType });
+    await updateApplicationMutation.mutateAsync({ referenceNumber, applicantIndex: applicant.applicantIndex,
+      passportNumber: submission.passportNumber, passportExpiry: submission.passportExpiry, profession: submission.profession });
     if (applicant.fullName !== submission.profile.fullName || applicant.nationality !== submission.profile.nationality || applicant.residenceCountry !== submission.profile.residenceCountry) {
       await editApplicantMutation.mutateAsync({ referenceNumber, applicantId, expectedVersion: applicant.profileVersion,
         profile: submission.profile, reason: "Customer saved applicant form", idempotencyKey: crypto.randomUUID() });
@@ -99,24 +100,20 @@ export default function DynamicApplication() {
       const input = { referenceNumber, applicantId: field.applicantId, questionCode: field.code, answer: field.answer, changeReason: "CUSTOMER_FORM_SAVE" };
       latest = previous ? await editMutation.mutateAsync({ ...input, fromForm: true }) : await answerMutation.mutateAsync({ ...input, fromForm: true });
     }
-    if (latest.currentQuestions.length === 0) {
-      await completeFormMutation.mutateAsync({ referenceNumber, submissionId: crypto.randomUUID() });
+    const ownMissing = latest.currentQuestions.some(item => item.applicantId === applicantId || item.applicantId === null);
+    if (!ownMissing) {
+      await completeFormMutation.mutateAsync({ referenceNumber, applicantId, submissionId: crypto.randomUUID() });
       await refreshState();
+      setActiveTravellerId(applicantId);
       setPhase(4);
-    }
-    else {
-      const missing = latest.formQuestions?.filter(item => !latest.knownAnswers.some(answer => answer.code === item.code && answer.applicantId === item.applicantId)) ?? latest.currentQuestions;
-      const ownMissing = missing.some(item => item.applicantId === applicantId || item.applicantId === null);
-      setActiveTravellerId(ownMissing ? applicantId : latest.currentQuestions[0]?.applicantId ?? applicantId);
-      setPhase(3);
-    }
+    } else { setActiveTravellerId(applicantId); setPhase(3); }
     await refreshState();
     } finally { setFormSaving(false); }
   };
 
   const goToTraveller = (index: number) => {
     const target = travellers[index];
-    if (target) setActiveTravellerId(target.applicantId);
+    if (target) { setActiveTravellerId(target.applicantId); setPhase(3); }
   };
 
   const uploadHandler = async (requirement: PartyRequirementReadiness, file: File) => {
@@ -147,23 +144,15 @@ export default function DynamicApplication() {
     : [];
 
   const currentStep = phase ?? 3;
-  return <WizardShell currentStep={currentStep - 1}>
+  return <WizardShell currentStep={currentStep === 5 ? 3 : 2}>
     <div>
       <StepHeader
-        step={currentStep - 1}
-        title={t(currentStep === 3 ? "steps.data" : currentStep === 4 ? "steps.documents" : "steps.review")}
+        step={currentStep === 5 ? 3 : 2}
+        title={t(currentStep === 5 ? "steps.review" : "steps.data")}
         subtitle={t("flow.subtitle")}
       />
       <p className="mb-6 text-xs text-gray-400">Reference <span className="font-semibold text-[#C9A04C]">{referenceNumber}</span></p>
 
-      <nav className="mb-6 flex flex-wrap gap-3" aria-label={t("flow.navigation")}>
-        {([3, 4, 5] as const).map(step => <button type="button" key={step}
-          aria-current={currentStep === step ? "step" : undefined}
-          disabled={formSaving || partyBusy || docsBusy || answerMutation.isPending || editMutation.isPending}
-          className="min-h-11 rounded-xl border px-4 py-2" onClick={() => setPhase(step)}>
-          {t(step === 3 ? "steps.data" : step === 4 ? "steps.documents" : "steps.review")}
-        </button>)}
-      </nav>
       {/* Traveller pager — one traveller per page */}
       {currentStep !== 5 && travellers.length > 1 && (
         <nav className="mb-6 flex flex-wrap gap-2" aria-label="Travellers">
@@ -176,7 +165,7 @@ export default function DynamicApplication() {
               <button
                 key={traveller.applicantId}
                 type="button"
-                disabled={formSaving}
+                disabled={formSaving || docsBusy || i > activeIndex}
                 onClick={() => goToTraveller(i)}
                 className={`rounded-full border px-4 py-2 text-xs font-bold transition-colors ${
                   isActive
@@ -218,8 +207,8 @@ export default function DynamicApplication() {
           await refreshState(); }} /></details>}
 
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
-      {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep !== 3 || applicant.applicantId !== activeId}>
-        <ApplicantDataForm applicant={applicant} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
+      {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
+        <ApplicantDataForm applicant={applicant} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
           questions={(state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
           saved={state.knownAnswers} onSave={submission => saveApplicantForm(applicant.applicantId, submission)} />
       </div>)}
@@ -282,29 +271,16 @@ export default function DynamicApplication() {
         <strong>Complete the family relationships above.</strong>
         <p className="mt-1">Every family member must be linked to the lead applicant before the final family readiness review can be generated.</p>
       </section>}
-      {/* Action row: previous traveller / save / next traveller */}
-      {currentStep === 3 && question && (
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
-          {activeIndex > 0 ? (
-            <button type="button" onClick={() => goToTraveller(activeIndex - 1)}
-              className="rounded-xl bg-gray-100 border border-gray-200 px-6 py-3 font-bold text-gray-500 hover:bg-gray-200 transition-colors">
-              {t("step2.prevTraveller", { n: activeIndex })}
-            </button>
-          ) : <span />}
-
-          {activeIndex < travellers.length - 1 ? (
-            <button type="button" onClick={() => goToTraveller(activeIndex + 1)}
-              className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg transition-all">
-              {t("step2.nextTraveller")}
-            </button>
-          ) : <span />}
-        </div>
-      )}
       <div className="mt-8 space-y-4">
         <p className="text-sm text-slate-600">{t("flow.savedOnly")}</p>
         <SaveContinueButton />
-        {currentStep === 4 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3"
-          onClick={() => setPhase(5)}>{t("step1.continue")}</button>}
+        {currentStep === 4 && <>
+          <p className="text-sm text-slate-600">{t("simple.uploadBeforeNext")}</p>
+          <button type="button" disabled={formSaving || docsBusy || !activeRequirements.length || activeRequirements.some(item => !["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state))}
+            className="min-h-11 rounded-xl bg-[#C9A04C] px-6 py-3 font-bold disabled:opacity-50"
+            onClick={() => activeIndex < travellers.length - 1 ? goToTraveller(activeIndex + 1) : setPhase(5)}>
+            {t(activeIndex < travellers.length - 1 ? "step2.nextTraveller" : "simple.reviewApplication")}</button>
+        </>}
         {currentStep > 3 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3"
           onClick={() => setPhase(currentStep === 5 ? 4 : 3)}>{t("step2.back")}</button>}
         {currentStep === 5 && readiness.data?.status !== "READY" && <p role="status">{t("flow.notReady")}</p>}

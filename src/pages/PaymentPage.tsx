@@ -310,7 +310,7 @@ export default function PaymentPage() {
   }
 
   return (
-    <WizardShell currentStep={4}>
+    <WizardShell currentStep={3}>
       <StepHeader step={4} title={t('step3.title')} subtitle={t('step3.subtitle')} />
 
       {/* Review summary — everything on screen before payment */}

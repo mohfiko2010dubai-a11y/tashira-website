@@ -5,17 +5,16 @@ import { useTranslation } from 'react-i18next';
 export const WIZARD_STEPS = [
   { id: 1, key: 'visa' },
   { id: 2, key: 'data' },
-  { id: 3, key: 'documents' },
-  { id: 4, key: 'review' },
+  { id: 3, key: 'review' },
 ] as const;
 
 interface WizardShellProps {
-  currentStep: number; // 1..5
+  currentStep: number; // 1..3
   children: ReactNode;
 }
 
 /**
- * Approved wizard chrome: top progress bar with 5 steps, navy sidebar with
+ * Approved wizard chrome: top progress bar with 3 steps, navy sidebar with
  * step navigation, and the white content card. Content (each step's body)
  * is injected by the caller — this component owns presentation only.
  */
@@ -34,7 +33,7 @@ export default function WizardShell({ currentStep, children }: WizardShellProps)
               style={{ width: `${progress}%` }}
             />
           </div>
-          <ol className="mt-3 grid grid-cols-4 text-[10px] sm:text-xs">
+          <ol className="mt-3 grid grid-cols-3 text-[10px] sm:text-xs">
             {WIZARD_STEPS.map((s) => (
               <li
                 key={s.id}

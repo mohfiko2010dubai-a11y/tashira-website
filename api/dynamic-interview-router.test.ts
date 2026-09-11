@@ -63,7 +63,7 @@ describe("authenticated Dynamic Interview API", () => {
   it("completes the merged GCC form without tickets and derives the full owner document matrix", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
     const loadApplication = current.loadApplication;
-    current.loadApplication = async value => { const application = await loadApplication(value); return application ? { ...application, baseType: "single", residenceType: "gcc-resident", arrivalDate: "2026-10-01" } : null; };
+    current.loadApplication = async value => { const application = await loadApplication(value); return application ? { ...application, baseType: "single", residenceType: "gcc-resident", arrivalDate: "2026-10-01", applicants: application.applicants.map(applicant => ({ ...applicant, passportNumber: "TEST12345", passportExpiry: "2028-01-01", profession: "Engineer" })) } : null; };
     current.now = () => new Date("2026-09-12T00:00:00Z");
     current.loadCatalog = async () => ({ catalogVersion: "test", requirements: [requirement], questions: [question,
       { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "GCC_RESIDENT", answerType: "BOOLEAN" },
@@ -86,6 +86,26 @@ describe("authenticated Dynamic Interview API", () => {
       "PASSPORT", "PASSPORT_SECOND_PAGE", "HOME_NATIONAL_ID", "RESIDENCE_CARD_FRONT", "RESIDENCE_CARD_BACK", "SA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
     ].sort());
     expect(completed.formQuestions?.some(field => ["HAS_CONFIRMED_TICKETS", "RESIDENCE_EXPIRY", "PLANNED_ARRIVAL_DATE"].includes(field.code))).toBe(false);
+  });
+  it("completes one family traveller before the next has answers and enforces passport validity and ownership", async () => {
+    const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
+    const load = current.loadApplication;
+    const together = { ...question, definitionId: "77777777-1111-4111-8111-111111111111", code: "TRAVELLING_TOGETHER", answerType: "BOOLEAN" as const };
+    current.loadCatalog = async () => ({ catalogVersion: "test", questions: [question, together], requirements: [requirement] });
+    let expiry = "2026-12-01";
+    current.loadApplication = async value => { const app = await load(value); return app ? { ...app, applicantIds: [21, 22],
+      applicants: [21, 22].map((id, index) => ({ ...app.applicants[0], applicantId: id, applicantIndex: index,
+        passportNumber: "TEST12345", passportExpiry: expiry, profession: "Engineer" })) } : null; };
+    const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG", fromForm: true, changeReason: "CUSTOMER_FORM_SAVE" });
+    await caller.answer({ referenceNumber: reference, applicantId: null, questionCode: "TRAVELLING_TOGETHER", answer: true, fromForm: true, changeReason: "CUSTOMER_FORM_SAVE" });
+    const input = { referenceNumber: reference, applicantId: 21, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" };
+    await expect(caller.completeForm(input)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expiry = "2028-01-01";
+    await caller.completeForm(input);
+    expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ applicantId: 21 })] }));
+    await expect(caller.completeForm({ ...input, applicantId: 999 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.completeForm({ ...input, applicantId: 22 })).rejects.toMatchObject({ code: "CONFLICT" });
   });
   it("keeps completed answers readable when the evaluation transaction has not succeeded", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);

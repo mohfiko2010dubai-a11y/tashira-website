@@ -2,11 +2,11 @@
   "steps": {
     "visa": "Visa Selection",
     "residence": "Residence Type",
-    "data": "Residence & applicant details",
+    "data": "Traveller details & documents",
     "documents": "Documents",
     "review": "Review & Pay"
   },
-  "stepOf": "Step {{current}} of 4",
+  "stepOf": "Step {{current}} of 3",
   "save": {
     "button": "Save & Exit",
     "note": "You can come back via email and continue your application at any time — we will send you a secure link.",
@@ -123,7 +123,7 @@
     "select": "Select",
     "yes": "Yes",
     "no": "No",
-    "continue": "Save & Continue →",
+    "continue": "Save details & show documents",
     "saving": "Saving…",
     "error": "Some details could not be saved. Your entries are still here. Please review and try again.",
     "saveHint": "Save these details before exiting. Additional fields may appear based on your answers.",
@@ -148,6 +148,12 @@
       "INSIDE": "Inside UAE",
       "OUTSIDE": "Outside UAE"
     },
-    "residence": "Residence type"
+    "residence": "Residence type",
+    "passportNumber": "Passport number",
+    "passportExpiry": "Passport expiry date",
+    "profession": "Profession",
+    "passportValidity": "Passport must be valid until at least {{date}} (six months from arrival, or today if no arrival date is entered).",
+    "uploadBeforeNext": "Upload this traveller’s required documents before continuing.",
+    "reviewApplication": "Review application"
   }
 }

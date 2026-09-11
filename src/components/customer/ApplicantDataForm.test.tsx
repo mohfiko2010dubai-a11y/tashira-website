@@ -12,7 +12,7 @@ const questions: FormQuestion[] = [
   { code: "RESIDENCE_EXPIRY", applicantId: 11, label: "Expiry", answerType: "DATE", allowedValues: null },
 ];
 const render = (answer: boolean, applicantId = 11) => renderToStaticMarkup(createElement(ApplicantDataForm, {
-  applicant, residenceType: "gcc-resident", questions, saved: [{ code: "GCC_RESIDENT", applicantId, answer }], onSave: async () => {},
+  applicant, residenceType: answer ? "gcc-resident" : "non-gcc", questions, saved: [{ code: "GCC_RESIDENT", applicantId, answer }], onSave: async () => {},
 }));
 describe("Grouped applicant form", () => {
   it("renders saved profile and all required fields together", () => {
@@ -28,11 +28,14 @@ describe("Grouped applicant form", () => {
     const html = render(false);
     expect(html).not.toContain('field-11:GCC_COUNTRY');
     expect(html).not.toContain('field-11:RESIDENCE_EXPIRY');
-    expect(html).not.toContain('disabled=""');
-    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('disabled=""');
+    expect(html).not.toContain('aria-pressed');
+    expect(html).toContain("simple.passportNumber");
+    expect(html).toContain("simple.passportExpiry");
+    expect(html).toContain("simple.profession");
   });
   it("never hydrates another traveller's answer", () => {
-    const html = render(false, 12);
+    const html = render(true, 12);
     expect(html).toContain('field-11:RESIDENCE_EXPIRY');
     expect(html).toContain('disabled=""');
     expect(html).not.toContain('field-11:GCC_RESIDENT');

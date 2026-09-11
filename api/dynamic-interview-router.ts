@@ -1,3 +1,4 @@
+import { validPassportExpiry } from "../contracts/traveller-details";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { TrpcContext } from "./context";
@@ -31,7 +32,7 @@ const governedCountryCodeSchema = z.string().trim().length(2).refine(isNationali
 type ApplicationInterviewRecord = { applicationId: number; referenceNumber: string; routeCode: string; applicantIds: readonly number[];
   residenceType?: string; baseType?: string; arrivalDate?: string | null;
   applicantLabels: Readonly<Record<number, string>>; applicants: readonly { applicantId: number; applicantIndex: number; fullName: string;
-    nationality: string | null; residenceCountry: string | null; profileVersion: number }[] };
+    nationality: string | null; residenceCountry: string | null; profileVersion: number; passportNumber?: string | null; passportExpiry?: string | null; profession?: string | null }[] };
 const travelGroupInputSchema = z.object({ reference: z.string().trim().min(1).max(100), applicantIds: z.array(z.number().int().positive()).min(1).max(50),
   primaryTravellerId: z.number().int().positive(), accompanyingAdultId: z.number().int().positive().nullable(), arrangement: z.enum(["TOGETHER", "SEPARATELY"]),
   origin: z.string().trim().min(2).max(100), destination: z.string().trim().min(2).max(100), plannedArrivalDate: z.iso.date(),
@@ -133,7 +134,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         if (!unifiedReviewBlocker) throw error;
       }
     }
-    return { application, context, flags, ownerForm, catalogVersion: catalog.catalogVersion, questions, requirements, rules, events,
+    return { application, context, flags, ownerForm, partyBundle, catalogVersion: catalog.catalogVersion, questions, requirements, rules, events,
       state: { ...interview, applicationContext: { baseType: application.baseType, residenceType: application.residenceType, arrivalDate: application.arrivalDate }, currentApplicant: applicantId === null ? null
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
       review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
@@ -189,18 +190,32 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       nationalities: NATIONALITY_CATALOG,
     })),
     current: applicationAccessQuery.input(referenceInput).query(({ input, ctx }) => readState(ctx, input.referenceNumber, "current")),
-    completeForm: applicationAccessQuery.input(referenceInput.extend({ submissionId: z.string().uuid() })).mutation(async ({ input, ctx }) => {
+    completeForm: applicationAccessQuery.input(referenceInput.extend({ submissionId: z.string().uuid(), applicantId: z.number().int().positive().optional() })).mutation(async ({ input, ctx }) => {
       const runtime = await state(ctx, input.referenceNumber);
-      if (runtime.state.currentQuestions.length) throw new TRPCError({ code: "CONFLICT", message: "Complete the applicant fields first" });
+      const target = input.applicantId === undefined ? null : runtime.application.applicants.find(applicant => applicant.applicantId === input.applicantId);
+      if (input.applicantId !== undefined && !target) throw new TRPCError({ code: "FORBIDDEN", message: "Applicant access denied" });
+      const validateApplicants = target ? [target] : runtime.ownerForm ? runtime.application.applicants : [];
+      if (validateApplicants.some(target => !target.passportNumber || target.passportNumber.trim().length < 3 || !target.profession || target.profession.trim().length < 2 || !validPassportExpiry(target.passportExpiry ?? "", runtime.application.arrivalDate, deps.now()))) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Enter passport number, profession and a passport valid for at least six months" });
+      }
+      if (runtime.state.currentQuestions.some(question => input.applicantId === undefined || question.applicantId === input.applicantId || question.applicantId === null)) throw new TRPCError({ code: "CONFLICT", message: "Complete the applicant fields first" });
       if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags) || !deps.persistCompletedEvaluations) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Document requirements unavailable" });
       }
       const evaluatedAt = deps.now();
       const evaluations = evaluateCompletedInterviewApplicants({ applicationId: runtime.application.applicationId,
-        routeCode: runtime.application.routeCode, applicantIds: runtime.application.applicantIds, questions: runtime.questions,
+        routeCode: runtime.application.routeCode, applicantIds: input.applicantId === undefined ? runtime.application.applicantIds : [input.applicantId], questions: runtime.questions,
         requirements: runtime.requirements, rules: runtime.rules, events: runtime.events, evaluatedAt,
         customerForm: runtime.ownerForm });
       if (!evaluations) throw new TRPCError({ code: "CONFLICT", message: "Complete the applicant fields first" });
+      const unchanged = evaluations.every(({ applicantId, result }) => {
+        const previous = runtime.partyBundle?.snapshots.current(runtime.application.applicationId, applicantId);
+        return previous && previous.eligibilityState === result.finalEligibilityState && previous.reason === result.reason
+          && JSON.stringify([...previous.requiredDocuments].sort()) === JSON.stringify([...result.requiredDocuments].sort())
+          && JSON.stringify(previous.conditionalDocuments) === JSON.stringify(result.conditionalDocuments)
+          && JSON.stringify(previous.matchedRules) === JSON.stringify(result.matchedRules);
+      });
+      if (unchanged) return runtime.state;
       await deps.persistCompletedEvaluations({ applicationId: runtime.application.applicationId,
         catalogVersion: runtime.catalogVersion, evaluations: evaluations.map(({ applicantId, result }) => ({ applicantId, selectedRoute: runtime.application.routeCode, result })),
         triggerEventId: `customer-form:${input.submissionId}`, actorReference: `customer:${input.referenceNumber}`,
@@ -408,7 +423,7 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
     const applicationRows = await sql.query("SELECT id,reference_number AS referenceNumber,visa_type AS routeCode,base_type AS baseType,residence_type AS residenceType,arrival_date AS arrivalDate FROM applications WHERE reference_number=?", [referenceNumber]);
     const row = applicationRows[0]; if (!row) return null; const applicationId = Number(Reflect.get(row, "id"));
     const applicantRows = await sql.query(`SELECT id,applicant_index AS applicantIndex,full_name AS fullName,nationality,
-      gcc_residence_country AS residenceCountry,profile_version AS profileVersion FROM applicants WHERE application_id=? ORDER BY applicant_index,id`, [applicationId]);
+      gcc_residence_country AS residenceCountry,profile_version AS profileVersion,passport_number AS passportNumber,passport_expiry AS passportExpiry,profession FROM applicants WHERE application_id=? ORDER BY applicant_index,id`, [applicationId]);
     const applicantIds = applicantRows.map((applicant) => Number(Reflect.get(applicant, "id")));
     return { applicationId, referenceNumber: String(Reflect.get(row, "referenceNumber")), routeCode: String(Reflect.get(row, "routeCode")),
       baseType: String(Reflect.get(row, "baseType")), residenceType: String(Reflect.get(row, "residenceType")),
@@ -417,6 +432,9 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
         applicantIndex: Number(Reflect.get(applicant, "applicantIndex")), fullName: String(Reflect.get(applicant, "fullName") ?? ""),
         nationality: Reflect.get(applicant, "nationality") === null ? null : String(Reflect.get(applicant, "nationality")),
         residenceCountry: Reflect.get(applicant, "residenceCountry") === null ? null : String(Reflect.get(applicant, "residenceCountry")),
+        passportNumber: Reflect.get(applicant, "passportNumber") == null ? null : String(Reflect.get(applicant, "passportNumber")),
+        passportExpiry: Reflect.get(applicant, "passportExpiry") == null ? null : String(Reflect.get(applicant, "passportExpiry")).slice(0, 10),
+        profession: Reflect.get(applicant, "profession") == null ? null : String(Reflect.get(applicant, "profession")),
         profileVersion: Number(Reflect.get(applicant, "profileVersion")) })),
       applicantLabels: Object.fromEntries(applicantRows.map((applicant) => { const id = Number(Reflect.get(applicant, "id"));
         const fullName = String(Reflect.get(applicant, "fullName") ?? "").trim(); const index = Number(Reflect.get(applicant, "applicantIndex"));
