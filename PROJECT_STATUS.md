@@ -1,5 +1,10 @@
 # TASHIRA Project Status
 
+## Final merged form verified on Staging — 2026-09-11
+
+Deployed 0b2ead1e13981676b20e24d34dabade4cd62130c through full guard: TypeScript, ESLint, 882 tests / 26 skips, client/static/server build, local and public HTTP 200. Browser synthetic TSH-MTWNP3MI-671169 successfully recovers saved data, completes PK/SA to eight separate document uploads and review, keeps payment blocked while files are missing, then edits to IN/KW and displays exactly its six relevant uploads. Four visible steps and merged residence/applicant screen verified; GCC countries restricted and repeated family/residency/ticket prompts removed. Report: output/merged-form-20260911/REVIEW.md. No actual file uploads, payments or outbound email were sent during browser UAT. Production and schema untouched.
+
+
 ## Same-second evaluation recovery — 2026-09-11
 
 Repair e93fb01 deployed with all gates and local/public health 200. Browser UAT recovered synthetic TSH-MTWNP3MI-671169, saved PK/SA, displayed all eight independent uploads, and reached review with payment blocked for missing documents. Editing to IN/KW exposed legacy second-precision ordering: a child evaluation sorted ahead of its parent by UUID.
