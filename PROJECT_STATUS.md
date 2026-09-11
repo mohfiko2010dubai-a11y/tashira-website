@@ -2,7 +2,7 @@
 
 ## Save and Continue clarity - 2026-09-11
 
-The document-stage primary action now explicitly says Save & Continue, or Save & Continue to next traveller, in EN/AR. Saved details and uploaded documents retain the existing server persistence; Save & Exit remains separate. An accessible status reports the number of remaining uploads and confirms saved state once complete. Required-document gating is preserved. Local TypeScript, ESLint, all 887 tests / 26 skips, and client/static/server build PASS. Isolated Staging deployment pending.
+The document-stage primary action now explicitly says Save & Continue, or Save & Continue to next traveller, in EN/AR. Saved details and uploaded documents retain the existing server persistence; Save & Exit remains separate. An accessible status reports the number of remaining uploads and confirms saved state once complete. Required-document gating is preserved. Local TypeScript, ESLint, all 887 tests / 26 skips, and client/static/server build PASS. Deployed exact SHA 66ca72c6fc1f2255ff2d207152b101d25ebdce17 through the full guard; local/public health 200. Browser synthetic TSH-MTWYF8D2-C978E0 confirms saved details reveal Save & Continue to next traveller and an accurate six-document remaining count; required uploads still block progression.
 
 ## Sequential traveller flow verified on Staging - 2026-09-11
 
