@@ -1,5 +1,9 @@
 # TASHIRA Project Status
 
+## Save and Continue clarity - 2026-09-11
+
+The document-stage primary action now explicitly says Save & Continue, or Save & Continue to next traveller, in EN/AR. Saved details and uploaded documents retain the existing server persistence; Save & Exit remains separate. An accessible status reports the number of remaining uploads and confirms saved state once complete. Required-document gating is preserved. Local TypeScript, ESLint, all 887 tests / 26 skips, and client/static/server build PASS. Isolated Staging deployment pending.
+
 ## Sequential traveller flow verified on Staging - 2026-09-11
 
 Deployed a2eaac0b051b30d35d13083bdb9f05f14e0f040f through full guard: 887 tests / 26 skips, TypeScript, ESLint, build and both health checks PASS. Browser TSH-MTWYF8D2-C978E0 verifies first-screen residence, mandatory passport/profession, six-month rejection, inline IN/KW documents and disabled Next until uploads, in EN/AR. Live API family TSH-SEQ-MTWYQZH6 verifies first-traveller uploads before second-traveller data, four independently owned synthetic files and preservation on unchanged resave. Report: output/traveller-flow-20260911/VERIFICATION.md. No real customer documents, payments, emails, Production or schema changes.

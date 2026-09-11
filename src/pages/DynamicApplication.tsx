@@ -142,6 +142,7 @@ export default function DynamicApplication() {
   const activeApplicants = state.partySetup
     ? state.partySetup.applicants.filter((a) => a.applicantId === activeId)
     : [];
+  const remainingDocuments = activeRequirements.filter(item => !["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state)).length;
 
   const currentStep = phase ?? 3;
   return <WizardShell currentStep={currentStep === 5 ? 3 : 2}>
@@ -275,11 +276,11 @@ export default function DynamicApplication() {
         <p className="text-sm text-slate-600">{t("flow.savedOnly")}</p>
         <SaveContinueButton />
         {currentStep === 4 && <>
-          <p className="text-sm text-slate-600">{t("simple.uploadBeforeNext")}</p>
-          <button type="button" disabled={formSaving || docsBusy || !activeRequirements.length || activeRequirements.some(item => !["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state))}
+          <p id="continue-documents-status" role="status" className="text-sm text-slate-600">{t(remainingDocuments > 0 ? "simple.documentsRemaining" : "simple.savedContinue", { count: remainingDocuments })}</p>
+          <button type="button" aria-describedby="continue-documents-status" disabled={formSaving || docsBusy || !activeRequirements.length || remainingDocuments > 0}
             className="min-h-11 rounded-xl bg-[#C9A04C] px-6 py-3 font-bold disabled:opacity-50"
             onClick={() => activeIndex < travellers.length - 1 ? goToTraveller(activeIndex + 1) : setPhase(5)}>
-            {t(activeIndex < travellers.length - 1 ? "step2.nextTraveller" : "simple.reviewApplication")}</button>
+            {t(activeIndex < travellers.length - 1 ? "simple.saveNextTraveller" : "simple.saveContinue")}</button>
         </>}
         {currentStep > 3 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3"
           onClick={() => setPhase(currentStep === 5 ? 4 : 3)}>{t("step2.back")}</button>}
