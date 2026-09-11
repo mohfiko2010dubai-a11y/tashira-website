@@ -16,6 +16,7 @@ import { activeBusinessSettings } from "./lib/pricing-engine";
 import { canEnterApplicationState } from "./lib/processing-gate";
 import { TRPCError } from "@trpc/server";
 import { runtimeFlagEnvironment } from "./lib/operations/mysql-access-provider";
+import { staffApplicationListCondition } from "./lib/staff-application-scope";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
@@ -173,12 +174,18 @@ export const applicationRouter = createRouter({
       limit: z.number().min(1).max(500).default(100),
       offset: z.number().min(0).default(0),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = getDb();
       const limit = input?.limit || 100;
       const offset = input?.offset || 0;
 
       const conditions = [eq(applications.dataClassification, "LIVE")];
+      const staffScope = await staffApplicationListCondition(ctx);
+      if (staffScope) conditions.push(staffScope);
+      if (input?.search?.trim()) {
+        const search = `%${input.search.trim()}%`;
+        conditions.push(sql`(${applications.referenceNumber} LIKE ${search} OR ${applications.contactEmail} LIKE ${search} OR EXISTS (SELECT 1 FROM applicants p WHERE p.application_id=${applications.id} AND p.full_name LIKE ${search}))`);
+      }
 
       if (input?.status) conditions.push(eq(applications.status, input.status));
       if (input?.dateFrom) conditions.push(gte(applications.createdAt, new Date(input.dateFrom)));
