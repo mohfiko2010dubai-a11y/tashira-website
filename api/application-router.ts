@@ -99,7 +99,7 @@ export const applicationRouter = createRouter({
           actorType: "CUSTOMER",
           summary: "Application created",
         });
-        await recordTimelineEvent({
+        if (input.journeyMode !== "DYNAMIC" || runtimeFlagEnvironment() !== "STAGING") await recordTimelineEvent({
           applicationId: appId,
           eventName: "POLICY_ACCEPTED",
           eventSource: "APPLICATION_API",

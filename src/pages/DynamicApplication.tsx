@@ -6,6 +6,8 @@ import { trpc } from "@/providers/trpc-client";
 import { InterviewPartySetup, type PartyRequirementReadiness } from "@/components/customer/InterviewPartySetup";
 import { InterviewRequirementDocuments } from "@/components/customer/InterviewRequirementDocuments";
 import { legacyDocumentType } from "@/components/customer/requirement-document-type";
+import { reviewDocumentStatus } from "@/components/customer/review-document-status";
+import { canVisitCheckout } from "@/lib/checkout-preflight";
 import WizardShell, { StepHeader } from "@/components/customer/WizardShell";
 import { SaveContinueButton } from "@/components/customer/SaveContinueButton";
 import { ApplicantDataForm, type ApplicantFormSubmission, type FormAnswer } from "@/components/customer/ApplicantDataForm";
@@ -24,7 +26,7 @@ const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) =
 });
 
 export default function DynamicApplication() {
-  const { t } = useTranslation("wizard");
+  const { t, i18n } = useTranslation("wizard");
   const { referenceNumber = "" } = useParams();
   const query = trpc.dynamicInterview.current.useQuery({ referenceNumber }, { enabled: referenceNumber.length >= 3, retry: false });
   const [phase, setPhase] = useState<3 | 4 | 5 | null>(null);
@@ -144,7 +146,8 @@ export default function DynamicApplication() {
     : [];
   const remainingDocuments = activeRequirements.filter(item => !["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state)).length;
 
-  const currentStep = phase ?? 3;
+  const currentStep = phase ?? (activeRequirements.length > 0 ? 4 : 3);
+  const canOpenCheckout = canVisitCheckout(readiness.data);
   return <WizardShell currentStep={currentStep === 5 ? 3 : 2}>
     <div>
       <StepHeader
@@ -187,7 +190,7 @@ export default function DynamicApplication() {
       )}
 
       {/* Manage party (add travellers, family links, shared tickets) */}
-      {state.partySetup && travellers.length > 1 && <details id="party-setup" className="mb-5 rounded-xl border border-slate-200 p-4" hidden={currentStep !== 3}><summary className="cursor-pointer text-sm font-semibold">{t("simple.family")}</summary><InterviewPartySetup setup={state.partySetup}
+      {state.partySetup && travellers.length > 1 && <details id="party-setup" className="mb-5 rounded-xl border border-slate-200 p-4"><summary className="cursor-pointer text-sm font-semibold">{t("simple.family")}</summary><InterviewPartySetup setup={state.partySetup}
         hideTravelGroups relationshipsOnly
         busy={partyBusy}
         error={partyError}
@@ -239,15 +242,17 @@ export default function DynamicApplication() {
         </div>
 
         <div className="mt-5 space-y-4">
-          {state.review.applicants.map((applicant) => <article key={applicant.applicantId} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          {state.review.applicants.map((applicant) => {
+            const requirements = reviewDocumentStatus(applicant.applicantId, applicant.requirements, state.partySetup?.requirementReadiness, i18n.language.startsWith("ar"));
+            return <article key={applicant.applicantId} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-bold text-[#0A1628]">{applicant.label}</h3>
               <span className={`rounded-full px-3 py-1 text-xs font-bold ${readiness.data?.status !== "READY" ? "bg-amber-50 text-[#9b7425]" : "bg-emerald-50 text-emerald-700"}`}>
                 {readiness.data?.status !== "READY" ? t("step2.done.underReviewBadge") : t("step2.done.readyBadge")}
               </span>
             </div>
-            {applicant.requirements.length > 0 && <ul className="mt-4 divide-y divide-gray-50">
-              {applicant.requirements.map((requirement) => {
+            {requirements.length > 0 && <ul className="mt-4 divide-y divide-gray-50">
+              {requirements.map((requirement) => {
                 const needed = requirement.classification !== "MAY_BE_REQUIRED" && !["UPLOADED", "VALIDATED", "WAIVED"].includes(requirement.state);
                 const received = ["UPLOADED", "VALIDATED", "WAIVED"].includes(requirement.state);
                 return <li key={`${requirement.code}-${requirement.state}`} className="flex items-center justify-between py-2.5 text-sm">
@@ -260,12 +265,22 @@ export default function DynamicApplication() {
                 </li>;
               })}
             </ul>}
-          </article>)}
+          </article>; })}
         </div>
+
+        {readiness.data?.status === "INCOMPLETE" && <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5" role="status">
+          <h2 className="font-bold">{t("simple.paymentBlockers")}</h2>
+          <ul className="mt-3 list-disc space-y-1 ps-5">
+            {readiness.data.applicationMissing.map(item => <li key={item.code}>{item.label}</li>)}
+            {readiness.data.applicants.flatMap(applicant => applicant.missing.map(item => <li key={`${applicant.applicantId}-${item.code}`}>
+              {travellers.find(traveller => traveller.applicantId === applicant.applicantId)?.name || applicant.label}: {item.label}
+            </li>))}
+          </ul>
+        </section>}
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">{t("step2.saveView")}</Link>
-          {readiness.data?.status === "READY" && !state.review.manualReviewRequired && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
+          {canOpenCheckout && !state.review.manualReviewRequired && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
         </div>
       </section>}
       {state.unifiedReviewBlocker === "RELATIONSHIP_REQUIRED" && <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">

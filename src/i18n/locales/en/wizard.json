@@ -155,6 +155,7 @@
     "passportValidity": "Passport must be valid until at least {{date}} (six months from arrival, or today if no arrival date is entered).",
     "uploadBeforeNext": "Upload this traveller’s required documents before continuing.",
     "reviewApplication": "Review application",
+    "paymentBlockers": "Items currently blocking payment",
     "saveContinue": "Save & Continue →",
     "saveNextTraveller": "Save & Continue to next traveller →",
     "documentsRemaining": "Documents still to upload: {{count}}. Upload them to enable Save & Continue.",

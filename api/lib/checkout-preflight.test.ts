@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { checkoutPreflightDecision, completionPanelGroups, safeCheckoutErrorMessage } from "../../src/lib/checkout-preflight";
+import { canVisitCheckout, checkoutPreflightDecision, completionPanelGroups, safeCheckoutErrorMessage } from "../../src/lib/checkout-preflight";
 
 describe("checkout readiness preflight", () => {
+  it("allows reaching the policy checkbox without allowing payment or hiding other blockers", () => {
+    expect(canVisitCheckout({ applicants: [{ missing: [] }], applicationMissing: [{ code: "application.policy" }] })).toBe(true);
+    expect(checkoutPreflightDecision("INCOMPLETE").createPaymentIntent).toBe(false);
+    expect(canVisitCheckout({ applicants: [{ missing: [{ code: "document.PASSPORT" }] }], applicationMissing: [] })).toBe(false);
+    expect(canVisitCheckout({ applicants: [{ missing: [] }], applicationMissing: [{ code: "application.valid_product" }] })).toBe(false);
+    expect(canVisitCheckout(undefined)).toBe(false);
+    expect(canVisitCheckout({ applicants: [], applicationMissing: [] })).toBe(false);
+  });
   it("keeps incomplete applications outside all payment UI", () => {
     expect(checkoutPreflightDecision("INCOMPLETE")).toEqual({
       openPaymentUi: false,

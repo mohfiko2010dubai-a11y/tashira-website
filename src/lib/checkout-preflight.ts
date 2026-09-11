@@ -5,6 +5,11 @@ export type CheckoutPreflightDecision = {
   showCompletionPanel: boolean;
 };
 
+export function canVisitCheckout(readiness: { applicationMissing: readonly { code: string }[]; applicants: readonly { missing: readonly unknown[] }[] } | undefined): boolean {
+  return Boolean(readiness && readiness.applicants.length > 0 && readiness.applicants.every(applicant => !applicant.missing.length)
+    && readiness.applicationMissing.every(item => item.code === "application.policy"));
+}
+
 export function checkoutPreflightDecision(status: "READY" | "INCOMPLETE"): CheckoutPreflightDecision {
   const ready = status === "READY";
   return {

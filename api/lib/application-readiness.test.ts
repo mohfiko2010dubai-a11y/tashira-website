@@ -3,7 +3,7 @@ import { TERMS_POLICY_VERSION } from "../../contracts/constants";
 
 vi.mock("../queries/connection", () => ({ getDb: vi.fn() }));
 
-import { evaluateApplicationReadiness } from "./application-readiness";
+import { evaluateApplicationReadiness, evaluateInterviewReadiness } from "./application-readiness";
 
 const application = {
   id: 1, baseType: "single" as const, residenceType: "non-gcc" as const,
@@ -14,6 +14,30 @@ const completeApplicant = (id: number, applicantIndex: number, applicationId = 1
   id, applicationId, applicantIndex, fullName: `Applicant ${applicantIndex + 1}`, nationality: "Testland",
   passportNumber: `TEST${id}`, passportType: "ordinary", travelingFrom: "Testland", passportExpiry: "2030-01-01",
   profession: "Tester", gccResidenceNumber: null, gccResidenceCountry: null, sponsorName: null, sponsorRelation: null,
+});
+
+describe("owner wizard checkout uses applicant-scoped persisted requirements", () => {
+  const applicant = { ...completeApplicant(10, 0), nationality: "EG", gccResidenceCountry: "EG", passportType: null, travelingFrom: null };
+  const evidence = { applicantId: 10, route: application.visaType, eligibility: "ELIGIBLE", expected: ["PASSPORT", "PERSONAL_PHOTO"],
+    documents: [{ code: "PASSPORT", state: "UPLOADED" }, { code: "PERSONAL_PHOTO", state: "UPLOADED" }] };
+  const run = (overrides: Partial<Parameters<typeof evaluateInterviewReadiness>[0]> = {}) => evaluateInterviewReadiness({
+    legacy: evaluate({ applicants: [applicant], documents: [], application: { ...application, arrivalDate: "" } }),
+    application: { ...application, arrivalDate: "" }, applicants: [applicant], evidence: [evidence], relationshipsComplete: true, ...overrides });
+  it("accepts one passport page for Egypt without fields removed from the owner form", () => expect(run().status).toBe("READY"));
+  it("requires every nationality-specific document independently", () => {
+    const result = run({ evidence: [{ ...evidence, expected: [...evidence.expected, "PASSPORT_SECOND_PAGE"] }] });
+    expect(result.applicants[0].missing).toContainEqual(expect.objectContaining({ code: "document.PASSPORT_SECOND_PAGE" }));
+  });
+  it("never treats another traveller's files as this traveller's evidence", () => {
+    expect(run({ evidence: [{ ...evidence, applicantId: 11 }] }).status).toBe("INCOMPLETE");
+  });
+  it("retains eligibility, route, passport, family and policy barriers", () => {
+    expect(run({ evidence: [{ ...evidence, eligibility: "HUMAN_REVIEW_REQUIRED" }] }).status).toBe("INCOMPLETE");
+    expect(run({ evidence: [{ ...evidence, route: "different-route" }] }).status).toBe("INCOMPLETE");
+    expect(run({ applicants: [{ ...applicant, passportExpiry: "2020-01-01" }] }).status).toBe("INCOMPLETE");
+    expect(run({ relationshipsComplete: false }).status).toBe("INCOMPLETE");
+    expect(run({ legacy: evaluate({ acceptedPolicyVersion: undefined }) }).applicationMissing).toContainEqual(expect.objectContaining({ code: "application.policy" }));
+  });
 });
 const completeDocuments = (applicantId: number, applicationId = 1) => [
   { applicationId, applicantId, documentType: "passport" as const, uploadStatus: "uploaded" as const },

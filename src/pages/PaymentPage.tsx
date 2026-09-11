@@ -19,6 +19,7 @@ import { PayerAuthorizationFields } from '@/components/shared/PayerAuthorization
 import WizardShell, { StepHeader } from '@/components/customer/WizardShell';
 import { PolicyAcceptance } from '@/components/customer/PolicyAcceptance';
 import { SaveContinueButton } from '@/components/customer/SaveContinueButton';
+import { TERMS_POLICY_VERSION } from '@contracts/constants';
 import {
   PAYER_AUTHORIZATION_VERSION,
   isThirdPartyPayer,
@@ -223,6 +224,7 @@ export default function PaymentPage() {
   const { t } = useTranslation('wizard');
   const [confirmed, setConfirmed] = useState(false);
   const [policiesAccepted, setPoliciesAccepted] = useState(false);
+  const acceptPolicies = trpc.payment.acceptPolicies.useMutation();
 
   // Get application details
   const { data: app, isLoading, error } = trpc.application.getByReference.useQuery(
@@ -288,11 +290,7 @@ export default function PaymentPage() {
     : [];
 
   const continueApplication = () => {
-    localStorage.setItem('tashira_chatbot_resume', JSON.stringify({
-      referenceNumber,
-      applicantCount: Math.max(app.applicants.length, 1),
-    }));
-    navigate('/?resume=1');
+    navigate(`/apply/${encodeURIComponent(referenceNumber!)}/interview`);
   };
 
   const viewState = paymentViewState({ paymentStatus: app.paymentStatus, browserConfirmed: confirmed, confirmationPending: false });
@@ -366,7 +364,15 @@ export default function PaymentPage() {
 
       {/* Policies acceptance — mandatory before payment */}
       <div className="mb-6">
-        <PolicyAcceptance accepted={policiesAccepted} onChange={setPoliciesAccepted} />
+        <PolicyAcceptance accepted={policiesAccepted} onChange={value => {
+          if (!value) { setPoliciesAccepted(false); return; }
+          if (acceptPolicies.isPending) return;
+          acceptPolicies.mutate({ referenceNumber: referenceNumber!, accepted: true, policyVersion: TERMS_POLICY_VERSION }, {
+            onSuccess: () => { setPoliciesAccepted(true); void readiness.refetch(); },
+          });
+        }} />
+        {acceptPolicies.isPending && <p role="status">{t('simple.saving')}</p>}
+        {acceptPolicies.isError && <p role="alert">{t('simple.error')}</p>}
       </div>
 
       {/* Payment Form */}

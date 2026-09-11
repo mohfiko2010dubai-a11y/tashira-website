@@ -7,7 +7,8 @@ import { auditLog } from "./lib/audit-log";
 import { createStripeTestIntent } from "./lib/stripe";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { finalizeStripeTestPayment } from "./lib/payment-finalization";
-import { recordTimelineEvent } from "./lib/application-timeline";
+import { hasTimelinePolicyAcceptance, recordTimelineEvent } from "./lib/application-timeline";
+import { TERMS_POLICY_VERSION } from "@contracts/constants";
 import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { TRPCError } from "@trpc/server";
 import { getApplicationReadiness } from "./lib/application-readiness";
@@ -16,6 +17,16 @@ import { validatePayerAuthorization } from "./lib/payer-authorization-core";
 import { PAYER_AUTHORIZATION_VERSION, PAYER_RELATIONSHIPS } from "@contracts/payer-authorization";
 
 export const paymentRouter = createRouter({
+  acceptPolicies: paymentQuery.input(z.object({ referenceNumber: z.string(), accepted: z.literal(true), policyVersion: z.literal(TERMS_POLICY_VERSION) }).strict())
+    .mutation(async ({ input, ctx }) => {
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
+      const [app] = await getDb().select({ id: applications.id }).from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+      if (!await hasTimelinePolicyAcceptance(app.id, input.policyVersion)) await recordTimelineEvent({ applicationId: app.id,
+        eventName: "POLICY_ACCEPTED", eventSource: "PAYMENT_API", actorType: "CUSTOMER", policyVersion: input.policyVersion,
+        summary: "Customer explicitly accepted the displayed terms, privacy and refund policies at checkout" });
+      return { accepted: true as const };
+    }),
   // Create payment intent
   createIntent: paymentQuery
     .input(z.object({

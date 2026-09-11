@@ -2,6 +2,8 @@ import { and, eq, ne } from "drizzle-orm";
 import { applicants, applicationPriceSnapshots, applications, applicationTimelineEvents, documents } from "../../db/schema";
 import { TERMS_POLICY_VERSION } from "../../contracts/constants";
 import { getDb } from "../queries/connection";
+import { validPassportExpiry } from "../../contracts/traveller-details";
+import { runtimeFlagEnvironment } from "./operations/mysql-access-provider";
 
 export type MissingItem = { code: string; label: string };
 export type ApplicantReadiness = {
@@ -108,6 +110,57 @@ export async function getApplicationReadiness(applicationId: number): Promise<Ap
   const [snapshot] = await db.select({ id: applicationPriceSnapshots.id }).from(applicationPriceSnapshots)
     .where(eq(applicationPriceSnapshots.applicationId, applicationId)).limit(1);
   const [policy] = await db.select({ policyVersion: applicationTimelineEvents.policyVersion }).from(applicationTimelineEvents)
-    .where(and(eq(applicationTimelineEvents.applicationId, applicationId), eq(applicationTimelineEvents.eventName, "POLICY_ACCEPTED"))).limit(1);
-  return evaluateApplicationReadiness({ application, applicants: applicantList, documents: documentList, hasPriceSnapshot: Boolean(snapshot), acceptedPolicyVersion: policy?.policyVersion ?? undefined });
+    .where(and(eq(applicationTimelineEvents.applicationId, applicationId), eq(applicationTimelineEvents.eventName, "POLICY_ACCEPTED"), eq(applicationTimelineEvents.policyVersion, TERMS_POLICY_VERSION))).limit(1);
+  const legacy = evaluateApplicationReadiness({ application, applicants: applicantList, documents: documentList, hasPriceSnapshot: Boolean(snapshot), acceptedPolicyVersion: policy?.policyVersion ?? undefined });
+  // The owner-reviewed wizard is staging-only. Legacy and production checkout retain their existing gate.
+  if (runtimeFlagEnvironment() !== "STAGING") return legacy;
+  const { defaultOperationsSqlClient } = await import("./operations/mysql-query-client");
+  const sql = defaultOperationsSqlClient();
+  const started = await sql.query("SELECT id FROM dynamic_interview_answer_events WHERE application_id=? LIMIT 1", [applicationId]);
+  if (!started.length) return legacy;
+  const { MysqlOperationsCaseReadProvider } = await import("./operations/mysql-case-read-provider");
+  const bundle = await new MysqlOperationsCaseReadProvider(sql).load(application.referenceNumber);
+  const links = await sql.query(`SELECT DISTINCT l.requirement_instance_id AS instanceId FROM applicant_requirement_document_links l
+    JOIN documents d ON d.id=l.document_id AND d.application_id=l.application_id AND d.applicant_id=l.applicant_id
+    WHERE l.application_id=? AND d.upload_status='uploaded'`, [applicationId]);
+  const liveDocumentInstances = new Set(links.map(row => String(Reflect.get(row, "instanceId"))));
+  const evidence = applicantList.map(applicant => {
+    const evaluation = bundle?.snapshots.current(applicationId, applicant.id);
+    return { applicantId: applicant.id, route: evaluation?.selectedRoute, eligibility: evaluation?.eligibilityState,
+      expected: evaluation ? [...evaluation.requiredDocuments, ...evaluation.conditionalDocuments.map(item => item.code)] : [],
+      documents: evaluation && bundle ? bundle.family.requirements(applicationId, applicant.id, evaluation.evaluationId)
+        .filter(item => item.instance.kind === "DOCUMENT").map(item => ({ code: item.instance.code,
+          state: item.currentState === "WAIVED" ? "WAIVED" : liveDocumentInstances.has(item.instance.id) ? item.currentState ?? "MISSING" : "MISSING" })) : [] };
+  });
+  return evaluateInterviewReadiness({ legacy, application, applicants: applicantList, evidence,
+    relationshipsComplete: applicantList.length === 1 || Boolean(bundle && applicantList.every(applicant => applicant.applicantIndex === 0 ||
+      bundle.family.currentRelationships(applicationId).some(item => item.fromApplicantId === applicantList[0].id && item.toApplicantId === applicant.id || item.toApplicantId === applicantList[0].id && item.fromApplicantId === applicant.id))) });
+}
+
+type InterviewReadinessEvidence = { applicantId: number; route?: string; eligibility?: string; expected: readonly string[]; documents: readonly { code: string; state: string }[] };
+export function evaluateInterviewReadiness(input: { legacy: ApplicationReadiness; application: ReadinessApplication; applicants: ReadinessApplicant[];
+  evidence: readonly InterviewReadinessEvidence[]; relationshipsComplete: boolean }): ApplicationReadiness {
+  const applicationMissing = input.legacy.applicationMissing.filter(item => item.code !== "application.arrivalDate");
+  if (!input.relationshipsComplete) applicationMissing.push({ code: "application.relationships", label: "Family relationships" });
+  const results = input.applicants.map(applicant => {
+    const missing: MissingItem[] = [];
+    for (const [key, label] of [["fullName", "Full name"], ["nationality", "Nationality"], ["passportNumber", "Passport number"], ["profession", "Profession"], ["gccResidenceCountry", "Country of residence"]] as const) {
+      if (!present(applicant[key])) missing.push({ code: `applicant.${key}`, label });
+    }
+    if (!validPassportExpiry(applicant.passportExpiry ?? "", input.application.arrivalDate)) missing.push({ code: "applicant.passportExpiry", label: "Passport valid for at least six months" });
+    const old = input.legacy.applicants.find(item => item.applicantId === applicant.id);
+    missing.push(...(old?.missing.filter(item => item.code === "applicant.invalid_state") ?? []));
+    const evidence = input.evidence.find(item => item.applicantId === applicant.id);
+    if (!evidence?.eligibility || evidence.route !== input.application.visaType) missing.push({ code: "applicant.evaluation", label: "Save traveller details to complete the application review" });
+    else if (evidence.eligibility !== "ELIGIBLE") missing.push({ code: "applicant.eligibility", label: "TASHIRA eligibility review required before payment" });
+    const codes = new Set(["PASSPORT", "PERSONAL_PHOTO", ...(evidence?.expected ?? []), ...(evidence?.documents.map(item => item.code) ?? [])]);
+    for (const code of codes) {
+      if (!evidence?.documents.some(item => item.code === code && ["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state))) {
+        missing.push({ code: `document.${code}`, label: code.replaceAll("_", " ") });
+      }
+    }
+    return { applicantId: applicant.id, applicantIndex: applicant.applicantIndex, label: applicant.fullName ?? `Applicant ${applicant.applicantIndex + 1}`, missing };
+  });
+  const ready = applicationMissing.length === 0 && results.length > 0 && results.every(item => !item.missing.length);
+  return { status: ready ? "READY" : "INCOMPLETE", message: ready ? "Application is ready for payment" : "Complete the listed requirements before payment.", applicationMissing, applicants: results };
 }
