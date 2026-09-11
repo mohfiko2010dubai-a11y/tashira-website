@@ -311,7 +311,7 @@ export default function PaymentPage() {
 
   return (
     <WizardShell currentStep={3}>
-      <StepHeader step={4} title={t('step3.title')} subtitle={t('step3.subtitle')} />
+      <StepHeader step={3} title={t('step3.title')} subtitle={t('step3.subtitle')} />
 
       {/* Review summary — everything on screen before payment */}
       <div className="bg-[#FAFAF7] rounded-xl border border-gray-200 p-6 mb-6">
@@ -444,3 +444,4 @@ export default function PaymentPage() {
     </WizardShell>
   );
 }
+
