@@ -1,3 +1,6 @@
+import { InMemoryEligibilitySnapshotRepository } from "./lib/eligibility/snapshot-repository";
+import { InMemoryFamilyPersistenceRepository } from "./lib/family/family-persistence";
+import type { MysqlOperationsCaseBundle } from "./lib/operations/mysql-case-read-provider";
 import { describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./context";
 import { createDynamicInterviewRouter, recoverableUnifiedInterviewSetupIssue } from "./dynamic-interview-router";
@@ -58,7 +61,7 @@ function deps(currentFlags = flags) {
 
 describe("authenticated Dynamic Interview API", () => {
   it("completes the merged GCC form without tickets and derives the full owner document matrix", async () => {
-    const current = deps();
+    const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
     const loadApplication = current.loadApplication;
     current.loadApplication = async value => { const application = await loadApplication(value); return application ? { ...application, baseType: "single", residenceType: "gcc-resident", arrivalDate: "2026-10-01" } : null; };
     current.now = () => new Date("2026-09-12T00:00:00Z");
@@ -72,12 +75,27 @@ describe("authenticated Dynamic Interview API", () => {
     await answer("GCC_RESIDENT", true);
     await answer("GCC_COUNTRY", "SA");
     const completed = await answer("NATIONALITY", "PK");
+    expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ result: expect.objectContaining({
+      matchedRules: [expect.objectContaining({ ruleId: "TEST_BASE" })], requiredDocuments: expect.arrayContaining(["PASSPORT_SECOND_PAGE", "SA_ABSHER_REPORT"]),
+    }) })] }));
     expect(completed.currentQuestions).toEqual([]);
     expect(completed.nextAction).not.toBe("ANSWER_QUESTIONS");
     expect(completed.review.applicants[0].requirements.map(item => item.code).sort()).toEqual([
       "PASSPORT", "PASSPORT_SECOND_PAGE", "HOME_NATIONAL_ID", "RESIDENCE_CARD_FRONT", "RESIDENCE_CARD_BACK", "SA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
     ].sort());
     expect(completed.formQuestions?.some(field => ["HAS_CONFIRMED_TICKETS", "RESIDENCE_EXPIRY", "PLANNED_ARRIVAL_DATE"].includes(field.code))).toBe(false);
+  });
+  it("keeps completed answers readable when the evaluation transaction has not succeeded", async () => {
+    const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
+    const bundle: MysqlOperationsCaseBundle = { snapshots: new InMemoryEligibilitySnapshotRepository(), family: new InMemoryFamilyPersistenceRepository(),
+      source: { summary: { applicationId: 9, reference, status: "draft", createdAt: at.toISOString(), legacy: false },
+        applicants: [{ applicantId: 21, applicantIndex: 0, displayName: "Synthetic", nationality: "EG", residenceCountry: null, routeCompatible: true }],
+        documents: [], supplier: null, operationalHistory: [] } };
+    const caller = createDynamicInterviewRouter({ ...current, loadUnifiedBundle: async () => bundle }).createCaller(context([reference]));
+    await caller.answer({ referenceNumber: reference, applicantId: 21, questionCode: "NATIONALITY", answer: "EG", changeReason: "CUSTOMER_FORM_SAVE" });
+    expect(await caller.current({ referenceNumber: reference })).toMatchObject({ currentQuestions: [], unifiedReview: null });
+    await caller.completeForm({ referenceNumber: reference, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" });
+    expect(current.persistCompletedEvaluations).toHaveBeenCalledTimes(2);
   });
   it("refreshes saved form requirements explicitly and rejects incomplete or foreign submissions", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);

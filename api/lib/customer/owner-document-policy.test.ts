@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ownerDocumentRules, withOwnerDocumentCatalog } from "./owner-document-policy";
+import { applyOwnerDocumentRequirements, ownerDocumentRules, withOwnerDocumentCatalog } from "./owner-document-policy";
 import { evaluateEligibility } from "../eligibility/eligibility-engine";
 import { requirementDefinitionSchema } from "../requirements/requirement-catalog";
 import { customerFormRules } from "./customer-form-rules";
@@ -34,4 +34,17 @@ describe("Owner PDF document matrix", () => {
     const demo = { ...rules[0], id: "STAGING_TEST_ROUTE_TEST_PK" };
     expect(customerFormRules([official, demo])).toEqual([official]);
   });
+});
+
+it("adds versioned processing documents without inventing persisted rule matches or changing eligibility", () => {
+  const profile = { routeCode: "TEST", attributes: { nationality: "PK", gccCountry: "SA" } };
+  const at = new Date("2026-09-12");
+  const base = evaluateEligibility({ profile, evaluatedAt: at, rules: [] });
+  const result = applyOwnerDocumentRequirements(base, profile, at);
+  expect(result.requiredDocuments).toContain("PASSPORT_SECOND_PAGE");
+  expect(result.requiredDocuments).toContain("SA_ABSHER_REPORT");
+  expect(result.matchedRules).toEqual(base.matchedRules);
+  expect(result.matchedRuleVersions).toEqual(base.matchedRuleVersions);
+  expect(result.finalEligibilityState).toBe(base.finalEligibilityState);
+  expect(result.reason).toContain("tashira-owner-documents-20260911-v1");
 });

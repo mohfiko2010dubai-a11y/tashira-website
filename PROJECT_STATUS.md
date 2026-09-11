@@ -1,5 +1,12 @@
 # TASHIRA Project Status
 
+## Merged form Staging UAT repair — 2026-09-11
+
+Owner explicitly approved source transfer, the narrow generated-artifact guard correction and Staging deployment. Candidate 3376d8b deployed with every gate passing and both health checks 200; the guard backup is /var/backups/tashira-staging/guard-artifact-20260911T073636Z. Browser UAT verified the merged four-step UI and GCC-only country picker, but synthetic TSH-MTWNP3MI-671169 exposed completion persistence failure: operational document pseudo-rules had no registered DB rule versions.
+
+Repair separates versioned processing-checklist documents from registered eligibility rule matches, preserving eligibility and catalog provenance. Saved answers with a missing evaluation remain readable and can be completed again. No schema or provider changes. TypeScript, ESLint and 881 tests / 26 environment skips pass; repaired deployment and browser recheck pending. Earlier approval-block notes below are historical and superseded by the owner approval and successful deployment.
+
+
 ## Owner-requested merged form and document matrix â€” 2026-09-11
 
 Candidate code SHA is `3376d8b10ce11c4fd019afcb97ee5c7b9db7ce14`. The final bundle-ingestion command was also rejected by automatic approval review, which requested explicit permission to transfer private source to `168.231.85.149`. That command did not execute; the candidate is not ingested. Both requested approvals and completed local validation are documented in `output/merged-form-20260911/REVIEW.md`. No approval boundary was bypassed.

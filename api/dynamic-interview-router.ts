@@ -114,7 +114,10 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     const applicantId = interview.currentQuestions[0]?.applicantId ?? null;
     const unifiedEnabled = isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
     const partyBundle = unifiedEnabled ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
-    const bundle = interview.currentQuestions.length === 0 ? partyBundle : null;
+    // A saved answer can predate its evaluation (for example after a failed transaction).
+    // Keep the form readable so completeForm can rebuild the missing immutable evaluation.
+    const evaluationsReady = partyBundle && application.applicantIds.every(id => partyBundle.snapshots.current(application.applicationId, id));
+    const bundle = interview.currentQuestions.length === 0 && evaluationsReady ? partyBundle : null;
     let unifiedReview = null;
     let unifiedReviewBlocker: "RELATIONSHIP_REQUIRED" | null = null;
     if (bundle) {

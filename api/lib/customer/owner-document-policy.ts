@@ -1,5 +1,5 @@
 import { OWNER_DOCUMENTS, OWNER_DOCUMENT_VERSION } from "../../../contracts/owner-document-requirements";
-import type { EligibilityRule } from "../eligibility/eligibility-engine";
+import { evaluateEligibility, type EligibilityEvaluationResult, type EligibilityProfile, type EligibilityRule } from "../eligibility/eligibility-engine";
 import type { VersionedRequirementCatalog } from "../requirements/requirement-catalog";
 
 export function withOwnerDocumentCatalog(catalog: VersionedRequirementCatalog): VersionedRequirementCatalog {
@@ -31,4 +31,14 @@ export function ownerDocumentRules(routeCode: string): EligibilityRule[] {
     make("BH", "gccCountry", ["BH"], ["BH_RESIDENCE_REPORT"]),
     make("QA", "gccCountry", ["QA"], ["QA_RESIDENCE_CARD"]),
   ];
+}
+
+/** Operational checklist evidence is versioned in the catalog, not an unregistered immigration rule match. */
+export function applyOwnerDocumentRequirements(result: EligibilityEvaluationResult, profile: EligibilityProfile, evaluatedAt: Date): EligibilityEvaluationResult {
+  const operational = evaluateEligibility({ profile, evaluatedAt, rules: ownerDocumentRules(profile.routeCode) });
+  if (!operational.requiredDocuments.length) return result;
+  const requiredDocuments = [...new Set([...result.requiredDocuments, ...operational.requiredDocuments])].sort();
+  return { ...result, requiredDocuments,
+    conditionalDocuments: result.conditionalDocuments.filter(document => !requiredDocuments.includes(document.code)),
+    reason: `${result.reason} Processing checklist ${OWNER_DOCUMENT_VERSION}: ${operational.requiredDocuments.join(", ")}.` };
 }

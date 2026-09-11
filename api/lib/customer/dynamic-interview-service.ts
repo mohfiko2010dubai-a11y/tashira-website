@@ -1,3 +1,4 @@
+import { applyOwnerDocumentRequirements } from "./owner-document-policy";
 import { evaluateEligibility, type EligibilityEvaluationResult, type EligibilityProfile, type EligibilityRule } from "../eligibility/eligibility-engine";
 import { customerReason, type QuestionCatalogDefinition, type RequirementCatalogDefinition } from "../requirements/requirement-catalog";
 import { buildDynamicInterviewState, type DynamicInterviewState, type InterviewAnswerEvent, type InterviewAnswerLookup, type InterviewEligibilityState } from "./dynamic-interview";
@@ -71,7 +72,9 @@ function evaluatePreparedApplicant(input: PersistentInterviewInput, prepared: Re
     if (field && code && prepared.relevantAnswerKeys.has(`${applicantId}:${code}`)) attributes[field] = event.answer;
   }
   const profile: EligibilityProfile = { routeCode: input.routeCode, attributes };
-  return { profile, result: evaluateEligibility({ profile, rules: input.rules, evaluatedAt: input.evaluatedAt }) };
+  const rules = input.customerForm ? input.rules.filter(rule => !rule.id.startsWith("TASHIRA_OWNER_DOC_")) : input.rules;
+  const result = evaluateEligibility({ profile, rules, evaluatedAt: input.evaluatedAt });
+  return { profile, result: input.customerForm ? applyOwnerDocumentRequirements(result, profile, input.evaluatedAt) : result };
 }
 
 /** Canonical completed-interview evaluation used by both customer projection and immutable persistence. */
