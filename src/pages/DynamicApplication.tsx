@@ -97,7 +97,7 @@ export default function DynamicApplication() {
       const previous: FormAnswer | undefined = latest.knownAnswers.find(item => item.code === field.code && item.applicantId === field.applicantId);
       if (previous?.answer === field.answer) continue;
       const input = { referenceNumber, applicantId: field.applicantId, questionCode: field.code, answer: field.answer, changeReason: "CUSTOMER_FORM_SAVE" };
-      latest = previous ? await editMutation.mutateAsync(input) : await answerMutation.mutateAsync({ ...input, fromForm: true });
+      latest = previous ? await editMutation.mutateAsync({ ...input, fromForm: true }) : await answerMutation.mutateAsync({ ...input, fromForm: true });
     }
     if (latest.currentQuestions.length === 0) {
       await completeFormMutation.mutateAsync({ referenceNumber, submissionId: crypto.randomUUID() });

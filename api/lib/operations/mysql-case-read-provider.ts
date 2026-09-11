@@ -185,7 +185,17 @@ export class MysqlOperationsCaseReadProvider {
       matches.set(evaluationId, [...(matches.get(evaluationId) ?? []), row as Row]);
     }
     const snapshots = new InMemoryEligibilitySnapshotRepository();
-    for (const row of evaluationRows) {
+    // Database timestamps may have second precision; UUID order is not causal order.
+    const pendingEvaluations = [...evaluationRows];
+    const orderedEvaluations: object[] = [];
+    const loadedEvaluations = new Set<string>();
+    while (pendingEvaluations.length) {
+      const index = pendingEvaluations.findIndex(row => !nullableText(row, "supersedesEvaluationId") || loadedEvaluations.has(text(row, "supersedesEvaluationId")));
+      if (index < 0) throw new Error("EVALUATION_HISTORY_PARENT_MISSING_OR_CYCLIC");
+      const [row] = pendingEvaluations.splice(index, 1);
+      orderedEvaluations.push(row); loadedEvaluations.add(text(row, "id"));
+    }
+    for (const row of orderedEvaluations) {
       const evaluationId = text(row, "id");
       const applicantId = number(row, "applicantId");
       if (!applicantIds.has(applicantId)) throw new Error("EVALUATION_APPLICANT_OWNERSHIP_MISMATCH");

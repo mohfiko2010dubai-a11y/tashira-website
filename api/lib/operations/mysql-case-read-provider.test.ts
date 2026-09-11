@@ -71,3 +71,24 @@ describe("MysqlOperationsCaseReadProvider", () => {
       .rejects.toThrow("DOCUMENT_APPLICANT_OWNERSHIP_MISMATCH");
   });
 });
+
+it("loads same-second evaluations in causal order and selects the successor despite reverse UUID order", async () => {
+  class SameSecondSql extends FixtureSql {
+    override async query(sql: string): Promise<readonly object[]> {
+      const at = "2026-09-11T09:24:48.000Z";
+      if (sql.includes("FROM visa_rule_evaluation_runs WHERE")) return [
+        { id: "a-successor", applicantId: 71, eligibilityState: "ELIGIBLE", selectedRoute: "TEST", evaluatedAt: at,
+          supersedesEvaluationId: "z-parent", requiredDocuments: ["PASSPORT_LAST_PAGE"] },
+        { id: "z-parent", applicantId: 71, eligibilityState: "ELIGIBLE", selectedRoute: "TEST", evaluatedAt: at,
+          supersedesEvaluationId: null, requiredDocuments: ["PASSPORT_SECOND_PAGE"] },
+      ];
+      if (sql.includes("FROM visa_rule_evaluation_selections WHERE")) return [
+        { id: "a-selection", applicantId: 71, evaluationId: "a-successor", selectedAt: at },
+        { id: "z-selection", applicantId: 71, evaluationId: "z-parent", selectedAt: at },
+      ];
+      return super.query(sql);
+    }
+  }
+  const bundle = await new MysqlOperationsCaseReadProvider(new SameSecondSql()).load("TSH-LEGACY-7");
+  expect(bundle?.snapshots.current(7, 71)?.requiredDocuments).toEqual(["PASSPORT_LAST_PAGE"]);
+});

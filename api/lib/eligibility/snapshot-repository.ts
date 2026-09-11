@@ -64,10 +64,26 @@ export class InMemoryEligibilitySnapshotRepository {
       .map(cloneSnapshot);
   }
 
+  private compareSelections(left: EvaluationSelection, right: EvaluationSelection): number {
+    const timestamp = left.selectedAt.localeCompare(right.selectedAt);
+    if (timestamp) return timestamp;
+    const descendsFrom = (id: string, ancestor: string): boolean => {
+      let snapshot = this.#snapshots.get(id);
+      while (snapshot?.supersedesEvaluationId) {
+        if (snapshot.supersedesEvaluationId === ancestor) return true;
+        snapshot = this.#snapshots.get(snapshot.supersedesEvaluationId);
+      }
+      return false;
+    };
+    if (descendsFrom(left.evaluationId, right.evaluationId)) return 1;
+    if (descendsFrom(right.evaluationId, left.evaluationId)) return -1;
+    return left.id.localeCompare(right.id);
+  }
+
   current(applicationId: number, applicantId: number): EvaluationEvidenceSnapshot | null {
     const selection = this.#selections
       .filter((event) => event.applicationId === applicationId && event.applicantId === applicantId)
-      .sort((left, right) => right.selectedAt.localeCompare(left.selectedAt) || right.id.localeCompare(left.id))[0];
+      .sort((left, right) => this.compareSelections(right, left))[0];
     return selection ? this.get(selection.evaluationId) : null;
   }
 
@@ -101,7 +117,7 @@ export class InMemoryEligibilitySnapshotRepository {
   affectedCurrentApplications(ruleId: string): number[] {
     const currentByApplicant = new Map<string, EvaluationEvidenceSnapshot>();
     for (const selection of [...this.#selections]
-      .sort((left, right) => left.selectedAt.localeCompare(right.selectedAt) || left.id.localeCompare(right.id))) {
+      .sort((left, right) => this.compareSelections(left, right))) {
       const snapshot = this.#snapshots.get(selection.evaluationId);
       if (snapshot) currentByApplicant.set(`${selection.applicationId}:${selection.applicantId}`, snapshot);
     }

@@ -256,7 +256,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         }
         const appended = await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
           answer: input.answer, changeReason: input.changeReason, actorReference: `customer:${input.referenceNumber}`, occurredAt: deps.now() });
-        await persistCompletion(runtime, appended, "CUSTOMER_INTERVIEW_COMPLETED");
+        if (!input.fromForm) await persistCompletion(runtime, appended, "CUSTOMER_INTERVIEW_COMPLETED");
         return (await state(ctx, input.referenceNumber)).state;
       } catch (error) {
         if (error instanceof TRPCError) throw error;
@@ -267,7 +267,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     }),
     editAnswer: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive().nullable(),
       questionCode: z.string().regex(/^[A-Z][A-Z0-9_]{1,99}$/), answer: z.union([z.string().max(500), z.number().finite(), z.boolean()]),
-      changeReason: z.string().trim().min(3).max(500) }).strict()).mutation(async ({ input, ctx }) => {
+      fromForm: z.boolean().optional(), changeReason: z.string().trim().min(3).max(500) }).strict()).mutation(async ({ input, ctx }) => {
       try {
         const runtime = await state(ctx, input.referenceNumber);
         const previous = runtime.state.knownAnswers.find((item) => item.code === input.questionCode && item.applicantId === input.applicantId);
@@ -280,7 +280,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         }
         const appended = await deps.append({ applicationId: runtime.application.applicationId, applicantId: input.applicantId, definition,
           answer: input.answer, changeReason: input.changeReason, actorReference: `customer:${input.referenceNumber}`, occurredAt: deps.now() });
-        await persistCompletion(runtime, appended, input.changeReason);
+        if (!input.fromForm) await persistCompletion(runtime, appended, input.changeReason);
         return (await state(ctx, input.referenceNumber)).state;
       } catch (error) {
         if (error instanceof TRPCError) throw error;

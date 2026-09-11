@@ -75,6 +75,8 @@ describe("authenticated Dynamic Interview API", () => {
     await answer("GCC_RESIDENT", true);
     await answer("GCC_COUNTRY", "SA");
     const completed = await answer("NATIONALITY", "PK");
+    expect(current.persistCompletedEvaluations).not.toHaveBeenCalled();
+    await caller.completeForm({ referenceNumber: reference, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" });
     expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ result: expect.objectContaining({
       matchedRules: [expect.objectContaining({ ruleId: "TEST_BASE" })], requiredDocuments: expect.arrayContaining(["PASSPORT_SECOND_PAGE", "SA_ABSHER_REPORT"]),
     }) })] }));

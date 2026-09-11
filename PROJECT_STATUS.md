@@ -1,5 +1,12 @@
 # TASHIRA Project Status
 
+## Same-second evaluation recovery — 2026-09-11
+
+Repair e93fb01 deployed with all gates and local/public health 200. Browser UAT recovered synthetic TSH-MTWNP3MI-671169, saved PK/SA, displayed all eight independent uploads, and reached review with payment blocked for missing documents. Editing to IN/KW exposed legacy second-precision ordering: a child evaluation sorted ahead of its parent by UUID.
+
+The read provider now loads parent evaluations first, rejects missing/cyclic ancestry, and breaks equal-time selection ties using causal ancestry. Form answers defer evaluation until the single completeForm call, avoiding intermediate snapshots per field. No timestamp fabrication, schema changes or database edits. TypeScript, ESLint, 882 tests / 26 skips and client/static/server build PASS. Final guarded deployment and repeat edit UAT pending.
+
+
 ## Merged form Staging UAT repair — 2026-09-11
 
 Owner explicitly approved source transfer, the narrow generated-artifact guard correction and Staging deployment. Candidate 3376d8b deployed with every gate passing and both health checks 200; the guard backup is /var/backups/tashira-staging/guard-artifact-20260911T073636Z. Browser UAT verified the merged four-step UI and GCC-only country picker, but synthetic TSH-MTWNP3MI-671169 exposed completion persistence failure: operational document pseudo-rules had no registered DB rule versions.
