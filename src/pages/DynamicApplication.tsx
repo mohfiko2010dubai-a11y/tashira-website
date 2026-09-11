@@ -236,7 +236,7 @@ export default function DynamicApplication() {
           <p className="text-3xl">✅</p>
           <h2 className="mt-3 text-2xl font-extrabold">{t("step2.done.title")}</h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#DDBB7A]">
-            {readiness.data?.status === "READY" ? t("step2.done.ready") : t("step2.done.underReview")}
+            {canOpenCheckout ? t("simple.reviewAfterPayment") : t("step2.done.underReview")}
           </p>
           <span className="mt-5 inline-block rounded-full border border-[#DDBB7A]/30 bg-white/5 px-5 py-2 text-sm font-semibold text-[#DDBB7A]">{referenceNumber}</span>
         </div>
@@ -247,8 +247,8 @@ export default function DynamicApplication() {
             return <article key={applicant.applicantId} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-bold text-[#0A1628]">{applicant.label}</h3>
-              <span className={`rounded-full px-3 py-1 text-xs font-bold ${readiness.data?.status !== "READY" ? "bg-amber-50 text-[#9b7425]" : "bg-emerald-50 text-emerald-700"}`}>
-                {readiness.data?.status !== "READY" ? t("step2.done.underReviewBadge") : t("step2.done.readyBadge")}
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${!canOpenCheckout ? "bg-amber-50 text-[#9b7425]" : "bg-emerald-50 text-emerald-700"}`}>
+                {!canOpenCheckout ? t("step2.done.underReviewBadge") : t("simple.readyForCheckout")}
               </span>
             </div>
             {requirements.length > 0 && <ul className="mt-4 divide-y divide-gray-50">
@@ -280,7 +280,7 @@ export default function DynamicApplication() {
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">{t("step2.saveView")}</Link>
-          {canOpenCheckout && !state.review.manualReviewRequired && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
+          {canOpenCheckout && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
         </div>
       </section>}
       {state.unifiedReviewBlocker === "RELATIONSHIP_REQUIRED" && <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">

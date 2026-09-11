@@ -1,5 +1,9 @@
 # TASHIRA Project Status
 
+## Owner payment timing approved - 2026-09-11
+
+Owner explicitly directed payment after document uploads. Staging dynamic checkout now permits pending human review after complete owned uploads, current details, valid passport, family relationships and explicit policy acceptance. Explicit ineligibility still blocks collection. Staff eligibility and submission approval remain independent and unchanged. Review UI links to checkout and explains that payment precedes staff review, not visa approval. Local TypeScript, ESLint, 896 tests / 26 skips and build PASS. Guarded deployment and Stripe TEST payment acceptance pending. Owner additionally requests downstream employee/manager/admin receipt, edits and role-conflict checks on synthetic cases.
+
 ## Owner acceptance result: payment acceptance blocked - 2026-09-11
 
 Deployed 741edb2f859ca76b2367a069600c73eded2be3f4 through full guard. Local/server 895 tests passed / 26 environment skips; TypeScript, ESLint, build and local/public HTTP 200 PASS. Live synthetic family TSH-AUDIT-MTX1M1YJ and single TSH-AUDIT-MTX1PDNF verify short-passport rejection, independent uploads, unchanged resave, explicit policy persistence and rejection of unready payment attempts. After policy acceptance the sole blocker for both is applicant.eligibility: configured Staging rules are explicitly synthetic NO_CHANGE and do not grant eligibility. No payment was created or confirmed.

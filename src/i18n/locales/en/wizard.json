@@ -156,6 +156,8 @@
     "uploadBeforeNext": "Upload this traveller’s required documents before continuing.",
     "reviewApplication": "Review application",
     "paymentBlockers": "Items currently blocking payment",
+    "readyForCheckout": "Ready to proceed to payment",
+    "reviewAfterPayment": "Your documents have been received. Continue to payment; our team will review your application afterward. Payment does not mean visa approval.",
     "saveContinue": "Save & Continue →",
     "saveNextTraveller": "Save & Continue to next traveller →",
     "documentsRemaining": "Documents still to upload: {{count}}. Upload them to enable Save & Continue.",

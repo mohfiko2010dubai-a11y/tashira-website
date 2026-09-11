@@ -143,7 +143,8 @@ export async function getApplicationReadiness(applicationId: number, context?: T
       && nationality === applicant.nationality && (country === undefined || country === applicant.gccResidenceCountry)
       && (gcc === undefined || gcc === wantsGcc) && countryIsGcc === wantsGcc && currentCodes === savedCodes;
     return { applicantId: applicant.id, route: evaluation?.selectedRoute,
-      eligibility: unchanged ? (current?.eligibilityState === "ELIGIBLE_ROUTE_FOUND" ? evaluation?.eligibilityState : "HUMAN_REVIEW_REQUIRED") : undefined,
+      eligibility: unchanged ? (current?.eligibilityState === "NOT_ELIGIBLE" ? "INELIGIBLE"
+        : current?.eligibilityState === "ELIGIBLE_ROUTE_FOUND" ? evaluation?.eligibilityState : "HUMAN_REVIEW_REQUIRED") : undefined,
       expected: evaluation ? [...evaluation.requiredDocuments, ...evaluation.conditionalDocuments.map(item => item.code)] : [],
       documents: evaluation && bundle ? bundle.family.requirements(applicationId, applicant.id, evaluation.evaluationId)
         .filter(item => item.instance.kind === "DOCUMENT").map(item => ({ code: item.instance.code,
@@ -169,7 +170,9 @@ export function evaluateInterviewReadiness(input: { legacy: ApplicationReadiness
     missing.push(...(old?.missing.filter(item => item.code === "applicant.invalid_state") ?? []));
     const evidence = input.evidence.find(item => item.applicantId === applicant.id);
     if (!evidence?.eligibility || evidence.route !== input.application.visaType) missing.push({ code: "applicant.evaluation", label: "Save traveller details to complete the application review" });
-    else if (evidence.eligibility !== "ELIGIBLE") missing.push({ code: "applicant.eligibility", label: "TASHIRA eligibility review required before payment" });
+    // Owner decision 2026-09-11: collect after complete uploads; staff review follows payment.
+    // Pending human review does not imply approval. An explicit negative outcome still blocks collection.
+    else if (!["ELIGIBLE", "HUMAN_REVIEW_REQUIRED", "RULE_CONFLICT"].includes(evidence.eligibility)) missing.push({ code: "applicant.eligibility", label: "Selected visa requires eligibility correction before payment" });
     const codes = new Set(["PASSPORT", "PERSONAL_PHOTO", ...(evidence?.expected ?? []), ...(evidence?.documents.map(item => item.code) ?? [])]);
     for (const code of codes) {
       if (!evidence?.documents.some(item => item.code === code && ["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state))) {
