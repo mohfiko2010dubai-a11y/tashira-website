@@ -1,5 +1,11 @@
 # TASHIRA Project Status
 
+## Owner acceptance result: payment acceptance blocked - 2026-09-11
+
+Deployed 741edb2f859ca76b2367a069600c73eded2be3f4 through full guard. Local/server 895 tests passed / 26 environment skips; TypeScript, ESLint, build and local/public HTTP 200 PASS. Live synthetic family TSH-AUDIT-MTX1M1YJ and single TSH-AUDIT-MTX1PDNF verify short-passport rejection, independent uploads, unchanged resave, explicit policy persistence and rejection of unready payment attempts. After policy acceptance the sole blocker for both is applicant.eligibility: configured Staging rules are explicitly synthetic NO_CHANGE and do not grant eligibility. No payment was created or confirmed.
+
+Browser-owned synthetic TSH-MTX08AE5-30D565 restores its document section on reopen and displays auto-upload instructions, 8 MB limit, localized fields and Continue state in EN/AR at mobile width. Browser file-selection upload itself was not automated; uploads were exercised via owned public APIs. Real recovery email delivery and complete dynamic Stripe payment remain unverified. Owner timing decision requested: payment after uploads before staff review, or only after eligibility approval. Do not approve end-to-end acceptance or bypass eligibility while this decision/content is missing. Report: output/owner-acceptance-20260911/REVIEW.md. Production and real payment/email activation untouched.
+
 ## Owner acceptance audit corrections - 2026-09-11
 
 Acceptance was rejected after uploaded files appeared Needed on review. Corrected review to use applicant-scoped current requirement events, including nationality-specific pages. Staging dynamic checkout now uses selected evaluation and individually linked, still-uploaded documents; legacy/Production checks are unchanged. Eligibility, route, passport validity, family relationships, price and policy remain blocking. Policy acceptance is persisted explicitly at checkout; creating a new dynamic draft no longer implies acceptance. Policy-only navigation can reach checkout but cannot create an intent. Reopening restores documents; incomplete checkout returns to the same interview. File selection uploads automatically with receipt/failure feedback and an 8 MB limit below staging proxy capacity.
