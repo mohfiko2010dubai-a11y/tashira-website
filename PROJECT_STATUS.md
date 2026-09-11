@@ -1,5 +1,12 @@
 # TASHIRA Project Status
 
+## Sequential traveller form requested by owner - 2026-09-11
+
+Residence type is now on the first screen. The second screen collects passport number, expiry, profession and profile, then reveals uploads for the same traveller. Six calendar months validity uses future arrival date or today and is enforced by the owned completion API. Each family member can complete independently before the next member supplies answers; Next traveller requires received documents. Unchanged resaves preserve uploads. Three visible stages.
+
+TypeScript, ESLint, 886 tests / 26 skips and client/static/server build PASS. Staging verified at 0b2ead1e13981676b20e24d34dabade4cd62130c and database tashira_staging. Guarded deployment and synthetic browser/upload UAT pending. No schema, Production or provider changes.
+
+
 ## Final merged form verified on Staging — 2026-09-11
 
 Deployed 0b2ead1e13981676b20e24d34dabade4cd62130c through full guard: TypeScript, ESLint, 882 tests / 26 skips, client/static/server build, local and public HTTP 200. Browser synthetic TSH-MTWNP3MI-671169 successfully recovers saved data, completes PK/SA to eight separate document uploads and review, keeps payment blocked while files are missing, then edits to IN/KW and displays exactly its six relevant uploads. Four visible steps and merged residence/applicant screen verified; GCC countries restricted and repeated family/residency/ticket prompts removed. Report: output/merged-form-20260911/REVIEW.md. No actual file uploads, payments or outbound email were sent during browser UAT. Production and schema untouched.
