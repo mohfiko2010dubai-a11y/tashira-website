@@ -37,6 +37,19 @@ function ordered<T extends { occurredAt: string; id: string }>(events: readonly 
   return [...events].sort((left, right) => left.occurredAt.localeCompare(right.occurredAt) || left.id.localeCompare(right.id));
 }
 
+function initialRequirementEvent(event: ApplicantRequirementEvent): boolean {
+  return event.state === "MISSING" && event.reason === "Required document awaiting upload"
+    || event.state === "CONDITIONAL_PENDING" && event.reason === "Conditional requirement awaiting applicability";
+}
+function customerUploadEvent(event: ApplicantRequirementEvent): boolean {
+  return event.state === "UPLOADED" && event.reason === "Customer uploaded the required document";
+}
+/** Initial requirement creation necessarily precedes its linked upload, even with second-precision storage. */
+export function orderedRequirementEvents(events: readonly ApplicantRequirementEvent[]): ApplicantRequirementEvent[] {
+  return [...events].sort((left, right) => left.occurredAt.localeCompare(right.occurredAt)
+    || Number(initialRequirementEvent(right)) - Number(initialRequirementEvent(left)) || left.id.localeCompare(right.id));
+}
+
 export class InMemoryFamilyPersistenceRepository {
   readonly #relationships: FamilyRelationshipEvent[] = [];
   readonly #instances: ApplicantRequirementInstance[] = [];
@@ -81,8 +94,10 @@ export class InMemoryFamilyPersistenceRepository {
   appendRequirementEvent(event: ApplicantRequirementEvent): void {
     if (this.#requirementEvents.some((item) => item.id === event.id)) throw new Error("Requirement event ID already exists");
     if (!this.#instances.some((instance) => instance.id === event.instanceId)) throw new Error("Requirement instance does not exist");
-    const current = ordered(this.#requirementEvents.filter((item) => item.instanceId === event.instanceId)).at(-1);
-    if (current && event.occurredAt <= current.occurredAt) throw new Error("Requirement events must be appended chronologically");
+    const current = orderedRequirementEvents(this.#requirementEvents.filter((item) => item.instanceId === event.instanceId)).at(-1);
+    const sameSecondUpload = current && event.occurredAt === current.occurredAt && customerUploadEvent(event)
+      && (initialRequirementEvent(current) || customerUploadEvent(current));
+    if (current && event.occurredAt <= current.occurredAt && !sameSecondUpload) throw new Error("Requirement events must be appended chronologically");
     this.#requirementEvents.push(structuredClone(event));
   }
 
@@ -95,11 +110,11 @@ export class InMemoryFamilyPersistenceRepository {
         && instance.applicantId === applicantId && instance.evaluationId === evaluationId)
       .map((instance) => ({
         instance: structuredClone(instance),
-        currentState: ordered(this.#requirementEvents.filter((event) => event.instanceId === instance.id)).at(-1)?.state ?? null,
+        currentState: orderedRequirementEvents(this.#requirementEvents.filter((event) => event.instanceId === instance.id)).at(-1)?.state ?? null,
       }));
   }
 
   requirementHistory(instanceId: string): readonly ApplicantRequirementEvent[] {
-    return ordered(this.#requirementEvents.filter((event) => event.instanceId === instanceId)).map((event) => structuredClone(event));
+    return orderedRequirementEvents(this.#requirementEvents.filter((event) => event.instanceId === instanceId)).map((event) => structuredClone(event));
   }
 }

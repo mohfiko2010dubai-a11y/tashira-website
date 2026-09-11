@@ -1,5 +1,12 @@
 # TASHIRA Project Status
 
+## Sequential upload UAT correction - 2026-09-11
+
+Candidate 0c81e7cd deployed with all gates and health 200. Browser synthetic TSH-MTWYF8D2-C978E0 verifies first-screen GCC choice, mandatory passport/profession fields, short-expiry rejection, valid save revealing IN/KW documents below the same form, and disabled Next traveller until uploads. API synthetic TSH-SEQ-MTWYBM9Z confirms passport rejection and first-traveller documents before second answers, but exposed initial requirement creation/upload sharing one database second.
+
+The read projection now orders the known initial requirement before its linked customer upload at equal timestamps, retaining both events and UPLOADED state. Ambiguous same-time validation still fails closed; no timestamp, schema or evidence mutation. All 887 tests / 26 skips, TypeScript, ESLint and build PASS. Final guarded deployment and repeat synthetic upload UAT pending.
+
+
 ## Sequential traveller form requested by owner - 2026-09-11
 
 Residence type is now on the first screen. The second screen collects passport number, expiry, profession and profile, then reveals uploads for the same traveller. Six calendar months validity uses future arrival date or today and is enforced by the owned completion API. Each family member can complete independently before the next member supplies answers; Next traveller requires received documents. Unchanged resaves preserve uploads. Three visible stages.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryFamilyPersistenceRepository } from "./family-persistence";
+import { InMemoryFamilyPersistenceRepository, orderedRequirementEvents } from "./family-persistence";
 
 describe("append-only family persistence repository", () => {
   it("derives the current relationship graph without deleting history", () => {
@@ -34,4 +34,18 @@ describe("append-only family persistence repository", () => {
     expect(repository.requirements(1, 10, "eval-v1")[0].instance.id).toBe("old");
     expect(repository.requirements(1, 10, "eval-v2")[0].instance.id).toBe("new");
   });
+});
+
+it("retains a same-second customer upload after its initial requirement without granting validation", () => {
+  const repository = new InMemoryFamilyPersistenceRepository();
+  const at = "2026-09-11T12:00:00.000Z";
+  repository.appendRequirementInstance({ id: "req", applicationId: 1, applicantId: 10, evaluationId: "eval", catalogVersion: "v1", code: "PASSPORT", kind: "DOCUMENT", critical: true, conditional: false, createdAt: at });
+  const events = orderedRequirementEvents([
+    { id: "a-upload", instanceId: "req", state: "UPLOADED", reason: "Customer uploaded the required document", occurredAt: at },
+    { id: "z-initial", instanceId: "req", state: "MISSING", reason: "Required document awaiting upload", occurredAt: at },
+  ]);
+  events.forEach(event => repository.appendRequirementEvent(event));
+  expect(repository.requirements(1, 10, "eval")[0].currentState).toBe("UPLOADED");
+  expect(repository.requirementHistory("req")).toHaveLength(2);
+  expect(() => repository.appendRequirementEvent({ id: "review", instanceId: "req", state: "VALIDATED", reason: "Ambiguous simultaneous review", occurredAt: at })).toThrow(/chronologically/);
 });

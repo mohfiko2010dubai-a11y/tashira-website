@@ -2,7 +2,7 @@ import type { SupplierOperationalView } from "../authorization/policy";
 import type { EvaluationEvidenceSnapshot } from "../eligibility/evaluation-evidence";
 import { ELIGIBILITY_ENGINE_VERSION } from "../eligibility/evaluation-evidence";
 import { InMemoryEligibilitySnapshotRepository } from "../eligibility/snapshot-repository";
-import { InMemoryFamilyPersistenceRepository } from "../family/family-persistence";
+import { InMemoryFamilyPersistenceRepository, orderedRequirementEvents } from "../family/family-persistence";
 import type { OperationsSqlClient } from "./mysql-access-provider";
 import type { OperationsCaseSource, OperationsTravelGroup } from "./case-read-model";
 import type { SubmissionScheduleState } from "../travel/submission-scheduler";
@@ -245,13 +245,14 @@ export class MysqlOperationsCaseReadProvider {
         kind: kind as "DOCUMENT" | "QUESTION", critical: Boolean(value(row, "critical")),
         conditional: Boolean(value(row, "conditional")), createdAt: text(row, "createdAt") });
     }
-    for (const row of requirementEventRows) {
+    const requirementEvents = requirementEventRows.map(row => {
       const state = text(row, "state");
       if (!requirementStates.has(state)) throw new Error("INVALID_REQUIREMENT_STATE");
-      family.appendRequirementEvent({ id: text(row, "id"), instanceId: text(row, "instanceId"),
+      return { id: text(row, "id"), instanceId: text(row, "instanceId"),
         state: state as "MISSING" | "UPLOADED" | "VALIDATED" | "WAIVED" | "CONDITIONAL_PENDING",
-        reason: text(row, "reason"), occurredAt: text(row, "occurredAt") });
-    }
+        reason: text(row, "reason"), occurredAt: text(row, "occurredAt") };
+    });
+    for (const event of orderedRequirementEvents(requirementEvents)) family.appendRequirementEvent(event);
 
     const supplierRow = supplierRows[0];
     const supplier: SupplierOperationalView | null = supplierRow ? {
