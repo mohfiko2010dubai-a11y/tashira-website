@@ -33,6 +33,8 @@ export default function DynamicApplication() {
   const [phase, setPhase] = useState<3 | 4 | 5 | null>(null);
   const [activeTravellerId, setActiveTravellerId] = useState<number | null>(null);
   const [formSaving, setFormSaving] = useState(false);
+  const [documentAttempt, setDocumentAttempt] = useState(0);
+  const [reviewAttempt, setReviewAttempt] = useState(0);
   const answerMutation = trpc.dynamicInterview.answer.useMutation();
   const completeFormMutation = trpc.dynamicInterview.completeForm.useMutation();
   const editMutation = trpc.dynamicInterview.editAnswer.useMutation();
@@ -275,7 +277,7 @@ export default function DynamicApplication() {
           </article>; })}
         </div>
 
-        {readiness.data?.status === "INCOMPLETE" && !canOpenCheckout && <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5" role="status">
+        {readiness.data?.status === "INCOMPLETE" && !canOpenCheckout && <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5" role="status" tabIndex={-1} id="payment-blockers">
           <h2 className="font-bold">{t("simple.paymentBlockers")}</h2>
           <ul className="mt-3 list-disc space-y-1 ps-5">
             {readiness.data.applicationMissing.filter(item => item.code !== "application.policy").map(item => <li key={item.code}>{item.label}</li>)}
@@ -288,16 +290,39 @@ export default function DynamicApplication() {
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">{t("step2.saveView")}</Link>
           {canOpenCheckout && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
+          {!canOpenCheckout && <button type="button" className="rounded-xl bg-[#C9A04C] px-8 py-3 font-bold" aria-describedby="review-validation" onClick={() => {
+            setReviewAttempt(value => value + 1);
+            const blockers = document.getElementById("payment-blockers");
+            requestAnimationFrame(() => {
+              const target = blockers ?? document.getElementById("review-validation");
+              target?.scrollIntoView({ block: "center", behavior: "smooth" });
+              target?.focus({ preventScroll: true });
+            });
+          }}>{t("step2.continueToPay")}</button>}
+          <p id="review-validation" tabIndex={-1} aria-live="polite" aria-atomic="true" className="w-full text-sm text-red-700">
+            {reviewAttempt > 0 && !canOpenCheckout && <span key={reviewAttempt}>{t(readiness.data ? "validation.review" : "validation.reviewUnavailable")}</span>}
+          </p>
+          {!canOpenCheckout && !readiness.data && <button type="button" disabled={readiness.isFetching} className="rounded-xl border px-5 py-3" onClick={() => void readiness.refetch()}>{t("validation.retry")}</button>}
         </div>
       </section>}
       <div className="mt-8 space-y-4">
         <p className="text-sm text-slate-600">{t("flow.savedOnly")}</p>
         <SaveContinueButton />
         {currentStep === 4 && <>
-          <p id="continue-documents-status" role="status" className="text-sm text-slate-600">{t(remainingDocuments > 0 ? "simple.documentsRemaining" : "simple.savedContinue", { count: remainingDocuments })}</p>
-          <button type="button" aria-describedby="continue-documents-status" disabled={formSaving || docsBusy || !activeRequirements.length || remainingDocuments > 0}
+          <p id="continue-documents-status" role="status" aria-live="polite" aria-atomic="true" tabIndex={-1} className="text-sm text-slate-600"><span key={documentAttempt}>{t(!activeRequirements.length ? "validation.reviewUnavailable" : remainingDocuments > 0 ? "simple.documentsRemaining" : "simple.savedContinue", { count: remainingDocuments })}</span></p>
+          <button type="button" aria-describedby="continue-documents-status" disabled={formSaving || docsBusy}
             className="min-h-11 rounded-xl bg-[#C9A04C] px-6 py-3 font-bold disabled:opacity-50"
-            onClick={() => activeIndex < travellers.length - 1 ? goToTraveller(activeIndex + 1) : setPhase(5)}>
+            onClick={() => {
+              if (!activeRequirements.length || remainingDocuments > 0) {
+                setDocumentAttempt(value => value + 1);
+                const status = document.getElementById("continue-documents-status");
+                status?.scrollIntoView({ block: "center", behavior: "smooth" });
+                status?.focus({ preventScroll: true });
+                return;
+              }
+              if (activeIndex < travellers.length - 1) goToTraveller(activeIndex + 1);
+              else setPhase(5);
+            }}>
             {t(activeIndex < travellers.length - 1 ? "simple.saveNextTraveller" : "simple.saveContinue")}</button>
         </>}
         {currentStep > 3 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3"

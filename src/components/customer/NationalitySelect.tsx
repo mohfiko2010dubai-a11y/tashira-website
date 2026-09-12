@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type AriaAttributes } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
 import { isRtlLanguage } from "@/lib/rtl";
@@ -11,7 +11,10 @@ type Entry = { code: string; nameEn: string; nameAr: string; region: string };
  * in-menu search. Stores the ISO 3166-1 alpha-2 CODE (never free text),
  * matching the server-side catalog validation.
  */
-export default function NationalitySelect({ value, onChange, label, id, compact = false, allowedCodes }: {
+export default function NationalitySelect({ value, onChange, label, id, compact = false, allowedCodes, onBlur, "aria-invalid": invalid, "aria-describedby": describedBy }: {
+  onBlur?: () => void;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
+  "aria-describedby"?: string;
   value: string;
   onChange: (code: string) => void;
   label?: string;
@@ -45,15 +48,17 @@ export default function NationalitySelect({ value, onChange, label, id, compact 
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) onBlur?.(); }}>
       <button
         id={id}
+        aria-invalid={invalid}
+        aria-describedby={describedBy}
         aria-label={label}
         type="button"
         onClick={() => { setOpen((v) => !v); setQuery(""); }}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex min-h-11 w-full items-center justify-between rounded-xl border bg-white px-4 ${compact ? "py-2.5" : "py-4"} text-start transition-colors ${
+        className={`aria-[invalid=true]:border-red-700 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-700 flex min-h-11 w-full items-center justify-between rounded-xl border bg-white px-4 ${compact ? "py-2.5" : "py-4"} text-start transition-colors ${
           open ? "border-[#C9A04C] ring-1 ring-[#C9A04C]" : "border-gray-300 hover:border-[#DDBB7A]"
         }`}
       >

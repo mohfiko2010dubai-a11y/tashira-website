@@ -1,3 +1,7 @@
+## Task 1 - accessible wizard validation feedback - 2026-09-13
+
+Only validation feedback changed: clickable field submits, inline text/icon errors, aria-invalid/describedby, polite summaries, first-invalid scroll/focus, blur revalidation, and document/review/recovery gate feedback. Existing contact, passport, required-field, document and checkout rules retained. The passport helper and error share one computed minimum. A clean HEAD plus Task 1-only verification copy excludes unfinished homepage edits, which remain preserved separately. TypeScript, ESLint, 905 tests PASS / 26 gated skips and build PASS; guarded staging release pending. Local actual-component browser checks with mocked APIs pass all four owner reproductions, keyboard/blur, country controls, native constraints, arrival-date minimum, Arabic mobile, documents, recovery and review gates. No real documents, email or payments used. Evidence: output/task1-validation-20260913.
+
 # TASHIRA Project Status
 
 ## Owner-only checkout deployed and verified - 2026-09-12

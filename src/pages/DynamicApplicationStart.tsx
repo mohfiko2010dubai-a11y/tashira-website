@@ -3,7 +3,8 @@ import {useNavigate, useSearchParams} from "react-router-dom";
 import { Home, Plane, UserRound, UsersRound, Zap, Clock3, Check, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WizardShell, { StepHeader } from "@/components/customer/WizardShell";
-import { validStartContact } from "@/lib/wizard-validation";
+import { validStartContact, validStartEmail, validStartPhone } from "@/lib/wizard-validation";
+import { useValidationFeedback } from "@/components/customer/useValidationFeedback";
 import { trpc } from "@/providers/trpc-client";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
 
@@ -99,7 +100,16 @@ export default function DynamicApplicationStart() {
 
   const stepValid = Boolean(validStartContact(email, phone) && Number.isInteger(travellerCount) && travellerCount >= 1 && travellerCount <= 10 && visaType && processingType);
 
-  const submit = () => {
+  const feedback = useValidationFeedback({
+    email: !email.trim() ? t("validation.emailRequired") : !validStartEmail(email) ? t("validation.emailInvalid") : undefined,
+    phone: !validStartPhone(phone) ? t("validation.phone") : undefined,
+    applicantCount: !Number.isInteger(travellerCount) || travellerCount < 1 || travellerCount > 10 ? t("validation.count") : undefined,
+    visaType: !visaType ? t("validation.choose", { field: t("step1.visaType") }) : undefined,
+    processingType: !processingType ? t("validation.choose", { field: t("step1.processing") }) : undefined,
+  });
+
+  const submit = (form: HTMLFormElement) => {
+    if (!feedback.validate(form)) return;
     if (!stepValid || !validStartContact(email, phone)) return;
     if (create.isPending) return;
     create.mutate({
@@ -119,7 +129,7 @@ export default function DynamicApplicationStart() {
 
   return (
     <WizardShell currentStep={1}>
-      <section>
+      <form noValidate onSubmit={event => { event.preventDefault(); submit(event.currentTarget); }}>
         {(
           <>
             <StepHeader step={1} title={t("step1.title")} subtitle={t("step1.subtitle")} />
@@ -138,9 +148,10 @@ export default function DynamicApplicationStart() {
             {applicationType === "family" && (
               <label className="mt-4 block text-sm font-medium text-[#0A1628]">
                 {t("step1.count")}
-                <input type="number" min={2} max={10} value={applicantCount}
+                <input {...feedback.fieldProps("applicantCount")} type="number" min={2} max={10} value={applicantCount}
                   onChange={(event) => setApplicantCount(Math.min(10, Math.max(2, Number(event.target.value))))}
-                  className="mt-2 w-32 rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+                  className="mt-2 w-32 rounded-xl border border-gray-300 aria-[invalid=true]:border-red-700 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-700 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+              {feedback.errorFor("applicantCount")}
               </label>
             )}
 
@@ -150,6 +161,7 @@ export default function DynamicApplicationStart() {
                 <SelectCard key={value} icon={Plane} selected={visaType === value} onClick={() => setVisaType(value)} title={label} />
               ))}
             </div>
+            {feedback.errorFor("visaType")}
 
             <SectionTitle>{t("step1.processing")}</SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -158,24 +170,27 @@ export default function DynamicApplicationStart() {
                   onClick={() => setProcessingType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
               ))}
             </div>
+            {feedback.errorFor("processingType")}
 
             <SectionTitle>{t("step1.contact")}</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm font-medium text-[#0A1628]">
                 {t("step1.email")}
-                <input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email"
-                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+                <input {...feedback.fieldProps("email")} required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email"
+                  className="mt-2 w-full rounded-xl border border-gray-300 aria-[invalid=true]:border-red-700 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-700 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+              {feedback.errorFor("email")}
               </label>
               <label className="text-sm font-medium text-[#0A1628]">
                 {t("step1.phone")}
-                <input required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel"
-                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+                <input {...feedback.fieldProps("phone")} required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel"
+                  className="mt-2 w-full rounded-xl border border-gray-300 aria-[invalid=true]:border-red-700 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-700 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+              {feedback.errorFor("phone")}
               </label>
               <label className="text-sm font-medium text-[#0A1628] sm:col-span-2">
                 {t("step1.arrival")} <span className="text-gray-400">({t("step1.optional")})</span>
                 <input type="date" min={new Date().toISOString().slice(0, 10)} value={arrivalDate}
                   onChange={(event) => setArrivalDate(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
+                  className="mt-2 w-full rounded-xl border border-gray-300 aria-[invalid=true]:border-red-700 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-700 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
               </label>
             </div>
 
@@ -206,7 +221,8 @@ export default function DynamicApplicationStart() {
 
             <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
               <p className="text-sm text-gray-500">{t("flow.startBeforeSave")}</p>
-              <button type="button" onClick={submit} disabled={!stepValid || create.isPending}
+              <p aria-live="polite" aria-atomic="true" className="text-sm text-red-700">{feedback.count > 0 ? t("validation.summary", { count: feedback.count }) : ""}</p>
+              <button type="submit" onMouseDown={event => event.preventDefault()} disabled={create.isPending}
                 className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {t("step1.continue")}
               </button>
@@ -214,7 +230,7 @@ export default function DynamicApplicationStart() {
             <p className="mt-4 text-center text-xs text-gray-400">{t("step1.nextNote")}</p>
           </>
         )}
-      </section>
+      </form>
     </WizardShell>
   );
 }

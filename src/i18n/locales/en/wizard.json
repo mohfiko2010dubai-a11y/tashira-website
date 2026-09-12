@@ -162,5 +162,23 @@
     "saveNextTraveller": "Save & Continue to next traveller →",
     "documentsRemaining": "Documents still to upload: {{count}}. Upload them to enable Save & Continue.",
     "savedContinue": "Your details and documents are saved. Continue to the next stage."
-  }
+  },
+  "validation": {
+    "format": "This value does not match the required format. Check the field instructions and correct it.",
+    "emailRequired": "Enter the email address where we should send your visa.",
+    "emailInvalid": "This email address is not valid. Check for a typo.",
+    "phone": "Enter a phone number with 7 to 15 digits. You may include +, spaces, brackets or hyphens.",
+    "count": "The traveller count is not valid. Enter a whole number from 1 to 10.",
+    "choose": "No valid {{field}} is selected. Choose an option to continue.",
+    "required": "{{field}} is missing. Enter it to continue.",
+    "name": "Enter the full name as shown on the passport, using at least 2 characters.",
+    "passportNumber": "Enter the passport number, using at least 3 characters.",
+    "profession": "Enter the traveller’s profession, using at least 2 characters.",
+    "passportExpiry": "Passport must be valid until at least {{date}}. Enter a passport with a later expiry date.",
+    "summary_one": "1 field needs attention. Check the message beside the field.",
+    "summary_other": "{{count}} fields need attention. Check the messages beside the fields.",
+    "review": "The application is not ready for payment. Go back and complete the details or uploads listed above.",
+    "reviewUnavailable": "Payment readiness could not be confirmed. Retry the check before continuing.",
+    "retry": "Retry check"
+}
 }
