@@ -1,4 +1,5 @@
 import { trpc } from "@/providers/trpc-client";
+import { documentDownloadName } from "@contracts/document-upload-policy";
 import { X, Download, FileText, Image, Loader2 } from "lucide-react";
 
 interface DocumentPreviewModalProps {
@@ -42,7 +43,7 @@ export default function DocumentPreviewModal({
             {signedUrl && (
               <a
                 href={signedUrl}
-                download={fileName}
+                download={documentDownloadName(fileName, mimeType)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#C9A04C] hover:bg-[#C9A04C]/5 rounded-lg transition-colors"
               >
                 <Download size={14} />

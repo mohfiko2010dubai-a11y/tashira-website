@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 import { prepareDocumentUpload } from "./prepare-document-upload";
 import { storageUpload } from "./local-storage";
-import { documentMimeType, MAX_DOCUMENT_FILE_SIZE, PHOTO_CONVERSION_GUIDANCE } from "../../contracts/document-upload-policy";
+import { documentDownloadName, documentMimeType, MAX_DOCUMENT_FILE_SIZE, PHOTO_CONVERSION_GUIDANCE } from "../../contracts/document-upload-policy";
 
 const input = (bytes: Buffer, fileName: string, mimeType: string) => ({ fileName, mimeType, fileSize: bytes.length, base64Data: bytes.toString("base64") });
 afterEach(() => vi.unstubAllEnvs());
@@ -17,6 +17,7 @@ describe("server document normalization", () => {
     const result = await prepareDocumentUpload(input(bytes, "test.heic", "image/heic"));
     expect(result.mimeType).toBe("image/jpeg");
     expect(result.fileName).toBe("test.jpg");
+    expect(documentDownloadName("test.heic", result.mimeType)).toBe("test.jpg");
     expect(result.fileSize).toBe(result.buffer.length);
     const root = await mkdtemp(join(tmpdir(), "tashira-synthetic-upload-"));
     vi.stubEnv("STORAGE_ROOT", root);

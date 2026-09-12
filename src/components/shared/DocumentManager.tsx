@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/providers/trpc-client";
+import { documentDownloadName, documentUploadError } from "@contracts/document-upload-policy";
 import DocumentPreviewModal from "./DocumentPreviewModal";
 import type { DocumentListItem } from "@/types/trpc";
 import type { LucideIcon } from "lucide-react";
@@ -107,8 +108,8 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
         fileSize: stored.fileSize, storagePath: stored.storagePath, uploadStatus: "uploaded", uploadedBy: "operations-staff" });
       await Promise.all([utils.document.listByApplication.invalidate({ applicationId }), utils.document.countByApplication.invalidate({ applicationId })]);
       setUploadFile(null); setUploadMessage("Document uploaded and recorded in the case timeline.");
-    } catch {
-      setUploadMessage("Upload failed. Verify the applicant, file type and permission, then retry.");
+    } catch (cause) {
+      setUploadMessage(documentUploadError(cause instanceof Error ? cause.message : "", false));
     }
   };
 
@@ -124,7 +125,7 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
       if (result?.signedUrl) {
         const a = document.createElement("a");
         a.href = result.signedUrl;
-        a.download = doc.originalFileName;
+        a.download = documentDownloadName(doc.originalFileName, doc.mimeType);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

@@ -6,6 +6,11 @@ export const UNSUPPORTED_DOCUMENT_GUIDANCE = `File type not allowed. Choose a PD
 export const DOCUMENT_SIZE_GUIDANCE = "File size must be between 1 byte and 20 MB. Choose a smaller, non-empty file.";
 export const DOCUMENT_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"]);
 
+export function documentDownloadName(fileName: string, mimeType: string): string {
+  const extension = mimeType === "image/jpeg" ? ".jpg" : mimeType === "image/png" ? ".png" : null;
+  return extension ? fileName.replace(/\.[^.]*$/, "") + extension : fileName;
+}
+
 export function documentMimeType(mimeType: string, fileName: string): string {
   const mime = mimeType.toLowerCase();
   if (mime && mime !== "application/octet-stream") return mime;
