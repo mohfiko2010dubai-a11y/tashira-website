@@ -10,7 +10,8 @@ import {
 } from "./lib/local-storage";
 import { TRPCError } from "@trpc/server";
 import { getErrorMessage } from "./lib/errors";
-import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
+import { prepareDocumentUpload } from "./lib/prepare-document-upload";
+import { UPLOAD_RETRY_GUIDANCE } from "../contracts/document-upload-policy";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess } from "./lib/application-access";
 import { recordTimelineEvent } from "./lib/application-timeline";
@@ -60,7 +61,7 @@ export const storageRouter = createRouter({
       applicantId: z.number().optional(),
       documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),
       fileName: z.string().min(1),
-      mimeType: z.string().min(1),
+      mimeType: z.string(),
       fileSize: z.number().positive(),
       base64Data: z.string().min(1), // Base64 encoded file content
       uploadedBy: z.string().optional(),
@@ -76,40 +77,27 @@ export const storageRouter = createRouter({
           });
         }
 
-        // Validate file
-        const validationError = validateDocumentFile(input.mimeType, input.fileSize);
-        if (validationError) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: validationError });
-        }
-
-        const sanitizedName = sanitizeDocumentFileName(input.fileName);
+        const prepared = await prepareDocumentUpload(input);
+        const sanitizedName = prepared.fileName;
         const timestamp = Date.now();
         const storedName = `${timestamp}-${sanitizedName}`;
         const storagePath = input.applicantId
           ? `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/${storedName}`
           : `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
-        // Decode base64 to Buffer
-        const fileBuffer = Buffer.from(input.base64Data, "base64");
-        const decodedSizeError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
-        if (decodedSizeError) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: decodedSizeError });
-        }
-
-        // Upload via REST API
-        await storageUpload(storagePath, fileBuffer, input.mimeType);
+        await storageUpload(storagePath, prepared.buffer, prepared.mimeType);
 
         return {
           success: true,
           storagePath,
           storedFileName: storedName,
           bucket: STORAGE_BUCKET,
+          mimeType: prepared.mimeType,
+          fileSize: prepared.fileSize,
         };
       } catch (err: unknown) {
         if (err instanceof TRPCError) throw err;
-        const message = getErrorMessage(err);
-        console.error("[Storage] upload error:", message);
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: UPLOAD_RETRY_GUIDANCE });
       }
     }),
 
@@ -150,7 +138,7 @@ export const storageRouter = createRouter({
       applicantId: z.number().optional(),
       documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),
       fileName: z.string().min(1),
-      mimeType: z.string().min(1),
+      mimeType: z.string(),
       fileSize: z.number().positive(),
       base64Data: z.string().min(1),
       uploadedBy: z.string().optional(),
@@ -174,32 +162,21 @@ export const storageRouter = createRouter({
         }
         await assertApplicantBelongsToApplication(input.applicantId, input.applicationId);
 
-        // Validate the complete replacement before touching the existing file.
-        const validationError = validateDocumentFile(input.mimeType, input.fileSize);
-        if (validationError) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: validationError });
-        }
-
-        const sanitizedName = sanitizeDocumentFileName(input.fileName);
+        // Prepare the replacement before touching the existing document.
+        const prepared = await prepareDocumentUpload(input);
+        const sanitizedName = prepared.fileName;
         const timestamp = Date.now();
         const storedName = `${timestamp}-${sanitizedName}`;
         const storagePath = input.applicantId
           ? `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/${storedName}`
           : `applications/${input.applicationId}/${input.documentType}/${storedName}`;
 
-        const fileBuffer = Buffer.from(input.base64Data, "base64");
-        const decodedSizeError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
-        if (decodedSizeError) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: decodedSizeError });
-        }
-
-        // Upload first so a failed replacement never destroys the current document.
-        await storageUpload(storagePath, fileBuffer, input.mimeType);
+        await storageUpload(storagePath, prepared.buffer, prepared.mimeType);
         await getDb().update(documents).set({
           originalFileName: input.fileName,
           storedFileName: storedName,
-          mimeType: input.mimeType,
-          fileSize: input.fileSize,
+          mimeType: prepared.mimeType,
+          fileSize: prepared.fileSize,
           storagePath,
           uploadStatus: "uploaded",
           uploadedBy: input.uploadedBy ?? null,
@@ -227,6 +204,8 @@ export const storageRouter = createRouter({
           storagePath,
           storedFileName: storedName,
           bucket: STORAGE_BUCKET,
+          mimeType: prepared.mimeType,
+          fileSize: prepared.fileSize,
         };
       } catch (err: unknown) {
         auditLog("document.upload", "failure", "customer");

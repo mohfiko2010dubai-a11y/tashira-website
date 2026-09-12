@@ -1,11 +1,5 @@
-const ALLOWED_MIME_TYPES = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-]);
-
-export const MAX_DOCUMENT_FILE_SIZE = 100 * 1024 * 1024;
+import { DOCUMENT_MIME_TYPES, DOCUMENT_SIZE_GUIDANCE, MAX_DOCUMENT_FILE_SIZE, UNSUPPORTED_DOCUMENT_GUIDANCE } from "../../contracts/document-upload-policy";
+export { MAX_DOCUMENT_FILE_SIZE } from "../../contracts/document-upload-policy";
 
 export function sanitizeDocumentFileName(name: string): string {
   const leafName = name.replace(/\\/g, "/").split("/").pop() || "file";
@@ -18,11 +12,11 @@ export function validateDocumentFile(
   declaredSize: number,
   decodedSize?: number,
 ): string | null {
-  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
-    return "File type not allowed. Allowed: PDF, JPG, JPEG, PNG";
+  if (!DOCUMENT_MIME_TYPES.has(mimeType)) {
+    return UNSUPPORTED_DOCUMENT_GUIDANCE;
   }
   if (declaredSize <= 0 || declaredSize > MAX_DOCUMENT_FILE_SIZE) {
-    return "File size must be between 1 byte and 100MB";
+    return DOCUMENT_SIZE_GUIDANCE;
   }
   if (decodedSize !== undefined && decodedSize !== declaredSize) {
     return "Uploaded file size does not match the declared size";

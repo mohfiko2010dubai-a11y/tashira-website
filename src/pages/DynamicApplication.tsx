@@ -4,6 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Check } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
+import { documentUploadClient } from "@/lib/document-upload-client";
+import { documentMimeType, type DocumentUploadProgress } from "../../contracts/document-upload-policy";
 import { InterviewPartySetup, type PartyRequirementReadiness } from "@/components/customer/InterviewPartySetup";
 import { InterviewRequirementDocuments } from "@/components/customer/InterviewRequirementDocuments";
 import { legacyDocumentType } from "@/components/customer/requirement-document-type";
@@ -45,7 +47,7 @@ export default function DynamicApplication() {
   const createTravelGroupMutation = trpc.dynamicInterview.createTravelGroup.useMutation();
   const updateTravelGroupMutation = trpc.dynamicInterview.updateTravelGroup.useMutation();
   const linkSharedDocumentMutation = trpc.dynamicInterview.linkSharedDocument.useMutation();
-  const storageUploadMutation = trpc.storage.upload.useMutation();
+  const [uploadingDocument, setUploadingDocument] = useState(false);
   const documentCreateMutation = trpc.document.create.useMutation();
   const linkRequirementDocumentMutation = trpc.dynamicInterview.linkRequirementDocument.useMutation();
   const question = query.data?.currentQuestions[0];
@@ -121,25 +123,30 @@ export default function DynamicApplication() {
     if (target) { setActiveTravellerId(target.applicantId); setPhase(3); }
   };
 
-  const uploadHandler = async (requirement: PartyRequirementReadiness, file: File) => {
+  const uploadHandler = async (requirement: PartyRequirementReadiness, file: File, onProgress: (progress: DocumentUploadProgress) => void) => {
+    setUploadingDocument(true);
+    try {
     const documentType = legacyDocumentType(requirement.documentType);
     const applicationId = state.partySetup!.applicationId;
-    const uploaded = await storageUploadMutation.mutateAsync({ applicationId,
-      applicantId: requirement.applicantId, documentType, fileName: file.name, mimeType: file.type, fileSize: file.size,
+    onProgress({ phase: "preparing" });
+    const uploaded = await documentUploadClient(onProgress).storage.upload.mutate({ applicationId,
+      applicantId: requirement.applicantId, documentType, fileName: file.name, mimeType: documentMimeType(file.type, file.name), fileSize: file.size,
       base64Data: await readFileAsBase64(file), uploadedBy: `customer:${referenceNumber}` });
+    onProgress({ phase: "saving" });
     const document = await documentCreateMutation.mutateAsync({ applicationId,
       applicantId: requirement.applicantId, documentType, originalFileName: file.name, storedFileName: uploaded.storedFileName,
-      mimeType: file.type, fileSize: file.size, storagePath: uploaded.storagePath, uploadStatus: "uploaded",
+      mimeType: uploaded.mimeType, fileSize: uploaded.fileSize, storagePath: uploaded.storagePath, uploadStatus: "uploaded",
       uploadedBy: `customer:${referenceNumber}` });
     await linkRequirementDocumentMutation.mutateAsync({ referenceNumber, applicantId: requirement.applicantId,
       requirementCode: requirement.requirementCode, documentId: document.id, idempotencyKey: crypto.randomUUID() });
     await refreshState();
+    } finally { setUploadingDocument(false); }
   };
 
   const partyBusy = addApplicantMutation.isPending || editApplicantMutation.isPending || relationshipMutation.isPending || createTravelGroupMutation.isPending || updateTravelGroupMutation.isPending || linkSharedDocumentMutation.isPending;
   const partyError = Boolean(addApplicantMutation.error || editApplicantMutation.error || relationshipMutation.error || createTravelGroupMutation.error || updateTravelGroupMutation.error || linkSharedDocumentMutation.error);
-  const docsBusy = storageUploadMutation.isPending || documentCreateMutation.isPending || linkRequirementDocumentMutation.isPending;
-  const docsError = Boolean(storageUploadMutation.error || documentCreateMutation.error || linkRequirementDocumentMutation.error);
+  const docsBusy = uploadingDocument || documentCreateMutation.isPending || linkRequirementDocumentMutation.isPending;
+  const docsError = Boolean(documentCreateMutation.error || linkRequirementDocumentMutation.error);
 
   const ownerRequirements = state.partySetup?.requirementReadiness.filter(item => {
     const traveller = state.partySetup?.applicants.find(a => a.applicantId === item.applicantId);

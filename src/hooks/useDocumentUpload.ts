@@ -85,8 +85,8 @@ export function useDocumentUpload() {
             documentType: pf.documentType,
             originalFileName: pf.file.name,
             storedFileName: result.storedFileName,
-            mimeType: pf.file.type,
-            fileSize: pf.file.size,
+            mimeType: result.mimeType,
+            fileSize: result.fileSize,
             storagePath: result.storagePath,
             uploadStatus: "uploaded",
             uploadedBy,
@@ -99,8 +99,7 @@ export function useDocumentUpload() {
           });
 
           uploaded++;
-        } catch (err: unknown) {
-          console.error(`[Upload] Failed for ${pf.file.name}:`, err instanceof Error ? err.message : 'Upload failed');
+        } catch {
 
           setUploadProgress((prev) => {
             const updated = [...prev];

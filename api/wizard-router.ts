@@ -6,7 +6,8 @@ import { applicants, applications, documents } from "@db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
 import { LOCAL_STORAGE_METADATA, storageDelete, storageUpload } from "./lib/local-storage";
-import { sanitizeDocumentFileName, validateDocumentFile } from "./lib/document-upload";
+import { prepareDocumentUpload } from "./lib/prepare-document-upload";
+import { UPLOAD_RETRY_GUIDANCE } from "../contracts/document-upload-policy";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
 import { getCanonicalApplicationByReference } from "./lib/application-projection";
@@ -482,7 +483,7 @@ export const wizardRouter = createRouter({
       applicantIndex: z.number().int().min(0).max(19),
       documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),
       fileName: z.string().min(1),
-      mimeType: z.string().min(1),
+      mimeType: z.string(),
       fileSize: z.number().positive(),
       base64Data: z.string().min(1),
     }))
@@ -492,18 +493,15 @@ export const wizardRouter = createRouter({
         await assertApplicantBelongsToApplication(input.applicantId, input.applicationId, input.applicantIndex);
         const db = getDb();
 
-        // Decode base64
-        const fileBuffer = Buffer.from(input.base64Data, "base64");
-        const validationError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
-        if (validationError) throw new Error(validationError);
+        const prepared = await prepareDocumentUpload(input);
 
         // Create stored filename
         const timestamp = Date.now();
-        const storedName = `${timestamp}-${sanitizeDocumentFileName(input.fileName)}`;
+        const storedName = `${timestamp}-${prepared.fileName}`;
         const storagePath = `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/${storedName}`;
 
         // Persist at the same canonical path recorded in MySQL and served by /storage/*.
-        await storageUpload(storagePath, fileBuffer, input.mimeType);
+        await storageUpload(storagePath, prepared.buffer, prepared.mimeType);
 
         // Insert into documents table
         await db.insert(documents).values({
@@ -512,8 +510,8 @@ export const wizardRouter = createRouter({
           documentType: input.documentType,
           originalFileName: input.fileName,
           storedFileName: storedName,
-          mimeType: input.mimeType,
-          fileSize: input.fileSize,
+          mimeType: prepared.mimeType,
+          fileSize: prepared.fileSize,
           ...LOCAL_STORAGE_METADATA,
           storagePath: storagePath,
           uploadStatus: "uploaded",
@@ -532,9 +530,8 @@ export const wizardRouter = createRouter({
         return { success: true, storagePath, storedFileName: storedName };
       } catch (error: unknown) {
         auditLog("document.upload", "failure", "customer");
-        const message = getErrorMessage(error);
-        console.error("[Wizard] Failed to upload document:", message);
-        throw new Error(`Failed to upload document: ${message}`);
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: UPLOAD_RETRY_GUIDANCE });
       }
     }),
 
@@ -546,7 +543,7 @@ export const wizardRouter = createRouter({
       documentId: z.number().positive(),
       documentType: z.enum(["passport", "photo", "national_id", "supporting", "visa", "invoice", "gcc_residence", "sponsor_id"]),
       fileName: z.string().min(1),
-      mimeType: z.string().min(1),
+      mimeType: z.string(),
       fileSize: z.number().positive(),
       base64Data: z.string().min(1),
     }))
@@ -568,18 +565,16 @@ export const wizardRouter = createRouter({
           throw new TRPCError({ code: "BAD_REQUEST", message: "Document replacement target is invalid" });
         }
 
-        const fileBuffer = Buffer.from(input.base64Data, "base64");
-        const validationError = validateDocumentFile(input.mimeType, input.fileSize, fileBuffer.length);
-        if (validationError) throw new TRPCError({ code: "BAD_REQUEST", message: validationError });
-        const storedName = `${Date.now()}-${sanitizeDocumentFileName(input.fileName)}`;
+        const prepared = await prepareDocumentUpload(input);
+        const storedName = `${Date.now()}-${prepared.fileName}`;
         const storagePath = `applications/${input.applicationId}/applicants/${input.applicantId}/${input.documentType}/${storedName}`;
 
-        await storageUpload(storagePath, fileBuffer, input.mimeType);
+        await storageUpload(storagePath, prepared.buffer, prepared.mimeType);
         await db.update(documents).set({
           originalFileName: input.fileName,
           storedFileName: storedName,
-          mimeType: input.mimeType,
-          fileSize: input.fileSize,
+          mimeType: prepared.mimeType,
+          fileSize: prepared.fileSize,
           storagePath,
           uploadStatus: "uploaded",
           uploadedBy: "chatbot-wizard",

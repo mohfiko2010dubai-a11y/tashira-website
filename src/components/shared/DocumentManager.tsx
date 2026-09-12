@@ -103,8 +103,8 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
         fileName: uploadFile.name, mimeType: uploadFile.type || "application/octet-stream", fileSize: uploadFile.size,
         base64Data: await readFileAsBase64(uploadFile), uploadedBy: "operations-staff" });
       await createDocument.mutateAsync({ applicationId, applicantId, documentType: uploadType,
-        originalFileName: uploadFile.name, storedFileName: stored.storedFileName, mimeType: uploadFile.type || "application/octet-stream",
-        fileSize: uploadFile.size, storagePath: stored.storagePath, uploadStatus: "uploaded", uploadedBy: "operations-staff" });
+        originalFileName: uploadFile.name, storedFileName: stored.storedFileName, mimeType: stored.mimeType,
+        fileSize: stored.fileSize, storagePath: stored.storagePath, uploadStatus: "uploaded", uploadedBy: "operations-staff" });
       await Promise.all([utils.document.listByApplication.invalidate({ applicationId }), utils.document.countByApplication.invalidate({ applicationId })]);
       setUploadFile(null); setUploadMessage("Document uploaded and recorded in the case timeline.");
     } catch {
@@ -150,7 +150,7 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <select aria-label="Document applicant" value={uploadApplicantId} onChange={(event) => setUploadApplicantId(event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">Select applicant</option>{applicants.map((applicant) => <option key={applicant.applicantId} value={applicant.applicantId}>{applicant.displayName}</option>)}</select>
           <select aria-label="Document type" value={uploadType} onChange={(event) => setUploadType(event.target.value as typeof uploadType)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">{uploadTypes.map((type) => <option key={type} value={type}>{TYPE_LABELS[type] ?? type}</option>)}</select>
-          <input aria-label="Choose document" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+          <input aria-label="Choose document" type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
         </div>
         <button type="button" disabled={!uploadFile || !uploadApplicantId || uploadStorage.isPending || createDocument.isPending} onClick={() => void handleUpload()} className="mt-3 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{uploadStorage.isPending || createDocument.isPending ? "Uploading…" : "Upload to selected applicant"}</button>
         {uploadMessage && <p role="status" className="mt-2 text-sm text-slate-700">{uploadMessage}</p>}
