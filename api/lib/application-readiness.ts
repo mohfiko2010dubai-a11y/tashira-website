@@ -1,3 +1,4 @@
+import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
 import { and, eq, ne } from "drizzle-orm";
 import { applicants, applicationPriceSnapshots, applications, applicationTimelineEvents, documents } from "../../db/schema";
 import { TERMS_POLICY_VERSION } from "../../contracts/constants";
@@ -120,46 +121,23 @@ export async function getApplicationReadiness(applicationId: number, context?: T
   const started = await sql.query("SELECT id FROM dynamic_interview_answer_events WHERE application_id=? LIMIT 1", [applicationId]);
   if (!started.length) return legacy;
   if (!context) throw new Error("Dynamic checkout requires the owned application context");
-  const { dynamicInterviewRouter } = await import("../dynamic-interview-router");
-  const currentInterview = await dynamicInterviewRouter.createCaller(context).current({ referenceNumber: application.referenceNumber });
-  const { MysqlOperationsCaseReadProvider } = await import("./operations/mysql-case-read-provider");
-  const bundle = await new MysqlOperationsCaseReadProvider(sql).load(application.referenceNumber);
-  const links = await sql.query(`SELECT DISTINCT l.requirement_instance_id AS instanceId FROM applicant_requirement_document_links l
+  // The owner's new form uses saved profile data and uploaded files, never legacy rule approval.
+  const links = await sql.query(`SELECT DISTINCT l.applicant_id AS applicantId,l.requirement_code AS code
+    FROM applicant_requirement_document_links l
     JOIN documents d ON d.id=l.document_id AND d.application_id=l.application_id AND d.applicant_id=l.applicant_id
     WHERE l.application_id=? AND d.upload_status='uploaded'`, [applicationId]);
-  const liveDocumentInstances = new Set(links.map(row => String(Reflect.get(row, "instanceId"))));
-  const evidence = applicantList.map(applicant => {
-    const evaluation = bundle?.snapshots.current(applicationId, applicant.id);
-    const current = currentInterview.review.applicants.find(item => item.applicantId === applicant.id);
-    const answers = currentInterview.knownAnswers.filter(item => item.applicantId === applicant.id);
-    const nationality = answers.find(item => item.code === "NATIONALITY")?.answer;
-    const country = answers.find(item => item.code === "GCC_COUNTRY")?.answer ?? answers.find(item => item.code === "RESIDENCE_COUNTRY")?.answer;
-    const gcc = answers.find(item => item.code === "GCC_RESIDENT")?.answer;
-    const wantsGcc = application.residenceType === "gcc-resident" || application.residenceType === "gcc-accompany";
-    const countryIsGcc = ["AE", "SA", "KW", "QA", "BH", "OM"].includes(applicant.gccResidenceCountry ?? "");
-    const currentCodes = current?.requirements.map(item => item.code).sort().join(",");
-    const savedCodes = evaluation ? [...evaluation.requiredDocuments, ...evaluation.conditionalDocuments.map(item => item.code)].sort().join(",") : undefined;
-    const unchanged = !currentInterview.currentQuestions.some(item => item.applicantId === applicant.id || item.applicantId === null)
-      && nationality === applicant.nationality && (country === undefined || country === applicant.gccResidenceCountry)
-      && (gcc === undefined || gcc === wantsGcc) && countryIsGcc === wantsGcc && currentCodes === savedCodes;
-    return { applicantId: applicant.id, route: evaluation?.selectedRoute,
-      eligibility: unchanged ? (current?.eligibilityState === "NOT_ELIGIBLE" ? "INELIGIBLE"
-        : current?.eligibilityState === "ELIGIBLE_ROUTE_FOUND" ? evaluation?.eligibilityState : "HUMAN_REVIEW_REQUIRED") : undefined,
-      expected: evaluation ? [...evaluation.requiredDocuments, ...evaluation.conditionalDocuments.map(item => item.code)] : [],
-      documents: evaluation && bundle ? bundle.family.requirements(applicationId, applicant.id, evaluation.evaluationId)
-        .filter(item => item.instance.kind === "DOCUMENT").map(item => ({ code: item.instance.code,
-          state: item.currentState === "WAIVED" ? "WAIVED" : liveDocumentInstances.has(item.instance.id) ? item.currentState ?? "MISSING" : "MISSING" })) : [] };
-  });
-  return evaluateInterviewReadiness({ legacy, application, applicants: applicantList, evidence,
-    relationshipsComplete: applicantList.length === 1 || Boolean(bundle && applicantList.every(applicant => applicant.applicantIndex === 0 ||
-      bundle.family.currentRelationships(applicationId).some(item => item.fromApplicantId === applicantList[0].id && item.toApplicantId === applicant.id || item.toApplicantId === applicantList[0].id && item.fromApplicantId === applicant.id))) });
+  const evidence = applicantList.map(applicant => ({ applicantId: applicant.id,
+    expected: ownerRequiredDocumentCodes(applicant.nationality, applicant.gccResidenceCountry, application.residenceType),
+    documents: links.filter(row => Number(Reflect.get(row, "applicantId")) === applicant.id)
+      .map(row => ({ code: String(Reflect.get(row, "code")), state: "UPLOADED" })) }));
+  return evaluateInterviewReadiness({ legacy, application, applicants: applicantList, evidence, relationshipsComplete: true });
 }
 
 type InterviewReadinessEvidence = { applicantId: number; route?: string; eligibility?: string; expected: readonly string[]; documents: readonly { code: string; state: string }[] };
 export function evaluateInterviewReadiness(input: { legacy: ApplicationReadiness; application: ReadinessApplication; applicants: ReadinessApplicant[];
   evidence: readonly InterviewReadinessEvidence[]; relationshipsComplete: boolean }): ApplicationReadiness {
   const applicationMissing = input.legacy.applicationMissing.filter(item => item.code !== "application.arrivalDate");
-  if (!input.relationshipsComplete) applicationMissing.push({ code: "application.relationships", label: "Family relationships" });
+
   const results = input.applicants.map(applicant => {
     const missing: MissingItem[] = [];
     for (const [key, label] of [["fullName", "Full name"], ["nationality", "Nationality"], ["passportNumber", "Passport number"], ["profession", "Profession"], ["gccResidenceCountry", "Country of residence"]] as const) {
@@ -169,11 +147,7 @@ export function evaluateInterviewReadiness(input: { legacy: ApplicationReadiness
     const old = input.legacy.applicants.find(item => item.applicantId === applicant.id);
     missing.push(...(old?.missing.filter(item => item.code === "applicant.invalid_state") ?? []));
     const evidence = input.evidence.find(item => item.applicantId === applicant.id);
-    if (!evidence?.eligibility || evidence.route !== input.application.visaType) missing.push({ code: "applicant.evaluation", label: "Save traveller details to complete the application review" });
-    // Owner decision 2026-09-11: collect after complete uploads; staff review follows payment.
-    // Pending human review does not imply approval. An explicit negative outcome still blocks collection.
-    else if (!["ELIGIBLE", "HUMAN_REVIEW_REQUIRED", "RULE_CONFLICT"].includes(evidence.eligibility)) missing.push({ code: "applicant.eligibility", label: "Selected visa requires eligibility correction before payment" });
-    const codes = new Set(["PASSPORT", "PERSONAL_PHOTO", ...(evidence?.expected ?? []), ...(evidence?.documents.map(item => item.code) ?? [])]);
+    const codes = new Set(evidence?.expected ?? ["PASSPORT", "PERSONAL_PHOTO"]);
     for (const code of codes) {
       if (!evidence?.documents.some(item => item.code === code && ["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state))) {
         missing.push({ code: `document.${code}`, label: code.replaceAll("_", " ") });

@@ -65,6 +65,7 @@ describe("authenticated Dynamic Interview API", () => {
     const loadApplication = current.loadApplication;
     current.loadApplication = async value => { const application = await loadApplication(value); return application ? { ...application, baseType: "single", residenceType: "gcc-resident", arrivalDate: "2026-10-01", applicants: application.applicants.map(applicant => ({ ...applicant, passportNumber: "TEST12345", passportExpiry: "2028-01-01", profession: "Engineer" })) } : null; };
     current.now = () => new Date("2026-09-12T00:00:00Z");
+    current.loadRules = async () => [{ ...rule, eligibilityEffect: "INELIGIBLE", conditions: [{ field: "hasConfirmedTickets", operator: "EXISTS" }], requiredDocuments: ["OLD_CATALOG_DOCUMENT"] }];
     current.loadCatalog = async () => ({ catalogVersion: "test", requirements: [requirement], questions: [question,
       { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "GCC_RESIDENT", answerType: "BOOLEAN" },
       { ...question, definitionId: "33333333-1111-4111-8111-111111111111", code: "GCC_COUNTRY" },
@@ -78,12 +79,12 @@ describe("authenticated Dynamic Interview API", () => {
     expect(current.persistCompletedEvaluations).not.toHaveBeenCalled();
     await caller.completeForm({ referenceNumber: reference, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" });
     expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ result: expect.objectContaining({
-      matchedRules: [expect.objectContaining({ ruleId: "TEST_BASE" })], requiredDocuments: expect.arrayContaining(["PASSPORT_SECOND_PAGE", "SA_ABSHER_REPORT"]),
+      matchedRules: [], requiredDocuments: expect.arrayContaining(["PASSPORT_SECOND_PAGE", "SA_ABSHER_REPORT"]),
     }) })] }));
     expect(completed.currentQuestions).toEqual([]);
     expect(completed.nextAction).not.toBe("ANSWER_QUESTIONS");
     expect(completed.review.applicants[0].requirements.map(item => item.code).sort()).toEqual([
-      "PASSPORT", "PASSPORT_SECOND_PAGE", "HOME_NATIONAL_ID", "RESIDENCE_CARD_FRONT", "RESIDENCE_CARD_BACK", "SA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
+      "PASSPORT", "PERSONAL_PHOTO", "PASSPORT_SECOND_PAGE", "HOME_NATIONAL_ID", "RESIDENCE_CARD_FRONT", "RESIDENCE_CARD_BACK", "SA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
     ].sort());
     expect(completed.formQuestions?.some(field => ["HAS_CONFIRMED_TICKETS", "RESIDENCE_EXPIRY", "PLANNED_ARRIVAL_DATE"].includes(field.code))).toBe(false);
   });

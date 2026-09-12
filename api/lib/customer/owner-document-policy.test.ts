@@ -3,11 +3,21 @@ import { applyOwnerDocumentRequirements, ownerDocumentRules, withOwnerDocumentCa
 import { evaluateEligibility } from "../eligibility/eligibility-engine";
 import { requirementDefinitionSchema } from "../requirements/requirement-catalog";
 import { customerFormRules } from "./customer-form-rules";
+import { ownerRequiredDocumentCodes } from "../../../contracts/owner-document-requirements";
 
 const rules = ownerDocumentRules("TEST");
 const docs = (nationality: string, gccCountry?: string) => evaluateEligibility({ rules,
   profile: { routeCode: "TEST", attributes: { nationality, gccCountry } }, evaluatedAt: new Date("2026-09-12") }).requiredDocuments;
 describe("Owner PDF document matrix", () => {
+  it("uses the same independent owner checklist for payment and the form", () => {
+    for (const nationality of ["EG", "PK", "IN", "SY", "IR", "IQ", "AF"]) {
+      for (const country of ["SA", "KW", "BH", "QA"]) {
+        expect(ownerRequiredDocumentCodes(nationality, country, "gcc-resident").sort()).toEqual(["PASSPORT", "PERSONAL_PHOTO", ...docs(nationality, country)].sort());
+      }
+    }
+    expect(ownerRequiredDocumentCodes("EG", "EG", "non-gcc")).toEqual(["PASSPORT", "PERSONAL_PHOTO"]);
+    expect(ownerRequiredDocumentCodes("EG", "OM", "gcc-resident")).toContain("GCC_RESIDENCE");
+  });
   it.each([["PK", "PASSPORT_SECOND_PAGE"], ["IN", "PASSPORT_LAST_PAGE"], ["SY", "PASSPORT_LAST_PAGE"]])("adds the specified passport page for %s", (country, page) => {
     expect(docs(country)).toContain(page);
     expect(docs("EG")).not.toContain(page);

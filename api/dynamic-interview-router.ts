@@ -22,8 +22,7 @@ import type { EligibilityRule } from "./lib/eligibility/eligibility-engine";
 import type { QuestionCatalogDefinition, RequirementCatalogDefinition, VersionedRequirementCatalog } from "./lib/requirements/requirement-catalog";
 import { isNationalityCode, NATIONALITY_CATALOG } from "./lib/requirements/nationality-catalog";
 import { applicationAccessQuery, createRouter, publicQuery } from "./middleware";
-import { customerFormRules } from "./lib/customer/customer-form-rules";
-import { ownerDocumentRules, withOwnerDocumentCatalog } from "./lib/customer/owner-document-policy";
+import { withOwnerDocumentCatalog } from "./lib/customer/owner-document-policy";
 
 /** Question codes whose answer must be a governed ISO 3166-1 alpha-2 nationality/country code. */
 const NATIONALITY_QUESTION_CODES: ReadonlySet<string> = new Set(["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "GCC_COUNTRY"]);
@@ -103,11 +102,11 @@ async function authorizedRuntime(deps: Dependencies, ctx: TrpcContext, reference
 export function createDynamicInterviewRouter(deps: Dependencies) {
   const state = async (ctx: TrpcContext, referenceNumber: string) => {
     const authorized = await authorizedRuntime(deps, ctx, referenceNumber); const { application, context, flags } = authorized; const now = deps.now();
-    const [loadedCatalog, loadedRules, events] = await Promise.all([deps.loadCatalog(now), deps.loadRules(application.routeCode),
-      deps.loadEvents(application.applicationId)]);
     const ownerForm = context.environment === "STAGING" && Boolean(application.baseType);
+    const [loadedCatalog, loadedRules, events] = await Promise.all([deps.loadCatalog(now), ownerForm ? Promise.resolve([]) : deps.loadRules(application.routeCode),
+      deps.loadEvents(application.applicationId)]);
     const catalog = ownerForm ? withOwnerDocumentCatalog(loadedCatalog) : loadedCatalog;
-    const rules = ownerForm ? [...customerFormRules(loadedRules), ...ownerDocumentRules(application.routeCode)] : loadedRules;
+    const rules = loadedRules;
     const questions: readonly QuestionCatalogDefinition[] = catalog.questions; const requirements: readonly RequirementCatalogDefinition[] = catalog.requirements;
     const interview = buildPersistentDynamicInterview({ applicationId: application.applicationId,
       routeCode: application.routeCode, applicantIds: application.applicantIds, questions, requirements, rules, events, evaluatedAt: now,

@@ -31,17 +31,20 @@ describe("owner wizard checkout uses applicant-scoped persisted requirements", (
   it("never treats another traveller's files as this traveller's evidence", () => {
     expect(run({ evidence: [{ ...evidence, applicantId: 11 }] }).status).toBe("INCOMPLETE");
   });
+  it("does not add historical catalog uploads to the current owner's checklist", () => {
+    expect(run({ evidence: [{ ...evidence, documents: [...evidence.documents, { code: "OLD_CATALOG_DOCUMENT", state: "MISSING" }] }] }).status).toBe("READY");
+  });
   it("allows complete uploads before staff review under the owner payment policy", () => {
     expect(run({ evidence: [{ ...evidence, eligibility: "HUMAN_REVIEW_REQUIRED" }] }).status).toBe("READY");
     expect(run({ evidence: [{ ...evidence, eligibility: "RULE_CONFLICT" }] }).status).toBe("READY");
     expect(run({ evidence: [{ ...evidence, eligibility: "HUMAN_REVIEW_REQUIRED", documents: [] }] }).status).toBe("INCOMPLETE");
   });
-  it("retains explicit rejection, current evaluation, route, passport, family and policy barriers", () => {
-    expect(run({ evidence: [{ ...evidence, eligibility: "INELIGIBLE" }] }).status).toBe("INCOMPLETE");
-    expect(run({ evidence: [{ ...evidence, eligibility: undefined }] }).status).toBe("INCOMPLETE");
-    expect(run({ evidence: [{ ...evidence, route: "different-route" }] }).status).toBe("INCOMPLETE");
+  it("ignores old eligibility, evaluation, route and family barriers but retains passport and consent", () => {
+    expect(run({ evidence: [{ ...evidence, eligibility: "INELIGIBLE" }] }).status).toBe("READY");
+    expect(run({ evidence: [{ ...evidence, eligibility: undefined }] }).status).toBe("READY");
+    expect(run({ evidence: [{ ...evidence, route: "different-route" }] }).status).toBe("READY");
     expect(run({ applicants: [{ ...applicant, passportExpiry: "2020-01-01" }] }).status).toBe("INCOMPLETE");
-    expect(run({ relationshipsComplete: false }).status).toBe("INCOMPLETE");
+    expect(run({ relationshipsComplete: false }).status).toBe("READY");
     expect(run({ legacy: evaluate({ acceptedPolicyVersion: undefined }) }).applicationMissing).toContainEqual(expect.objectContaining({ code: "application.policy" }));
   });
 });

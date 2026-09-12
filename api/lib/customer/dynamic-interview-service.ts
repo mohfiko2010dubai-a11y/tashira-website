@@ -1,4 +1,5 @@
 import { applyOwnerDocumentRequirements } from "./owner-document-policy";
+import { ownerRequiredDocumentCodes } from "../../../contracts/owner-document-requirements";
 import { evaluateEligibility, type EligibilityEvaluationResult, type EligibilityProfile, type EligibilityRule } from "../eligibility/eligibility-engine";
 import { customerReason, type QuestionCatalogDefinition, type RequirementCatalogDefinition } from "../requirements/requirement-catalog";
 import { buildDynamicInterviewState, type DynamicInterviewState, type InterviewAnswerEvent, type InterviewAnswerLookup, type InterviewEligibilityState } from "./dynamic-interview";
@@ -45,7 +46,11 @@ type PersistentInterviewInput = { applicationId: number; routeCode: string; appl
 function prepare(input: PersistentInterviewInput) {
   const latest = currentEvents(input.events);
   const codeByDefinition = new Map(input.questions.map((question) => [question.definitionId, question.code]));
-  const requiredQuestionCodes = deriveRequiredInterviewQuestions({ applicantIds: input.applicantIds, rules: input.rules,
+  const ownerQuestions = input.applicantIds.flatMap(applicantId => {
+    const gcc = latest.find(event => event.applicantId === applicantId && codeByDefinition.get(event.questionDefinitionId) === "GCC_RESIDENT")?.answer === true;
+    return ["NATIONALITY", "GCC_RESIDENT", ...(gcc ? ["GCC_COUNTRY"] : [])].map(code => ({ code, applicantId, reason: "Required for the application document checklist." }));
+  });
+  const requiredQuestionCodes = input.customerForm ? ownerQuestions : deriveRequiredInterviewQuestions({ applicantIds: input.applicantIds, rules: input.rules,
     currentAnswers: latest, definitionCodeById: codeByDefinition }).filter(question => !input.customerForm
       || !["HAS_CONFIRMED_TICKETS", "TRAVELLING_TOGETHER", "PLANNED_ARRIVAL_DATE"].includes(question.code));
   const relevantAnswerKeys = new Set(requiredQuestionCodes.map((required) => `${required.applicantId ?? "APPLICATION"}:${required.code}`));
@@ -72,9 +77,13 @@ function evaluatePreparedApplicant(input: PersistentInterviewInput, prepared: Re
     if (field && code && prepared.relevantAnswerKeys.has(`${applicantId}:${code}`)) attributes[field] = event.answer;
   }
   const profile: EligibilityProfile = { routeCode: input.routeCode, attributes };
-  const rules = input.customerForm ? input.rules.filter(rule => !rule.id.startsWith("TASHIRA_OWNER_DOC_")) : input.rules;
+  const rules = input.customerForm ? [] : input.rules;
   const result = evaluateEligibility({ profile, rules, evaluatedAt: input.evaluatedAt });
-  return { profile, result: input.customerForm ? applyOwnerDocumentRequirements(result, profile, input.evaluatedAt) : result };
+  if (input.customerForm) {
+    const owner = applyOwnerDocumentRequirements(result, profile, input.evaluatedAt);
+    return { profile, result: { ...owner, requiredDocuments: ownerRequiredDocumentCodes(String(attributes.nationality ?? ""), String(attributes.gccCountry ?? ""), attributes.gccResident === true ? "gcc-resident" : "non-gcc"), conditionalDocuments: [] } };
+  }
+  return { profile, result };
 }
 
 /** Canonical completed-interview evaluation used by both customer projection and immutable persistence. */

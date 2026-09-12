@@ -1,5 +1,9 @@
 # TASHIRA Project Status
 
+## Owner replaces legacy checkout barriers - 2026-09-12
+
+Owner explicitly requests removal of all legacy catalog/rule barriers from the new form, retaining only new requested details and documents. Customer-form projection no longer loads or evaluates old eligibility rules, or derives questions/documents from them. Checkout uses current saved profile and individually owned uploaded document links against the independent owner nationality/residence checklist. Legacy eligibility, evaluation-route matching and mandatory family relationship gates removed from this staging form. Passport validity, requested data, owned uploads, canonical price and explicit checkout consent remain; consent does not block navigating to the payment page. Previous uploads remain counted across evaluation versions, with UI receipt projection using server readiness. Legacy/Production flow remains unchanged. Tests, build and staged release acceptance in progress.
+
 ## Downstream staging acceptance verified - 2026-09-12
 
 Deployed 46e05f3ba9841c7b318cc8ee4aae1527009dde66 through full guard: TypeScript, ESLint, 900 tests / 26 gated skips, build and local/public HTTP 200 PASS. Live repeat rejects outside-scope legacy case/document/signed URL/payment readiness reads and document mutation; scoped list and manager search PASS. Manager assignment, authorized employee receipt/document review, manager human review/dashboard, stale-write 409, idempotent replay, admin status update and session revocation PASS on synthetic paid family TSH-AUDIT-MTX3USWE. All temporary staff/grants revoked. Final customer family regression TSH-AUDIT-MTXEHM71 uploads and Stripe TEST paid at server price PASS. Prior single TSH-AUDIT-MTX40DWB PASS.

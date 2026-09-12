@@ -1,3 +1,4 @@
+import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -138,9 +139,15 @@ export default function DynamicApplication() {
   const docsBusy = storageUploadMutation.isPending || documentCreateMutation.isPending || linkRequirementDocumentMutation.isPending;
   const docsError = Boolean(storageUploadMutation.error || documentCreateMutation.error || linkRequirementDocumentMutation.error);
 
-  const activeRequirements = state.partySetup
-    ? state.partySetup.requirementReadiness.filter((item) => item.applicantId === activeId)
-    : [];
+  const ownerRequirements = state.partySetup?.requirementReadiness.filter(item => {
+    const traveller = state.partySetup?.applicants.find(a => a.applicantId === item.applicantId);
+    return ownerRequiredDocumentCodes(traveller?.nationality, traveller?.residenceCountry, state.applicationContext.residenceType ?? "non-gcc").includes(item.requirementCode);
+  }).map(item => {
+    const receipt = readiness.data?.applicants.find(a => a.applicantId === item.applicantId);
+    return receipt && !receipt.missing.some(m => m.code === `document.${item.requirementCode}`)
+      ? { ...item, state: "UPLOADED" as const } : item;
+  }) ?? [];
+  const activeRequirements = ownerRequirements.filter(item => item.applicantId === activeId);
   const activeApplicants = state.partySetup
     ? state.partySetup.applicants.filter((a) => a.applicantId === activeId)
     : [];
@@ -243,7 +250,7 @@ export default function DynamicApplication() {
 
         <div className="mt-5 space-y-4">
           {state.review.applicants.map((applicant) => {
-            const requirements = reviewDocumentStatus(applicant.applicantId, applicant.requirements, state.partySetup?.requirementReadiness, i18n.language.startsWith("ar"));
+            const requirements = reviewDocumentStatus(applicant.applicantId, applicant.requirements, ownerRequirements, i18n.language.startsWith("ar"));
             return <article key={applicant.applicantId} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-bold text-[#0A1628]">{applicant.label}</h3>
@@ -268,10 +275,10 @@ export default function DynamicApplication() {
           </article>; })}
         </div>
 
-        {readiness.data?.status === "INCOMPLETE" && <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5" role="status">
+        {readiness.data?.status === "INCOMPLETE" && !canOpenCheckout && <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5" role="status">
           <h2 className="font-bold">{t("simple.paymentBlockers")}</h2>
           <ul className="mt-3 list-disc space-y-1 ps-5">
-            {readiness.data.applicationMissing.map(item => <li key={item.code}>{item.label}</li>)}
+            {readiness.data.applicationMissing.filter(item => item.code !== "application.policy").map(item => <li key={item.code}>{item.label}</li>)}
             {readiness.data.applicants.flatMap(applicant => applicant.missing.map(item => <li key={`${applicant.applicantId}-${item.code}`}>
               {travellers.find(traveller => traveller.applicantId === applicant.applicantId)?.name || applicant.label}: {item.label}
             </li>))}
@@ -282,10 +289,6 @@ export default function DynamicApplication() {
           <Link to={`/applications/${encodeURIComponent(referenceNumber)}/status`} className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700">{t("step2.saveView")}</Link>
           {canOpenCheckout && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
         </div>
-      </section>}
-      {state.unifiedReviewBlocker === "RELATIONSHIP_REQUIRED" && <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
-        <strong>Complete the family relationships above.</strong>
-        <p className="mt-1">Every family member must be linked to the lead applicant before the final family readiness review can be generated.</p>
       </section>}
       <div className="mt-8 space-y-4">
         <p className="text-sm text-slate-600">{t("flow.savedOnly")}</p>
@@ -299,7 +302,7 @@ export default function DynamicApplication() {
         </>}
         {currentStep > 3 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3"
           onClick={() => setPhase(currentStep === 5 ? 4 : 3)}>{t("step2.back")}</button>}
-        {currentStep === 5 && readiness.data?.status !== "READY" && <p role="status">{t("flow.notReady")}</p>}
+        {currentStep === 5 && !canOpenCheckout && <p role="status">{t("flow.notReady")}</p>}
       </div>
     </div>
   </WizardShell>;
