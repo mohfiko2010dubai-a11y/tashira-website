@@ -1,3 +1,9 @@
+# Approved document rules verified on isolated staging — 2026-09-13
+
+Task 2 is deployed and browser-verified at code SHA `79e018cf5502b4a415251a0fec07cecec55c14df`. Final guard: check/lint/build pass, 1007 tests pass with 26 environment-gated skips, local/public health 200. Four requested nationality/residence combinations pass actual uploads, review and reload; Saudi same-file reuse is rejected. Family flow passes sequential travellers (7 + 8 slots). Saved edits preserve applicable files and Arabic state. Admin diagnostics, document lists and stored-image previews pass. One synthetic Pakistan/Saudi case completed Stripe TEST payment at the server-displayed USD 185 amount.
+
+Browser UAT caught and fixed double-counting of upload and metadata requests; binary upload rate protection is unchanged. Historical duplicate evidence can be corrected by a valid new report. Full evidence and exact lists: `staging/DOCUMENT_RULES_APPROVED.md` and `staging/DOCUMENT_RULES_UAT.json`. Production and the 15 preserved unrelated dirty files are untouched. Task 7 Phase 2 is retained; Phase 3 waits for the owner's independent twelve-case acceptance.
+
 # Approved document rules candidate - 2026-09-13
 
 Owner approved nationality/residence rules and four plan additions. Clean candidate publishes the approved JSON, recursive choice groups, exact single-traveller Step 1 counts, family residence lists, server evidence/readiness, distinct Saudi proof/report enforcement, and admin/build diagnostics. Local check/lint/build pass; 1004 tests pass with 26 database-dependent skips. Guarded staging deployment and synthetic UAT pending. Task 7 Phase 2 retained; Phase 3 held for owner verification. Existing unrelated dirty files preserved byte-for-byte. See staging/DOCUMENT_RULES_APPROVED.md.

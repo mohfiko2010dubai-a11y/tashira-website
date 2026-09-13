@@ -1,0 +1,114 @@
+{
+  "deployedCodeSha": "79e018cf5502b4a415251a0fec07cecec55c14df",
+  "quality": {
+    "check": "PASS",
+    "lint": "PASS",
+    "testPassed": 1007,
+    "testSkipped": 26,
+    "build": "PASS",
+    "localHealth": 200,
+    "publicHealth": 200
+  },
+  "cases": [
+    {
+      "nationality": "Pakistan",
+      "country": "Saudi Arabia",
+      "reference": "TSH-MTZW95Z7-531948",
+      "slots": 9,
+      "countMatchesCards": true,
+      "uploaded": true,
+      "review": true,
+      "reloaded": true,
+      "duplicateBlocked": true,
+      "errors": []
+    },
+    {
+      "nationality": "Egypt",
+      "country": "Saudi Arabia",
+      "reference": "TSH-MTZWAYSC-E7D55F",
+      "slots": 7,
+      "countMatchesCards": true,
+      "uploaded": true,
+      "review": true,
+      "reloaded": true,
+      "duplicateBlocked": false,
+      "errors": []
+    },
+    {
+      "nationality": "India",
+      "country": "Kuwait",
+      "reference": "TSH-MTZWCDQ5-8C38B8",
+      "slots": 7,
+      "countMatchesCards": true,
+      "uploaded": true,
+      "review": true,
+      "reloaded": true,
+      "duplicateBlocked": false,
+      "errors": []
+    },
+    {
+      "nationality": "Egypt",
+      "country": "Oman",
+      "reference": "TSH-MTZWDRXE-1A5E79",
+      "slots": 4,
+      "countMatchesCards": true,
+      "uploaded": true,
+      "review": true,
+      "reloaded": true,
+      "duplicateBlocked": false,
+      "errors": []
+    }
+  ],
+  "family": {
+    "reference": "TSH-MTZWGJ6X-3A5C5E",
+    "travellers": 2,
+    "counts": [
+      7,
+      8
+    ],
+    "stepOneNoApproximateCount": true,
+    "sequentialFlow": true,
+    "review": true,
+    "errors": []
+  },
+  "edits": {
+    "reference": "TSH-MTZWAYSC-E7D55F",
+    "nationalityChange": {
+      "slots": 8,
+      "retained": 7,
+      "new": 1
+    },
+    "residenceChange": {
+      "slots": 7,
+      "retained": 3,
+      "newResidence": 3
+    },
+    "missingDocumentsBlockContinue": true,
+    "arabicStatePreserved": true,
+    "restoredOriginalEgyptSaudiWithSevenReceived": true
+  },
+  "admin": {
+    "applications": [
+      "TSH-MTZW95Z7-531948",
+      "TSH-MTZWAYSC-E7D55F",
+      "TSH-MTZWCDQ5-8C38B8",
+      "TSH-MTZWDRXE-1A5E79"
+    ],
+    "diagnostics": true,
+    "documentViews": true,
+    "storedImagePreviews": true,
+    "rulePreview": true,
+    "errors": []
+  },
+  "payment": {
+    "referenceNumber": "TSH-MTZW95Z7-531948",
+    "documentSlots": 9,
+    "allDocumentsAccepted": true,
+    "suppressedRules": 0,
+    "readiness": "READY",
+    "stripeMode": "TEST",
+    "paymentStatus": "paid",
+    "chargedAmount": 18500,
+    "displayedAmount": 18500
+  }
+}

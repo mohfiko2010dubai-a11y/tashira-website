@@ -45,3 +45,27 @@ Open `/en/apply`. Choose single, GCC Resident, nationality, residence country. C
 For Saudi Arabia choose either Muqeem or Absher proof, then upload a *different* synthetic document to the separate report. Reusing the proof bytes must display a clear upload error and leave the report required. Complete all slots and Save & Continue to review. Payment remains blocked while a required slot is missing; complete documents permit the existing policy/price/payment flow. Do not charge a real card or send customer email.
 
 Reload to verify saved data and files. Edit nationality/residence and verify applicable uploads remain received while newly applicable documents appear. Repeat in Arabic and in family mode, completing each traveller before Next traveller. Application admin must show the rule diagnostic panel and the stored documents. Use synthetic applications/files only.
+
+## Final deployment and live verification
+
+Deployed code: `79e018cf5502b4a415251a0fec07cecec55c14df`. Both guarded deployments completed successfully; final local/public health is 200. The final guard ran check, lint, all tests and build: **1007 passed / 26 environment-gated integration tests skipped**, with no test failures. Native staging build, client and SSR builds, static asset checks and marketing compliance checks passed.
+
+Live browser UAT exposed a genuine five-file/minute bottleneck: storage upload and metadata creation both consumed the same ten-request upload bucket. The fix keeps ten binary uploads/minute and gives metadata creation its own authenticated ten-request bucket. A regression test permits ten complete upload/save pairs and rejects the eleventh; the upload UI now explains when to wait a minute and retry. The four complete cases below were subsequently rerun successfully on the final deployment. No rate limit was disabled.
+
+| Synthetic case | Reference | Slots | Verified |
+| --- | --- | ---: | --- |
+| Pakistan / Saudi Arabia | TSH-MTZW95Z7-531948 | 9 | Count matches cards, all uploads, duplicate-byte rejection, review, reload, Stripe TEST paid |
+| Egypt / Saudi Arabia | TSH-MTZWAYSC-E7D55F | 7 | Count matches cards, all uploads, review, reload, nationality/residence edits, restored original case |
+| India / Kuwait | TSH-MTZWCDQ5-8C38B8 | 7 | Count matches cards, all uploads, review, reload |
+| Egypt / Oman | TSH-MTZWDRXE-1A5E79 | 4 | Count matches cards, all uploads, review, reload |
+| Family: Egypt + India / Saudi Arabia | TSH-MTZWGJ6X-3A5C5E | 7 + 8 | Named Step 1 residence list without approximate total, per-traveller nationality, data then documents then next traveller, final review |
+
+The Pakistani/Saudi case rejected a renamed copy of the proof as its separate Absher report, accepted a different image, and reached READY. Stripe TEST payment succeeded and persisted `paid`; both displayed and charged amounts were USD 185.00. This verifies this synthetic visa/speed combination only, not the deferred Phase 3 all-products/all-speeds marketing-claim test. No real charge or Production operation occurred.
+
+The edit test changed Egypt/Saudi to India/Saudi: seven uploaded slots remained received and the last page became newly required. Changing residence to Kuwait retained the three shared uploaded base documents and introduced the three Kuwait documents. Incomplete continuation remained blocked with visible feedback. Switching to Arabic preserved the entered data and RTL state. Restoring Egypt/Saudi recovered all seven original received slots without re-uploading or rewriting historical links. A separate regression proves a valid replacement resolves historical duplicate report evidence.
+
+Actual admin application screens displayed diagnostics and uploaded filenames for all four cases. Signed document previews opened as readable images, and the global rules preview displayed the Saudi choice leaves and approved statuses. Browser checks recorded no page errors. The intentional rejected duplicate upload remains unlinked test evidence; a failed attachment does not satisfy a requirement.
+
+Machine-readable results: `staging/DOCUMENT_RULES_UAT.json`. Local screenshots are under `tmp/document-rules-uat` in the workspace (outside the release checkout). Authentication state files used by the synthetic customer browser tests were removed after verification; they are not part of the report or commit.
+
+All 15 pre-existing dirty/untracked files still match their saved SHA-256 values. Task 7 Phase 2 remains deployed for owner verification. **Phase 3 remains held until the owner independently verifies Task 2's twelve cases.**
