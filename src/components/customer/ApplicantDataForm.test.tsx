@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ApplicantDataForm, type FormQuestion } from "./ApplicantDataForm";
 
+vi.mock("@/providers/trpc-client", () => ({ trpc: { dynamicInterview: { nationalityCatalog: { useQuery: () => ({ data: { nationalities: [] } }) } } } }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }) }));
 vi.mock("./NationalitySelect", () => ({ default: ({ value, label }: { value: string; label: string }) => createElement("button", { type: "button", "aria-label": label }, value) }));
 const applicant = { applicantId: 11, applicantIndex: 0, fullName: "Synthetic Form", nationality: "EG", residenceCountry: "SA", profileVersion: 1 };
@@ -23,7 +24,7 @@ describe("Grouped applicant form", () => {
     const nationality = html.indexOf('aria-label="simple.fields.NATIONALITY"');
     const residence = html.indexOf('aria-label="simple.fields.RESIDENCE_COUNTRY"');
     const conditional = html.indexOf('-11:RESIDENCE_EXPIRY');
-    const documents = html.indexOf('Passport personal-data page');
+    const documents = html.indexOf('Passport main data page');
     const name = html.indexOf('value="Synthetic Form"');
     expect(nationality).toBeGreaterThan(0);
     expect(residence).toBeGreaterThan(nationality);

@@ -1,3 +1,4 @@
+import { trpc } from "@/providers/trpc-client";
 import { GCC_COUNTRIES, requiredDocuments, tripPurposeSchema, type TripPurpose } from "@contracts/document-requirement-engine";
 import { minimumPassportExpiry, validPassportExpiry, validPassportName } from "@contracts/traveller-details";
 import { useState } from "react";
@@ -15,12 +16,20 @@ const countryCodes = new Set(["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUN
 const keyOf = (field: { applicantId: number | null; code: string }) => `${field.applicantId}:${field.code}`;
 
 /** Drafts live only in this application/applicant instance; never in browser storage. */
-export function ApplicantDataForm({ applicant, questions, saved, onSave, residenceType = "non-gcc", arrivalDate, visaType = "", onEdit, requirements = [] }: {
+export function ApplicantDataForm({ applicant, questions, saved, onSave, residenceType = "non-gcc", arrivalDate, visaType = "", onEdit, requirements = [], individual = false }: {
+  individual?: boolean;
   requirements?: readonly PartyRequirementReadiness[];
   onEdit?: () => void; visaType?: string; arrivalDate?: string | null; residenceType?: string; applicant: PartyApplicant; questions: readonly FormQuestion[]; saved: readonly FormAnswer[];
   onSave: (submission: ApplicantFormSubmission) => Promise<void>;
 }) {
   const { t, i18n } = useTranslation("wizard");
+  const [editNationality, setEditNationality] = useState(false);
+  const [editResidence, setEditResidence] = useState(false);
+  const [editPurpose, setEditPurpose] = useState(false);
+  const catalog = trpc.dynamicInterview.nationalityCatalog.useQuery({});
+  const countryName = (value: string | null) => { const entry = catalog.data?.nationalities.find(item => item.code === value);
+    return entry ? (i18n.language.startsWith("ar") ? entry.nameAr : entry.nameEn) : value; };
+  const changeLabel = i18n.language.startsWith("ar") ? "تعديل" : "Change";
   const [passportNumber, setPassportNumber] = useState(applicant.passportNumber ?? "");
   const [passportExpiry, setPassportExpiry] = useState(applicant.passportExpiry ?? "");
   const [tripPurpose, setTripPurpose] = useState<TripPurpose>(applicant.tripPurpose ?? (/transit|96hours/i.test(visaType) ? "transit" : "tourism"));
@@ -83,17 +92,18 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
     <p className="mb-6 mt-2 text-sm text-slate-500">{t("simple.subtitle")}</p>
     <fieldset disabled={busy} className="grid gap-5 sm:grid-cols-2">
       <div className="grid gap-2 text-sm font-medium">{t("simple.fields.NATIONALITY")} *
-        <NationalitySelect {...feedback.fieldProps(nationalityKey)} compact label={t("simple.fields.NATIONALITY")} value={profile.nationality ?? ""} onChange={value => { onEdit?.(); setNationality(value); if (nationalityField) setValue(nationalityField, value); }} />{feedback.errorFor(nationalityKey)}</div>
+        {individual && applicant.nationality && !editNationality ? <p>{countryName(profile.nationality)} <button type="button" className="ms-2 underline" onClick={() => setEditNationality(true)}>{changeLabel}</button></p> : <NationalitySelect {...feedback.fieldProps(nationalityKey)} compact label={t("simple.fields.NATIONALITY")} value={profile.nationality ?? ""} onChange={value => { onEdit?.(); setNationality(value); if (nationalityField) setValue(nationalityField, value); }} />}{feedback.errorFor(nationalityKey)}</div>
       <div className="grid gap-2 text-sm font-medium">{t("simple.fields.RESIDENCE_COUNTRY")} *
-        <NationalitySelect {...feedback.fieldProps("residence", "residence-helper-" + applicant.applicantId)} compact purpose="residence" label={t("simple.fields.RESIDENCE_COUNTRY")} value={profile.residenceCountry ?? ""} onChange={value => { onEdit?.(); setResidence(value); }} />
+        {applicant.residenceCountry && !editResidence ? <p aria-label={t("simple.fields.RESIDENCE_COUNTRY")}>{countryName(profile.residenceCountry)} <button type="button" className="ms-2 underline" onClick={() => setEditResidence(true)}>{changeLabel}</button></p> : <NationalitySelect {...feedback.fieldProps("residence", "residence-helper-" + applicant.applicantId)} compact purpose="residence" label={t("simple.fields.RESIDENCE_COUNTRY")} value={profile.residenceCountry ?? ""} onChange={value => { onEdit?.(); setResidence(value); }} />}
         <span id={"residence-helper-" + applicant.applicantId} className="text-xs text-slate-500">{t("simple.residenceHint")}</span>{feedback.errorFor("residence")}</div>
-      <label className="grid gap-2 text-sm font-medium sm:col-span-2">{t("simple.tripPurpose", { defaultValue: "Trip purpose" })}
+      {individual && applicant.tripPurpose && !editPurpose ? <div className="text-sm sm:col-span-2">{t("simple.tripPurpose")}: {t(tripPurpose === "visiting_family" ? "simple.purposeFamily" : tripPurpose === "transit" ? "simple.purposeTransit" : "simple.purposeTourism")}
+        <button type="button" className="ms-2 underline" onClick={() => setEditPurpose(true)}>{changeLabel}</button></div> : <label className="grid gap-2 text-sm font-medium sm:col-span-2">{t("simple.tripPurpose", { defaultValue: "Trip purpose" })}
         <select aria-label={t("simple.tripPurpose", { defaultValue: "Trip purpose" })} className={fieldClass} value={tripPurpose} onChange={event => { const purpose = tripPurposeSchema.parse(event.target.value); setTripPurpose(purpose);  }}>
           <option value="tourism">{t("simple.purposeTourism", { defaultValue: "Tourism" })}</option>
           <option value="visiting_family">{t("simple.purposeFamily", { defaultValue: "Visiting family" })}</option>
           <option value="transit">{t("simple.purposeTransit", { defaultValue: "Transit" })}</option>
         </select>
-      </label>
+      </label>}
       {visibleQuestions.filter(field => field.code !== "NATIONALITY").map(field => {
         const value = valueOf(field); const props = feedback.fieldProps(keyOf(field)); const id = props.id;
         return <div key={keyOf(field)} className="grid content-start gap-2 text-sm font-medium">

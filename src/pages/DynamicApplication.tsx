@@ -130,6 +130,7 @@ export default function DynamicApplication() {
   const uploadHandler = async (requirement: PartyRequirementReadiness, file: File, onProgress: (progress: DocumentUploadProgress) => void) => {
     setUploadingDocument(true);
     try {
+    await completeFormMutation.mutateAsync({ referenceNumber, applicantId: requirement.applicantId, submissionId: crypto.randomUUID() });
     const documentType = legacyDocumentType(requirement.documentType);
     const applicationId = state.partySetup!.applicationId;
     onProgress({ phase: "preparing" });
@@ -142,7 +143,7 @@ export default function DynamicApplication() {
       mimeType: uploaded.mimeType, fileSize: uploaded.fileSize, storagePath: uploaded.storagePath, uploadStatus: "uploaded",
       uploadedBy: `customer:${referenceNumber}` });
     await linkRequirementDocumentMutation.mutateAsync({ referenceNumber, applicantId: requirement.applicantId,
-      requirementCode: requirement.requirementCode, documentId: document.id, idempotencyKey: crypto.randomUUID() });
+      requirementCode: requirement.requirementCode, documentKey: requirement.documentKey, documentId: document.id, idempotencyKey: crypto.randomUUID() });
     await refreshState();
     } finally { setUploadingDocument(false); }
   };
@@ -155,10 +156,6 @@ export default function DynamicApplication() {
   const ownerRequirements = state.partySetup?.requirementReadiness.filter(item => {
     const traveller = state.partySetup?.applicants.find(a => a.applicantId === item.applicantId);
     return ownerRequiredDocumentCodes(traveller?.nationality, traveller?.residenceCountry, state.applicationContext.visaType, traveller?.tripPurpose).includes(item.requirementCode);
-  }).map(item => {
-    const receipt = readiness.data?.applicants.find(a => a.applicantId === item.applicantId);
-    return receipt && !receipt.missing.some(m => m.code === `document.${item.requirementCode}`)
-      ? { ...item, state: "UPLOADED" as const } : item;
   }) ?? [];
   const activeRequirements = ownerRequirements.filter(item => item.applicantId === activeId);
   const activeApplicants = state.partySetup
@@ -232,7 +229,7 @@ export default function DynamicApplication() {
 
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
-        <ApplicantDataForm applicant={applicant} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
+        <ApplicantDataForm applicant={applicant} individual={state.applicationContext.baseType === "single"} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
           requirements={ownerRequirements}
           questions={(state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
           saved={state.knownAnswers} onSave={submission => saveApplicantForm(applicant.applicantId, submission)} />

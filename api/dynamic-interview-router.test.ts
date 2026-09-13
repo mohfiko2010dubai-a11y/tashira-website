@@ -60,7 +60,7 @@ function deps(currentFlags = flags) {
 }
 
 describe("authenticated Dynamic Interview API", () => {
-  it("derives approved documents from saved residence, ignoring stale GCC answers and draft rules", async () => {
+  it("derives approved documents from saved residence, ignoring stale GCC answers and using owner-approved rules", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
     const loadApplication = current.loadApplication;
     let residenceCountry = "SA";
@@ -80,12 +80,12 @@ describe("authenticated Dynamic Interview API", () => {
     expect(current.persistCompletedEvaluations).not.toHaveBeenCalled();
     await caller.completeForm({ referenceNumber: reference, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" });
     expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ result: expect.objectContaining({
-      matchedRules: [], requiredDocuments: ["PASSPORT", "PERSONAL_PHOTO", "RETURN_TICKET"],
+      matchedRules: [], requiredDocuments: ["PASSPORT", "PK_PASSPORT_PAGE_2", "PERSONAL_PHOTO", "RETURN_TICKET", "HOME_NATIONAL_ID", "KSA_IQAMA_FRONT", "KSA_IQAMA_BACK", "KSA_RESIDENCE_PROOF", "SA_ABSHER_REPORT"],
     }) })] }));
     expect(completed.currentQuestions).toEqual([]);
     expect(completed.nextAction).not.toBe("ANSWER_QUESTIONS");
     expect(completed.review.applicants[0].requirements.map(item => item.code).sort()).toEqual([
-      "PASSPORT", "PERSONAL_PHOTO", "RETURN_TICKET",
+      "PASSPORT", "PK_PASSPORT_PAGE_2", "PERSONAL_PHOTO", "RETURN_TICKET", "HOME_NATIONAL_ID", "KSA_IQAMA_FRONT", "KSA_IQAMA_BACK", "KSA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
     ].sort());
     expect(completed.formQuestions?.some(field => ["HAS_CONFIRMED_TICKETS", "RESIDENCE_EXPIRY", "PLANNED_ARRIVAL_DATE"].includes(field.code))).toBe(false);
     residenceCountry = "EG";

@@ -76,7 +76,7 @@
     "nextTraveller": "Next traveller →",
     "prevTraveller": "← Traveller {{n}}",
     "docsTitle": "Documents required for {{name}}",
-    "docsSub": "Generated from this traveller's nationality, country of residence, visa type and trip purpose.",
+    "docsSub": "Generated from this traveller's nationality, country of residence and visa type.",
     "noQuestions": "No more questions for this traveller — upload the required documents below.",
     "waiting": "This traveller's questions unlock as you progress — keep going with the highlighted traveller.",
     "reviewTitle": "Review your travellers",

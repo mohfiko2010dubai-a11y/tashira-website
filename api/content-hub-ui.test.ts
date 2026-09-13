@@ -65,6 +65,6 @@ describe("SEO content hub public experience", () => {
     expect(start).toContain('"60-days": "60days-single"');
     expect(start).toContain('"transit": "96hours-transit"');
     expect(start).toContain('visaParam === "family"');
-    expect(start).not.toContain("setResidenceType");
+    expect(start).toContain("setResidenceType");
   });
 });

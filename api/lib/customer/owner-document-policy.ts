@@ -1,11 +1,14 @@
+import { createHash } from "node:crypto";
 import { OWNER_DOCUMENTS, OWNER_DOCUMENT_VERSION } from "../../../contracts/owner-document-requirements";
 import { type EligibilityEvaluationResult, type EligibilityProfile } from "../eligibility/eligibility-engine";
 import { requiredDocuments, tripPurposeSchema } from "../../../contracts/document-requirement-engine";
 import type { VersionedRequirementCatalog } from "../requirements/requirement-catalog";
 
+const existingDefinitionIds: Record<string, number> = {"PASSPORT": 12, "PERSONAL_PHOTO": 13, "RETURN_TICKET": 22, "UAE_ACCOMMODATION": 23, "HOST_DETAILS": 24, "ONWARD_TICKET": 25, "HOME_NATIONAL_ID": 26, "ADDITIONAL_PASSPORT_PAGES": 27, "KSA_IQAMA_FRONT": 28, "KSA_IQAMA_BACK": 29, "SA_RESIDENCE_PROOF": 30, "SA_ABSHER_REPORT": 31, "KWT_IQAMA_FRONT": 32, "KWT_IQAMA_BACK": 33, "KW_MOBILE_ID": 34, "BH_RESIDENCE_REPORT": 35, "QA_RESIDENCE_CARD": 36, "OMN_ID_CARD": 37};
+
 export function withOwnerDocumentCatalog(catalog: VersionedRequirementCatalog): VersionedRequirementCatalog {
-  const requirements = OWNER_DOCUMENTS.filter(document => document.status === "approved").map((document, index) => ({
-    kind: "DOCUMENT" as const, definitionId: `09feb153-2026-4911-8000-${String(document.code === "PASSPORT" ? 12 : document.code === "PERSONAL_PHOTO" ? 13 : index + 20).padStart(12, "0")}`,
+  const requirements = OWNER_DOCUMENTS.filter(document => document.status === "approved").map(document => ({
+    kind: "DOCUMENT" as const, definitionId: `09feb153-2026-4911-8000-${String(existingDefinitionIds[document.code] ?? (parseInt(createHash("sha256").update(document.code).digest("hex").slice(0, 9), 16) + 100)).padStart(12, "0")}`,
     code: document.code, version: 1, status: "ACTIVE" as const, reviewStatus: "APPROVED" as const,
     customerLabel: document.en, shortCustomerExplanation: document.hintEn, internalLabel: document.en,
     classification: "OPERATIONAL" as const, authoritySemantics: null, reasonTemplate: "Requested by TASHIRA for application processing.",

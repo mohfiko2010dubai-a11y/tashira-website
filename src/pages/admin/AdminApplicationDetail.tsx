@@ -1,3 +1,4 @@
+import { ApplicationDocumentDiagnostics } from "@/components/admin/ApplicationDocumentDiagnostics";
 import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
@@ -137,6 +138,7 @@ export default function AdminApplicationDetail() {
           {updateStatus.isPending && <RefreshCw size={12} className="animate-spin text-[#C9A04C]" />}
         </div>
       </header>
+      <ApplicationDocumentDiagnostics applicants={app.documentRuleDiagnostics} />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Tabs */}

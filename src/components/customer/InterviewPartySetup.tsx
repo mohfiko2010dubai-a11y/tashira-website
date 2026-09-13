@@ -13,7 +13,7 @@ export type PartyTravelGroup = { travelGroupId: string; version: number; referen
   destination: string; plannedArrivalDate: string; plannedDepartureDate: string | null; ticketStatus: "NOT_BOOKED" | "RESERVED" | "CONFIRMED" };
 export type PartySharedDocument = { documentId: number; documentType: "OUTBOUND_TICKET" | "RETURN_TICKET" | "ONWARD_TICKET" |
   "ROUND_TRIP_TICKET" | "FAMILY_BOOKING"; applicantIds: readonly number[] };
-export type PartyRequirementReadiness = { applicantId: number; requirementCode: string; documentType: string;
+export type PartyRequirementReadiness = { documentKey?: string; uploadedCodes?: string[]; applicantId: number; requirementCode: string; documentType: string;
   state: "MISSING" | "UPLOADED" | "VALIDATED" | "WAIVED" | "CONDITIONAL_PENDING" };
 export type PartySetup = { applicationId: number; applicants: readonly PartyApplicant[]; relationships: readonly PartyRelationship[];
   travelGroups: readonly PartyTravelGroup[]; sharedDocuments: readonly PartySharedDocument[];

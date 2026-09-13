@@ -15,7 +15,7 @@ describe("Approved owner document rules", () => {
         const original = evaluateEligibility({ profile, evaluatedAt: at, rules: [] });
         const result = applyOwnerDocumentRequirements(original, profile, at);
         expect(result.requiredDocuments).toEqual(ownerRequiredDocumentCodes(nationality, residenceCountry, "30days"));
-        expect(result.requiredDocuments).not.toContain("HOME_NATIONAL_ID");
+        expect(result.requiredDocuments.includes("HOME_NATIONAL_ID")).toBe(["PK", "IQ", "IR", "AF"].includes(nationality));
         expect(result.requiredDocuments).not.toContain("PASSPORT_SECOND_PAGE");
         expect(result.matchedRules).toEqual(original.matchedRules);
         expect(result.finalEligibilityState).toBe(original.finalEligibilityState);

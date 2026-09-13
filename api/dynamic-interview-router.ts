@@ -1,5 +1,5 @@
-import { ownerRequiredDocumentCodes } from "../contracts/owner-document-requirements";
-import { tripPurposeSchema, type TripPurpose } from "../contracts/document-requirement-engine";
+import { loadOwnerDocumentEvidence, projectOwnerDocuments, DISTINCT_DOCUMENT_MESSAGE, type OwnerDocumentEvidence } from "./lib/customer/owner-document-evidence";
+import { requiredDocuments, tripPurposeSchema, type TripPurpose } from "../contracts/document-requirement-engine";
 import { loadTripPurposes } from "./lib/customer/trip-purpose";
 import { validPassportExpiry, validPassportName } from "../contracts/traveller-details";
 import { TRPCError } from "@trpc/server";
@@ -47,6 +47,7 @@ type Dependencies = {
   loadCatalog(at: Date): Promise<VersionedRequirementCatalog>;
   loadRules(routeCode: string): Promise<readonly EligibilityRule[]>;
   loadEvents(applicationId: number): Promise<readonly InterviewAnswerEvent[]>;
+  loadDocumentEvidence?(applicationId: number): Promise<OwnerDocumentEvidence[]>;
   loadUnifiedBundle?(referenceNumber: string): Promise<MysqlOperationsCaseBundle | null>;
   addApplicant?(input: { applicationId: number; profile: CustomerApplicantProfile; reason: string; actorReference: string;
     idempotencyKey: string; occurredAt: Date }): Promise<CustomerApplicantWriteResult>;
@@ -62,7 +63,7 @@ type Dependencies = {
   linkSharedDocument?(input: { applicationId: number; documentId: number; documentType: "OUTBOUND_TICKET" | "RETURN_TICKET" |
     "ONWARD_TICKET" | "ROUND_TRIP_TICKET" | "FAMILY_BOOKING"; applicantIds: readonly number[]; actorReference: string;
     idempotencyKey: string; occurredAt: Date }): Promise<{ documentId: number; linkedApplicantIds: readonly number[]; replayed: boolean }>;
-  linkRequirementDocument?(input: { applicationId: number; applicantId: number; requirementCode: string; documentId: number;
+  linkRequirementDocument?(input: { documentKey?: string; ownerDocuments?: boolean; applicationId: number; applicantId: number; requirementCode: string; documentId: number;
     actorReference: string; idempotencyKey: string; occurredAt: Date }): Promise<{ requirementInstanceId: string; documentId: number; replayed: boolean }>;
   append(input: { applicationId: number; applicantId: number | null; definition: QuestionCatalogDefinition; answer: InterviewAnswer;
     changeReason: string; actorReference: string; occurredAt: Date }): Promise<InterviewAnswerEvent>;
@@ -136,6 +137,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         if (!unifiedReviewBlocker) throw error;
       }
     }
+    const documentEvidence = ownerForm && deps.loadDocumentEvidence ? await deps.loadDocumentEvidence(application.applicationId) : [];
     return { application, context, flags, ownerForm, partyBundle, catalogVersion: catalog.catalogVersion, questions, requirements, rules, events,
       state: { ...interview, applicationContext: { visaType: application.routeCode, baseType: application.baseType, residenceType: application.residenceType, arrivalDate: application.arrivalDate }, currentApplicant: applicantId === null ? null
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
@@ -152,14 +154,13 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
           .map((document) => [document.documentId, document] as const)).values()].map((document) => ({ documentId: document.documentId,
             documentType: sharedDocumentTypeSchema.parse(document.documentType),
             applicantIds: document.applicantIds })) : [],
-        requirementReadiness: partyBundle ? application.applicantIds.flatMap((currentApplicantId) => {
+        requirementReadiness: ownerForm ? application.applicants.flatMap(applicant => projectOwnerDocuments(requiredDocuments({
+          nationality: applicant.nationality, country_of_residence: applicant.residenceCountry,
+          visa_type: application.routeCode, trip_purpose: applicant.tripPurpose }), documentEvidence, applicant.applicantId)) : partyBundle ? application.applicantIds.flatMap((currentApplicantId) => {
           const evaluation = partyBundle.snapshots.current(application.applicationId, currentApplicantId);
           if (!evaluation) return [];
           return partyBundle.family.requirements(application.applicationId, currentApplicantId, evaluation.evaluationId)
-            .filter(({ instance }) => {
-              const applicant = application.applicants.find(item => item.applicantId === currentApplicantId);
-              return instance.kind === "DOCUMENT" && (!ownerForm || ownerRequiredDocumentCodes(applicant?.nationality, applicant?.residenceCountry, application.routeCode, applicant?.tripPurpose).includes(instance.code));
-            }).map(({ instance, currentState }) => {
+            .filter(({ instance }) => instance.kind === "DOCUMENT").map(({ instance, currentState }) => {
               const definition = requirements.find((candidate) => candidate.code === instance.code);
               if (!definition) throw new Error(`UNRESOLVED_REQUIREMENT_CATALOG:${instance.code}`);
               return { applicantId: currentApplicantId, requirementCode: instance.code, documentType: definition.documentType,
@@ -398,6 +399,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       }),
     linkRequirementDocument: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50),
       applicantId: z.number().int().positive(), requirementCode: z.string().regex(/^[A-Z][A-Z0-9_]{1,99}$/),
+      documentKey: z.string().regex(/^[a-z][a-z0-9_]{1,99}$/).optional(),
       documentId: z.number().int().positive(), idempotencyKey: z.string().trim().min(8).max(100) }).strict())
       .mutation(async ({ input, ctx }) => {
         const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
@@ -405,9 +407,9 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Requirement document changes unavailable" });
         }
         try { return await deps.linkRequirementDocument({ applicationId: application.applicationId, applicantId: input.applicantId,
-          requirementCode: input.requirementCode, documentId: input.documentId, actorReference: `customer:${input.referenceNumber}`,
+          requirementCode: input.requirementCode, documentKey: input.documentKey, ownerDocuments: context.environment === "STAGING" && Boolean(application.baseType), documentId: input.documentId, actorReference: `customer:${input.referenceNumber}`,
           idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
-        catch { throw new TRPCError({ code: "BAD_REQUEST", message: "Requirement document could not be linked" }); }
+        catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error && error.message === DISTINCT_DOCUMENT_MESSAGE ? error.message : "Requirement document could not be linked. Refresh the document list and try again." }); }
       }),
   });
 }
@@ -457,6 +459,7 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
   createTravelGroup: (input) => applicantWriteProvider().createTravelGroup(input),
   updateTravelGroup: (input) => applicantWriteProvider().updateTravelGroup(input),
   linkSharedDocument: (input) => applicantWriteProvider().linkSharedDocument(input),
+  loadDocumentEvidence: (applicationId) => loadOwnerDocumentEvidence(sql, applicationId),
   linkRequirementDocument: (input) => applicantWriteProvider().linkRequirementDocument(input),
   append: (input) => answerProvider().append(input),
   persistCompletedEvaluations: (input) => interviewEvaluationProvider().persistCompleted(input), now: () => new Date(),

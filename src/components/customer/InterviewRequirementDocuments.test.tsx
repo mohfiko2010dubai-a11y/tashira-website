@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { InterviewRequirementDocuments } from "./InterviewRequirementDocuments";
 import { legacyDocumentType } from "./requirement-document-type";
+import { requiredDocuments } from "@contracts/document-requirement-engine";
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "en" } }) }));
 
 const applicants = [
@@ -10,7 +11,16 @@ const applicants = [
 ];
 
 describe("InterviewRequirementDocuments", () => {
-  it("renders approved requirements and withholds draft document rows", () => {
+  it("renders one Saudi proof card with two options and a separate report card", () => {
+    const rules = requiredDocuments({ nationality: "EG", country_of_residence: "SA", visa_type: "30days-single" });
+    const html = renderToStaticMarkup(<InterviewRequirementDocuments applicants={[applicants[0]]} busy={false} error={false}
+      onUpload={vi.fn(async () => undefined)} requirements={rules.map(rule => ({ applicantId: 11, requirementCode: rule.code, documentType: rule.document_type, state: "MISSING" }))} />);
+    expect(html.match(/>Needed<\/span>/g)).toHaveLength(7);
+    expect(html.match(/type="radio"/g)).toHaveLength(2);
+    expect(html).toContain("Choose one document");
+    expect(html.match(/type="file"/g)).toHaveLength(6);
+  });
+  it("renders the approved separate report alongside other required documents", () => {
     const html = renderToStaticMarkup(<InterviewRequirementDocuments applicants={[applicants[1]]} busy={false} error={false}
       onUpload={vi.fn(async () => undefined)} requirements={[
         { applicantId: 12, requirementCode: "PASSPORT", documentType: "PASSPORT", state: "UPLOADED" },
@@ -18,8 +28,8 @@ describe("InterviewRequirementDocuments", () => {
         { applicantId: 12, requirementCode: "SA_ABSHER_REPORT", documentType: "GCC_RESIDENCE", state: "MISSING" },
       ]} />);
     expect(html).toContain("Host details");
-    expect(html).not.toContain("Absher");
-    expect(html.match(/type="file"/g)).toHaveLength(1);
+    expect(html).toContain("Absher");
+    expect(html.match(/type="file"/g)).toHaveLength(2);
   });
   it("maps canonical requirements onto the existing storage document classes", () => {
     expect(legacyDocumentType("PASSPORT")).toBe("passport");
@@ -40,7 +50,7 @@ describe("InterviewRequirementDocuments", () => {
     const childStart = html.indexOf("Synthetic Child");
     expect(fatherStart).toBeGreaterThan(-1);
     expect(childStart).toBeGreaterThan(fatherStart);
-    expect(html.slice(fatherStart, childStart)).toContain("Passport personal-data page");
+    expect(html.slice(fatherStart, childStart)).toContain("Passport main data page");
     expect(html.slice(fatherStart, childStart)).not.toContain("Recent personal photo");
     expect(html.slice(childStart)).toContain("Recent personal photo");
     expect(html.match(/type="file"/g)).toHaveLength(1);

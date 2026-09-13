@@ -1,3 +1,7 @@
+import { MysqlCustomerInterviewWriteRepository } from "./lib/customer/mysql-customer-interview-write-repository";
+import { evaluateDocumentRequirements, tripPurposeSchema } from "../contracts/document-requirement-engine";
+import { loadTripPurposes } from "./lib/customer/trip-purpose";
+import { defaultOperationsSqlClient, defaultOperationsPool } from "./lib/operations/mysql-query-client";
 import { z } from "zod";
 import { adminQuery, applicationAccessQuery, applicationSubmissionQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
@@ -55,6 +59,7 @@ export const applicationRouter = createRouter({
       applicants: z.array(z.object({
         fullName: z.string(),
         nationality: z.string().optional(),
+        tripPurpose: tripPurposeSchema.optional(),
         passportNumber: z.string().optional(),
         passportType: z.string().optional(),
         travelingFrom: z.string().optional(),
@@ -127,6 +132,12 @@ export const applicationRouter = createRouter({
             sponsorRelation: a.sponsorRelation || null,
           }).$returningId();
           applicantIds.push(createdApplicant.id);
+          if (a.tripPurpose && input.journeyMode === "DYNAMIC" && runtimeFlagEnvironment() === "STAGING") {
+            await new MysqlCustomerInterviewWriteRepository(defaultOperationsPool()).editApplicant({ applicationId: appId,
+              applicantId: createdApplicant.id, expectedVersion: 1, profile: { fullName: a.fullName, nationality: a.nationality || null,
+                residenceCountry: a.gccResidenceCountry || null, tripPurpose: a.tripPurpose }, reason: "Initial document selections",
+              actorReference: `customer:${input.referenceNumber}`, idempotencyKey: `initial-purpose:${createdApplicant.id}`, occurredAt: new Date() });
+          }
           await recordTimelineEvent({
             applicationId: appId,
             eventName: "APPLICANT_ADDED",
@@ -162,7 +173,15 @@ export const applicationRouter = createRouter({
     .input(z.object({ referenceNumber: z.string() }))
     .query(async ({ input, ctx }) => {
       assertApplicationReferenceAccess(ctx, input.referenceNumber);
-      return getCanonicalApplicationByReference(input.referenceNumber);
+      const application = await getCanonicalApplicationByReference(input.referenceNumber);
+      if (!application) return application;
+      const purposes = runtimeFlagEnvironment() === "STAGING" ? await loadTripPurposes(defaultOperationsSqlClient(), application.id) : new Map();
+      return { ...application, documentRuleDiagnostics: application.applicants.map(applicant => {
+        const result = evaluateDocumentRequirements({ nationality: applicant.nationality, country_of_residence: applicant.gccResidenceCountry,
+          visa_type: application.visaType, trip_purpose: purposes.get(applicant.id) });
+        return { applicantId: applicant.id, label: applicant.fullName, suppressed: result.suppressed, unmatched: result.unmatched };
+      }) };
+
     }),
 
   list: staffOrAdminQuery

@@ -2,12 +2,63 @@
   {
     "key": "passport_page",
     "code": "PASSPORT",
-    "label_en": "Passport personal-data page",
-    "label_ar": "صفحة البيانات الشخصية من جواز السفر",
-    "hint_en": "Show all four corners. Passport must be valid for at least 6 months.",
-    "hint_ar": "أظهر الزوايا الأربع كاملة. يجب أن يكون الجواز صالحًا لمدة 6 أشهر على الأقل.",
+    "label_en": "Passport main data page — photo and personal data",
+    "label_ar": "صفحة البيانات الأساسية التي تحتوي على الصورة والبيانات الشخصية — صورة واضحة وكاملة، غير مقصوصة.",
+    "hint_en": "Upload a complete, clear, uncropped and readable image of the page carrying your photo and personal data. Passport must be valid for at least 6 months.",
+    "hint_ar": "ارفع صورة كاملة وواضحة وغير مقصوصة وقابلة للقراءة للصفحة التي تحمل صورتك وبياناتك الشخصية. يجب أن يكون الجواز صالحًا لمدة 6 أشهر على الأقل.",
     "document_type": "PASSPORT",
     "applies_when": {},
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "pk_passport_page_2",
+    "code": "PK_PASSPORT_PAGE_2",
+    "label_en": "Passport — second page",
+    "label_ar": "جواز السفر — الصفحة الثانية",
+    "hint_en": "Upload a complete, clear and uncropped copy of this page.",
+    "hint_ar": "ارفع صورة واضحة وكاملة وغير مقصوصة لهذه الصفحة.",
+    "document_type": "PASSPORT",
+    "applies_when": {
+      "nationality": [
+        "PK"
+      ]
+    },
+    "status": "approved",
+    "placeholder": false,
+    "legacy_codes": [
+      "PASSPORT_SECOND_PAGE"
+    ]
+  },
+  {
+    "key": "in_passport_page_last",
+    "code": "IN_PASSPORT_PAGE_LAST",
+    "label_en": "Passport — last page",
+    "label_ar": "جواز السفر — الصفحة الأخيرة",
+    "hint_en": "Upload a complete, clear and uncropped copy of this page. A previously uploaded second page does not replace the required last page.",
+    "hint_ar": "ارفع صورة واضحة وكاملة وغير مقصوصة لهذه الصفحة. الصفحة الثانية التي رُفعت سابقًا لا تُغني عن الصفحة الأخيرة المطلوبة.",
+    "document_type": "PASSPORT",
+    "applies_when": {
+      "nationality": [
+        "IN"
+      ]
+    },
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "sy_passport_page_last",
+    "code": "SY_PASSPORT_PAGE_LAST",
+    "label_en": "Passport — last page",
+    "label_ar": "جواز السفر — الصفحة الأخيرة",
+    "hint_en": "Upload a complete, clear and uncropped copy of this page. A previously uploaded second page does not replace the required last page.",
+    "hint_ar": "ارفع صورة واضحة وكاملة وغير مقصوصة لهذه الصفحة. الصفحة الثانية التي رُفعت سابقًا لا تُغني عن الصفحة الأخيرة المطلوبة.",
+    "document_type": "PASSPORT",
+    "applies_when": {
+      "nationality": [
+        "SY"
+      ]
+    },
     "status": "approved",
     "placeholder": false
   },
@@ -105,27 +156,8 @@
         "AF"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
-  },
-  {
-    "key": "additional_passport_pages",
-    "code": "ADDITIONAL_PASSPORT_PAGES",
-    "label_en": "TBD — pending approval",
-    "label_ar": "يُحدد لاحقًا — بانتظار الاعتماد",
-    "hint_en": "Draft placeholder. Final additional-page wording is not approved.",
-    "hint_ar": "مسودة مؤقتة. لم تُعتمد صياغة متطلبات صفحات الجواز الإضافية.",
-    "document_type": "PASSPORT",
-    "applies_when": {
-      "nationality": [
-        "PK",
-        "IQ",
-        "IR",
-        "AF"
-      ]
-    },
-    "status": "draft",
-    "placeholder": true
   },
   {
     "key": "ksa_iqama_front",
@@ -140,7 +172,7 @@
         "SA"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
   },
   {
@@ -156,40 +188,72 @@
         "SA"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
   },
   {
     "key": "ksa_residence_proof",
-    "code": "SA_RESIDENCE_PROOF",
+    "code": "KSA_RESIDENCE_PROOF",
     "label_en": "Proof of residence from Muqeem or Absher",
     "label_ar": "إثبات الإقامة من مقيم أو أبشر",
-    "hint_en": "Upload a clear, complete copy of this document.",
-    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "hint_en": "Choose Muqeem or Absher and upload one proof. The separate Absher residence report is also required and must be a different file.",
+    "hint_ar": "اختر مقيم أو أبشر وارفع إثباتًا واحدًا. يُطلب أيضًا تقرير إقامة مستقل من أبشر، ويجب أن يكون ملفًا مختلفًا.",
     "document_type": "GCC_RESIDENCE",
     "applies_when": {
       "country_of_residence": [
         "SA"
       ]
     },
-    "status": "draft",
-    "placeholder": false
+    "status": "approved",
+    "placeholder": false,
+    "legacy_codes": [
+      "SA_RESIDENCE_PROOF"
+    ],
+    "any_of": [
+      {
+        "key": "ksa_proof_muqeem",
+        "code": "KSA_PROOF_MUQEEM",
+        "label_en": "Proof of residence from Muqeem",
+        "label_ar": "إثبات الإقامة من مقيم",
+        "hint_en": "Upload a complete, clear and uncropped copy of this page.",
+        "hint_ar": "ارفع صورة واضحة وكاملة وغير مقصوصة لهذه الصفحة.",
+        "document_type": "GCC_RESIDENCE",
+        "applies_when": {},
+        "status": "approved",
+        "placeholder": false
+      },
+      {
+        "key": "ksa_proof_absher",
+        "code": "KSA_PROOF_ABSHER",
+        "label_en": "Proof of residence from Absher",
+        "label_ar": "إثبات الإقامة من أبشر",
+        "hint_en": "Upload a complete, clear and uncropped copy of this page.",
+        "hint_ar": "ارفع صورة واضحة وكاملة وغير مقصوصة لهذه الصفحة.",
+        "document_type": "GCC_RESIDENCE",
+        "applies_when": {},
+        "status": "approved",
+        "placeholder": false
+      }
+    ]
   },
   {
     "key": "ksa_absher_report",
     "code": "SA_ABSHER_REPORT",
     "label_en": "Residency report from Absher (separate document)",
     "label_ar": "تقرير الإقامة من أبشر — مستند مستقل",
-    "hint_en": "Upload a clear, complete copy of this document.",
-    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "hint_en": "Upload the separate Absher residence report IN ADDITION TO the Muqeem/Absher proof. Do not upload the same file again.",
+    "hint_ar": "ارفع تقرير إقامة من أبشر كمستند مستقل إضافي إلى إثبات مقيم أو أبشر. لا ترفع الملف نفسه مرة أخرى.",
     "document_type": "GCC_RESIDENCE",
     "applies_when": {
       "country_of_residence": [
         "SA"
       ]
     },
-    "status": "draft",
-    "placeholder": false
+    "status": "approved",
+    "placeholder": false,
+    "distinct_from": [
+      "ksa_residence_proof"
+    ]
   },
   {
     "key": "kwt_iqama_front",
@@ -204,7 +268,7 @@
         "KW"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
   },
   {
@@ -220,11 +284,11 @@
         "KW"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
   },
   {
-    "key": "kwt_digital_id",
+    "key": "kwt_mobile_id",
     "code": "KW_MOBILE_ID",
     "label_en": "Digital identity proof from Hawiyati (Kuwait Mobile ID)",
     "label_ar": "إثبات الهوية الرقمية من هويتي (Kuwait Mobile ID)",
@@ -236,7 +300,7 @@
         "KW"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
   },
   {
@@ -252,7 +316,7 @@
         "BH"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
   },
   {
@@ -268,14 +332,14 @@
         "QA"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
   },
   {
-    "key": "omn_id_card",
+    "key": "omn_residence_card",
     "code": "OMN_ID_CARD",
-    "label_en": "Omani ID card / Resident Card (بطاقة مقيم)",
-    "label_ar": "بطاقة الهوية العمانية / بطاقة مقيم (Resident Card)",
+    "label_en": "Oman Resident Card / بطاقة مقيم",
+    "label_ar": "بطاقة الإقامة العمانية — بطاقة مقيم / Resident Card",
     "hint_en": "Upload a clear, complete copy of this document.",
     "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
     "document_type": "GCC_RESIDENCE",
@@ -284,7 +348,7 @@
         "OM"
       ]
     },
-    "status": "draft",
+    "status": "approved",
     "placeholder": false
   }
 ]

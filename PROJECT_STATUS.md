@@ -1,3 +1,7 @@
+# Approved document rules candidate - 2026-09-13
+
+Owner approved nationality/residence rules and four plan additions. Clean candidate publishes the approved JSON, recursive choice groups, exact single-traveller Step 1 counts, family residence lists, server evidence/readiness, distinct Saudi proof/report enforcement, and admin/build diagnostics. Local check/lint/build pass; 1004 tests pass with 26 database-dependent skips. Guarded staging deployment and synthetic UAT pending. Task 7 Phase 2 retained; Phase 3 held for owner verification. Existing unrelated dirty files preserved byte-for-byte. See staging/DOCUMENT_RULES_APPROVED.md.
+
 # Phase 2 staging verified - 2026-09-13
 
 Deployed 8102483fb8b54bc7304c0553ae5d15a3692af583 through staging-only guards. All 32 fixed EN/AR routes pass source/no-JS/hydration, delayed-JS Arabic first paint, mobile RTL and state-preserving language switching. Synthetic application uploads/review/reload and Arabic recovery to payment route pass. Six bilingual SSR failure probes return 200 with metadata; real missing pages return 404. TypeScript, lint, 980 tests and build pass (26 environment-gated skips). Approved metadata and 15 old dirty files preserved. HTML private/no-store; no caching or worker tuning. Measured SSR p95 736ms across 190 verification renders, dominated by worker/setup remainder. One 502 observed during PM2 restart; deployment is not zero-downtime and needs a separate proposal before ads. Production unchanged. Phase 3 remains held. See staging/SSR_PHASE2_VERIFICATION.md and output/task7-phase2.

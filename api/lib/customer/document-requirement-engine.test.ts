@@ -3,13 +3,13 @@ import { DOCUMENT_REQUIREMENT_RULES, documentRuleSchema, requiredDocuments } fro
 const context = { nationality: "PK", country_of_residence: "SA", visa_type: "30days", trip_purpose: "tourism" as const };
 const keys = (country: string) => requiredDocuments({ ...context, country_of_residence: country }, { previewDrafts: true }).filter(rule => !rule.placeholder).map(rule => rule.key);
 describe("document requirement union and publication", () => {
-  it("previews all eight Saudi requirements while withholding draft rows from customers", () => {
-    expect(keys("SA")).toEqual(["passport_page", "personal_photo", "return_ticket", "home_national_id", "ksa_iqama_front", "ksa_iqama_back", "ksa_residence_proof", "ksa_absher_report"]);
-    expect(requiredDocuments(context).map(rule => rule.key)).toEqual(["passport_page", "personal_photo", "return_ticket"]);
-    expect(requiredDocuments(context, { previewDrafts: true }).find(rule => rule.placeholder)?.label_en).toBe("TBD — pending approval");
+  it("publishes the owner-approved Saudi union in preview and customer views", () => {
+    expect(keys("SA")).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "return_ticket", "home_national_id", "ksa_iqama_front", "ksa_iqama_back", "ksa_residence_proof", "ksa_absher_report"]);
+    expect(requiredDocuments(context).map(rule => rule.key)).toEqual(keys("SA"));
+    expect(requiredDocuments(context, { previewDrafts: true }).find(rule => rule.placeholder)).toBeUndefined();
   });
   it("uses Oman rather than Saudi residence rules", () => {
-    expect(keys("OM")).toContain("omn_id_card");
+    expect(keys("OM")).toContain("omn_residence_card");
     expect(keys("OM").some(key => key.startsWith("ksa_"))).toBe(false);
   });
   it("returns the applicable base set for a nationality/residence pair with no special rule", () => {
@@ -23,12 +23,12 @@ describe("document requirement union and publication", () => {
   });
   it("adds host details only for family visits and onward tickets for transit", () => {
     expect(requiredDocuments({ ...context, trip_purpose: "visiting_family" }).map(rule => rule.key)).toContain("host_details");
-    expect(requiredDocuments({ ...context, visa_type: "transit", trip_purpose: "transit" }).map(rule => rule.key)).toEqual(["passport_page", "onward_ticket"]);
+    expect(requiredDocuments({ ...context, visa_type: "transit", trip_purpose: "transit" }).map(rule => rule.key)).toEqual(["passport_page", "pk_passport_page_2", "onward_ticket", "home_national_id", "ksa_iqama_front", "ksa_iqama_back", "ksa_residence_proof", "ksa_absher_report"]);
   });
   it("recomputes by country, preserves common keys and never publishes an unfinished placeholder", () => {
     const old = keys("SA"); const next = keys("OM");
-    expect(next.filter(key => old.includes(key))).toEqual(["passport_page", "personal_photo", "return_ticket", "home_national_id"]);
-    const placeholder = DOCUMENT_REQUIREMENT_RULES.find(rule => rule.placeholder)!;
+    expect(next.filter(key => old.includes(key))).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "return_ticket", "home_national_id"]);
+    const placeholder = { ...DOCUMENT_REQUIREMENT_RULES[0], placeholder: true };
     expect(documentRuleSchema.safeParse({ ...placeholder, status: "approved" }).success).toBe(false);
   });
 });

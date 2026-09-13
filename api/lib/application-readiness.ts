@@ -1,5 +1,6 @@
 import { loadTripPurposes } from "./customer/trip-purpose";
-import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
+import { requiredDocuments } from "../../contracts/document-requirement-engine";
+import { loadOwnerDocumentEvidence, projectOwnerDocuments } from "./customer/owner-document-evidence";
 import { and, eq, ne } from "drizzle-orm";
 import { applicants, applicationPriceSnapshots, applications, applicationTimelineEvents, documents } from "../../db/schema";
 import { TERMS_POLICY_VERSION } from "../../contracts/constants";
@@ -123,15 +124,14 @@ export async function getApplicationReadiness(applicationId: number, context?: T
   if (!started.length) return legacy;
   if (!context) throw new Error("Dynamic checkout requires the owned application context");
   // The owner's new form uses saved profile data and uploaded files, never legacy rule approval.
-  const links = await sql.query(`SELECT DISTINCT l.applicant_id AS applicantId,l.requirement_code AS code
-    FROM applicant_requirement_document_links l
-    JOIN documents d ON d.id=l.document_id AND d.application_id=l.application_id AND d.applicant_id=l.applicant_id
-    WHERE l.application_id=? AND d.upload_status='uploaded'`, [applicationId]);
+  const links = await loadOwnerDocumentEvidence(sql, applicationId);
   const tripPurposes = await loadTripPurposes(sql, applicationId);
-  const evidence = applicantList.map(applicant => ({ applicantId: applicant.id,
-    expected: ownerRequiredDocumentCodes(applicant.nationality, applicant.gccResidenceCountry, application.visaType, tripPurposes.get(applicant.id)),
-    documents: links.filter(row => Number(Reflect.get(row, "applicantId")) === applicant.id)
-      .map(row => ({ code: String(Reflect.get(row, "code")), state: "UPLOADED" })) }));
+  const evidence = applicantList.map(applicant => {
+    const rules = requiredDocuments({ nationality: applicant.nationality, country_of_residence: applicant.gccResidenceCountry,
+      visa_type: application.visaType, trip_purpose: tripPurposes.get(applicant.id) });
+    return { applicantId: applicant.id, expected: rules.map(rule => rule.code),
+      documents: projectOwnerDocuments(rules, links, applicant.id).map(item => ({ code: item.requirementCode, state: item.state })) };
+  });
   return evaluateInterviewReadiness({ legacy, application, applicants: applicantList, evidence, relationshipsComplete: true });
 }
 

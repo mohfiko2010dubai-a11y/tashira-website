@@ -1,3 +1,4 @@
+import { DocumentChoiceUpload } from "./DocumentChoiceUpload";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { OWNER_DOCUMENTS } from "@contracts/owner-document-requirements";
@@ -11,12 +12,14 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
   const { i18n } = useTranslation();
   const ar = (i18n.language ?? "en").startsWith("ar");
   const [selected, setSelected] = useState<Record<string, File | undefined>>({});
+  const [selectedRequirements, setSelectedRequirements] = useState<Record<string, PartyRequirementReadiness>>({});
   const [uploading, setUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<Record<string, DocumentUploadProgress | undefined>>({});
   const upload = async (requirement: PartyRequirementReadiness, file: File) => {
     const key = `${requirement.applicantId}:${requirement.requirementCode}`;
     setSelected(current => ({ ...current, [key]: file }));
+    setSelectedRequirements(current => ({ ...current, [key]: requirement }));
     setUploadErrors(current => ({ ...current, [key]: "" }));
     const fail = (message: string) => setUploadErrors(current => ({ ...current, [key]: documentUploadError(message, ar) }));
     if (file.size === 0 || file.size > MAX_DOCUMENT_FILE_SIZE) { fail(DOCUMENT_SIZE_GUIDANCE); return; }
@@ -47,10 +50,11 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
           return <div key={key} className="rounded-xl bg-slate-50 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{label}</strong>
             <span className={`rounded-full px-2 py-1 text-xs font-semibold ${complete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{complete ? (ar ? "تم الاستلام" : "Received") : newlyRequiredCodes.includes(requirement.requirementCode) ? (ar ? "مطلوب بعد تحديث البيانات" : "Newly required after your changes") : (ar ? "مطلوب" : "Needed")}</span></div>
             {definition && <p className="mt-1 text-sm text-slate-600">{ar ? definition.hintAr : definition.hintEn}</p>}
-            {!complete && <div className="mt-3 flex flex-wrap items-center gap-2"><input type="file" aria-label={label} accept={DOCUMENT_INPUT_ACCEPT} disabled={busy || uploading}
-              onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(requirement, file); }} className="max-w-full text-sm" />
+            {!complete && <div className="mt-3 flex flex-wrap items-center gap-2">{definition?.rule.any_of || definition?.rule.all_of ? <DocumentChoiceUpload rule={definition.rule} ar={ar} disabled={busy || uploading} uploadedCodes={requirement.uploadedCodes ?? []}
+              onUpload={(leaf, file) => { void upload({ ...requirement, documentKey: leaf.key, documentType: leaf.document_type }, file); }} /> : <input type="file" aria-label={label} accept={DOCUMENT_INPUT_ACCEPT} disabled={busy || uploading}
+              onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(requirement, file); }} className="max-w-full text-sm" />}
               {selected[key] && uploadErrors[key] && <button type="button" disabled={busy || uploading} className="rounded-lg bg-[#cda64f] px-3 py-2 text-sm font-semibold disabled:opacity-50"
-                onClick={() => { const file = selected[key]; if (file) void upload(requirement, file); }}>{ar ? "إعادة محاولة الرفع" : "Retry upload"}</button>}</div>}
+                onClick={() => { const file = selected[key]; if (file) void upload(selectedRequirements[key] ?? requirement, file); }}>{ar ? "إعادة محاولة الرفع" : "Retry upload"}</button>}</div>}
             {progress[key] && <div className="mt-3" role="status" aria-live="polite">
               <p className="text-sm">{progress[key]?.phase === "uploading"
                 ? (ar ? `جارٍ الرفع ${progress[key]?.percent ?? ""}%` : `Uploading ${progress[key]?.percent ?? ""}%`)

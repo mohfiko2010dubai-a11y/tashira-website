@@ -1,3 +1,4 @@
+export const DISTINCT_DOCUMENT_MESSAGE = "This file is already used for the residence proof or separate Absher report. Upload a different document for this requirement.";
 export const MAX_DOCUMENT_FILE_SIZE = 20 * 1024 * 1024;
 export const DOCUMENT_INPUT_ACCEPT = ".pdf,.jpg,.jpeg,.png,.heic,.heif,application/pdf,image/jpeg,image/png,image/heic,image/heif";
 export const PHOTO_CONVERSION_GUIDANCE = "We could not read this photo. On iPhone, open Settings > Camera > Formats and choose 'Most Compatible', then take the photo again.";
@@ -19,6 +20,7 @@ export function documentMimeType(mimeType: string, fileName: string): string {
 }
 
 export function documentUploadError(message: string, ar: boolean): string {
+  if (message === DISTINCT_DOCUMENT_MESSAGE) return ar ? "هذا الملف مستخدم لإثبات الإقامة أو تقرير أبشر المنفصل. ارفع مستندًا مختلفًا لهذا المتطلب." : message;
   if (!ar) return [PHOTO_CONVERSION_GUIDANCE, UNSUPPORTED_DOCUMENT_GUIDANCE, DOCUMENT_SIZE_GUIDANCE].includes(message) ? message : UPLOAD_RETRY_GUIDANCE;
   if (message === PHOTO_CONVERSION_GUIDANCE) return "تعذر قراءة الصورة. على آيفون، افتح الإعدادات > الكاميرا > التنسيقات واختر «الأكثر توافقًا»، ثم التقط الصورة مرة أخرى.";
   if (message === UNSUPPORTED_DOCUMENT_GUIDANCE) return "نوع الملف غير مدعوم. اختر ملف PDF أو JPG أو PNG أو HEIC أو HEIF. على آيفون، يمكنك اختيار «الأكثر توافقًا» من الإعدادات > الكاميرا > التنسيقات ثم التقاط الصورة مجددًا.";

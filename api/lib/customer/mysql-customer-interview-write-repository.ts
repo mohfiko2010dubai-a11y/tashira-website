@@ -1,3 +1,6 @@
+import { requiredDocuments, documentLeaves, requirementSatisfied } from "../../../contracts/document-requirement-engine";
+import { loadOwnerDocumentEvidence, assertDistinctDocument } from "./owner-document-evidence";
+import type { OperationsSqlClient } from "../operations/mysql-access-provider";
 import { createHash, randomUUID } from "node:crypto";
 import { tripPurposeSchema, type TripPurpose } from "../../../contracts/document-requirement-engine";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
@@ -322,11 +325,11 @@ export class MysqlCustomerInterviewWriteRepository {
     });
   }
 
-  async linkRequirementDocument(input: { applicationId: number; applicantId: number; requirementCode: string; documentId: number;
+  async linkRequirementDocument(input: { documentKey?: string; ownerDocuments?: boolean; applicationId: number; applicantId: number; requirementCode: string; documentId: number;
     actorReference: string; idempotencyKey: string; occurredAt: Date }): Promise<{ requirementInstanceId: string; documentId: number;
       replayed: boolean }> {
     const commandSha256 = digest({ type: "LINK_REQUIREMENT_DOCUMENT", applicationId: input.applicationId,
-      applicantId: input.applicantId, requirementCode: input.requirementCode, documentId: input.documentId });
+      applicantId: input.applicantId, requirementCode: input.requirementCode, documentId: input.documentId, ...(input.documentKey ? { documentKey: input.documentKey } : {}) });
     return transaction(this.pool, async (connection) => {
       const [applications] = await connection.execute<RowDataPacket[]>("SELECT id FROM applications WHERE id=? FOR UPDATE", [input.applicationId]);
       if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
@@ -343,30 +346,51 @@ export class MysqlCustomerInterviewWriteRepository {
         LIMIT 1 FOR UPDATE`, [input.applicationId, input.applicantId, input.requirementCode]);
       const requirement = requirements[0];
       if (!requirement) throw new Error("CUSTOMER_REQUIREMENT_CURRENT_INSTANCE_MISSING");
-      const [documents] = await connection.execute<RowDataPacket[]>(`SELECT id FROM documents
+      const [documents] = await connection.execute<RowDataPacket[]>(`SELECT id,storage_path AS storagePath FROM documents
         WHERE id=? AND application_id=? AND applicant_id=? AND upload_status='uploaded' FOR UPDATE`,
       [input.documentId, input.applicationId, input.applicantId]);
       if (!documents[0]) throw new Error("CUSTOMER_REQUIREMENT_DOCUMENT_OWNERSHIP_INVALID");
+      const sql: OperationsSqlClient = { query: async (query, parameters = []) => {
+        const [rows] = await connection.execute<RowDataPacket[]>(query, [...parameters]); return rows;
+      } };
+      const evidence = input.ownerDocuments ? await loadOwnerDocumentEvidence(sql, input.applicationId) : [];
+      const [profiles] = input.ownerDocuments ? await connection.execute<RowDataPacket[]>(`SELECT a.nationality,
+        a.gcc_residence_country AS residenceCountry,app.visa_type AS visaType,
+        (SELECT JSON_UNQUOTE(JSON_EXTRACT(e.profile_json,'$.tripPurpose')) FROM customer_interview_profile_events e
+          WHERE e.application_id=a.application_id AND e.applicant_id=a.id ORDER BY e.profile_version DESC LIMIT 1) AS tripPurpose
+        FROM applicants a JOIN applications app ON app.id=a.application_id WHERE a.id=? AND a.application_id=?`,
+      [input.applicantId, input.applicationId]) : [[]];
+      const profile = profiles[0];
+      const rules = profile ? requiredDocuments({ nationality: String(profile.nationality ?? ""),
+        country_of_residence: String(profile.residenceCountry ?? ""), visa_type: String(profile.visaType),
+        trip_purpose: tripPurposeSchema.safeParse(profile.tripPurpose).data }) : [];
+      const rule = rules.find(item => item.code === input.requirementCode);
+      if (input.ownerDocuments && !rule) throw new Error("CUSTOMER_REQUIREMENT_NO_LONGER_APPLIES");
+      const leaf = rule ? documentLeaves(rule).find(item => input.documentKey ? item.key === input.documentKey : item.key === rule.key) : undefined;
+      if (rule && !leaf) throw new Error("CUSTOMER_REQUIREMENT_CHOOSE_DOCUMENT_OPTION");
+      const linkedCode = leaf?.code ?? input.requirementCode;
+      if (rule) await assertDistinctDocument(rule, rules, { applicantId: input.applicantId, code: linkedCode,
+        documentId: input.documentId, storagePath: String(documents[0].storagePath) }, evidence);
       const requirementInstanceId = String(requirement.id);
       const [existing] = await connection.execute<RowDataPacket[]>(`SELECT id FROM applicant_requirement_document_links
         WHERE requirement_instance_id=? AND document_id=? LIMIT 1`, [requirementInstanceId, input.documentId]);
       if (existing[0]) return { requirementInstanceId, documentId: input.documentId, replayed: true };
       const evidenceSha256 = digest({ applicationId: input.applicationId, applicantId: input.applicantId,
-        requirementInstanceId, requirementCode: input.requirementCode, documentId: input.documentId });
+        requirementInstanceId, requirementCode: input.requirementCode, documentId: input.documentId, documentKey: leaf?.key });
       await connection.execute(`INSERT INTO applicant_requirement_document_links
         (id,application_id,applicant_id,requirement_instance_id,document_id,requirement_code,evidence_sha256,actor_reference,linked_at)
         VALUES (?,?,?,?,?,?,?,?,?)`, [randomUUID(), input.applicationId, input.applicantId, requirementInstanceId, input.documentId,
-        input.requirementCode, evidenceSha256, input.actorReference, input.occurredAt]);
+        linkedCode, evidenceSha256, input.actorReference, input.occurredAt]);
       const [currentEvents] = await connection.execute<RowDataPacket[]>(`SELECT state FROM applicant_requirement_events
         WHERE requirement_instance_id=? ORDER BY occurred_at DESC,id DESC LIMIT 1`, [requirementInstanceId]);
-      if (String(currentEvents[0]?.state ?? "") !== "UPLOADED") await connection.execute(`INSERT INTO applicant_requirement_events
+      if ((!rule || requirementSatisfied(rule, new Set([...evidence.filter(row => row.applicantId === input.applicantId).map(row => row.code), linkedCode]))) && String(currentEvents[0]?.state ?? "") !== "UPLOADED") await connection.execute(`INSERT INTO applicant_requirement_events
         (id,requirement_instance_id,state,reason,actor_reference,occurred_at) VALUES (?,?,'UPLOADED',?,?,?)`,
       [randomUUID(), requirementInstanceId, "Customer uploaded the required document", input.actorReference, input.occurredAt]);
       await connection.execute(`INSERT INTO customer_interview_command_events
         (id,application_id,command_type,entity_reference,entity_version,command_sha256,evidence_json,idempotency_key,actor_reference,occurred_at)
         VALUES (?,?,'LINK_REQUIREMENT_DOCUMENT',?,NULL,?,?,?,?,?)`, [randomUUID(), input.applicationId, requirementInstanceId,
         commandSha256, JSON.stringify({ applicantId: input.applicantId, requirementCode: input.requirementCode,
-          documentId: input.documentId, evidenceSha256 }), input.idempotencyKey, input.actorReference, input.occurredAt]);
+          documentId: input.documentId, documentKey: leaf?.key, linkedCode, evidenceSha256 }), input.idempotencyKey, input.actorReference, input.occurredAt]);
       return { requirementInstanceId, documentId: input.documentId, replayed: false };
     });
   }
