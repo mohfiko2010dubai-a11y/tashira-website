@@ -1,3 +1,4 @@
+import { isHeldPublicPage, registerHeldPublicPages } from "./lib/held-public-pages";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { HttpBindings } from "@hono/node-server";
@@ -445,12 +446,15 @@ app.get("/sitemap.xml", async (c) => {
     contentRows = [];
   }
   const urls = [
-    ...staticPaths.map((p) => `  <url><loc>${base}${p}</loc><changefreq>weekly</changefreq></url>`),
-    ...contentRows.map((row) => `  <url><loc>${base}/${row.slug}</loc><lastmod>${new Date(row.updatedAt).toISOString().slice(0, 10)}</lastmod><changefreq>weekly</changefreq></url>`),
+    ...staticPaths.filter(p => !isHeldPublicPage(p)).map((p) => `  <url><loc>${base}${p}</loc><changefreq>weekly</changefreq></url>`),
+    ...contentRows.filter(row => !isHeldPublicPage(`/${row.slug}`)).map((row) => `  <url><loc>${base}/${row.slug}</loc><lastmod>${new Date(row.updatedAt).toISOString().slice(0, 10)}</lastmod><changefreq>weekly</changefreq></url>`),
   ];
   c.header("Content-Type", "application/xml; charset=utf-8");
   return c.body(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`);
 });
+
+// Hold unpublished landing pages before CMS redirects and the SPA fallback.
+registerHeldPublicPages(app);
 
 // ===== CMS-managed safe same-site redirects =====
 app.use("*", async (c, next) => {

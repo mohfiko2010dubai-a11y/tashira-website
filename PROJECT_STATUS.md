@@ -1,3 +1,7 @@
+## 2026-09-13 held landing 404 hotfix - ready for staging
+
+Owner directs /uae-visa and /dubai-visa held until bilingual content exists. Confirmed browser HTML requests currently return empty SPA with 200. Separate hotfix returns 404 before CMS redirects/SPA and excludes held paths from sitemap even if records appear. Local check/lint/build pass; 927 tests pass, 26 gated skips. Old unrelated uncommitted work remains untouched. This does not deploy SSR Phase 1 or metadata pending owner review.
+
 ## 2026-09-13 TASK 6 - deployed and live verified
 
 Staging dd50f5722f5d07acd637f1f404772966991a7969; local/public health 200. Server check/lint/build and 920 tests pass, 26 gated skips; built marketing claim scan PASS. Live EN/AR homepage shows four approved service commitments, no fabricated reviews or removed claims, and functioning eligibility anchor/pre-check link. Default testimonial source is empty, file-backed and published-only. Desktop/tablet/Arabic-mobile checks pass. Production untouched. Evidence: output/task6-claims-20260913/REVIEW.md.
