@@ -26,3 +26,7 @@ TypeScript project check, lint and production client/SSR/API build pass. 1018 te
 5. A family traveller with no nationality: Save & continue in the context editor highlights and focuses Nationality with an inline message and summary. Selecting nationality clears its error.
 
 Live post-deployment evidence is appended after verification.
+
+## Staging result
+
+Deployed c2888446e073d410abb60d32fb0cc34f51a81edb. Guard check/lint/test/build PASS, local/public health 200. Four reproduction cases pass again; traveller summary is 52px above the actual submit button and clears on correction. Synthetic details persist after changing only expiry. EN/AR family context now marks and focuses the missing nationality with linked inline text and live summary, clearing on correction. Pre-check first-invalid focus and guidance pass. See NEXT1_VALIDATION_UAT.json.

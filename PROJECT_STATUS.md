@@ -1,3 +1,7 @@
+# Next task 1 validation verified — 2026-09-13
+
+Original four silent-validation cases already worked. Verified and fixed two remaining gaps: traveller error summary now beside the real footer submit button; family context now has inline/ARIA/focus feedback for missing countries. Deployed c2888446e073d410abb60d32fb0cc34f51a81edb; all four cases, pre-check and EN/AR family correction pass live. Rules unchanged. Check/lint/build and 1018 tests pass, 26 gated skips. See staging/NEXT1_VALIDATION.md and NEXT1_VALIDATION_UAT.json.
+
 # Task 12 pre-check verified on isolated staging — 2026-09-13
 
 Deployed ced7aa5b50c9d03791d29da89714366707bea83a. Shared governed ISO pickers and exact wizard document union/grouping; eight PK/SA files in six cards, optional flight information excluded from counts/gates. Removed age, ticket status and GCC checkbox; no new question, purpose visibly derived as tourism/transit. Four-answer handoff survives reload and creates a matching synthetic server application. EN/AR mobile and desktop pass; 64 live public-route/language/viewport heading checks pass. Check/lint/build and 1018 tests pass, 26 environment-gated skips. See staging/TASK12_PRECHECK.md and TASK12_UAT.json. Production and 15 unrelated dirty files preserved.

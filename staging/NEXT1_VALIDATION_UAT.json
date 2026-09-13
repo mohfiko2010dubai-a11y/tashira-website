@@ -1,0 +1,650 @@
+{
+  "deployedSha": "c2888446e073d410abb60d32fb0cc34f51a81edb",
+  "before": {
+    "empty": {
+      "invalid": [
+        {
+          "key": "email",
+          "focused": true,
+          "y": 446,
+          "messages": [
+            "⚠ Enter the email address where we should send your visa."
+          ]
+        },
+        {
+          "key": "phone",
+          "focused": false,
+          "y": 576,
+          "messages": [
+            "⚠ Enter a phone number with 7 to 15 digits. You may include +, spaces, brackets or hyphens."
+          ]
+        }
+      ],
+      "summaries": [
+        {
+          "text": "Your documents: 3 filesPassport main data page — photo and personal dataRecent personal photoOman Resident Card / بطاقة مقيم",
+          "y": -1180
+        },
+        {
+          "text": "Regular service × 1$185.00",
+          "y": 883
+        },
+        {
+          "text": "2 fields need attention. Check the messages beside the fields.",
+          "y": 1020
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Continue →",
+          "y": 1076
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "malformed": {
+      "invalid": [
+        {
+          "key": "email",
+          "focused": true,
+          "y": 446,
+          "messages": [
+            "⚠ This email address is not valid. Check for a typo."
+          ]
+        },
+        {
+          "key": "phone",
+          "focused": false,
+          "y": 576,
+          "messages": [
+            "⚠ Enter a phone number with 7 to 15 digits. You may include +, spaces, brackets or hyphens."
+          ]
+        }
+      ],
+      "summaries": [
+        {
+          "text": "Your documents: 3 filesPassport main data page — photo and personal dataRecent personal photoOman Resident Card / بطاقة مقيم",
+          "y": -1180
+        },
+        {
+          "text": "Regular service × 1$185.00",
+          "y": 883
+        },
+        {
+          "text": "2 fields need attention. Check the messages beside the fields.",
+          "y": 1020
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Continue →",
+          "y": 1076
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "correctedContact": {
+      "invalid": [],
+      "summaries": [
+        {
+          "text": "Your documents: 3 filesPassport main data page — photo and personal dataRecent personal photoOman Resident Card / بطاقة مقيم",
+          "y": -1180
+        },
+        {
+          "text": "Regular service × 1$185.00",
+          "y": 803
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Continue →",
+          "y": 940
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "reference": "TSH-MU06WCEF-5CB9F0",
+    "expiry": {
+      "invalid": [
+        {
+          "key": "passportExpiry",
+          "focused": true,
+          "y": 448,
+          "messages": [
+            "Passport must be valid until at least 2027-03-13 (six months from arrival, or today if no arrival date is entered).",
+            "⚠ Passport must be valid until at least 2027-03-13. Enter a passport with a later expiry date."
+          ]
+        }
+      ],
+      "summaries": [
+        {
+          "text": "1 field needs attention. Check the message beside the field.",
+          "y": 700
+        },
+        {
+          "text": "0 of 3 uploaded",
+          "y": 846
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Save & Continue →",
+          "y": 1556
+        },
+        {
+          "text": "Save & Exit",
+          "y": 1616
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "correctedExpiry": {
+      "invalid": [],
+      "summaries": [
+        {
+          "text": "0 of 3 uploaded",
+          "y": 758
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Save & Continue →",
+          "y": 1468
+        },
+        {
+          "text": "Save & Exit",
+          "y": 1528
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "documentsGate": {
+      "invalid": [],
+      "summaries": [
+        {
+          "text": "0 of 3 uploaded",
+          "y": -249
+        },
+        {
+          "text": "Documents still to upload: 3. Upload them to enable Save & Continue.",
+          "y": 449
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Save & Continue →",
+          "y": 501
+        },
+        {
+          "text": "Save & Exit",
+          "y": 561
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "saved": true,
+    "precheck": {
+      "invalid": [
+        {
+          "key": null,
+          "focused": true,
+          "y": 389,
+          "messages": [
+            "⚠ Choose your nationality from the country list."
+          ]
+        },
+        {
+          "key": null,
+          "focused": false,
+          "y": 501,
+          "messages": [
+            "The country you currently live in — not your country of citizenship.",
+            "⚠ Choose the country where you currently live."
+          ]
+        }
+      ],
+      "summaries": [
+        {
+          "text": "2 fields need attention. Choose the missing countries above.",
+          "y": 757
+        },
+        {
+          "text": "Your document checklistAnswer the questions to see your exact list — usually 6 to 9 files.This pre-check is guidance only. It is not a visa approval or a guarantee of government acceptance.",
+          "y": 918
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Check requirements",
+          "y": 817
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    }
+  },
+  "familyBefore": {
+    "invalid": 0,
+    "alerts": [
+      "Choose nationality and country of residence to continue."
+    ],
+    "summary": [
+      "",
+      "",
+      "0 of 3 uploaded",
+      "",
+      ""
+    ],
+    "focused": null
+  },
+  "after": {
+    "empty": {
+      "invalid": [
+        {
+          "key": "email",
+          "focused": true,
+          "y": 446,
+          "messages": [
+            "⚠ Enter the email address where we should send your visa."
+          ]
+        },
+        {
+          "key": "phone",
+          "focused": false,
+          "y": 576,
+          "messages": [
+            "⚠ Enter a phone number with 7 to 15 digits. You may include +, spaces, brackets or hyphens."
+          ]
+        }
+      ],
+      "summaries": [
+        {
+          "text": "Your documents: 3 filesPassport main data page — photo and personal dataRecent personal photoOman Resident Card / بطاقة مقيم",
+          "y": -1180
+        },
+        {
+          "text": "Regular service × 1$185.00",
+          "y": 883
+        },
+        {
+          "text": "2 fields need attention. Check the messages beside the fields.",
+          "y": 1020
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Continue →",
+          "y": 1076
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "malformed": {
+      "invalid": [
+        {
+          "key": "email",
+          "focused": true,
+          "y": 446,
+          "messages": [
+            "⚠ This email address is not valid. Check for a typo."
+          ]
+        },
+        {
+          "key": "phone",
+          "focused": false,
+          "y": 576,
+          "messages": [
+            "⚠ Enter a phone number with 7 to 15 digits. You may include +, spaces, brackets or hyphens."
+          ]
+        }
+      ],
+      "summaries": [
+        {
+          "text": "Your documents: 3 filesPassport main data page — photo and personal dataRecent personal photoOman Resident Card / بطاقة مقيم",
+          "y": -1180
+        },
+        {
+          "text": "Regular service × 1$185.00",
+          "y": 883
+        },
+        {
+          "text": "2 fields need attention. Check the messages beside the fields.",
+          "y": 1020
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Continue →",
+          "y": 1076
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "correctedContact": {
+      "invalid": [],
+      "summaries": [
+        {
+          "text": "Your documents: 3 filesPassport main data page — photo and personal dataRecent personal photoOman Resident Card / بطاقة مقيم",
+          "y": -1180
+        },
+        {
+          "text": "Regular service × 1$185.00",
+          "y": 803
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Continue →",
+          "y": 940
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "reference": "TSH-MU07FUB4-8308AE",
+    "expiry": {
+      "invalid": [
+        {
+          "key": "passportExpiry",
+          "focused": true,
+          "y": 448,
+          "messages": [
+            "Passport must be valid until at least 2027-03-13 (six months from arrival, or today if no arrival date is entered).",
+            "⚠ Passport must be valid until at least 2027-03-13. Enter a passport with a later expiry date."
+          ]
+        }
+      ],
+      "summaries": [
+        {
+          "text": "0 of 3 uploaded",
+          "y": 794
+        },
+        {
+          "text": "1 field needs attention. Check the message beside the field.",
+          "y": 1492
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Save & Continue →",
+          "y": 1544
+        },
+        {
+          "text": "Save & Exit",
+          "y": 1604
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "correctedExpiry": {
+      "invalid": [],
+      "summaries": [
+        {
+          "text": "0 of 3 uploaded",
+          "y": 746
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Save & Continue →",
+          "y": 1456
+        },
+        {
+          "text": "Save & Exit",
+          "y": 1516
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "documentsGate": {
+      "invalid": [],
+      "summaries": [
+        {
+          "text": "0 of 3 uploaded",
+          "y": -249
+        },
+        {
+          "text": "Documents still to upload: 3. Upload them to enable Save & Continue.",
+          "y": 449
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Save & Continue →",
+          "y": 513
+        },
+        {
+          "text": "Save & Exit",
+          "y": 573
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "saved": true,
+    "precheck": {
+      "invalid": [
+        {
+          "key": null,
+          "focused": true,
+          "y": 389,
+          "messages": [
+            "⚠ Choose your nationality from the country list."
+          ]
+        },
+        {
+          "key": null,
+          "focused": false,
+          "y": 501,
+          "messages": [
+            "The country you currently live in — not your country of citizenship.",
+            "⚠ Choose the country where you currently live."
+          ]
+        }
+      ],
+      "summaries": [
+        {
+          "text": "2 fields need attention. Choose the missing countries above.",
+          "y": 757
+        },
+        {
+          "text": "Your document checklistAnswer the questions to see your exact list — usually 6 to 9 files.This pre-check is guidance only. It is not a visa approval or a guarantee of government acceptance.",
+          "y": 918
+        }
+      ],
+      "button": [
+        {
+          "text": "",
+          "y": 24
+        },
+        {
+          "text": "Check requirements",
+          "y": 817
+        },
+        {
+          "text": "",
+          "y": 782
+        },
+        {
+          "text": "",
+          "y": 770
+        }
+      ]
+    },
+    "summaryDistance": 52
+  },
+  "familyAfter": {
+    "en": {
+      "invalid": [
+        {
+          "focused": true,
+          "label": "Nationality",
+          "messages": [
+            "⚠ No valid Nationality is selected. Choose an option to continue."
+          ]
+        }
+      ],
+      "summary": [
+        "1 field needs attention. Check the message beside the field.",
+        "0 of 3 uploaded"
+      ],
+      "clearedOnCorrection": true
+    },
+    "ar": {
+      "invalid": [
+        {
+          "focused": true,
+          "label": "الجنسية",
+          "messages": [
+            "⚠ لم يتم اختيار الجنسية صالح. اختر أحد الخيارات للمتابعة."
+          ]
+        }
+      ],
+      "summary": [
+        "حقل واحد يحتاج إلى مراجعة. تحقّق من الرسالة بجواره.",
+        "0 من 3 مرفوعة"
+      ],
+      "clearedOnCorrection": true
+    }
+  }
+}
