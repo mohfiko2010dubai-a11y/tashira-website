@@ -78,6 +78,10 @@ export const uploadQuery = t.procedure.use(rateLimit("upload", 10));
 export const applicationUploadQuery = scopedProcedure
   .use(requireApplicationAccess)
   .use(rateLimit("upload", 10));
+// A file upload and its metadata save are two requests for one file, not two uploads.
+export const applicationDocumentMetadataQuery = scopedProcedure
+  .use(requireApplicationAccess)
+  .use(rateLimit("document-metadata", 10));
 export const paymentQuery = scopedProcedure.use(rateLimit("payment", 10));
 export const securityDepositQuery = t.procedure.use(rateLimit("security-deposit", 10, 5 * 60_000));
 export const applicationSubmissionQuery = t.procedure.use(rateLimit("application", 30));

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { applicationUploadQuery, createRouter, staffOrAdminQuery } from "./middleware";
+import { applicationDocumentMetadataQuery, applicationUploadQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, documents } from "@db/schema";
 import { eq, and, ne, sql } from "drizzle-orm";
@@ -73,7 +73,7 @@ export const documentRouter = createRouter({
     }),
 
   // Create document metadata after a successful storage upload.
-  create: applicationUploadQuery
+  create: applicationDocumentMetadataQuery
     .input(z.object({
       applicationId: z.number().positive(),
       applicantId: z.number().optional(),

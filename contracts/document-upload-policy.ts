@@ -20,6 +20,7 @@ export function documentMimeType(mimeType: string, fileName: string): string {
 }
 
 export function documentUploadError(message: string, ar: boolean): string {
+  if (message === "Too many requests") return ar ? "وصلت إلى حد الرفع. انتظر دقيقة، ثم أعد محاولة رفع هذا الملف." : "Upload limit reached. Wait one minute, then retry this file.";
   if (message === DISTINCT_DOCUMENT_MESSAGE) return ar ? "هذا الملف مستخدم لإثبات الإقامة أو تقرير أبشر المنفصل. ارفع مستندًا مختلفًا لهذا المتطلب." : message;
   if (!ar) return [PHOTO_CONVERSION_GUIDANCE, UNSUPPORTED_DOCUMENT_GUIDANCE, DOCUMENT_SIZE_GUIDANCE].includes(message) ? message : UPLOAD_RETRY_GUIDANCE;
   if (message === PHOTO_CONVERSION_GUIDANCE) return "تعذر قراءة الصورة. على آيفون، افتح الإعدادات > الكاميرا > التنسيقات واختر «الأكثر توافقًا»، ثم التقط الصورة مرة أخرى.";
