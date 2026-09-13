@@ -1,3 +1,7 @@
+## 2026-09-13 TASK 6 - deployed and live verified
+
+Staging dd50f5722f5d07acd637f1f404772966991a7969; local/public health 200. Server check/lint/build and 920 tests pass, 26 gated skips; built marketing claim scan PASS. Live EN/AR homepage shows four approved service commitments, no fabricated reviews or removed claims, and functioning eligibility anchor/pre-check link. Default testimonial source is empty, file-backed and published-only. Desktop/tablet/Arabic-mobile checks pass. Production untouched. Evidence: output/task6-claims-20260913/REVIEW.md.
+
 ## 2026-09-13 TASK 6 - marketing claims ready for staging
 
 Removed unverifiable marketing figures and fabricated reviews; approved service commitments share EN/AR copy. Testimonials use an empty file-backed published-only source. Eligibility link targets the existing section. Local checks: TypeScript, lint, 920 tests passed / 26 gated skips, build and forbidden-claim output scan, desktop/tablet/Arabic-mobile browser UAT. Staging deployment and live confirmation pending.
