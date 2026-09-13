@@ -2,7 +2,7 @@
 
 The editable source is `contracts/document-requirement-rules.json`. Customer
 uploads, server evaluation, payment readiness and the Admin Visa Rules preview
-use the same engine and saved nationality/residence/visa/purpose values.
+share one engine and the saved nationality/residence/visa/purpose values.
 
 Each row contains its document key, existing storage code/type, English and
 Arabic labels and hints, `applies_when`, `status` and `placeholder`.
