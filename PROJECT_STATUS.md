@@ -1,3 +1,7 @@
+# Phase 2 staging verified - 2026-09-13
+
+Deployed 8102483fb8b54bc7304c0553ae5d15a3692af583 through staging-only guards. All 32 fixed EN/AR routes pass source/no-JS/hydration, delayed-JS Arabic first paint, mobile RTL and state-preserving language switching. Synthetic application uploads/review/reload and Arabic recovery to payment route pass. Six bilingual SSR failure probes return 200 with metadata; real missing pages return 404. TypeScript, lint, 980 tests and build pass (26 environment-gated skips). Approved metadata and 15 old dirty files preserved. HTML private/no-store; no caching or worker tuning. Measured SSR p95 736ms across 190 verification renders, dominated by worker/setup remainder. One 502 observed during PM2 restart; deployment is not zero-downtime and needs a separate proposal before ads. Production unchanged. Phase 3 remains held. See staging/SSR_PHASE2_VERIFICATION.md and output/task7-phase2.
+
 # Phase 2 language routing candidate - 2026-09-13
 
 Owner approved Phase 1 and authorized Phase 2. Clean candidate adds EN/AR server language routes, canonical/hreflang, state-preserving language navigation, logical RTL styles and render timing breakdowns. All HTML remains private/no-store; no response/data cache or worker tuning. Existing dirty work preserved byte-for-byte. Local quality/browser gates recorded in staging/SSR_PHASE2.md; guarded staging deployment and live verification pending. Phase 3 remains held.
