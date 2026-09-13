@@ -79,22 +79,6 @@
     "placeholder": false
   },
   {
-    "key": "return_ticket",
-    "code": "RETURN_TICKET",
-    "label_en": "Confirmed return or onward ticket",
-    "label_ar": "تذكرة عودة أو متابعة سفر مؤكدة",
-    "hint_en": "Upload the confirmed return or onward booking.",
-    "hint_ar": "ارفع حجز العودة أو متابعة السفر المؤكد.",
-    "document_type": "RETURN_TICKET",
-    "applies_when": {
-      "visa_category": [
-        "visit"
-      ]
-    },
-    "status": "approved",
-    "placeholder": false
-  },
-  {
     "key": "uae_accommodation",
     "code": "UAE_ACCOMMODATION",
     "label_en": "UAE accommodation booking",

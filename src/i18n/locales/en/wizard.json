@@ -117,7 +117,8 @@
     "navigation": "Application steps",
     "savedOnly": "The secure link restores details already saved to this application. Save any edits before requesting it.",
     "startBeforeSave": "Create your application in the next step to enable secure save and resume.",
-    "notReady": "Payment is available only after the server confirms all application requirements. Complete any missing details or documents."
+    "notReady": "Payment is available only after the server confirms all application requirements. Complete any missing details or documents.",
+    "matchedDocuments": "Your documents are matched to your nationality and country of residence — not a generic list."
   },
   "simple": {
     "title": "Applicant details",

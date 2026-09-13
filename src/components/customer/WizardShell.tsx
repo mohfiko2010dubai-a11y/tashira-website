@@ -11,6 +11,7 @@ export const WIZARD_STEPS = [
 interface WizardShellProps {
   currentStep: number; // 1..3
   children: ReactNode;
+  compactContent?: boolean;
 }
 
 /**
@@ -18,7 +19,7 @@ interface WizardShellProps {
  * step navigation, and the white content card. Content (each step's body)
  * is injected by the caller — this component owns presentation only.
  */
-export default function WizardShell({ currentStep, children }: WizardShellProps) {
+export default function WizardShell({ currentStep, children, compactContent = false }: WizardShellProps) {
   const { t } = useTranslation('wizard');
   const progress = (currentStep / WIZARD_STEPS.length) * 100;
 
@@ -73,7 +74,7 @@ export default function WizardShell({ currentStep, children }: WizardShellProps)
         </aside>
 
         {/* Content card */}
-        <main className="flex-1 min-w-0 rounded-2xl bg-white border border-gray-100 shadow-sm p-6 sm:p-10">
+        <main className={compactContent ? "flex-1 min-w-0" : "flex-1 min-w-0 rounded-2xl bg-white border border-gray-100 shadow-sm p-6 sm:p-10"}>
           {children}
         </main>
       </div>

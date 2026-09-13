@@ -34,7 +34,7 @@ describe("Approved nationality and residence document union: owner acceptance", 
     }
   });
   it("6: PK + SA + 30-day visit has the exact approved union and no suppressed rules", () => {
-    expect(keys("PK", "SA")).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "return_ticket", "home_national_id", ...sa]);
+    expect(keys("PK", "SA")).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "home_national_id", ...sa]);
     expect(evaluateDocumentRequirements(context).suppressed).toEqual([]);
   });
   it("7: either proof option completes one slot, and the separate report remains required", () => {
@@ -48,13 +48,13 @@ describe("Approved nationality and residence document union: owner acceptance", 
   });
   it("8: Qatar and Oman each add their own single residence slot, Bahrain its report", () => {
     for (const [country, key] of [["QA", "qat_residence_card"], ["OM", "omn_residence_card"], ["BH", "bhr_permit_report"]]) {
-      expect(keys("EG", country)).toEqual(["passport_page", "personal_photo", "return_ticket", key]);
+      expect(keys("EG", country)).toEqual(["passport_page", "personal_photo", key]);
     }
     expect(rule("omn_residence_card").label_en).toMatch(/Resident Card/);
     expect(rule("omn_residence_card").label_ar).toContain("بطاقة مقيم");
   });
   it("9: a pair without special rules has a nonempty base set", () => {
-    expect(keys("EG", "AE")).toEqual(["passport_page", "personal_photo", "return_ticket"]);
+    expect(keys("EG", "AE")).toEqual(["passport_page", "personal_photo"]);
   });
   it("10: duplicate keys from overlapping rule groups result in one slot", () => {
     const passport = rule("passport_page");

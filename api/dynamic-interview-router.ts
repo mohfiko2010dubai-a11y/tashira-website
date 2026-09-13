@@ -25,6 +25,8 @@ import type { EligibilityRule } from "./lib/eligibility/eligibility-engine";
 import type { QuestionCatalogDefinition, RequirementCatalogDefinition, VersionedRequirementCatalog } from "./lib/requirements/requirement-catalog";
 import { isNationalityCode, NATIONALITY_CATALOG } from "./lib/requirements/nationality-catalog";
 import { applicationAccessQuery, createRouter, publicQuery } from "./middleware";
+import { evaluateEligibility } from "./lib/eligibility/eligibility-engine";
+import { applyOwnerDocumentRequirements } from "./lib/customer/owner-document-policy";
 import { withOwnerDocumentCatalog } from "./lib/customer/owner-document-policy";
 
 /** Question codes whose answer must be a governed ISO 3166-1 alpha-2 nationality/country code. */
@@ -32,7 +34,7 @@ const NATIONALITY_QUESTION_CODES: ReadonlySet<string> = new Set(["NATIONALITY", 
 const governedCountryCodeSchema = z.string().trim().length(2).refine(isNationalityCode, "Select a country from the governed catalog");
 
 type ApplicationInterviewRecord = { applicationId: number; referenceNumber: string; routeCode: string; applicantIds: readonly number[];
-  residenceType?: string; baseType?: string; arrivalDate?: string | null;
+  contactEmail?: string; residenceType?: string; baseType?: string; arrivalDate?: string | null;
   applicantLabels: Readonly<Record<number, string>>; applicants: readonly { applicantId: number; applicantIndex: number; fullName: string;
     nationality: string | null; residenceCountry: string | null; tripPurpose?: TripPurpose; profileVersion: number; passportNumber?: string | null; passportExpiry?: string | null; profession?: string | null }[] };
 const travelGroupInputSchema = z.object({ reference: z.string().trim().min(1).max(100), applicantIds: z.array(z.number().int().positive()).min(1).max(50),
@@ -139,7 +141,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     }
     const documentEvidence = ownerForm && deps.loadDocumentEvidence ? await deps.loadDocumentEvidence(application.applicationId) : [];
     return { application, context, flags, ownerForm, partyBundle, catalogVersion: catalog.catalogVersion, questions, requirements, rules, events,
-      state: { ...interview, applicationContext: { visaType: application.routeCode, baseType: application.baseType, residenceType: application.residenceType, arrivalDate: application.arrivalDate }, currentApplicant: applicantId === null ? null
+      state: { ...interview, applicationContext: { contactEmail: application.contactEmail, visaType: application.routeCode, baseType: application.baseType, residenceType: application.residenceType, arrivalDate: application.arrivalDate }, currentApplicant: applicantId === null ? null
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
       review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
         label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) },
@@ -196,6 +198,39 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       nationalities: NATIONALITY_CATALOG,
     })),
     current: applicationAccessQuery.input(referenceInput).query(({ input, ctx }) => readState(ctx, input.referenceNumber, "current")),
+    /** Prepare document instances from saved context only. This never completes the traveller form. */
+    prepareDocumentUploads: applicationAccessQuery.input(referenceInput.extend({ applicantId: z.number().int().positive(), submissionId: z.string().uuid() })).mutation(async ({ input, ctx }) => {
+      const runtime = await state(ctx, input.referenceNumber);
+      const applicant = runtime.application.applicants.find(item => item.applicantId === input.applicantId);
+      if (!applicant) throw new TRPCError({ code: "FORBIDDEN", message: "Applicant access denied" });
+      if (!runtime.ownerForm || !deps.persistCompletedEvaluations || !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Document uploads unavailable" });
+      }
+      if (!applicant.nationality || !applicant.residenceCountry) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose nationality and country of residence to see your documents." });
+      const evaluatedAt = deps.now();
+      const profile = { routeCode: runtime.application.routeCode, attributes: { nationality: applicant.nationality,
+        residenceCountry: applicant.residenceCountry, tripPurpose: applicant.tripPurpose ?? "tourism" } };
+      const result = applyOwnerDocumentRequirements(evaluateEligibility({ profile, rules: [], evaluatedAt }), profile, evaluatedAt);
+      await deps.persistCompletedEvaluations({ applicationId: runtime.application.applicationId, catalogVersion: runtime.catalogVersion,
+        evaluations: [{ applicantId: applicant.applicantId, selectedRoute: runtime.application.routeCode, result }],
+        triggerEventId: `document-upload:${input.submissionId}`, actorReference: `customer:${input.referenceNumber}`,
+        reason: "CUSTOMER_DOCUMENT_UPLOAD_PREPARATION", evaluatedAt });
+      return { prepared: true };
+    }),
+    editDocumentContext: applicationAccessQuery.input(referenceInput.extend({ applicantId: z.number().int().positive(),
+      expectedVersion: z.number().int().positive(), nationality: governedCountryCodeSchema, residenceCountry: governedCountryCodeSchema,
+      tripPurpose: tripPurposeSchema, idempotencyKey: z.string().uuid() })).mutation(async ({ input, ctx }) => {
+      const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
+      const applicant = application.applicants.find(item => item.applicantId === input.applicantId);
+      if (!applicant) throw new TRPCError({ code: "FORBIDDEN", message: "Applicant access denied" });
+      if (context.environment !== "STAGING" || !application.baseType || !deps.editApplicant || !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Applicant changes unavailable" });
+      }
+      await deps.editApplicant({ applicationId: application.applicationId, applicantId: applicant.applicantId, expectedVersion: input.expectedVersion,
+        profile: { fullName: applicant.fullName, nationality: input.nationality, residenceCountry: input.residenceCountry, tripPurpose: input.tripPurpose },
+        reason: "Customer edited step one document context", actorReference: `customer:${input.referenceNumber}`, idempotencyKey: input.idempotencyKey, occurredAt: deps.now() });
+      return (await state(ctx, input.referenceNumber)).state;
+    }),
     completeForm: applicationAccessQuery.input(referenceInput.extend({ submissionId: z.string().uuid(), applicantId: z.number().int().positive().optional() })).mutation(async ({ input, ctx }) => {
       const runtime = await state(ctx, input.referenceNumber);
       const target = input.applicantId === undefined ? null : runtime.application.applicants.find(applicant => applicant.applicantId === input.applicantId);
@@ -429,14 +464,14 @@ function interviewEvaluationProvider() { return interviewEvaluations ??= new Mys
 export const dynamicInterviewRouter = createDynamicInterviewRouter({
   flagContextForContext: (ctx) => accessProvider().flagContextForContext(ctx), flagsForContext: () => accessProvider().featureFlags(),
   loadApplication: async (referenceNumber) => {
-    const applicationRows = await sql.query("SELECT id,reference_number AS referenceNumber,visa_type AS routeCode,base_type AS baseType,residence_type AS residenceType,arrival_date AS arrivalDate FROM applications WHERE reference_number=?", [referenceNumber]);
+    const applicationRows = await sql.query("SELECT id,reference_number AS referenceNumber,visa_type AS routeCode,base_type AS baseType,residence_type AS residenceType,arrival_date AS arrivalDate,contact_email AS contactEmail FROM applications WHERE reference_number=?", [referenceNumber]);
     const row = applicationRows[0]; if (!row) return null; const applicationId = Number(Reflect.get(row, "id"));
     const applicantRows = await sql.query(`SELECT id,applicant_index AS applicantIndex,full_name AS fullName,nationality,
       gcc_residence_country AS residenceCountry,profile_version AS profileVersion,passport_number AS passportNumber,passport_expiry AS passportExpiry,profession FROM applicants WHERE application_id=? ORDER BY applicant_index,id`, [applicationId]);
     const tripPurposes = await loadTripPurposes(sql, applicationId);
     const applicantIds = applicantRows.map((applicant) => Number(Reflect.get(applicant, "id")));
     return { applicationId, referenceNumber: String(Reflect.get(row, "referenceNumber")), routeCode: String(Reflect.get(row, "routeCode")),
-      baseType: String(Reflect.get(row, "baseType")), residenceType: String(Reflect.get(row, "residenceType")),
+      contactEmail: String(Reflect.get(row, "contactEmail") ?? ""), baseType: String(Reflect.get(row, "baseType")), residenceType: String(Reflect.get(row, "residenceType")),
       arrivalDate: Reflect.get(row, "arrivalDate") == null ? null : String(Reflect.get(row, "arrivalDate")),
       applicantIds, applicants: applicantRows.map((applicant) => ({ applicantId: Number(Reflect.get(applicant, "id")),
         applicantIndex: Number(Reflect.get(applicant, "applicantIndex")), fullName: String(Reflect.get(applicant, "fullName") ?? ""),

@@ -2,6 +2,7 @@ import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requi
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { TravellerContext } from "@/components/customer/TravellerContext";
 import { Check } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
 import { documentUploadClient } from "@/lib/document-upload-client";
@@ -34,6 +35,9 @@ export default function DynamicApplication() {
   const query = trpc.dynamicInterview.current.useQuery({ referenceNumber }, { enabled: referenceNumber.length >= 3, retry: false });
   const [phase, setPhase] = useState<3 | 4 | 5 | null>(null);
   const [activeTravellerId, setActiveTravellerId] = useState<number | null>(null);
+  const [editingContext, setEditingContext] = useState(false);
+  const prepareUploadMutation = trpc.dynamicInterview.prepareDocumentUploads.useMutation();
+  const editContextMutation = trpc.dynamicInterview.editDocumentContext.useMutation();
   const [formSaving, setFormSaving] = useState(false);
   const [documentAttempt, setDocumentAttempt] = useState(0);
   const [reviewAttempt, setReviewAttempt] = useState(0);
@@ -83,10 +87,11 @@ export default function DynamicApplication() {
   const currentQuestionTravellerId = question?.applicantId ?? null;
   const activeId = activeTravellerId ?? travellers[0]?.applicantId ?? -1;
   const activeIndex = Math.max(0, travellers.findIndex((tr) => tr.applicantId === activeId));
-  const activeTraveller = travellers[activeIndex] ?? travellers[0];
+  const activeProfile = state.partySetup?.applicants.find(item => item.applicantId === activeId);
+  const contextOpen = editingContext || Boolean(activeProfile && (!activeProfile.nationality || !activeProfile.residenceCountry));
 
 
-  const saveApplicantForm = async (applicantId: number, submission: ApplicantFormSubmission) => {
+  const saveApplicantForm = async (applicantId: number, submission: ApplicantFormSubmission, continueAfter: boolean) => {
     setFormSaving(true);
     try {
     const applicant = state.partySetup?.applicants.find(item => item.applicantId === applicantId);
@@ -119,6 +124,15 @@ export default function DynamicApplication() {
       setPhase(4);
     } else { setActiveTravellerId(applicantId); setPhase(3); }
     await refreshState();
+    if (!continueAfter) return;
+    const latestState = (await query.refetch()).data;
+    const latestRequirements = latestState?.partySetup?.requirementReadiness.filter(item => item.applicantId === applicantId) ?? [];
+    if (!ownMissing && latestRequirements.length && latestRequirements.every(item => ["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state))) {
+      if (activeIndex < travellers.length - 1) goToTraveller(activeIndex + 1); else setPhase(5);
+    } else {
+      setDocumentAttempt(value => value + 1);
+      requestAnimationFrame(() => document.getElementById("continue-documents-status")?.scrollIntoView({ block: "center" }));
+    }
     } finally { setFormSaving(false); }
   };
 
@@ -130,7 +144,7 @@ export default function DynamicApplication() {
   const uploadHandler = async (requirement: PartyRequirementReadiness, file: File, onProgress: (progress: DocumentUploadProgress) => void) => {
     setUploadingDocument(true);
     try {
-    await completeFormMutation.mutateAsync({ referenceNumber, applicantId: requirement.applicantId, submissionId: crypto.randomUUID() });
+    await prepareUploadMutation.mutateAsync({ referenceNumber, applicantId: requirement.applicantId, submissionId: crypto.randomUUID() });
     const documentType = legacyDocumentType(requirement.documentType);
     const applicationId = state.partySetup!.applicationId;
     onProgress({ phase: "preparing" });
@@ -165,14 +179,23 @@ export default function DynamicApplication() {
 
   const currentStep = phase ?? 3;
   const canOpenCheckout = canVisitCheckout(readiness.data);
-  return <WizardShell currentStep={currentStep === 5 ? 3 : 2}>
-    <div>
+  return <WizardShell compactContent currentStep={contextOpen ? 1 : currentStep === 5 ? 3 : 2}>
+    <div className="mx-auto w-full max-w-[680px]">
       <StepHeader
-        step={currentStep === 5 ? 3 : 2}
-        title={t(currentStep === 5 ? "steps.review" : "steps.data")}
-        subtitle={t("flow.subtitle")}
+        step={contextOpen ? 1 : currentStep === 5 ? 3 : 2}
+        title={t(contextOpen ? "steps.visa" : currentStep === 5 ? "steps.review" : "steps.data")}
+        subtitle={t(currentStep === 5 ? "flow.subtitle" : "flow.matchedDocuments")}
       />
-      <p className="mb-6 text-xs text-gray-400">Reference <span className="font-semibold text-[#C9A04C]">{referenceNumber}</span></p>
+      {currentStep !== 5 && activeProfile && <TravellerContext key={`${activeId}:${contextOpen}`} applicant={activeProfile} reference={referenceNumber} editing={contextOpen}
+        onEdit={() => setEditingContext(true)} onCancel={() => setEditingContext(false)} onSave={async profile => {
+          const previous = ownerRequiredDocumentCodes(activeProfile.nationality, activeProfile.residenceCountry, state.applicationContext.visaType, activeProfile.tripPurpose);
+          await editContextMutation.mutateAsync({ referenceNumber, applicantId: activeId, expectedVersion: activeProfile.profileVersion, ...profile, idempotencyKey: crypto.randomUUID() });
+          await refreshState();
+          const next = ownerRequiredDocumentCodes(profile.nationality, profile.residenceCountry, state.applicationContext.visaType, profile.tripPurpose);
+          setNewDocumentCodes(current => ({ ...current, [activeId]: next.filter(code => !previous.includes(code)) }));
+          setEditingContext(false); setPhase(3);
+        }} />}
+      <div hidden={contextOpen}>
 
       {/* Traveller pager — one traveller per page */}
       {currentStep !== 5 && travellers.length > 1 && (
@@ -229,25 +252,13 @@ export default function DynamicApplication() {
 
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
-        <ApplicantDataForm applicant={applicant} individual={state.applicationContext.baseType === "single"} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
-          requirements={ownerRequirements}
+        <ApplicantDataForm applicant={applicant} formId={`traveller-form-${applicant.applicantId}`} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
           questions={(state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
-          saved={state.knownAnswers} onSave={submission => saveApplicantForm(applicant.applicantId, submission)} />
+          saved={state.knownAnswers} onSave={(submission, continueAfter) => saveApplicantForm(applicant.applicantId, submission, continueAfter)} />
       </div>)}
 
-      {/* Active traveller documents */}
-      {currentStep === 4 && state.partySetup && activeRequirements.length > 0 && <div className="mb-3 mt-8">
-        <span className="inline-block rounded-full bg-[#C9A04C]/10 px-4 py-1.5 text-xs font-bold text-[#C9A04C]">{t("steps.documents")}</span>
-        <h2 className="mt-3 text-xl font-extrabold text-[#0A1628]">
-          {t("step2.docsTitle", { name: activeTraveller?.name ?? t("step2.traveller", { n: activeIndex + 1 }) })}
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">{t("step2.docsSub")}</p>
-      </div>}
-      {state.partySetup && <div hidden={currentStep !== 4}><InterviewRequirementDocuments applicants={activeApplicants} requirements={activeRequirements}
-        newlyRequiredCodes={newDocumentCodes[activeId]}
-        busy={docsBusy}
-        error={docsError}
-        onUpload={uploadHandler} /></div>}
+      {state.partySetup && <div hidden={currentStep === 5}><InterviewRequirementDocuments applicants={activeApplicants} requirements={activeRequirements}
+        newlyRequiredCodes={newDocumentCodes[activeId]} busy={docsBusy} error={docsError} onUpload={uploadHandler} /></div>}
 
       {/* Review when interview is complete — minimal, customer-friendly */}
       {currentStep === 5 && <section>
@@ -315,29 +326,19 @@ export default function DynamicApplication() {
           {!canOpenCheckout && !readiness.data && <button type="button" disabled={readiness.isFetching} className="rounded-xl border px-5 py-3" onClick={() => void readiness.refetch()}>{t("validation.retry")}</button>}
         </div>
       </section>}
-      <div className="mt-8 space-y-4">
-        <p className="text-sm text-slate-600">{t("flow.savedOnly")}</p>
-        <SaveContinueButton />
-        {currentStep === 4 && <>
-          <p id="continue-documents-status" role="status" aria-live="polite" aria-atomic="true" tabIndex={-1} className="text-sm text-slate-600"><span key={documentAttempt}>{t(!activeRequirements.length ? "validation.reviewUnavailable" : remainingDocuments > 0 ? "simple.documentsRemaining" : "simple.savedContinue", { count: remainingDocuments })}</span></p>
-          <button type="button" aria-describedby="continue-documents-status" disabled={formSaving || docsBusy}
-            className="min-h-11 rounded-xl bg-[#C9A04C] px-6 py-3 font-bold disabled:opacity-50"
-            onClick={() => {
-              if (!activeRequirements.length || remainingDocuments > 0) {
-                setDocumentAttempt(value => value + 1);
-                const status = document.getElementById("continue-documents-status");
-                status?.scrollIntoView({ block: "center", behavior: "smooth" });
-                status?.focus({ preventScroll: true });
-                return;
-              }
-              if (activeIndex < travellers.length - 1) goToTraveller(activeIndex + 1);
-              else setPhase(5);
-            }}>
+      <div className="mt-6 space-y-3">
+        {currentStep !== 5 && <>
+          <p id="continue-documents-status" role="status" aria-live="polite" aria-atomic="true" tabIndex={-1} className="text-sm text-slate-600">
+            {documentAttempt > 0 && <span key={documentAttempt}>{t(!activeRequirements.length ? "validation.reviewUnavailable" : remainingDocuments > 0 ? "simple.documentsRemaining" : "simple.savedContinue", { count: remainingDocuments })}</span>}
+          </p>
+          <button type="submit" value="continue" onMouseDown={event => event.preventDefault()} form={`traveller-form-${activeId}`} aria-describedby="continue-documents-status" disabled={formSaving || docsBusy}
+            className="min-h-12 rounded-xl bg-[#0A1628] px-6 py-3 font-bold text-white disabled:opacity-50">
             {t(activeIndex < travellers.length - 1 ? "simple.saveNextTraveller" : "simple.saveContinue")}</button>
         </>}
-        {currentStep > 3 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3"
-          onClick={() => setPhase(currentStep === 5 ? 4 : 3)}>{t("step2.back")}</button>}
+        <SaveContinueButton email={state.applicationContext.contactEmail} />
+        {currentStep === 5 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3" onClick={() => setPhase(4)}>{t("step2.back")}</button>}
         {currentStep === 5 && !canOpenCheckout && <p role="status">{t("flow.notReady")}</p>}
+      </div>
       </div>
     </div>
   </WizardShell>;

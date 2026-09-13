@@ -15,10 +15,11 @@ describe("InterviewRequirementDocuments", () => {
     const rules = requiredDocuments({ nationality: "EG", country_of_residence: "SA", visa_type: "30days-single" });
     const html = renderToStaticMarkup(<InterviewRequirementDocuments applicants={[applicants[0]]} busy={false} error={false}
       onUpload={vi.fn(async () => undefined)} requirements={rules.map(rule => ({ applicantId: 11, requirementCode: rule.code, documentType: rule.document_type, state: "MISSING" }))} />);
-    expect(html.match(/>Needed<\/span>/g)).toHaveLength(7);
+    expect(html).not.toContain(">Needed<");
+    expect(html).toContain("0 of 6 uploaded");
     expect(html.match(/type="radio"/g)).toHaveLength(2);
     expect(html).toContain("Choose one document");
-    expect(html.match(/type="file"/g)).toHaveLength(6);
+    expect(html.match(/type="file"/g)).toHaveLength(5);
   });
   it("renders the approved separate report alongside other required documents", () => {
     const html = renderToStaticMarkup(<InterviewRequirementDocuments applicants={[applicants[1]]} busy={false} error={false}
@@ -46,13 +47,14 @@ describe("InterviewRequirementDocuments", () => {
         { applicantId: 11, requirementCode: "PASSPORT", documentType: "PASSPORT", state: "MISSING" },
         { applicantId: 12, requirementCode: "PERSONAL_PHOTO", documentType: "PERSONAL_PHOTO", state: "UPLOADED" },
       ]} />);
-    const fatherStart = html.indexOf("Synthetic Father");
-    const childStart = html.indexOf("Synthetic Child");
+    const fatherStart = html.indexOf('data-applicant-id="11"');
+    const childStart = html.indexOf('data-applicant-id="12"');
     expect(fatherStart).toBeGreaterThan(-1);
     expect(childStart).toBeGreaterThan(fatherStart);
     expect(html.slice(fatherStart, childStart)).toContain("Passport main data page");
     expect(html.slice(fatherStart, childStart)).not.toContain("Recent personal photo");
-    expect(html.slice(childStart)).toContain("Recent personal photo");
+    expect(html.slice(childStart)).toContain("1 files");
+    expect(html.slice(childStart)).toContain('aria-expanded="false"');
     expect(html.match(/type="file"/g)).toHaveLength(1);
   });
 

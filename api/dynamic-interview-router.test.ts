@@ -60,6 +60,39 @@ function deps(currentFlags = flags) {
 }
 
 describe("authenticated Dynamic Interview API", () => {
+  it("prepares uploads with empty passport fields without completing the form or crossing applicant ownership", async () => {
+    const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
+    current.loadCatalog = async () => ({ catalogVersion: "test", requirements: [requirement], questions: [question,
+      { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "GCC_RESIDENT", answerType: "BOOLEAN" },
+      { ...question, definitionId: "33333333-1111-4111-8111-111111111111", code: "GCC_COUNTRY" }] });
+    const load = current.loadApplication;
+    current.loadApplication = async value => { const app = await load(value); return app ? { ...app, baseType: "single",
+      applicants: app.applicants.map(item => ({ ...item, nationality: "PK", residenceCountry: "SA" })) } : null; };
+    const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    const input = { referenceNumber: reference, applicantId: 21, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" };
+    await expect(caller.prepareDocumentUploads(input)).resolves.toEqual({ prepared: true });
+    expect(current.persistCompletedEvaluations).toHaveBeenCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ result: expect.objectContaining({
+      requiredDocuments: ["PASSPORT", "PK_PASSPORT_PAGE_2", "PERSONAL_PHOTO", "HOME_NATIONAL_ID", "KSA_IQAMA_FRONT", "KSA_IQAMA_BACK", "KSA_RESIDENCE_PROOF", "SA_ABSHER_REPORT"],
+    }) })] }));
+    await expect(caller.completeForm(input)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.prepareDocumentUploads({ ...input, applicantId: 999 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(createDynamicInterviewRouter(current).createCaller(context()).prepareDocumentUploads(input)).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    expect(current.append).not.toHaveBeenCalled();
+  });
+  it("edits only saved context, preserves the name and uses optimistic concurrency", async () => {
+    const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
+    current.loadCatalog = async () => ({ catalogVersion: "test", requirements: [requirement], questions: [question,
+      { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "GCC_RESIDENT", answerType: "BOOLEAN" },
+      { ...question, definitionId: "33333333-1111-4111-8111-111111111111", code: "GCC_COUNTRY" }] });
+    const load = current.loadApplication;
+    current.loadApplication = async value => { const app = await load(value); return app ? { ...app, baseType: "single" } : null; };
+    const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    const input = { referenceNumber: reference, applicantId: 21, expectedVersion: 1, nationality: "IN", residenceCountry: "KW", tripPurpose: "tourism" as const, idempotencyKey: "aaaaaaaa-1111-4111-8111-111111111111" };
+    await caller.editDocumentContext(input);
+    expect(current.editApplicant).toHaveBeenCalledWith(expect.objectContaining({ expectedVersion: 1, profile: { fullName: "Ahmed", nationality: "IN", residenceCountry: "KW", tripPurpose: "tourism" } }));
+    await expect(caller.editDocumentContext({ ...input, applicantId: 999 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("derives approved documents from saved residence, ignoring stale GCC answers and using owner-approved rules", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
     const loadApplication = current.loadApplication;
@@ -80,12 +113,12 @@ describe("authenticated Dynamic Interview API", () => {
     expect(current.persistCompletedEvaluations).not.toHaveBeenCalled();
     await caller.completeForm({ referenceNumber: reference, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" });
     expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ result: expect.objectContaining({
-      matchedRules: [], requiredDocuments: ["PASSPORT", "PK_PASSPORT_PAGE_2", "PERSONAL_PHOTO", "RETURN_TICKET", "HOME_NATIONAL_ID", "KSA_IQAMA_FRONT", "KSA_IQAMA_BACK", "KSA_RESIDENCE_PROOF", "SA_ABSHER_REPORT"],
+      matchedRules: [], requiredDocuments: ["PASSPORT", "PK_PASSPORT_PAGE_2", "PERSONAL_PHOTO", "HOME_NATIONAL_ID", "KSA_IQAMA_FRONT", "KSA_IQAMA_BACK", "KSA_RESIDENCE_PROOF", "SA_ABSHER_REPORT"],
     }) })] }));
     expect(completed.currentQuestions).toEqual([]);
     expect(completed.nextAction).not.toBe("ANSWER_QUESTIONS");
     expect(completed.review.applicants[0].requirements.map(item => item.code).sort()).toEqual([
-      "PASSPORT", "PK_PASSPORT_PAGE_2", "PERSONAL_PHOTO", "RETURN_TICKET", "HOME_NATIONAL_ID", "KSA_IQAMA_FRONT", "KSA_IQAMA_BACK", "KSA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
+      "PASSPORT", "PK_PASSPORT_PAGE_2", "PERSONAL_PHOTO", "HOME_NATIONAL_ID", "KSA_IQAMA_FRONT", "KSA_IQAMA_BACK", "KSA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
     ].sort());
     expect(completed.formQuestions?.some(field => ["HAS_CONFIRMED_TICKETS", "RESIDENCE_EXPIRY", "PLANNED_ARRIVAL_DATE"].includes(field.code))).toBe(false);
     residenceCountry = "EG";

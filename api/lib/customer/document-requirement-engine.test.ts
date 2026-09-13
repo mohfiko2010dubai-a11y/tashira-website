@@ -4,7 +4,7 @@ const context = { nationality: "PK", country_of_residence: "SA", visa_type: "30d
 const keys = (country: string) => requiredDocuments({ ...context, country_of_residence: country }, { previewDrafts: true }).filter(rule => !rule.placeholder).map(rule => rule.key);
 describe("document requirement union and publication", () => {
   it("publishes the owner-approved Saudi union in preview and customer views", () => {
-    expect(keys("SA")).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "return_ticket", "home_national_id", "ksa_iqama_front", "ksa_iqama_back", "ksa_residence_proof", "ksa_absher_report"]);
+    expect(keys("SA")).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "home_national_id", "ksa_iqama_front", "ksa_iqama_back", "ksa_residence_proof", "ksa_absher_report"]);
     expect(requiredDocuments(context).map(rule => rule.key)).toEqual(keys("SA"));
     expect(requiredDocuments(context, { previewDrafts: true }).find(rule => rule.placeholder)).toBeUndefined();
   });
@@ -14,8 +14,8 @@ describe("document requirement union and publication", () => {
   });
   it("returns the applicable base set for a nationality/residence pair with no special rule", () => {
     expect(requiredDocuments({ ...context, nationality: "EG", country_of_residence: "EG" }).map(rule => rule.key))
-      .toEqual(["passport_page", "personal_photo", "return_ticket", "uae_accommodation"]);
-    expect(requiredDocuments({ ...context, nationality: "EG", country_of_residence: "AE" })).toHaveLength(3);
+      .toEqual(["passport_page", "personal_photo", "uae_accommodation"]);
+    expect(requiredDocuments({ ...context, nationality: "EG", country_of_residence: "AE" })).toHaveLength(2);
   });
   it("deduplicates a document required by two matching groups by key", () => {
     const passport = DOCUMENT_REQUIREMENT_RULES[0];
@@ -27,7 +27,7 @@ describe("document requirement union and publication", () => {
   });
   it("recomputes by country, preserves common keys and never publishes an unfinished placeholder", () => {
     const old = keys("SA"); const next = keys("OM");
-    expect(next.filter(key => old.includes(key))).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "return_ticket", "home_national_id"]);
+    expect(next.filter(key => old.includes(key))).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "home_national_id"]);
     const placeholder = { ...DOCUMENT_REQUIREMENT_RULES[0], placeholder: true };
     expect(documentRuleSchema.safeParse({ ...placeholder, status: "approved" }).success).toBe(false);
   });
