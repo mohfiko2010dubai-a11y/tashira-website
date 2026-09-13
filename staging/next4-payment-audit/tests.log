@@ -1,0 +1,26 @@
+
+ RUN  v4.1.6 C:/Users/ADMIN/OneDrive/Documents/TASHIRA/tmp/next3-check
+
+ ✓ api/lib/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency decisions > processes new and previously failed events 3ms
+ ✓ api/lib/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency decisions > does not replay processed or actively processing events 0ms
+ ✓ api/lib/stripe-webhook-idempotency.test.ts > Stripe webhook idempotency decisions > recovers a processing claim after its lease expires 0ms
+ ✓ api/lib/stripe-webhook.test.ts > Stripe webhook verification > accepts a current signed test-mode event 5ms
+ ✓ api/lib/stripe-webhook.test.ts > Stripe webhook verification > keeps the webhook event allowlist narrow 2ms
+ ✓ api/lib/stripe-webhook.test.ts > Stripe webhook verification > rejects tampered and stale events 2ms
+ ✓ api/lib/stripe-webhook.test.ts > Stripe webhook verification > accepts a correctly signed LIVE event only in LIVE mode 1ms
+ ✓ api/lib/stripe-webhook.test.ts > Stripe webhook verification > rejects LIVE events in TEST mode and TEST events in LIVE mode 1ms
+ ✓ api/lib/stripe-webhook.test.ts > Stripe webhook verification > rejects a LIVE webhook signed with the wrong endpoint secret 1ms
+ ✓ api/lib/stripe.test.ts > Stripe test-mode boundary > creates an idempotent USD intent using the server amount 30ms
+ ✓ api/lib/stripe.test.ts > Stripe test-mode boundary > refuses a secret key that does not match TEST mode 1ms
+ ✓ api/lib/stripe.test.ts > Stripe test-mode boundary > verifies status, identity, reference, amount, and currency 0ms
+stdout | api/lib/payment-audit-observations.test.ts > audits current price rules, both speeds, counts 1/2/10: display equals Stripe body without added tax
+PRICE_MATRIX=48 (active product/speed pairs=16, counts=1,2,10)
+
+ ✓ api/lib/payment-audit-observations.test.ts > audits current price rules, both speeds, counts 1/2/10: display equals Stripe body without added tax 26ms
+ ✓ api/lib/payment-audit-observations.test.ts > reproduces the audit blocker: a late failure writes failed over a paid application 1ms
+ ✓ api/lib/payment-audit-observations.test.ts > reproduces the audit blocker: simultaneous retries can both reclaim a failed webhook 1ms
+
+ Test Files  4 passed (4)
+      Tests  15 passed (15)
+   Start at  00:10:46
+   Duration  1.05s (transform 292ms, setup 0ms, import 1.07s, tests 82ms, environment 0ms)

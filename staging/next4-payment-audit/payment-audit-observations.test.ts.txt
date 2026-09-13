@@ -1,0 +1,42 @@
+import { afterEach, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+const state = vi.hoisted(() => ({ mode: "price", index: 0, rule: {}, updates: [] as Record<string, unknown>[] }));
+vi.mock("../queries/connection", () => ({ getDb: () => ({
+  select: () => { const index = state.index++; const chain = { from: () => chain, where: () => chain, orderBy: () => chain,
+    limit: async () => state.mode === "price" ? [index % 2 === 0 ? state.rule : { baseCurrency: "AED", usdToBaseRate: "3.67" }]
+      : state.mode === "claim" ? [{ status: "failed", updatedAt: new Date() }] : [{ id: index === 0 ? 7 : 8, paymentStatus: "paid" }] }; return chain; },
+  update: () => ({ set: (value: Record<string, unknown>) => { state.updates.push(value); return { where: async () => undefined }; } }),
+  insert: () => ({ values: async () => { throw new Error("duplicate event id"); } }),
+}) }));
+vi.mock("./application-timeline", () => ({ recordTimelineEvent: vi.fn(), hasTimelineEvent: vi.fn() }));
+vi.mock("./invoice-pdf", () => ({ saveInvoiceToDisk: vi.fn() }));
+vi.mock("./payment-success-email", () => ({ sendPaymentSuccessEmail: vi.fn() }));
+import { quoteApplicationPrice } from "./pricing-engine";
+import { createStripeTestIntent } from "./stripe";
+import { resolvePaymentDisplayAmount } from "../../src/lib/payment-display-amount";
+import { recordStripeTestPaymentFailure } from "./payment-finalization";
+import { claimStripeWebhookEvent } from "./stripe-webhook-idempotency";
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+it("audits current price rules, both speeds, counts 1/2/10: display equals Stripe body without added tax", async () => {
+  state.mode = "price";
+  const source = JSON.parse(readFileSync(new URL("../../../next4-inventory.json", import.meta.url), "utf8")) as { rules: Array<{id:number;service_code:string;pricing_processing_type:"regular"|"express";version:number;selling_price:string;promotional_price:string|null;minimum_selling_price:string;pricing_currency:string;effective_at:string;expires_at:string|null}> };
+  const active = new Map<string, typeof source.rules[number]>();
+  for (const rule of source.rules) if (new Date(rule.effective_at) <= new Date() && (!rule.expires_at || new Date(rule.expires_at) > new Date())) active.set(rule.service_code+rule.pricing_processing_type,rule);
+  vi.stubEnv("STRIPE_MODE","TEST");vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY","pk_test_audit");vi.stubEnv("STRIPE_SECRET_KEY","sk_test_audit");vi.stubEnv("STRIPE_WEBHOOK_SECRET","whsec_audit");
+  const fetch = vi.fn(async () => new Response('{}',{status:200}));vi.stubGlobal("fetch",fetch);
+  for (const rule of active.values()) for (const count of [1,2,10]) {
+    state.index=0;state.rule={id:rule.id,version:rule.version,sellingPrice:rule.selling_price,promotionalPrice:rule.promotional_price,minimumSellingPrice:rule.minimum_selling_price,currency:rule.pricing_currency,supplierCost:"0",internalCost:"0",markup:"0"};
+    const quote=await quoteApplicationPrice({serviceCode:rule.service_code,processingType:rule.pricing_processing_type,applicantCount:count});
+    const display=resolvePaymentDisplayAmount({totalAmountUsd:quote.totalPrice.toFixed(2)}).amount;
+    await createStripeTestIntent({amountCents:Math.round(quote.totalPrice*100),referenceNumber:"SYNTHETIC-AUDIT",idempotencyKey:"audit"});
+    const calls=fetch.mock.calls as unknown as Array<[string,RequestInit]>;const fields=new URLSearchParams(String(calls.at(-1)?.[1].body));
+    expect(Number(fields.get("amount"))).toBe(Math.round(display*100));expect(fields.get("currency")).toBe("usd");expect(fields.has("automatic_tax[enabled]")).toBe(false);
+  }
+  console.log(`PRICE_MATRIX=${active.size*3} (active product/speed pairs=${active.size}, counts=1,2,10)`);
+});
+it("reproduces the audit blocker: a late failure writes failed over a paid application", async()=>{
+ state.mode="failure";state.index=0;state.updates=[];await recordStripeTestPaymentFailure("SYNTHETIC-AUDIT","pi_audit");expect(state.updates).toContainEqual({paymentStatus:"failed"});
+});
+it("reproduces the audit blocker: simultaneous retries can both reclaim a failed webhook",async()=>{
+ state.mode="claim";state.index=0;const claim={eventId:"evt_audit",eventType:"payment_intent.succeeded",paymentIntentId:"pi_audit"};expect(await Promise.all([claimStripeWebhookEvent(claim),claimStripeWebhookEvent(claim)])).toEqual(["process","process"]);
+});

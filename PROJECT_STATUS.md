@@ -1,3 +1,7 @@
+# Next task 4 payment audit — REPORT FIRST — 2026-09-14
+
+Launch blocked. Audited deployed 39dd933f8a43370e442adc733f2a3747cc1e174a. Reproduced stale pricing after traveller/product changes, automatic legacy policy acceptance, webhook reclaim race/paid-state regression and synthetic PII error leakage. Cross-owner negative tests denied order data. 48 price cases and 15 audit tests completed; some tests deliberately demonstrate defects. No behavior changes or deployment. Cleanup rolled back on append-only guards; bulk deletion auto-review rejected. Await owner approval for remediation and a separate staging cleanup procedure/list. See staging/NEXT4_PAYMENT_AUDIT.md and staging/next4-payment-audit/.
+
 # Next task 3 passport name verified — 2026-09-14
 
 Deployed 39dd933f8a43370e442adc733f2a3747cc1e174a. Exact EN/AR passport-name guidance and nonblocking single-name notice. Five Latin examples preserve punctuation/case through save and reload; Arabic example rejects with required guidance. Check/lint/build and 1029 tests pass, 26 gated skips. Evidence: tmp/wizard-staging-release/staging/NEXT3_PASSPORT_NAME.md.

@@ -1,0 +1,86 @@
+{
+  "policy": [
+    {
+      "reference": "TSH-AUDIT-CLIENT-1789330452195",
+      "event": "POLICY_ACCEPTED",
+      "source": "APPLICATION_API",
+      "version": "legal-bundle-2026-08-19-v2",
+      "timestamp": "2026-09-13T20:14:12.000Z"
+    }
+  ],
+  "paths": [
+    {
+      "t": "applicants",
+      "c": "profile_version"
+    },
+    {
+      "t": "applications",
+      "c": "invoice_pdf_path"
+    },
+    {
+      "t": "content_redirects",
+      "c": "from_path"
+    },
+    {
+      "t": "content_redirects",
+      "c": "to_path"
+    },
+    {
+      "t": "customer_interview_profile_events",
+      "c": "profile_version"
+    },
+    {
+      "t": "customer_interview_profile_events",
+      "c": "profile_json"
+    },
+    {
+      "t": "document_intelligence_runs",
+      "c": "passport_profile_id"
+    },
+    {
+      "t": "documents",
+      "c": "original_file_name"
+    },
+    {
+      "t": "documents",
+      "c": "stored_file_name"
+    },
+    {
+      "t": "documents",
+      "c": "file_size"
+    },
+    {
+      "t": "documents",
+      "c": "storage_path"
+    },
+    {
+      "t": "invoices",
+      "c": "pdf_path"
+    },
+    {
+      "t": "passport_profile_versions",
+      "c": "profile_code"
+    },
+    {
+      "t": "passport_profile_versions",
+      "c": "profile_json"
+    },
+    {
+      "t": "passport_profile_versions",
+      "c": "profile_sha256"
+    },
+    {
+      "t": "visa_rule_sets",
+      "c": "profile_code"
+    }
+  ],
+  "settings": [
+    {
+      "vat_registered": "no",
+      "settings_vat_rate": "0.0000",
+      "base_currency": "AED"
+    }
+  ],
+  "syntheticEmailInServerErrorLog": true,
+  "stagingLauncher": "/var/www/tashira-staging/staging/run-native.mjs"
+}

@@ -1,0 +1,17 @@
+{
+  "identity": {
+    "db": "tashira_staging",
+    "user": "tashira_staging_app"
+  },
+  "modes": {
+    "cwd": "/var/www/tashira-staging"
+  },
+  "isolation": {
+    "differentDatabase": true,
+    "differentDbUser": true,
+    "differentStorage": true,
+    "stagingStorage": "/var/www/tashira-staging/storage/documents",
+    "customerSessionSecretsDifferent": true
+  },
+  "triggers": []
+}

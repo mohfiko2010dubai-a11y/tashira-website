@@ -1,0 +1,62 @@
+tmp/next3-check/api\application-router.ts:167:        console.error('[API ERROR]', message);
+tmp/next3-check/api\application-router.ts:312:        console.error('[API] assignSupplier failed:', message);
+tmp/next3-check/api\boot.ts:147:        console.error("[Stripe Webhook State]", getErrorMessage(markError));
+tmp/next3-check/api\boot.ts:151:    console.error("[Stripe Webhook]", getErrorMessage(error));
+tmp/next3-check/api\boot.ts:170:    console.log(`[Invoice] Found by invoice_number: ${invoiceNumber}`);
+tmp/next3-check/api\boot.ts:181:    console.log(`[Invoice] Found by reference_number: ${refNumber}`);
+tmp/next3-check/api\boot.ts:185:  console.log(`[Invoice] Not found: ${invoiceNumber}`);
+tmp/next3-check/api\boot.ts:194:  console.log(`[Invoice] Request: ${invoiceNumber}`);
+tmp/next3-check/api\boot.ts:195:  console.log(`[Invoice] Checking: ${absolutePath}`);
+tmp/next3-check/api\boot.ts:199:    console.log(`[Invoice] File exists: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);
+tmp/next3-check/api\boot.ts:203:  console.log(`[Invoice] File missing, looking up DB...`);
+tmp/next3-check/api\boot.ts:208:    console.log(`[Invoice] Application not found for: ${invoiceNumber}`);
+tmp/next3-check/api\boot.ts:216:      console.log(`[Invoice] Found existing PDF at DB path: ${dbPath}`);
+tmp/next3-check/api\boot.ts:219:    console.log(`[Invoice] DB path exists but file missing: ${dbPath}`);
+tmp/next3-check/api\boot.ts:221:    console.log(`[Invoice] No invoicePdfPath in DB for: ${invoiceNumber}`);
+tmp/next3-check/api\boot.ts:225:  console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
+tmp/next3-check/api\boot.ts:279:    console.log(`[Invoice] Regenerated and saved: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);
+tmp/next3-check/api\boot.ts:282:    console.error(`[Invoice] Regeneration failed: ${getErrorMessage(err)}`);
+tmp/next3-check/api\boot.ts:347:    console.log(`[Invoice] Serving VIEW: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
+tmp/next3-check/api\boot.ts:350:    console.error(`[Invoice] Read error: ${getErrorMessage(err)}`);
+tmp/next3-check/api\boot.ts:371:    console.log(`[Invoice] Serving DOWNLOAD: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
+tmp/next3-check/api\boot.ts:374:    console.error(`[Invoice] Read error: ${getErrorMessage(err)}`);
+tmp/next3-check/api\boot.ts:422:    console.error("[tRPC] Unhandled error in fetchRequestHandler:", message);
+tmp/next3-check/api\boot.ts:496:    console.log(`Server listening on ${hostname}:${port}`);
+tmp/next3-check/api\chat-router.ts:178:    console.error("[WhatsApp] Notification failed:", err);
+tmp/next3-check/api\chat-router.ts:351:              console.error("[Chat] Failed to create application:", err);
+tmp/next3-check/api\chat-router.ts:460:        console.error("[Chat Upload] Failed:", err);
+tmp/next3-check/api\drive-router.ts:83:        console.error("Google Drive upload error:", message);
+tmp/next3-check/api\drive-router.ts:106:        console.error("Google Drive list error:", message);
+tmp/next3-check/api\dynamic-interview-router.ts:85:  console.error("[Dynamic Interview]", {
+tmp/next3-check/api\kimi\session.ts:22:    console.warn("[session] No token provided for verification.");
+tmp/next3-check/api\kimi\session.ts:32:      console.warn("[session] JWT payload missing required fields.");
+tmp/next3-check/api\kimi\session.ts:37:    console.warn("[session] JWT verification failed:", error);
+tmp/next3-check/api\kimi\auth.ts:57:    console.warn("[Auth] KIMI_AUTH_URL not set, skipping token verification");
+tmp/next3-check/api\kimi\auth.ts:73:    console.warn("[auth] No session cookie found in request.");
+tmp/next3-check/api\kimi\auth.ts:136:      console.error("[OAuth] Callback failed", error);
+tmp/next3-check/api\invoice-router.ts:69:        console.error("[Invoice Save Error]", message);
+tmp/next3-check/api\invoice-router.ts:117:        console.error("[Invoice Regenerate Error]", message);
+tmp/next3-check/src\sections\VisaApplicationForm.tsx:203:      console.error(`[processFile] File read error:`, e);
+tmp/next3-check/src\sections\VisaApplicationForm.tsx:268:      console.error('Submission error:', err);
+tmp/next3-check/api\kimi\platform.ts:19:    console.warn(
+tmp/next3-check/api\wizard-router.ts:139:      console.log("[Wizard] Starting application:", input.referenceNumber);
+tmp/next3-check/api\wizard-router.ts:196:        console.error("[Wizard] Failed to start application:", message);
+tmp/next3-check/api\wizard-router.ts:279:        console.error("[Wizard] Failed to update application:", message);
+tmp/next3-check/api\wizard-router.ts:307:      console.log("[Wizard] Submitting application:", input.referenceNumber);
+tmp/next3-check/api\wizard-router.ts:393:        console.error("[Wizard] Failed to submit application", {
+tmp/next3-check/api\wizard-router.ts:416:        console.error("[Wizard] Failed to list submitted:", message);
+tmp/next3-check/api\wizard-router.ts:436:        console.error("[Wizard] Failed to list pending:", message);
+tmp/next3-check/api\wizard-router.ts:452:        console.error("[Wizard] Failed to get application:", message);
+tmp/next3-check/api\wizard-router.ts:604:        console.error("[Wizard] Failed to replace document", { category: error instanceof Error ? error.constructor.name : "UnknownError" });
+tmp/next3-check/api\storage-router.ts:49:        console.error("[Storage] getSignedUrl error:", message);
+tmp/next3-check/src\pages\PaymentPage.tsx:248:      console.error("[PaymentPage] Error fetching application:", error);
+tmp/next3-check/api\lib\invoice-pdf.ts:12:  console.log(`[Invoice] Created storage dir: ${STORAGE_DIR}`);
+tmp/next3-check/api\lib\invoice-pdf.ts:246:  console.log(`[Invoice] Saved to: ${pdfPath} (${fs.statSync(pdfPath).size} bytes)`);
+tmp/next3-check/api\lib\invoice-customer-identity.ts:31:    console.error("[Invoice Data Quality] Canonical lead applicant name is unavailable");
+tmp/next3-check/api\lib\invoice-customer-identity.ts:35:    if (!value) console.error(`[Invoice Data Quality] Canonical lead applicant ${field} is unavailable`);
+tmp/next3-check/src\components\shared\ChunkLoadErrorBoundary.tsx:21:      console.warn("A stale application asset could not be loaded after automatic recovery", {
+tmp/next3-check/api\lib\ssr-response.ts:51:    const log = options.logFailure ?? ((entry: SsrFailureEvent) => console.error(JSON.stringify(entry)));
+tmp/next3-check/api\lib\ssr-response.ts:52:    try { log(event); } catch { console.error("SSR fallback logging failed"); }
+tmp/next3-check/api\lib\payment-finalization.ts:140:      console.error("[Invoice Auto-Gen Error]", getErrorMessage(error));
+tmp/next3-check/src\components\shared\StripePaymentForm.tsx:361:        console.error(`[Upload] Failed for ${pf.file.name}:`, message);
+tmp/next3-check/src\components\shared\DocumentManager.tsx:134:      console.error("Download failed:", err);

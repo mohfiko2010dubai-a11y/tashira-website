@@ -1,0 +1,75 @@
+{
+  "access": [
+    {
+      "who": "anonymous",
+      "proc": "application.getByReference",
+      "status": 401,
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "who": "anonymous",
+      "proc": "wizard.getByReference",
+      "status": 401,
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "who": "anonymous",
+      "proc": "payment.readiness",
+      "status": 401,
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "who": "anonymous",
+      "proc": "payment.getInvoice",
+      "status": 401,
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "who": "anonymous",
+      "proc": "dynamicInterview.current",
+      "status": 401,
+      "error": "UNAUTHORIZED"
+    },
+    {
+      "who": "different-owner",
+      "proc": "application.getByReference",
+      "status": 403,
+      "error": "FORBIDDEN"
+    },
+    {
+      "who": "different-owner",
+      "proc": "wizard.getByReference",
+      "status": 500,
+      "error": "INTERNAL_SERVER_ERROR"
+    },
+    {
+      "who": "different-owner",
+      "proc": "payment.readiness",
+      "status": 403,
+      "error": "FORBIDDEN"
+    },
+    {
+      "who": "different-owner",
+      "proc": "payment.getInvoice",
+      "status": 403,
+      "error": "FORBIDDEN"
+    },
+    {
+      "who": "different-owner",
+      "proc": "dynamicInterview.current",
+      "status": 403,
+      "error": "FORBIDDEN"
+    }
+  ],
+  "reference": "TSH-MU09000U-A02F6C",
+  "before": {
+    "count": 2,
+    "total": "370.00"
+  },
+  "trackingDenied": true,
+  "addStatus": 200,
+  "after": {
+    "count": 3,
+    "total": "370.00"
+  }
+}

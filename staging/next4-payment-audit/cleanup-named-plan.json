@@ -1,0 +1,27 @@
+{
+  "identity": {
+    "db": "tashira_staging",
+    "user": "tashira_staging_app"
+  },
+  "mode": "plan",
+  "applications": 1,
+  "retained": 178,
+  "targetIncluded": true,
+  "refs": [
+    "TSH-MTYYW9IT-7747FD"
+  ],
+  "rows": {
+    "applicant_requirement_events": 4,
+    "applicant_requirement_instances": 4,
+    "application_price_snapshots": 1,
+    "customer_interview_profile_events": 1,
+    "dynamic_interview_answer_events": 2,
+    "visa_rule_evaluation_selections": 1,
+    "visa_rule_evaluation_runs": 1,
+    "applicants": 1,
+    "application_timeline_events": 3,
+    "operations_feature_flags": 5,
+    "applications": 1
+  },
+  "files": 0
+}
