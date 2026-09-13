@@ -121,4 +121,10 @@ describe("Separate Saudi report evidence", () => {
     await expect(assertDistinctDocument(report, [proof, report], { ...file, documentId: 11, storagePath: "test/report.pdf" }, [file], async path => path)).resolves.toBeUndefined();
     await expect(assertDistinctDocument(report, [proof, report], { ...file, applicantId: 2 }, [file])).resolves.toBeUndefined();
   });
+  it("a valid replacement resolves a historical duplicate without deleting immutable links", () => {
+    const duplicate = { ...file, code: report.code };
+    expect(projectOwnerDocuments([proof, report], [file, duplicate], 1)[1].state).toBe("MISSING");
+    const replacement = { ...duplicate, documentId: 12, storagePath: "test/separate-report.pdf" };
+    expect(projectOwnerDocuments([proof, report], [file, duplicate, replacement], 1)[1].state).toBe("UPLOADED");
+  });
 });

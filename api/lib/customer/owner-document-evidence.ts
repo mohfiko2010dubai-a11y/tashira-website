@@ -20,10 +20,10 @@ export function projectOwnerDocuments(rules: readonly DocumentRequirementRule[],
     const distinctCodes = new Set(rules.filter(other => rule.distinct_from?.includes(other.key))
       .flatMap(other => [...documentLeaves(other).map(leaf => leaf.code), ...(other.legacy_codes ?? [])]));
     const own = evidence.filter(row => row.applicantId === applicantId && ownCodes.has(row.code));
-    const duplicate = own.some(file => evidence.some(other => other.applicantId === applicantId && distinctCodes.has(other.code)
-      && (file.documentId === other.documentId || file.storagePath === other.storagePath)));
+    const validCodes = distinctCodes.size ? own.filter(file => !evidence.some(other => other.applicantId === applicantId && distinctCodes.has(other.code)
+      && (file.documentId === other.documentId || file.storagePath === other.storagePath))).map(file => file.code) : uploadedCodes;
     return { applicantId, requirementCode: rule.code, documentType: rule.document_type, uploadedCodes,
-      state: !duplicate && requirementSatisfied(rule, new Set(uploadedCodes)) ? "UPLOADED" as const : "MISSING" as const };
+      state: requirementSatisfied(rule, new Set(validCodes)) ? "UPLOADED" as const : "MISSING" as const };
   });
 }
 import { DISTINCT_DOCUMENT_MESSAGE } from "../../../contracts/document-upload-policy";
