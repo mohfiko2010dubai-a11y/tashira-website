@@ -1,3 +1,7 @@
+# Phase 1 SSR deployed and verified - 2026-09-13
+
+Staging b9c206c16e545ff7184bfecfd0279f73e9977fc2 passes all 16 English source/no-JS/hydration checks, real 404s, private headers, and authenticated 200 fallbacks (3000ms render / 1000ms data). Server gates: 967 passed, 26 environment skips. Synthetic browser uploads/review/reload and single-use recovery to payment route passed. Fixed only the staging Nginx duplicate Referrer-Policy; production vhost hash unchanged. Observed SSR p95 648ms across 68 verification renders exceeds owner threshold: proposal documented, no cache added. Phase 2 held for owner verification. See staging/SSR_PHASE1_VERIFICATION.md. All 15 old dirty/untracked file hashes unchanged.
+
 # Phase 1 SSR candidate - 2026-09-13
 
 Existing English routes: approved 16-route metadata, isolated SSR workers (3000ms), public data deadlines (1000ms), HTTP 200 SPA fallback, true missing-page 404, private/no-store HTML, protected staging failure probes. Local production build, TypeScript, lint and 967 tests passed (26 environment skips); all 16 fixed routes pass source/no-JS and Chrome hydration checks. Prior uncommitted work preserved byte-for-byte. Deployment and live verification pending; Phase 2 remains held. See staging/SSR_PHASE1.md.
