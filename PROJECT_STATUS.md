@@ -1,3 +1,7 @@
+## 2026-09-13 TASK 6 - marketing claims ready for staging
+
+Removed unverifiable marketing figures and fabricated reviews; approved service commitments share EN/AR copy. Testimonials use an empty file-backed published-only source. Eligibility link targets the existing section. Local checks: TypeScript, lint, 920 tests passed / 26 gated skips, build and forbidden-claim output scan, desktop/tablet/Arabic-mobile browser UAT. Staging deployment and live confirmation pending.
+
 ## Task 5 deployed and live browser verified - 2026-09-13
 
 Guard deployed d257ac3db74c08cb2486719e70cb8b837b74f2a6; local/public health 200. Server/local check, lint, build and 917 tests pass, 26 gated skips. Live home hero/stats/cards, processing FAQ, pricing page and wizard show shared handling copy. Express delta visible before selection: 30-day +30 USD; one traveller 185+30=215; three 555+90=645. Switching to 14-day changes actual delta to +25 USD; three 510+75=585. Arabic shared copy and surcharge verified. Public previews only, no application/email/payment; production untouched. Evidence: output/task5-processing-20260913/REVIEW.md.

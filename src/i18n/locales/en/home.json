@@ -4,13 +4,7 @@
     "title": "Get Your UAE Visa Online",
     "subtitle": "Secure visa-application support for tourists, families, and business travelers. Processing times are estimates and approval is decided by the relevant authority.",
     "ctaApply": "Apply for Visa",
-    "ctaTrack": "Track Application",
-    "stats": {
-      "applications": "Applications Processed",
-      "hours": "Avg Processing Time",
-      "countries": "Countries Served",
-      "rating": "Customer Rating"
-    }
+    "ctaTrack": "Track Application"
   },
   "whyUs": {
     "title": "Why Choose Tashira?",
@@ -59,9 +53,7 @@
   },
   "testimonials": {
     "title": "What Our Customers Say",
-    "review1": "The fastest visa service I have ever used.",
-    "review2": "Excellent customer support. They guided me through every step.",
-    "review3": "Very professional and reliable. Highly recommend for UAE visa."
+    "rating": "Rating: {{rating}} out of 5"
   },
   "ctaSection": {
     "title": "Ready to Travel to UAE?",

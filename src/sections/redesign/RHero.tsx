@@ -1,14 +1,14 @@
+import { marketingClaims } from "@contracts/marketing-claims";
 import { processingCopy } from "@contracts/processing-copy";
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Shield, CheckCircle, Star, Headphones, ChevronDown, Rocket, Tag } from 'lucide-react';
+import { Shield, CheckCircle, Headphones, ChevronDown, Rocket, Tag } from 'lucide-react';
 
 const TRUST_ITEMS = [
-  { icon: Shield, en: 'Licensed by Meydan FZ', ar: 'مرخصة من ميدان فري زون' },
-  { icon: CheckCircle, en: '10,000+ Visas Issued', ar: '+10,000 تأشيرة صادرة' },
-  { icon: Star, en: '98% Satisfaction', ar: '٩٨٪ رضا العملاء' },
-  { icon: Headphones, en: '24/7 Support', ar: 'دعم ٢٤/٧' },
-];
+  { icon: Shield, key: 'license' },
+  { icon: CheckCircle, key: 'documentReview' },
+  { icon: Headphones, key: 'languages' },
+] as const;
 
 export default function RHero() {
   const { t, i18n } = useTranslation('home');
@@ -58,10 +58,10 @@ export default function RHero() {
 
         {/* Trust bar */}
         <div className="mt-14 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-          {TRUST_ITEMS.map(({ icon: Icon, en, ar }) => (
-            <span key={en} className="inline-flex items-center gap-2 text-sm text-gray-300">
+          {TRUST_ITEMS.map(({ icon: Icon, key }) => (
+            <span key={key} className="inline-flex items-center gap-2 text-sm text-gray-300">
               <Icon size={18} className="text-[#C9A04C]" />
-              {isAr ? ar : en}
+              {marketingClaims(i18n.language)[key]}
             </span>
           ))}
         </div>

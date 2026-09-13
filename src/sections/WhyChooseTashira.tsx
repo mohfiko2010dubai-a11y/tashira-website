@@ -1,18 +1,18 @@
+import { useTranslation } from "react-i18next";
+import { marketingClaims } from "@contracts/marketing-claims";
 import { useRef, useEffect } from 'react';
-import { Shield, Clock, FileCheck, Headphones, Globe, Award, ChevronRight } from 'lucide-react';
+import { Shield, Clock, FileCheck, Headphones, Globe, ChevronRight } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const features = [
-  { icon: Shield, title: 'Licensed by Meydan FZ', titleAr: 'مرخصة من ميدان' },
-  { icon: Clock, title: 'Fast Processing', titleAr: 'معالجة سريعة' },
-  { icon: FileCheck, title: 'Expert Review', titleAr: 'مراجعة خبيرة' },
-  { icon: Headphones, title: '24/7 Support', titleAr: 'دعم 24/7' },
-  { icon: Globe, title: 'All Nationalities', titleAr: 'جميع الجنسيات' },
-  { icon: Award, title: 'Best Price Guarantee', titleAr: 'ضمان أفضل سعر' },
-];
+  { icon: Shield, key: 'license' },
+  { icon: FileCheck, key: 'documentReview' },
+  { icon: Clock, key: 'responseTime' },
+  { icon: Headphones, key: 'languages' },
+] as const;
 
 export default function WhyChooseTashira() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -45,7 +45,9 @@ export default function WhyChooseTashira() {
     return () => ctx.revert();
   }, []);
 
-  const isAr = document.documentElement.lang === 'ar';
+  const { i18n } = useTranslation();
+  const isAr = i18n.language.startsWith("ar");
+  const copy = marketingClaims(i18n.language);
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden">
@@ -113,10 +115,13 @@ export default function WhyChooseTashira() {
 
                     {/* Title */}
                     <p className="text-sm font-semibold text-white group-hover:text-[#C9A04C] transition-colors">
-                      {isAr ? feature.titleAr : feature.title}
+                      {copy[feature.key]}
                     </p>
                   </div>
                 ))}
+                <a href="#eligibility" className="feature-item flex items-center gap-4 rounded-xl border border-[#C9A04C]/40 p-4 text-sm font-semibold text-[#DDBB7A] underline underline-offset-4 focus:outline-none focus:ring-2 focus:ring-[#DDBB7A] sm:col-span-2">
+                  <Globe size={20} aria-hidden="true" className="shrink-0" />{copy.eligibility}
+                </a>
               </div>
             </div>
           </div>

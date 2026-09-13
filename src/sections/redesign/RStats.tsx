@@ -1,28 +1,23 @@
-import { processingCopy } from "@contracts/processing-copy";
 import { useTranslation } from 'react-i18next';
+import { BadgeCheck, FileCheck, Clock3, Languages } from 'lucide-react';
+import { marketingClaims } from '@contracts/marketing-claims';
 
-const STATS = [
-  { value: '10,000+', key: 'hero.stats.applications', ar: 'طلب تمت معالجته' },
-  { value: '', key: 'hero.stats.hours', ar: '' },
-  { value: '150+', key: 'hero.stats.countries', ar: 'جنسية نخدمها' },
-  { value: '4.9★', key: 'hero.stats.rating', ar: 'تقييم العملاء' },
-];
+const commitments = [
+  { key: 'license', icon: BadgeCheck },
+  { key: 'documentReview', icon: FileCheck },
+  { key: 'responseTime', icon: Clock3 },
+  { key: 'languages', icon: Languages },
+] as const;
 
 export default function RStats() {
-  const { t, i18n } = useTranslation('home');
-  const isAr = i18n.language === 'ar';
-  return (
-    <section className="bg-[#0A1628] border-y border-[#C9A04C]/20">
-      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-2 lg:grid-cols-4 gap-8">
-        {STATS.map((s) => (
-          <div key={s.key} className="text-center">
-            <p className="text-3xl lg:text-4xl font-extrabold bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] bg-clip-text text-transparent">
-              {s.key === 'hero.stats.hours' ? processingCopy(i18n.language).regularLabel : s.value}
-            </p>
-            <p className="mt-2 text-sm text-gray-400">{s.key === 'hero.stats.hours' ? processingCopy(i18n.language).regular : isAr ? s.ar : t(s.key)}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+  const { i18n } = useTranslation('home');
+  const copy = marketingClaims(i18n.language);
+  return <section aria-label={copy.commitments} className="bg-[#0A1628] border-y border-[#C9A04C]/20">
+    <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-4 py-8 sm:py-10">
+      {commitments.map(({ key, icon: Icon }) => <div key={key} className="flex h-full min-h-40 flex-col items-center justify-center gap-4 rounded-xl border border-[#C9A04C]/20 bg-white/[0.03] px-5 py-6 text-center">
+        <Icon size={28} aria-hidden="true" className="shrink-0 text-[#DDBB7A]" />
+        <p className="max-w-64 text-sm sm:text-base font-semibold leading-relaxed text-white">{copy[key]}</p>
+      </div>)}
+    </div>
+  </section>;
 }

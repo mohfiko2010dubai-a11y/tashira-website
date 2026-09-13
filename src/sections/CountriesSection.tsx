@@ -19,9 +19,9 @@ export default function CountriesSection() {
   };
 
   return (
-    <section className="py-16 px-4 bg-white">
+    <section id="eligibility" aria-labelledby="eligibility-heading" className="scroll-mt-28 py-16 px-4 bg-white">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 text-center mb-2">
+        <h2 id="eligibility-heading" className="text-xl sm:text-2xl font-semibold text-gray-900 text-center mb-2">
           {isAr
             ? 'هل أحتاج إلى تأشيرة لزيارة الإمارات؟'
             : 'Do I need a visa to visit the UAE?'}
@@ -37,6 +37,7 @@ export default function CountriesSection() {
             : 'If you do not qualify for a visa on arrival, you must apply for a visa before traveling.'}
         </p>
 
+        <div className="mb-8 text-center"><a href="/visa-pre-check" className="inline-flex rounded-xl bg-[#0A1628] px-5 py-3 text-sm font-semibold text-white focus:ring-2 focus:ring-[#C9A04C]">{isAr ? 'ابدأ فحص متطلبات التأشيرة' : 'Start visa requirements check'}</a></div>
         <div className="space-y-2">
           {regions.map((region) => {
             const countries = countriesRequiringVisa[region.key];
