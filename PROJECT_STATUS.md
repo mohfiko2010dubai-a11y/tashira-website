@@ -1,3 +1,7 @@
+## Task 4 deployed and browser verified - 2026-09-13
+
+Guard deployed cf2afb5fd81673faa4ff3699043b0cb0142ded6a; health 200. Local/server TypeScript, lint, build and 914 tests pass, 26 gated skips. TypeScript check heap raised to 4 GB after the default 2 GB exhausted; no gate bypass or runtime-memory change. Existing synthetic TSH-MTZ1GDIP-47EF24 preserves profile and four receipts, rejects non-Latin name with focus, and reaches payment readiness after correction. New synthetic TSH-MTZ31QLR-B212E9 proves no residence question in step 1 and immediate document preview before empty name fields. EN/AR placeholders, residence helper and visible English-name instruction verified live. Production and real email/payment untouched. Evidence: output/task4-fields-20260913/REVIEW.md.
+
 ## Task 4 field order locally verified - 2026-09-13
 
 Nationality and residence now precede conditional fields, approved-document preview and passport identity. The redundant residence-type selector was removed from step 1; actual per-traveller country drives GCC conditions. Saved profiles and applicable receipts remain intact. EN/AR residence picker copy and helper distinguish citizenship from residence. Shared Latin-name validation protects customer form and profile API. Clean TypeScript/lint/build and 914 tests pass, 26 gated skips. Actual-component browser checks pass new/saved cases, document ordering, name feedback/focus, EN/AR and step-1 removal. Guarded staging deployment and live verification pending.
