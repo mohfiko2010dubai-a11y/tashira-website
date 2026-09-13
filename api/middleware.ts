@@ -4,9 +4,15 @@ import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { consumeRateLimit } from "./lib/rate-limit";
 import { enforceStaffApplicationScope } from "./lib/staff-application-scope";
+import { publicError } from "./lib/public-error";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  errorFormatter({ shape, error }) {
+    const safe = publicError(error);
+    return { message: safe.message, code: shape.code,
+      data: { code: shape.data.code, httpStatus: shape.data.httpStatus, correlationId: safe.correlationId } };
+  },
 });
 
 export const createRouter = t.router;

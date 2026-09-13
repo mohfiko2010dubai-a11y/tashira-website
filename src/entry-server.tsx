@@ -1,3 +1,4 @@
+import "../contracts/install-safe-console";
 import { parentPort, workerData } from "node:worker_threads";
 import { PassThrough } from "node:stream";
 import { renderToPipeableStream } from "react-dom/server";

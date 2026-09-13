@@ -8,6 +8,7 @@ import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { getErrorMessage } from "./lib/errors";
+import { internalFailure } from "./lib/public-error";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { getCanonicalApplicationByReference } from "./lib/application-projection";
@@ -310,7 +311,7 @@ export const applicationRouter = createRouter({
       } catch (err: unknown) {
         const message = getErrorMessage(err);
         console.error('[API] assignSupplier failed:', message);
-        return { success: false, error: message };
+        return internalFailure(err);
       }
     }),
 

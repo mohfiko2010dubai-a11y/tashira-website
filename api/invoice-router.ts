@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 import { getErrorMessage } from "./lib/errors";
+import { internalFailure } from "./lib/public-error";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { recordTimelineEvent } from "./lib/application-timeline";
 
@@ -67,7 +68,7 @@ export const invoiceRouter = createRouter({
       } catch (err: unknown) {
         const message = getErrorMessage(err);
         console.error("[Invoice Save Error]", message);
-        return { success: false, error: message };
+        return internalFailure(err);
       }
     }),
 
@@ -115,7 +116,7 @@ export const invoiceRouter = createRouter({
       } catch (err: unknown) {
         const message = getErrorMessage(err);
         console.error("[Invoice Regenerate Error]", message);
-        return { success: false, error: message };
+        return internalFailure(err);
       }
     }),
 });

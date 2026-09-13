@@ -1,3 +1,4 @@
+import "../contracts/install-safe-console";
 import { hydrate } from "@tanstack/react-query";
 import superjson from "superjson";
 import { queryClient } from "./providers/trpc-client";

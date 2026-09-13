@@ -2,6 +2,7 @@ import { z } from "zod";
 import { adminQuery, createRouter, uploadQuery } from "./middleware";
 import type { JWTInput } from "google-auth-library";
 import { getErrorMessage } from "./lib/errors";
+import { internalFailure } from "./lib/public-error";
 
 // Only load googleapis on the server
 async function getDriveClient() {
@@ -81,7 +82,7 @@ export const driveRouter = createRouter({
       } catch (err: unknown) {
         const message = getErrorMessage(err, "Upload failed");
         console.error("Google Drive upload error:", message);
-        return { success: false, error: message };
+        return internalFailure(err);
       }
     }),
 
@@ -104,7 +105,7 @@ export const driveRouter = createRouter({
       } catch (err: unknown) {
         const message = getErrorMessage(err, "List failed");
         console.error("Google Drive list error:", message);
-        return { success: false, error: message, files: [] };
+        return { ...internalFailure(err), files: [] };
       }
     }),
 });

@@ -1,3 +1,4 @@
+import "../contracts/install-safe-console";
 import { languagePath, languageRoute } from "../contracts/language-routes";
 import { withSsrDeadline } from "./lib/ssr-deadline";
 import { isHeldPublicPage, registerHeldPublicPages } from "./lib/held-public-pages";
@@ -17,6 +18,7 @@ import { applications, payments } from "@db/schema";
 import { desc, eq } from "drizzle-orm";
 import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
+import { internalFailure } from "./lib/public-error";
 import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
 import { isSupportedStripeWebhookEvent, verifyStripeWebhook } from "./lib/stripe-webhook";
 import { finalizeStripeTestPayment, recordStripeTestPaymentFailure } from "./lib/payment-finalization";
@@ -420,13 +422,7 @@ app.use("/api/trpc/*", async (c) => {
   } catch (err: unknown) {
     const message = getErrorMessage(err);
     console.error("[tRPC] Unhandled error in fetchRequestHandler:", message);
-    return c.json(
-      {
-        error: "Internal Server Error",
-        message: env.isProduction ? "Something went wrong" : message,
-      },
-      500,
-    );
+    return c.json(internalFailure(err), 500);
   }
 });
 
