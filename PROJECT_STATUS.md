@@ -1,3 +1,7 @@
+# Payment remediation authorized — first privacy fix deployed — 2026-09-14
+
+Owner approved ordered fixes in attachment c3c1bd41-2cdb-4be4-8507-1c7e72125835. Staging fc9485abf65f5bec359b1175dc7044031744b092 removes demonstrated SQL/email response/runtime-log leakage; duplicate probe repeated successfully and two staging runtime logs sanitized without changing audit DB rows or document files. Shared infrastructure logs remain outside this purge. Initial disk-full deployment recovered by removing only four obsolete build dependency caches; guard redeploy passed. Price revision/transaction work is in progress in tmp/next3-check, not deployed. Other payment blockers remain; no launch. Test cleanup superseded: no deletion, no pattern-only flagging; owner must review each proposed is_test record. See staging/PAYMENT_REMEDIATION_DELTA.md.
+
 # Complete admin review received — preflight only — 2026-09-14
 
 The complete owner attachment 4413e688-fa47-45b7-90c3-8baa38ef5751 supersedes prior admin notes. Four pre-build answers recorded in staging/ADMIN_BACKOFFICE_PREFLIGHT.md. Signed document URLs expire in 15 minutes but are bearer links and currently permit public caching for one hour. Server admin middleware exists; public chat.getHistory lacks owner validation. Audit coverage is partial; current wizard widget does not feed the legacy Chat Inbox. No admin implementation started; payment audit blockers remain first. Owner confirms VAT not registered; thresholds await accountant confirmation; no draft CMS publishing authorized.
