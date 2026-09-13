@@ -1,3 +1,4 @@
+import { PROCESSING_COPY } from "@contracts/processing-copy";
 import React, { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/providers/trpc-client';
 import { MessageCircle, X, Send, Bot, User, Paperclip, Lock, ChevronLeft } from 'lucide-react';
@@ -504,7 +505,9 @@ export default function ChatBot() {
             },
           );
         } else {
-          addBotMessage('❌ Please choose:\n• **Regular** (estimated 3–4 days)\n• **Express** (estimated 24–36 hours, +$40)\n\nTimes depend on complete documents, eligibility, authority review and system availability. Approval and exact timing are not guaranteed.');
+          addBotMessage(`❌ Please choose:
+${PROCESSING_COPY.en.regular}
+${PROCESSING_COPY.en.express}`);
           setLoading(false);
         }
         break;

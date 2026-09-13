@@ -1,3 +1,4 @@
+import { PROCESSING_COPY } from "../contracts/processing-copy";
 import { z } from "zod";
 import { adminQuery, chatQuery, createRouter, publicQuery, uploadQuery } from "./middleware";
 import { getDb } from "./queries/connection";
@@ -33,7 +34,8 @@ You help customers with UAE visa applications in both English and Arabic.
 
 Key information:
 - Visa types: 14 Days ($145), 30 Days ($170), 60 Days ($250), 90 Days ($330) - Single/Multiple Entry, 96 Hours Transit ($99)
-- Processing: Regular (3-4 days) and Express (24-36 hours, +$40)
+- ${PROCESSING_COPY.en.regular}
+- ${PROCESSING_COPY.en.express}
 - GCC Residents get special 30-day visa options
 - Required documents: Passport copy, passport photo (no glasses), passport cover
 - GCC Residents also need: Residence ID (front+back), Residency Permit
@@ -45,8 +47,7 @@ Key information:
 Important policies:
 - Visa fees are non-refundable if application is rejected
 - Overstay fines: AED 50/day, possible lifetime ban
-- Standard processing: 2-4 business days
-- Express processing: 24-72 business hours
+- Quote only the handling statements above; never promise a visa issuance time. Express pricing comes from the current server quote.
 - Visa sent via email as PDF
 - Passport must be valid for at least 6 months
 
@@ -106,8 +107,10 @@ function getStepMessage(step: number, lang: 'en' | 'ar' = 'en'): string {
       ar: `📎 محتاج بعض المستندات.\n\nارفع لو سمحت:\n1. 📄 صورة الجواز\n2. 🖼️ صورة شخصية (خلفية بيضاء، من غير نظارة)\n\n⚠️ المستندين مطلوبين.`,
     },
     3: {
-      en: `✅ Documents received!\n\nProcessing Options:\n• Regular (3-4 days) - No extra cost\n• Express (24-36 hours) - +$40\n\nWhich processing type?`,
-      ar: `✅ استلمت المستندات!\n\nخيارات المعالجة:\n• عادي (3-4 أيام) - بدون تكلفة إضافية\n• سريع (24-36 ساعة) - +$40\n\nإيه نوع المعالجة اللي عايزها؟`,
+      en: `${PROCESSING_COPY.en.regular}
+${PROCESSING_COPY.en.express}`,
+      ar: `${PROCESSING_COPY.ar.regular}
+${PROCESSING_COPY.ar.express}`,
     },
     4: {
       en: `📝 Please enter your **full name** (as it appears on your passport).`,
@@ -431,8 +434,10 @@ export const chatRouter = createRouter({
           session.step = 3;
           const lang = detectLanguage(session.visaType || "");
           const reply = lang === 'ar'
-            ? `✅ تمام! استلمت كل المستندات.\n\nخيارات المعالجة:\n• عادي (3-4 أيام)\n• سريع (24-36 ساعة) - +$40\n\nاختار نوع المعالجة:`
-            : `✅ All documents received!\n\nProcessing Options:\n• Regular (3-4 days)\n• Express (24-36 hours) - +$40\n\nChoose processing type:`;
+            ? `${PROCESSING_COPY.ar.regular}
+${PROCESSING_COPY.ar.express}`
+            : `${PROCESSING_COPY.en.regular}
+${PROCESSING_COPY.en.express}`;
           
           await db.insert(chatMessages).values({
             sessionId: input.sessionId,

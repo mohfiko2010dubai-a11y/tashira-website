@@ -59,7 +59,7 @@
   },
   "testimonials": {
     "title": "What Our Customers Say",
-    "review1": "The fastest visa service I have ever used. Got my visa in 36 hours!",
+    "review1": "The fastest visa service I have ever used.",
     "review2": "Excellent customer support. They guided me through every step.",
     "review3": "Very professional and reliable. Highly recommend for UAE visa."
   },
@@ -81,7 +81,7 @@
       },
       {
         "question": "How many days will my visa processing take?",
-        "answer": "Standard processing typically takes 2 to 4 business days. For urgent requirements, express service can facilitate the process within 24 to 72 business hours, subject to government system availability."
+        "answer": "$t(processing:regular) $t(processing:express)"
       },
       {
         "question": "What are the different types of UAE visas available?",

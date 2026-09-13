@@ -45,9 +45,9 @@
     "visaType": "Visa type",
     "processing": "Processing speed",
     "regular": "Regular",
-    "regularDesc": "Standard processing — 24 to 48 hours",
+    "regularDesc": "$t(processing:regular)",
     "express": "Express",
-    "expressDesc": "Priority processing — as fast as 6 hours",
+    "expressDesc": "$t(processing:express)",
     "contact": "Where do we send your visa?",
     "email": "Email",
     "phone": "Mobile number",
@@ -60,7 +60,11 @@
     "start": "Start my application →",
     "continue": "Continue →",
     "startError": "We couldn't start your application. Please check the details and try again.",
-    "nextNote": "Next: one page per traveller — questions and documents matched to each nationality."
+    "nextNote": "Next: one page per traveller — questions and documents matched to each nationality.",
+    "baseFare": "Regular service",
+    "expressExtra": "Express surcharge",
+    "quoteError": "We could not load the prices. Retry to compare Regular and Express.",
+    "retryPrice": "Retry prices"
   },
   "step2": {
     "title": "Residence type",

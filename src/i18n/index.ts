@@ -1,3 +1,4 @@
+import { PROCESSING_COPY } from "@contracts/processing-copy";
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
@@ -26,6 +27,7 @@ import arContent from './locales/ar/content.json';
 
 // Build resources from all available languages
 const enResources = {
+  processing: PROCESSING_COPY.en,
   common: enCommon,
   home: enHome,
   pricing: enPricing,
@@ -39,6 +41,7 @@ const enResources = {
 };
 
 const arResources = {
+  processing: PROCESSING_COPY.ar,
   common: arCommon,
   home: arHome,
   pricing: arPricing,

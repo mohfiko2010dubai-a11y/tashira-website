@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useProcessingQuotes } from "@/hooks/useProcessingQuotes";
+import { useMemo, useState } from "react";
 import {useNavigate, useSearchParams} from "react-router-dom";
 import { Home, Plane, UserRound, UsersRound, Zap, Clock3, Check, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -24,13 +25,14 @@ function createReference(): string {
   return `TSH-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 }
 
-function SelectCard({ selected, onClick, title, desc, icon: Icon }: {
-  selected: boolean; onClick: () => void; title: string; desc?: string; icon?: typeof Home;
+function SelectCard({ selected, onClick, title, desc, disabled = false, icon: Icon }: {
+  selected: boolean; disabled?: boolean; onClick: () => void; title: string; desc?: string; icon?: typeof Home;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={`relative flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-center transition-all ${
         selected
           ? "border-[#C9A04C] bg-gradient-to-br from-[#C9A04C]/10 to-[#C9A04C]/5 shadow-sm"
@@ -59,7 +61,7 @@ function SectionTitle({ children }: { children: string }) {
 
 export default function DynamicApplicationStart() {
   const navigate = useNavigate();
-  const { t } = useTranslation("wizard");
+  const { t, i18n } = useTranslation("wizard");
   const [searchParams] = useSearchParams();
   const visaParam = searchParams.get("visa") ?? "";
   const visaPrefill: Record<string, string> = {
@@ -84,14 +86,10 @@ export default function DynamicApplicationStart() {
 
   // Live, authoritative server-side quote — the customer sees the exact
   // price (same pricing engine the payment uses) before starting.
-  const quote = trpc.wizard.quoteApplication.useMutation();
-  const quoteMutate = quote.mutate;
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      quoteMutate({ visaType, processingType, applicantCount: travellerCount });
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [visaType, processingType, travellerCount, quoteMutate]);
+  const prices = useProcessingQuotes(visaType, travellerCount);
+  const quote = { data: prices[processingType], isPending: prices.loading };
+  const money = (amount: number) => new Intl.NumberFormat(i18n.language, { style: "currency", currency: prices.regular?.currency ?? "USD", maximumFractionDigits: 2 }).format(amount);
+
 
   const create = trpc.application.create.useMutation({
     onSuccess: ({ referenceNumber }) => navigate(`/apply/${encodeURIComponent(referenceNumber)}/interview`, { replace: true }),
@@ -110,7 +108,7 @@ export default function DynamicApplicationStart() {
   const submit = (form: HTMLFormElement) => {
     if (!feedback.validate(form)) return;
     if (!stepValid || !validStartContact(email, phone)) return;
-    if (create.isPending) return;
+    if (create.isPending || !quote.data) return;
     create.mutate({
       referenceNumber: createReference(),
       baseType: applicationType,
@@ -161,7 +159,7 @@ export default function DynamicApplicationStart() {
             <div className="grid gap-3 sm:grid-cols-2">
               {processingOptions.map((opt) => (
                 <SelectCard key={opt.key} icon={opt.icon} selected={processingType === opt.key}
-                  onClick={() => setProcessingType(opt.key)} title={t(`step1.${opt.titleKey}`)} desc={t(`step1.${opt.descKey}`)} />
+                  disabled={!prices.express && opt.key === "express"} onClick={() => setProcessingType(opt.key)} title={`${t(`step1.${opt.titleKey}`)}${opt.key === "express" ? prices.unitDelta === undefined ? ` — ${t("step1.priceCalculating")}` : ` +${money(prices.unitDelta)}` : ""}`} desc={t(`step1.${opt.descKey}`)} />
               ))}
             </div>
             {feedback.errorFor("processingType")}
@@ -194,7 +192,7 @@ export default function DynamicApplicationStart() {
                 <p className="text-sm font-bold text-[#0A1628]">{t("step1.price")}</p>
                 <p className="text-xs text-gray-500">
                   {quote.data
-                    ? t("step1.pricePerTraveller", { price: `$${quote.data.unitPrice}` })
+                    ? t("step1.pricePerTraveller", { price: money(quote.data.unitPrice) })
                     : t("step1.priceCalculating")}
                 </p>
               </div>
@@ -202,12 +200,17 @@ export default function DynamicApplicationStart() {
                 {quote.isPending && <Loader2 size={20} className="animate-spin text-[#C9A04C]" />}
                 {quote.data && (
                   <>
-                    <p className="text-3xl font-extrabold text-[#C9A04C]">${quote.data.totalPrice}</p>
+                    <p className="text-3xl font-extrabold text-[#C9A04C]">{money(quote.data.totalPrice)}</p>
                     <p className="text-xs text-gray-500">{t("step1.priceTotal", { count: quote.data.applicantCount })}</p>
                   </>
                 )}
               </div>
+            {quote.data && prices.regular && <dl aria-live="polite" className="mt-3 w-full space-y-2 text-sm">
+              <div className="flex justify-between"><dt>{t("step1.baseFare")} × {travellerCount}</dt><dd>{money(prices.regular.totalPrice)}</dd></div>
+              {processingType === "express" && <div className="flex justify-between"><dt>{t("step1.expressExtra")} × {travellerCount}</dt><dd>+{money(prices.totalDelta!)}</dd></div>}
+            </dl>}
             </div>
+            {prices.failed && <div role="alert" className="mt-3 text-sm text-red-700"><p>{t("step1.quoteError")}</p><button type="button" onClick={prices.retry} className="underline">{t("step1.retryPrice")}</button></div>}
 
             {create.error && (
               <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{t("step1.startError")}</p>
@@ -216,7 +219,7 @@ export default function DynamicApplicationStart() {
             <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
               <p className="text-sm text-gray-500">{t("flow.startBeforeSave")}</p>
               <p aria-live="polite" aria-atomic="true" className="text-sm text-red-700">{feedback.count > 0 ? t("validation.summary", { count: feedback.count }) : ""}</p>
-              <button type="submit" onMouseDown={event => event.preventDefault()} disabled={create.isPending}
+              <button type="submit" onMouseDown={event => event.preventDefault()} disabled={create.isPending || !quote.data}
                 className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {t("step1.continue")}
               </button>

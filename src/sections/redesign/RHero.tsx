@@ -1,3 +1,4 @@
+import { processingCopy } from "@contracts/processing-copy";
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Shield, CheckCircle, Star, Headphones, ChevronDown, Rocket, Tag } from 'lucide-react';
@@ -31,14 +32,11 @@ export default function RHero() {
         </p>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
-          {isAr ? 'احصل على تأشيرة الإمارات' : 'Get Your UAE Visa in'}
-          <span className="block mt-2 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] bg-clip-text text-transparent">
-            {isAr ? 'بسرعة وسهولة وأمان' : '24–48 Hours'}
-          </span>
+          {processingCopy(i18n.language).headline}
         </h1>
 
         <p className="mt-6 text-lg text-gray-300 max-w-2xl mx-auto">
-          {t('hero.subtitle')}
+          {processingCopy(i18n.language).regular}
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">

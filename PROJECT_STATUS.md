@@ -1,3 +1,7 @@
+## Task 5 processing copy and Express pricing locally verified - 2026-09-13
+
+One EN/AR contract supplies owner-exact Regular/Express handling copy to hero, stats, pricing catalog/cards, FAQ, wizard and chat. Authority issuance timing is not promised. Wizard fetches both server quotes before choice, displays per-traveller Express delta and separate total surcharge, rejects late responses after service/count changes, and provides retry on pricing failure. Clean check/lint/build and 917 tests pass, 26 gated skips. Actual-component browser checks verify shared copy, individual/family totals, quote race handling, retry and Arabic mobile. Unrelated homepage edits preserved outside release. Staging deployment and live verification pending.
+
 ## Task 4 deployed and browser verified - 2026-09-13
 
 Guard deployed cf2afb5fd81673faa4ff3699043b0cb0142ded6a; health 200. Local/server TypeScript, lint, build and 914 tests pass, 26 gated skips. TypeScript check heap raised to 4 GB after the default 2 GB exhausted; no gate bypass or runtime-memory change. Existing synthetic TSH-MTZ1GDIP-47EF24 preserves profile and four receipts, rejects non-Latin name with focus, and reaches payment readiness after correction. New synthetic TSH-MTZ31QLR-B212E9 proves no residence question in step 1 and immediate document preview before empty name fields. EN/AR placeholders, residence helper and visible English-name instruction verified live. Production and real email/payment untouched. Evidence: output/task4-fields-20260913/REVIEW.md.

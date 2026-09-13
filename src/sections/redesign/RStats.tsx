@@ -1,8 +1,9 @@
+import { processingCopy } from "@contracts/processing-copy";
 import { useTranslation } from 'react-i18next';
 
 const STATS = [
   { value: '10,000+', key: 'hero.stats.applications', ar: 'طلب تمت معالجته' },
-  { value: '24–48h', key: 'hero.stats.hours', ar: 'متوسط زمن المعالجة' },
+  { value: '', key: 'hero.stats.hours', ar: '' },
   { value: '150+', key: 'hero.stats.countries', ar: 'جنسية نخدمها' },
   { value: '4.9★', key: 'hero.stats.rating', ar: 'تقييم العملاء' },
 ];
@@ -16,9 +17,9 @@ export default function RStats() {
         {STATS.map((s) => (
           <div key={s.key} className="text-center">
             <p className="text-3xl lg:text-4xl font-extrabold bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] bg-clip-text text-transparent">
-              {s.value}
+              {s.key === 'hero.stats.hours' ? processingCopy(i18n.language).regularLabel : s.value}
             </p>
-            <p className="mt-2 text-sm text-gray-400">{isAr ? s.ar : t(s.key)}</p>
+            <p className="mt-2 text-sm text-gray-400">{s.key === 'hero.stats.hours' ? processingCopy(i18n.language).regular : isAr ? s.ar : t(s.key)}</p>
           </div>
         ))}
       </div>
