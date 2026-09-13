@@ -14,7 +14,7 @@ export function documentDownloadName(fileName: string, mimeType: string): string
 
 export function documentMimeType(mimeType: string, fileName: string): string {
   const mime = mimeType.toLowerCase();
-  if (mime && mime !== "application/octet-stream") return mime;
+  if (DOCUMENT_MIME_TYPES.has(mime)) return mime;
   const extension = fileName.toLowerCase().split(".").pop();
   return ({ pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", heic: "image/heic", heif: "image/heif" } as Record<string, string>)[extension ?? ""] ?? mime;
 }

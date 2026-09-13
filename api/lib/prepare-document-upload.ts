@@ -3,17 +3,22 @@ import { resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { documentMimeType, MAX_DOCUMENT_FILE_SIZE, PHOTO_CONVERSION_GUIDANCE, DOCUMENT_SIZE_GUIDANCE, UNSUPPORTED_DOCUMENT_GUIDANCE, UPLOAD_RETRY_GUIDANCE } from "../../contracts/document-upload-policy";
 import { sanitizeDocumentFileName, validateDocumentFile } from "./document-upload";
+import { documentContentType } from "./document-content-type";
 
 type Input = { fileName: string; mimeType: string; fileSize: number; base64Data: string };
 type WorkerResult = { bytes?: Uint8Array; mimeType?: string; converted?: boolean; error?: string };
 let activeConversions = 0;
 
 export async function prepareDocumentUpload(input: Input) {
-  const mimeType = documentMimeType(input.mimeType, input.fileName);
-  const invalid = validateDocumentFile(mimeType, input.fileSize);
-  if (invalid) throw new TRPCError({ code: "BAD_REQUEST", message: invalid });
+  if (input.fileSize <= 0 || input.fileSize > MAX_DOCUMENT_FILE_SIZE) throw new TRPCError({ code: "BAD_REQUEST", message: DOCUMENT_SIZE_GUIDANCE });
   if (input.base64Data.length > Math.ceil(MAX_DOCUMENT_FILE_SIZE / 3) * 4) throw new TRPCError({ code: "BAD_REQUEST", message: DOCUMENT_SIZE_GUIDANCE });
   const buffer = Buffer.from(input.base64Data, "base64");
+  if (buffer.length !== input.fileSize) throw new TRPCError({ code: "BAD_REQUEST", message: "Uploaded file size does not match the declared size" });
+  const mimeType = documentContentType(buffer);
+  if (!mimeType) {
+    const hint = documentMimeType(input.mimeType, input.fileName);
+    throw new TRPCError({ code: "BAD_REQUEST", message: hint.startsWith("image/") ? PHOTO_CONVERSION_GUIDANCE : UNSUPPORTED_DOCUMENT_GUIDANCE });
+  }
   const mismatch = validateDocumentFile(mimeType, input.fileSize, buffer.length);
   if (mismatch) throw new TRPCError({ code: "BAD_REQUEST", message: mismatch });
   const fileName = sanitizeDocumentFileName(input.fileName);

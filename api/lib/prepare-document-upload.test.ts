@@ -56,4 +56,32 @@ describe("server document normalization", () => {
     await expect(prepareDocumentUpload({ ...input(Buffer.from("x"), "big.jpg", "image/jpeg"), fileSize: MAX_DOCUMENT_FILE_SIZE + 1 })).rejects.toThrow("20 MB");
     await expect(prepareDocumentUpload({ ...input(Buffer.from("x"), "wrong.jpg", "image/jpeg"), fileSize: 3 })).rejects.toThrow("does not match");
   });
+
+  it("sniffs HEIF content independently of missing, unexpected or misleading browser MIME and filename", async () => {
+    const bytes = await readFile(new URL("./fixtures/synthetic-upload.heic", import.meta.url));
+    for (const mime of ["", "application/octet-stream", "image/x-heic", "image/jpeg", "application/pdf"]) {
+      const result = await prepareDocumentUpload(input(bytes, "camera-file", mime));
+      expect(result.mimeType).toBe("image/jpeg");
+      expect(await sharp(result.buffer).metadata()).toMatchObject({ format: "jpeg", width: 640, height: 480 });
+    }
+    expect(documentMimeType("image/x-heic", "PHONE.HEIC")).toBe("image/heic");
+    expect(documentMimeType("application/unknown", "PHONE.HEIF")).toBe("image/heif");
+    await expect(prepareDocumentUpload(input(Buffer.from("PK fake Office document"), "spoof.heic", "image/heic"))).rejects.toThrow(PHOTO_CONVERSION_GUIDANCE);
+  }, 60_000);
+
+  for (const [name, width, height, dominant] of [
+    ["landscape", 640, 480, 0], ["portrait", 480, 640, 2], ["portrait-left", 480, 640, 1],
+  ] as const) it(`honours ${name} orientation before removing metadata from HEIC`, async () => {
+    const bytes = await readFile(new URL(`./fixtures/orientation-${name}.heic`, import.meta.url));
+    const result = await prepareDocumentUpload(input(bytes, `${name}.heic`, "image/x-heic"));
+    const metadata = await sharp(result.buffer).metadata();
+    expect(metadata).toMatchObject({ format: "jpeg", width, height });
+    expect(metadata.exif).toBeUndefined();
+    expect(metadata.xmp).toBeUndefined();
+    expect(metadata.orientation).toBeUndefined();
+    // Red/green/blue corners distinguish correct rotation from simply swapping dimensions.
+    const corner = await sharp(result.buffer).extract({ left: 20, top: 20, width: 1, height: 1 }).raw().toBuffer();
+    expect(corner[dominant]).toBeGreaterThan(180);
+    expect([...corner].filter((_, index) => index !== dominant).every(value => value < 60)).toBe(true);
+  }, 60_000);
 });
