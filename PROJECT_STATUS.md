@@ -1,3 +1,7 @@
+# Next task 3 passport name verified — 2026-09-14
+
+Deployed 39dd933f8a43370e442adc733f2a3747cc1e174a. Exact EN/AR passport-name guidance and nonblocking single-name notice. Five Latin examples preserve punctuation/case through save and reload; Arabic example rejects with required guidance. Check/lint/build and 1029 tests pass, 26 gated skips. Evidence: tmp/wizard-staging-release/staging/NEXT3_PASSPORT_NAME.md.
+
 # Next task 2 iPhone uploads verified — 2026-09-13
 
 Deployed 4305032546f616f9ea92c9d23b9047664e73c99a. Existing HEIF conversion, 20 MB limit, orientation, progress and retry retained; fixed premature browser MIME trust with server content sniffing. Live HEIC/HEIF and >15 MB JPEG uploads, stored JPEG orientation/EXIF removal, explicit DOCX/conversion errors and aborted-upload retry pass. Review/payment link and reload pass. Check/lint/build and 1023 tests pass, 26 gated skips. See staging/NEXT2_IPHONE_UPLOAD.md and NEXT2_IPHONE_UPLOAD_UAT.json.

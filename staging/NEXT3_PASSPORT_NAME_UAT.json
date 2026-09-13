@@ -1,0 +1,36 @@
+{
+  "sha": "39dd933f8a43370e442adc733f2a3747cc1e174a",
+  "names": [
+    {
+      "name": "MOHAMMED ALI",
+      "persisted": true,
+      "notice": false
+    },
+    {
+      "name": "Mohammed Ali",
+      "persisted": true,
+      "notice": false
+    },
+    {
+      "name": "O'BRIEN-SMITH",
+      "persisted": true,
+      "notice": true
+    },
+    {
+      "name": "AL-SAYED",
+      "persisted": true,
+      "notice": true
+    },
+    {
+      "name": "Sukarno",
+      "persisted": true,
+      "notice": true
+    }
+  ],
+  "reference": "TSH-MU08R3CC-315BDA",
+  "arHint": true,
+  "arabicRejected": true,
+  "enCopy": true,
+  "enError": true,
+  "errors": []
+}
