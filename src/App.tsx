@@ -82,7 +82,7 @@ function AppContent() {
     <HelmetProvider>
     <div className={`min-h-screen bg-white ${isRtlLanguage(i18n.language) ? 'font-tajawal' : 'font-inter'}`}>
       {!isAdminRoute && <Header />}
-      <main>
+      <main className={isAdminRoute ? undefined : "site-header-clearance"}>
         <ChunkLoadErrorBoundary>
           <Suspense fallback={<div className="min-h-[40vh]" aria-label="Loading page" />}>
           <Routes>

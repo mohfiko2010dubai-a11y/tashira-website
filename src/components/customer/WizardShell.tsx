@@ -26,7 +26,7 @@ export default function WizardShell({ currentStep, children, compactContent = fa
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
       {/* Progress bar */}
-      <div className="sticky top-0 z-40 bg-[#FAFAF7]/90 backdrop-blur border-b border-gray-100">
+      <div className="sticky top-[var(--site-header-height)] z-40 bg-[#FAFAF7]/90 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 pt-5 pb-3">
           <div className="relative h-1.5 rounded-full bg-gray-200">
             <div

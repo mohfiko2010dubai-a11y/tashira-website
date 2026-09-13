@@ -32,7 +32,7 @@ export default function PublicApp() {
   const meta = fixedMetadata(location.pathname, i18n.language);
   return <HelmetProvider><div className={`min-h-screen bg-white ${i18n.language.startsWith("ar") ? "font-tajawal" : "font-inter"}`}>
     <Header />
-    <main><Routes>
+    <main className={/^\/(apply|guides|news|about|editorial-policy|sources-and-verification|uae-visa)(\/|$)/.test(location.pathname) ? "site-header-clearance" : undefined}><Routes>
       <Route path="/" element={<Home />} />
       <Route path="/visa-prices" element={<Pricing />} />
       <Route path="/how-to-apply" element={<HowToApply />} />

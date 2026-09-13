@@ -1,3 +1,4 @@
+import { documentCardCopy, documentGroupHeading } from "./document-card-copy";
 import { DocumentChoiceUpload } from "./DocumentChoiceUpload";
 import { Check, Upload } from "lucide-react";
 import { documentCardGroups, documentComplete } from "./document-card-groups";
@@ -9,13 +10,6 @@ import type { PartyApplicant, PartyRequirementReadiness } from "./InterviewParty
 
 type Props = { applicants: readonly PartyApplicant[]; requirements: readonly PartyRequirementReadiness[]; busy: boolean;
   error: boolean; newlyRequiredCodes?: readonly string[]; onUpload: (requirement: PartyRequirementReadiness, file: File, onProgress: (progress: DocumentUploadProgress) => void) => Promise<void> };
-
-const cardCopy: Record<string, { en: string; ar: string; hintEn: string; hintAr: string }> = {
-  PERSONAL_PHOTO: { en: "Recent personal photo", ar: "صورة شخصية حديثة", hintEn: "White background", hintAr: "خلفية بيضاء" },
-  HOME_NATIONAL_ID: { en: "National ID card", ar: "بطاقة الهوية الوطنية", hintEn: "Issued by your home country", hintAr: "الصادرة من بلدك" },
-  KSA_RESIDENCE_PROOF: { en: "Proof of residence", ar: "إثبات الإقامة", hintEn: "From Muqeem OR Absher — either one", hintAr: "من مقيم أو أبشر — أي واحد منهما" },
-  SA_ABSHER_REPORT: { en: "Absher residence report", ar: "تقرير الإقامة من أبشر", hintEn: "A separate file from the proof above", hintAr: "ملف منفصل غير الإثبات السابق" },
-};
 
 export function InterviewRequirementDocuments({ applicants, requirements, busy, error, newlyRequiredCodes = [], onUpload }: Props) {
   const { i18n } = useTranslation();
@@ -84,19 +78,16 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
     {error && !Object.values(uploadErrors).some(Boolean) && <p role="alert" className="mt-4 text-red-700">{documentUploadError("", ar)}</p>}
     {applicants.map(applicant => {
       const own = requirements.filter(item => item.applicantId === applicant.applicantId);
-      const countryName = applicant.residenceCountry ? new Intl.DisplayNames([ar ? "ar" : "en"], { type: "region" }).of(applicant.residenceCountry) : "";
       return documentCardGroups(own).map(group => {
         const files = group.cards.flatMap(card => card.files); const complete = files.every(documentComplete);
         const key = `${applicant.applicantId}:${group.key}`; const open = !complete || expanded[key];
-        const heading = group.key === "identity" ? ar ? "الهوية" : "Identity" : group.key === "residence" ? ar ? `الإقامة في ${countryName}` : `Residence in ${countryName}` : ar ? "مستندات إضافية" : "Supporting documents";
+        const heading = documentGroupHeading(group.key, applicant.residenceCountry, ar);
         return <section key={key} data-applicant-id={applicant.applicantId} className="mt-7" aria-label={heading}>
           <div className="mb-3 flex items-center gap-3"><h3 className="text-sm font-bold text-[#9b7425]">{heading}</h3><div className="h-px flex-1 bg-[#e8e0d2]" />
             {complete && <button type="button" aria-expanded={Boolean(open)} className="flex min-h-11 items-center gap-2 text-xs text-emerald-800" onClick={() => setExpanded(current => ({ ...current, [key]: !current[key] }))}><Check size={16} />{ar ? `${number(files.length)} ملفات · ${open ? "إخفاء" : "عرض"}` : `${files.length} files · ${open ? "Hide" : "Show"}`}</button>}</div>
           {open && <div className="grid gap-3">{group.cards.map(card => {
             const definition = OWNER_DOCUMENTS.find(item => item.code === card.key); const complete = card.files.every(documentComplete);
-            const copy = cardCopy[card.key];
-            const label = card.pair === "passport" ? ar ? "جواز السفر" : "Passport" : card.pair === "residence" ? ar ? "بطاقة الإقامة" : "Residence permit" : copy ? ar ? copy.ar : copy.en : definition ? ar ? definition.ar : definition.en : card.key;
-            const hint = card.pair === "passport" ? applicant.nationality === "PK" ? ar ? "الصفحة الثانية مطلوبة للجنسية الباكستانية" : "Second page required for Pakistani nationals" : ar ? "الصفحة الأولى والأخيرة" : "First and last passport pages" : card.pair === "residence" ? ar ? "صورتان — الوجه والظهر" : "Two images — front and back" : copy ? ar ? copy.hintAr : copy.hintEn : definition ? ar ? definition.hintAr : definition.hintEn : "";
+            const { label, hint } = documentCardCopy(card, applicant.nationality, ar);
             return <article key={card.key} data-document-card={card.key} className={`rounded-xl border p-3 transition-colors duration-200 motion-reduce:transition-none ${complete ? "border-emerald-200 bg-emerald-50" : "border-[#e8e0d2] bg-[#fcfbf8]"}`}>
               <div className={card.pair ? "mb-3 flex items-start gap-3" : "flex flex-wrap items-center gap-3"}>
                 <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${complete ? "bg-emerald-600 text-white" : "bg-[#f4ecd8] text-[#9b7425]"}`}>{complete ? <Check size={17} /> : <Upload size={17} />}</span>

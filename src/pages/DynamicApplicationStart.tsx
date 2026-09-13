@@ -1,3 +1,4 @@
+import { precheckPrefill } from "@/lib/precheck-documents";
 import NationalitySelect from "@/components/customer/NationalitySelect";
 import { GCC_COUNTRIES, requiredDocuments, tripPurposeSchema, type TripPurpose } from "@contracts/document-requirement-engine";
 import { useProcessingQuotes } from "@/hooks/useProcessingQuotes";
@@ -65,16 +66,17 @@ export default function DynamicApplicationStart() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation("wizard");
   const [searchParams] = useSearchParams();
+  const prefill = precheckPrefill(searchParams);
   const visaParam = searchParams.get("visa") ?? "";
   const visaPrefill: Record<string, string> = {
     "14-days": "14days-single", "30-days": "30days-single", "60-days": "60days-single",
     "multiple-entry": "30days-multiple", "transit": "96hours-transit",
   };
   const [applicationType, setApplicationType] = useState<"single" | "family">(visaParam === "family" ? "family" : "single");
-  const [residenceType, setResidenceType] = useState<"non-gcc" | "gcc-resident" | "gcc-accompany">("non-gcc");
-  const [nationality, setNationality] = useState("");
-  const [country, setCountry] = useState("");
-  const [purpose, setPurpose] = useState<TripPurpose>("tourism");
+  const [residenceType, setResidenceType] = useState<"non-gcc" | "gcc-resident" | "gcc-accompany">(prefill.residenceType);
+  const [nationality, setNationality] = useState(prefill.nationality);
+  const [country, setCountry] = useState(prefill.country);
+  const [purpose, setPurpose] = useState<TripPurpose>(prefill.purpose);
   const [applicantCount, setApplicantCount] = useState(2);
   const knownVisaId = visaRoutes.find(([v]) => v === visaParam)?.[0];
   const [visaType, setVisaType] = useState<string>(knownVisaId ?? visaPrefill[visaParam] ?? visaRoutes[2][0]);

@@ -109,6 +109,12 @@ html[dir="rtl"] {
 /* Smooth scroll */
 html {
   scroll-behavior: smooth;
+  --site-header-height: 89px;
+  scroll-padding-top: var(--site-header-height);
+}
+
+.site-header-clearance {
+  padding-block-start: var(--site-header-height);
 }
 
 /* Custom scrollbar */
