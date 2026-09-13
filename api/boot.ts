@@ -463,6 +463,7 @@ app.use("*", async (c, next) => {
   const localeRoute = languageRoute(c.req.path);
   const pathOnly = localeRoute.pathname;
   if (pathOnly.startsWith("/api/") || pathOnly.startsWith("/storage/")) return next();
+  const lookupStarted = performance.now();
   try {
     const db = getDb();
     const { contentRedirects } = await import("@db/schema");
@@ -473,6 +474,8 @@ app.use("*", async (c, next) => {
     }
   } catch {
     // Redirect table may not exist yet — fall through to the SPA.
+  } finally {
+    if (!pathOnly.startsWith("/assets/")) console.info(JSON.stringify({ event: "ssr_redirect_lookup", language: localeRoute.language, elapsedMs: performance.now() - lookupStarted }));
   }
   return next();
 });

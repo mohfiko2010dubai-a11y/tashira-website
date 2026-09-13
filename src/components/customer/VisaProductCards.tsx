@@ -80,7 +80,7 @@ function VisaCard({
                 : "bg-emerald-100 text-emerald-600"
             }`}
           >
-            {speed === "express" && hasExpress ? "EXPRESS" : "REGULAR"}
+            {isAr ? t(speed === "express" && hasExpress ? "speed.express" : "speed.regular") : speed === "express" && hasExpress ? "EXPRESS" : "REGULAR"}
           </span>
         </div>
 

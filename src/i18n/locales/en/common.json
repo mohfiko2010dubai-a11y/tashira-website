@@ -25,6 +25,16 @@
     "downloadPDF": "Download PDF"
   },
   "footer": {
+    "licensedIn": "Private company licensed in",
+    "licensedLocation": "Meydan Free Zone, Dubai, UAE",
+    "licenseNumber": "Commercial License No.",
+    "companyName": "Company Name",
+    "homeLink": "Home",
+    "pricesLink": "UAE Visa Prices",
+    "howLink": "How to Apply",
+    "trackLink": "Track Application",
+    "contactLink": "Contact",
+    "address": "Meydan Grandstand, 6th Floor, Meydan Road, Nad Al Sheba, Dubai, U.A.E.",
     "description": "Leading portal for UAE electronic visa services. Fast-track processing and dedicated support worldwide.",
     "quickLinks": "Quick Links",
     "legalCenter": "Legal Center",

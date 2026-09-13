@@ -14,21 +14,21 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <ShieldCheck size={22} className="text-[#C9A04C]" />
               <div>
-                <p className="text-xs text-gray-400">Private company licensed in</p>
-                <p className="text-sm font-semibold text-white">Meydan Free Zone, Dubai, UAE</p>
+                <p className="text-xs text-gray-400">{t('footer.licensedIn')}</p>
+                <p className="text-sm font-semibold text-white">{t('footer.licensedLocation')}</p>
               </div>
             </div>
             <div className="hidden sm:block w-px h-8 bg-white/20" />
             <div className="flex items-center gap-3">
               <FileCheck size={22} className="text-[#C9A04C]" />
               <div>
-                <p className="text-xs text-gray-400">Commercial License No.</p>
+                <p className="text-xs text-gray-400">{t('footer.licenseNumber')}</p>
                 <p className="text-sm font-semibold text-white" dir="ltr">2541485.01</p>
               </div>
             </div>
             <div className="hidden sm:block w-px h-8 bg-white/20" />
             <div className="text-center sm:text-start">
-              <p className="text-xs text-gray-400">Company Name</p>
+              <p className="text-xs text-gray-400">{t('footer.companyName')}</p>
               <p className="text-sm font-semibold text-white">Tashira E-Visa and Tourism L.L.C-FZ</p>
             </div>
           </div>
@@ -71,12 +71,12 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2.5">
               {[
-                { label: 'Home', path: '/' },
-                { label: 'UAE Visa Prices', path: '/visa-prices' },
-                { label: 'How to Apply', path: '/how-to-apply' },
+                { label: t('footer.homeLink'), path: '/' },
+                { label: t('footer.pricesLink'), path: '/visa-prices' },
+                { label: t('footer.howLink'), path: '/how-to-apply' },
                 { label: t('nav.guides'), path: '/guides' },
                 { label: t('nav.news'), path: '/news' },
-                { label: 'Track Application', path: '/track' },
+                { label: t('footer.trackLink'), path: '/track' },
               ].map((link) => (
                 <li key={link.path}>
                   <Link to={link.path} className="text-sm text-gray-400 hover:text-white transition-colors">
@@ -98,7 +98,7 @@ export default function Footer() {
                 { label: t('footer.privacy'), path: '/privacy' },
                 { label: t('footer.refund'), path: '/refund' },
                 { label: t('footer.cookies'), path: '/cookies' },
-                { label: 'Contact', path: '/contact' },
+                { label: t('footer.contactLink'), path: '/contact' },
               ].map((link) => (
                 <li key={link.path}>
                   <Link to={link.path} className="text-sm text-gray-400 hover:text-white transition-colors">
@@ -117,13 +117,13 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2.5 text-sm text-gray-400">
                 <Phone size={13} className="text-[#C9A04C] shrink-0" />
-                <a href="tel:+971502101784" className="hover:text-[#C9A04C] transition-colors">
+                <a dir="ltr" href="tel:+971502101784" className="hover:text-[#C9A04C] transition-colors">
                   +971 50 210 1784
                 </a>
               </li>
               <li className="flex items-center gap-2.5 text-sm text-gray-400">
                 <Phone size={13} className="text-emerald-500 shrink-0" />
-                <a href="https://wa.me/971589896644" target="_blank" rel="noopener noreferrer" className="hover:text-[#C9A04C] transition-colors">
+                <a dir="ltr" href="https://wa.me/971589896644" target="_blank" rel="noopener noreferrer" className="hover:text-[#C9A04C] transition-colors">
                   +971 58 989 6644 (WhatsApp)
                 </a>
               </li>
@@ -133,7 +133,7 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-2.5 text-sm text-gray-400">
                 <MapPin size={13} className="text-[#C9A04C] shrink-0 mt-0.5" />
-                <span>Meydan Grandstand, 6th Floor, Meydan Road, Nad Al Sheba, Dubai, U.A.E.</span>
+                <span>{t('footer.address')}</span>
               </li>
             </ul>
           </div>
