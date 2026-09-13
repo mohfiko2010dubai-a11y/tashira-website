@@ -1,3 +1,7 @@
+## Task 5 deployed and live browser verified - 2026-09-13
+
+Guard deployed d257ac3db74c08cb2486719e70cb8b837b74f2a6; local/public health 200. Server/local check, lint, build and 917 tests pass, 26 gated skips. Live home hero/stats/cards, processing FAQ, pricing page and wizard show shared handling copy. Express delta visible before selection: 30-day +30 USD; one traveller 185+30=215; three 555+90=645. Switching to 14-day changes actual delta to +25 USD; three 510+75=585. Arabic shared copy and surcharge verified. Public previews only, no application/email/payment; production untouched. Evidence: output/task5-processing-20260913/REVIEW.md.
+
 ## Task 5 processing copy and Express pricing locally verified - 2026-09-13
 
 One EN/AR contract supplies owner-exact Regular/Express handling copy to hero, stats, pricing catalog/cards, FAQ, wizard and chat. Authority issuance timing is not promised. Wizard fetches both server quotes before choice, displays per-traveller Express delta and separate total surcharge, rejects late responses after service/count changes, and provides retry on pricing failure. Clean check/lint/build and 917 tests pass, 26 gated skips. Actual-component browser checks verify shared copy, individual/family totals, quote race handling, retry and Arabic mobile. Unrelated homepage edits preserved outside release. Staging deployment and live verification pending.
