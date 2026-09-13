@@ -211,6 +211,9 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       const profile = { routeCode: runtime.application.routeCode, attributes: { nationality: applicant.nationality,
         residenceCountry: applicant.residenceCountry, tripPurpose: applicant.tripPurpose ?? "tourism" } };
       const result = applyOwnerDocumentRequirements(evaluateEligibility({ profile, rules: [], evaluatedAt }), profile, evaluatedAt);
+      const previous = runtime.partyBundle?.snapshots.current(runtime.application.applicationId, applicant.applicantId);
+      if (previous && JSON.stringify([...previous.requiredDocuments].sort()) === JSON.stringify([...result.requiredDocuments].sort())
+        && previous.conditionalDocuments.length === 0) return { prepared: true };
       await deps.persistCompletedEvaluations({ applicationId: runtime.application.applicationId, catalogVersion: runtime.catalogVersion,
         evaluations: [{ applicantId: applicant.applicantId, selectedRoute: runtime.application.routeCode, result }],
         triggerEventId: `document-upload:${input.submissionId}`, actorReference: `customer:${input.referenceNumber}`,
