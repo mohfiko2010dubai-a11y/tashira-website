@@ -124,13 +124,13 @@ export default function CmsContentPage({ slug, contentType, visaContext }: CmsCo
   return (
     <div className="bg-[#FAFAF7]">
       <Seo
-        title={item.seoTitle || item.title}
-        description={item.metaDescription || item.excerpt}
+        title={contentType === "LANDING" ? item.seoTitle || item.title : `${item.title} | TASHIRA`}
+        description={contentType === "LANDING" ? item.metaDescription : (item.excerpt ?? "").trim().slice(0, 155)}
         canonicalPath={`/${slug}`}
         robots={item.robots}
-        ogTitle={item.ogTitle}
-        ogDescription={item.ogDescription}
-        ogImage={item.ogImage}
+        ogTitle={contentType === "LANDING" ? item.ogTitle : `${item.title} | TASHIRA`}
+        ogDescription={contentType === "LANDING" ? item.ogDescription : (item.excerpt ?? "").trim().slice(0, 155)}
+        ogImage={contentType === "LANDING" ? item.ogImage : item.heroImage}
         alternates={alternates}
         jsonLd={item.structuredData as Record<string, unknown> | null}
         lang={language}

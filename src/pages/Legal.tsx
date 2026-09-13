@@ -1,45 +1,19 @@
-import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import DOMPurify from 'dompurify';
+import { validatedLegalHtml } from '@/lib/legal-html';
 
 interface LegalProps {
   page: 'terms' | 'privacy' | 'refund' | 'cookies';
 }
-
-const pageMeta: Record<string, { title: string; desc: string }> = {
-  terms: {
-    title: 'Terms & Conditions | Tashira E-Visa Portal',
-    desc: 'Read Tashira terms and conditions for UAE visa application services.',
-  },
-  privacy: {
-    title: 'Privacy Policy | Tashira E-Visa Portal',
-    desc: 'Learn how Tashira protects your personal data and privacy.',
-  },
-  refund: {
-    title: 'Refund Policy | Tashira E-Visa Portal',
-    desc: 'Understand Tashira refund and cancellation policy for UAE visa applications.',
-  },
-  cookies: {
-    title: 'Cookie Policy | Tashira E-Visa Portal',
-    desc: 'Learn about cookies and how Tashira uses them.',
-  },
-};
 
 export default function Legal({ page }: LegalProps) {
   const { t, i18n } = useTranslation('legal');
 
   const title = t(`${page}.title`);
   const content = t(`${page}.content`);
-  const meta = pageMeta[page];
-  const sanitizedContent = DOMPurify.sanitize(content);
+  const sanitizedContent = validatedLegalHtml(content);
 
   return (
     <>
-      <Helmet>
-        <title>{meta.title}</title>
-        <meta name="description" content={meta.desc} />
-        <link rel="canonical" href={`https://tashiraev.com/${page === 'terms' ? 'terms' : page === 'privacy' ? 'privacy' : page === 'refund' ? 'refund' : 'cookies'}`} />
-      </Helmet>
     <div className="min-h-screen">
       {/* Page Header */}
       <div

@@ -1,3 +1,7 @@
+# Phase 1 SSR candidate - 2026-09-13
+
+Existing English routes: approved 16-route metadata, isolated SSR workers (3000ms), public data deadlines (1000ms), HTTP 200 SPA fallback, true missing-page 404, private/no-store HTML, protected staging failure probes. Local production build, TypeScript, lint and 967 tests passed (26 environment skips); all 16 fixed routes pass source/no-JS and Chrome hydration checks. Prior uncommitted work preserved byte-for-byte. Deployment and live verification pending; Phase 2 remains held. See staging/SSR_PHASE1.md.
+
 ## 2026-09-13 held landing hotfix deployed and verified
 
 Staging 7ecc5800310dceced5346f224019fe00b56ad58e, health 200. Server check/lint/build and 927 tests pass, 26 gated skips. Actual HTML requests /uae-visa and /dubai-visa now return 404 with readable not-found body; sitemap excludes both; /apply and /visa-prices remain 200. SSR and 16-route metadata not deployed. Evidence: output/task7-phase1/HELD-LIVE-RESULTS.json. Production untouched.

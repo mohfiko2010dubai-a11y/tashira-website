@@ -1,3 +1,5 @@
+import rules from "../../contracts/marketing-compliance-rules.json";
+import { findMarketingViolations } from "../../contracts/marketing-compliance";
 /**
  * Content platform governance: controlled state machine, RBAC mapping,
  * publication guards (misleading-phrase scan, SEO completeness, news
@@ -63,32 +65,10 @@ export function isValidSlug(slug: string): boolean {
  * and TASHIRA compliance rules. Publishing content containing any of these
  * is rejected (fail closed).
  */
-export const FORBIDDEN_PHRASES: readonly string[] = [
-  "guaranteed approval",
-  "guarantee approval",
-  "guaranteed visa",
-  "100% approval",
-  "100% guaranteed",
-  "visa approval guaranteed",
-  "official government",
-  "government website",
-  "official uae government",
-  "we guarantee",
-  "guaranteed acceptance",
-  "guaranteed processing",
-  "ضمان الموافقة",
-  "موافقة مضمونة",
-  "تأشيرة مضمونة",
-  "موقع حكومي",
-  "الموقع الرسمي للحكومة",
-  "ضمان الحصول على التأشيرة",
-  "نضمن لك",
-  "قبول مضمون",
-];
+export const FORBIDDEN_PHRASES: readonly string[] = rules.deny;
 
 export function findForbiddenPhrases(text: string): string[] {
-  const haystack = text.toLowerCase();
-  return FORBIDDEN_PHRASES.filter((phrase) => haystack.includes(phrase.toLowerCase()));
+  return [...new Set(findMarketingViolations(text).map(match => match.phrase.toLowerCase()))];
 }
 
 /** Fields required before a publish transition is allowed. */
@@ -106,10 +86,12 @@ export interface PublishGuardInput {
   sourceUrl: string | null;
   lastVerifiedAt: string | null;
   bodyText: string;
+  excerpt?: string | null;
 }
 
 export function publishGuardFailures(input: PublishGuardInput): string[] {
   const failures: string[] = [];
+  if (input.contentType !== "LANDING" && !input.excerpt?.trim()) failures.push("ARTICLE_EXCERPT_REQUIRED");
   if (!input.seoTitle?.trim()) failures.push("SEO_TITLE_REQUIRED");
   if (!input.metaDescription?.trim()) failures.push("META_DESCRIPTION_REQUIRED");
   if (input.heroImage && !input.heroImageAlt?.trim()) failures.push("HERO_IMAGE_ALT_REQUIRED");

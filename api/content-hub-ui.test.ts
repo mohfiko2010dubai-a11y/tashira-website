@@ -28,11 +28,13 @@ describe("SEO content hub public experience", () => {
 
   it("serves SEO metadata with canonical, hreflang and OG tags", async () => {
     const seo = await readFile(new URL("../src/components/Seo.tsx", import.meta.url), "utf8");
-    expect(seo).toContain('rel="canonical"');
-    expect(seo).toContain('hrefLang="ar"');
-    expect(seo).toContain('hrefLang="en"');
+    const head = await readFile(new URL("../src/components/PageHead.tsx", import.meta.url), "utf8");
+    const server = await readFile(new URL("./lib/ssr-html.ts", import.meta.url), "utf8");
+    expect(server).toContain('rel="canonical"');
+    expect(seo).toContain('tag.hreflang = language');
+    expect(seo).toContain('...alternates');
     expect(seo).toContain("og:title");
-    expect(seo).toContain('name="robots"');
+    expect(head).toContain('name="robots"');
     expect(seo).toContain("application/ld+json");
   });
 

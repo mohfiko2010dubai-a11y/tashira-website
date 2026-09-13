@@ -1,3 +1,5 @@
+import PublicApp from "./PublicApp";
+import { isPublicPage } from "@contracts/ssr-pages";
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -73,6 +75,7 @@ function AppContent() {
     document.documentElement.lang = i18n.language;
   }, [i18n.language]);
 
+  if (isPublicPage(location.pathname)) return <PublicApp />;
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (

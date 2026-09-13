@@ -1,15 +1,11 @@
-import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
 import { Mail, MapPin, Phone } from 'lucide-react';
 
 export default function Contact() {
-  const isAr = document.documentElement.lang === 'ar';
+  const { i18n } = useTranslation();
+  const isAr = i18n.language.startsWith('ar');
   return (
     <>
-      <Helmet>
-        <title>Contact TASHIRA | Customer Support</title>
-        <meta name="description" content="Contact TASHIRA E-Visa & Tourism LLC-FZ for application and customer support." />
-        <link rel="canonical" href="https://tashiraev.com/contact" />
-      </Helmet>
       <div className="min-h-screen bg-[#FAFAF7] px-4 pb-20 pt-32">
         <section className="mx-auto max-w-3xl rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-3xl font-bold text-[#1A2332]">{isAr ? 'تواصل معنا' : 'Contact TASHIRA'}</h1>

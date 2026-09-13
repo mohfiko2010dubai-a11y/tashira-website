@@ -97,9 +97,13 @@ describe("publish guards", () => {
   });
   it("passes NEWS with complete provenance", () => {
     expect(publishGuardFailures({
-      ...base, contentType: "NEWS", author: "a", reviewer: "r",
+      ...base, contentType: "NEWS", author: "a", reviewer: "r", excerpt: "Approved article summary",
       sourceAuthority: "ICP", sourceUrl: "https://icp.gov.ae", lastVerifiedAt: "2026-09-01",
     })).toEqual([]);
+  });
+  it("flags missing article excerpts without inventing a description", () => {
+    expect(publishGuardFailures({ ...base, contentType: "GUIDE", excerpt: "  " })).toContain("ARTICLE_EXCERPT_REQUIRED");
+    expect(publishGuardFailures({ ...base, contentType: "GUIDE", excerpt: "Approved summary" })).toEqual([]);
   });
 });
 

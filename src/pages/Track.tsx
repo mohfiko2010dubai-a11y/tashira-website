@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle, Mail, Search } from "lucide-react";
@@ -38,11 +37,6 @@ export default function Track() {
 
   return (
     <>
-      <Helmet>
-        <title>Track UAE Visa Application | Check Visa Status | Tashira</title>
-        <meta name="description" content="Track your UAE visa application status online." />
-        <link rel="canonical" href="https://tashiraev.com/track" />
-      </Helmet>
       <div className="min-h-screen">
         <div className="pt-32 pb-16 px-4 text-center" style={{ background: "linear-gradient(180deg, #FAFAF7, #F0EDE8)" }}>
           <h1 className="text-3xl sm:text-4xl font-bold text-[#1A2332]">{t("title")}</h1>

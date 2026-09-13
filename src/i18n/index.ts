@@ -1,5 +1,5 @@
 import { PROCESSING_COPY } from "@contracts/processing-copy";
-import i18n from 'i18next';
+import { createInstance } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 // All language imports
@@ -89,18 +89,13 @@ const resources: Record<string, typeof enResources | typeof arResources> = {
   hu: enResources,
 };
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: localStorage.getItem('i18nextLng') || 'en',
-    fallbackLng: 'en',
-    interpolation: {
-      escapeValue: false,
-    },
-    react: {
-      useSuspense: false,
-    },
+export function createAppI18n(language = 'en') {
+  const instance = createInstance();
+  void instance.use(initReactI18next).init({ resources, lng: language,
+    fallbackLng: 'en', initAsync: false, interpolation: { escapeValue: false },
+    react: { useSuspense: false },
   });
-
+  return instance;
+}
+const i18n = createAppI18n();
 export default i18n;

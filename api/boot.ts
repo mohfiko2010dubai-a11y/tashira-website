@@ -1,3 +1,4 @@
+import { withSsrDeadline } from "./lib/ssr-deadline";
 import { isHeldPublicPage, registerHeldPublicPages } from "./lib/held-public-pages";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -463,8 +464,8 @@ app.use("*", async (c, next) => {
   try {
     const db = getDb();
     const { contentRedirects } = await import("@db/schema");
-    const [redirect] = await db.select().from(contentRedirects)
-      .where(eq(contentRedirects.fromPath, pathOnly)).limit(1);
+    const [redirect] = await withSsrDeadline(() => db.select().from(contentRedirects)
+      .where(eq(contentRedirects.fromPath, pathOnly)).limit(1), { stage: "data" });
     if (redirect && redirect.isActive === 1 && redirect.toPath.startsWith("/") && !redirect.toPath.startsWith("//")) {
       return c.redirect(redirect.toPath, redirect.statusCode === 302 ? 302 : 301);
     }

@@ -158,7 +158,7 @@ export default function AdminContentEditor() {
         <div><label className={labelCls}>Slug * (e.g. uae-visa/14-days)</label><input className={inputCls} dir="ltr" value={form.slug} onChange={set('slug')} /></div>
         <div><label className={labelCls}>Translation group ID</label><input className={inputCls} dir="ltr" value={form.translationGroupId} onChange={set('translationGroupId')} placeholder="shared between en/ar pair" /></div>
         <div><label className={labelCls}>Category</label><input className={inputCls} value={form.category} onChange={set('category')} /></div>
-        <div className="col-span-2"><label className={labelCls}>Excerpt</label><textarea className={inputCls} rows={2} value={form.excerpt} onChange={set('excerpt')} /></div>
+        <div className="col-span-2"><label className={labelCls}>Excerpt</label><textarea className={inputCls} rows={2} value={form.excerpt} onChange={set('excerpt')} />{form.contentType !== 'LANDING' && !form.excerpt.trim() && <p role="status" className="text-sm text-amber-700">Article description is missing. Write an excerpt before publishing; it supplies the search description.</p>}</div>
         <div className="col-span-2"><label className={labelCls}>Body blocks (JSON: heading/paragraph/list/faq/cta) *</label>
           <textarea className={`${inputCls} font-mono`} dir="ltr" rows={12} value={form.bodyBlocks} onChange={set('bodyBlocks')} /></div>
         <div><label className={labelCls}>Hero image URL</label><input className={inputCls} dir="ltr" value={form.heroImage} onChange={set('heroImage')} /></div>

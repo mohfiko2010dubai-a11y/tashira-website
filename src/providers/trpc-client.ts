@@ -6,7 +6,7 @@ import type { AppRouter } from "../../api/router";
 
 export const trpc = createTRPCReact<AppRouter>();
 
-export const queryClient = new QueryClient();
+export const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000 } } });
 export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({

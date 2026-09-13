@@ -1,0 +1,162 @@
+{
+  "/": {
+    "en": {
+      "title": "UAE Visa Application Online for GCC Residents | TASHIRA",
+      "description": "Apply online for a UAE tourist, visit or transit visa from anywhere in the GCC. We review your documents before submission. Processing times are estimates; approval rests with the UAE authorities."
+    },
+    "ar": {
+      "title": "تأشيرة الإمارات أونلاين لمقيمي الخليج | تشيرة",
+      "description": "قدّم على تأشيرة الإمارات إلكترونيًا من السعودية والكويت وقطر والبحرين وعُمان. نراجع مستنداتك قبل الإرسال. المدد تقديرية والقرار يعود للجهات المختصة."
+    }
+  },
+  "/visa-prices": {
+    "en": {
+      "title": "UAE Visa Fees by Type and Duration | TASHIRA",
+      "description": "One all-in price per visa type and duration, with government fees included. Find the visa that fits your nationality and country of residence."
+    },
+    "ar": {
+      "title": "رسوم تأشيرة الإمارات حسب النوع والمدة | تشيرة",
+      "description": "سعر واحد شامل لكل نوع تأشيرة ومدتها، والرسوم الحكومية داخله. اختر التأشيرة المناسبة لجنسيتك ودولة إقامتك."
+    }
+  },
+  "/how-to-apply": {
+    "en": {
+      "title": "How to Apply for a UAE Visa: Steps and Documents",
+      "description": "The application process step by step, the documents required for your nationality and residence, and how to photograph your passport so it is accepted first time."
+    },
+    "ar": {
+      "title": "كيف تقدّم على تأشيرة الإمارات: الخطوات والمستندات",
+      "description": "خطوات التقديم من البداية للنهاية، والمستندات المطلوبة حسب جنسيتك ودولة إقامتك، وكيف تصوّر جوازك بشكل مقبول من المرة الأولى."
+    }
+  },
+  "/apply": {
+    "en": {
+      "title": "Apply for a UAE Visa Online | TASHIRA",
+      "description": "Start your application: choose your visa, upload the documents required for your nationality and residence, and pay securely. We check every document before we submit."
+    },
+    "ar": {
+      "title": "قدّم على تأشيرة الإمارات أونلاين | تشيرة",
+      "description": "ابدأ طلبك: اختر تأشيرتك، وارفع المستندات المطلوبة حسب جنسيتك ودولة إقامتك، وادفع بأمان. نراجع كل مستند قبل الإرسال."
+    }
+  },
+  "/track": {
+    "en": {
+      "title": "Track Your UAE Visa Application | TASHIRA",
+      "description": "Enter your order number to see its current stage: document review, submission, or result issued. Tracking is available 24 hours."
+    },
+    "ar": {
+      "title": "متابعة حالة طلب تأشيرتك | تشيرة",
+      "description": "أدخل رقم طلبك لمعرفة مرحلته الحالية: مراجعة المستندات، أو التقديم، أو صدور النتيجة. المتابعة متاحة ٢٤ ساعة."
+    }
+  },
+  "/guides": {
+    "en": {
+      "title": "UAE Visa Guides | TASHIRA",
+      "description": "Practical guides on required documents, passport photo rules, and what changes by nationality and country of residence."
+    },
+    "ar": {
+      "title": "أدلة تأشيرة الإمارات | تشيرة",
+      "description": "أدلة عملية: المستندات المطلوبة، وقواعد صورة الجواز، وما الذي يختلف حسب الجنسية ودولة الإقامة."
+    }
+  },
+  "/news": {
+    "en": {
+      "title": "UAE Visa News and Rule Updates | TASHIRA",
+      "description": "Changes to UAE visa rules, fees and requirements — published only after we check the official source."
+    },
+    "ar": {
+      "title": "أخبار وتحديثات تأشيرة الإمارات | تشيرة",
+      "description": "تغيّرات قواعد التأشيرة والرسوم والمتطلبات — تُنشر بعد مراجعة المصدر الرسمي فقط."
+    }
+  },
+  "/contact": {
+    "en": {
+      "title": "Contact TASHIRA | UAE Visa Support",
+      "description": "Reach us on WhatsApp or by email about your documents or your application. A private company licensed in Meydan Free Zone, Dubai."
+    },
+    "ar": {
+      "title": "تواصل مع تشيرة | دعم تأشيرات الإمارات",
+      "description": "راسلنا على واتساب أو بالبريد للاستفسار عن مستنداتك أو متابعة طلبك. شركة خاصة مرخّصة في ميدان فري زون، دبي."
+    }
+  },
+  "/refund": {
+    "en": {
+      "title": "Refund Policy | TASHIRA",
+      "description": "When a refund is possible and when it is not, and how the government fee is treated once an application has been submitted. Written clearly before you pay."
+    },
+    "ar": {
+      "title": "سياسة الاسترداد | تشيرة",
+      "description": "متى يمكن استرداد المبلغ ومتى لا يمكن، وكيف يُعامل الرسم الحكومي بعد التقديم. مكتوبة بوضوح قبل أن تدفع."
+    }
+  },
+  "/terms": {
+    "en": {
+      "title": "Terms and Conditions | TASHIRA",
+      "description": "The scope of TASHIRA's service and each party's responsibilities. TASHIRA is a licensed private company, not a government authority; visa decisions rest with the UAE authorities."
+    },
+    "ar": {
+      "title": "الشروط والأحكام | تشيرة",
+      "description": "نطاق خدمة تشيرة ومسؤوليات كل طرف. تشيرة شركة خاصة مرخّصة وليست جهة حكومية، وقرار التأشيرة يعود للجهات المختصة في الإمارات."
+    }
+  },
+  "/privacy": {
+    "en": {
+      "title": "Privacy and Document Protection | TASHIRA",
+      "description": "How we store your passport images and documents, who can access them, and when they are deleted. We never ask for card details in chat."
+    },
+    "ar": {
+      "title": "سياسة الخصوصية وحماية مستنداتك | تشيرة",
+      "description": "كيف نحفظ صور جوازك ومستنداتك، ومن يصل إليها، ومتى تُحذف. لا نطلب بيانات بطاقتك في المحادثة أبدًا."
+    }
+  },
+  "/cookies": {
+    "en": {
+      "title": "Cookie Policy | TASHIRA",
+      "description": "Which cookies this site uses, what each one does, and how to control them in your browser."
+    },
+    "ar": {
+      "title": "سياسة ملفات الارتباط | تشيرة",
+      "description": "ما ملفات الارتباط التي يستخدمها الموقع، ووظيفة كل منها، وكيف تتحكم فيها من متصفحك."
+    }
+  },
+  "/visa-pre-check": {
+    "en": {
+      "title": "Do You Need a UAE Visa? Check in One Minute | TASHIRA",
+      "description": "Answer a few questions about your nationality, country of residence and trip to see whether you need a UAE visa in advance, and which documents apply to you."
+    },
+    "ar": {
+      "title": "هل تحتاج تأشيرة لدخول الإمارات؟ تحقّق في دقيقة | تشيرة",
+      "description": "أجب عن أسئلة قصيرة عن جنسيتك ودولة إقامتك ورحلتك لتعرف إن كنت تحتاج تأشيرة مسبقة، وما المستندات المطلوبة في حالتك أنت."
+    }
+  },
+  "/about": {
+    "en": {
+      "title": "About TASHIRA | Licensed UAE Visa Service in Dubai",
+      "description": "TASHIRA is a private company licensed in Meydan Free Zone, Dubai (Licence 2541485.01). We prepare, review and submit UAE visa applications. We are not a government authority."
+    },
+    "ar": {
+      "title": "عن تشيرة | خدمة تأشيرات مرخّصة في دبي",
+      "description": "تشيرة شركة خاصة مرخّصة في ميدان فري زون بدبي (رخصة 2541485.01). نجهّز مستنداتك ونراجعها ونقدّم طلبك. لسنا جهة حكومية، والقرار يعود للجهات المختصة."
+    }
+  },
+  "/editorial-policy": {
+    "en": {
+      "title": "Editorial Policy | TASHIRA",
+      "description": "How we research, verify and update what we publish about UAE visa rules, who reviews it, and how we correct an error when we find one."
+    },
+    "ar": {
+      "title": "سياسة التحرير | تشيرة",
+      "description": "كيف نبحث ونتحقق ونحدّث ما ننشره عن قواعد تأشيرة الإمارات، ومن يراجعه، وكيف نصحّح الخطأ حين نكتشفه."
+    }
+  },
+  "/sources-and-verification": {
+    "en": {
+      "title": "Sources and Verification | TASHIRA",
+      "description": "The official sources we rely on for UAE visa rules and fees, and the checks a page passes before we publish or update it."
+    },
+    "ar": {
+      "title": "المصادر والتحقق | تشيرة",
+      "description": "المصادر الرسمية التي نعتمد عليها في قواعد ورسوم تأشيرة الإمارات، والخطوات التي تمر بها أي صفحة قبل نشرها أو تحديثها."
+    }
+  }
+}

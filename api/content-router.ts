@@ -1,3 +1,4 @@
+import { findMarketingViolations } from "../contracts/marketing-compliance";
 import { and, desc, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -93,8 +94,19 @@ const contentFieldsSchema = z.object({
 });
 
 function validateFields(input: z.infer<typeof contentFieldsSchema>): void {
-  if (!isValidSlug(input.slug)) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid slug format" });
   if (!isValidBodyBlocks(input.bodyBlocks)) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid body blocks" });
+
+  const marketingFields = {
+    title: input.title, excerpt: input.excerpt, seoTitle: input.seoTitle,
+    metaDescription: input.metaDescription, ogTitle: input.ogTitle, ogDescription: input.ogDescription,
+    ...(input.contentType === "LANDING" ? { bodyBlocks: bodyBlocksToText(input.bodyBlocks) } : {}),
+  };
+  for (const [field, value] of Object.entries(marketingFields)) {
+    const violation = findMarketingViolations(value ?? "")[0];
+    if (violation) throw new TRPCError({ code: "BAD_REQUEST", message: `${field}, line ${violation.line}: prohibited claim "${violation.phrase}". Remove the guaranteed-outcome or issuance-time claim before saving.` });
+  }
+
+  if (!isValidSlug(input.slug)) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid slug format" });
   const text = `${input.title}\n${input.excerpt ?? ""}\n${bodyBlocksToText(input.bodyBlocks)}`;
   const phrases = findForbiddenPhrases(text);
   if (phrases.length > 0) {
@@ -407,6 +419,7 @@ export const contentRouter = createRouter({
       }
       if (rule.to === "PUBLISHED") {
         const failures = publishGuardFailures({
+          excerpt: item.excerpt,
           contentType: item.contentType,
           title: item.title,
           slug: item.slug,
