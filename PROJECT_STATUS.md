@@ -1,3 +1,7 @@
+# Complete admin review received — preflight only — 2026-09-14
+
+The complete owner attachment 4413e688-fa47-45b7-90c3-8baa38ef5751 supersedes prior admin notes. Four pre-build answers recorded in staging/ADMIN_BACKOFFICE_PREFLIGHT.md. Signed document URLs expire in 15 minutes but are bearer links and currently permit public caching for one hour. Server admin middleware exists; public chat.getHistory lacks owner validation. Audit coverage is partial; current wizard widget does not feed the legacy Chat Inbox. No admin implementation started; payment audit blockers remain first. Owner confirms VAT not registered; thresholds await accountant confirmation; no draft CMS publishing authorized.
+
 # Next task 4 payment audit — REPORT FIRST — 2026-09-14
 
 Launch blocked. Audited deployed 39dd933f8a43370e442adc733f2a3747cc1e174a. Reproduced stale pricing after traveller/product changes, automatic legacy policy acceptance, webhook reclaim race/paid-state regression and synthetic PII error leakage. Cross-owner negative tests denied order data. 48 price cases and 15 audit tests completed; some tests deliberately demonstrate defects. No behavior changes or deployment. Cleanup rolled back on append-only guards; bulk deletion auto-review rejected. Await owner approval for remediation and a separate staging cleanup procedure/list. See staging/NEXT4_PAYMENT_AUDIT.md and staging/next4-payment-audit/.
