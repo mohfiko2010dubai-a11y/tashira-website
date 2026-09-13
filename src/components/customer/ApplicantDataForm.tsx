@@ -1,6 +1,6 @@
 import { GCC_COUNTRIES, type TripPurpose } from "@contracts/document-requirement-engine";
 import { minimumPassportExpiry, validPassportExpiry, validPassportName } from "@contracts/traveller-details";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useValidationFeedback } from "./useValidationFeedback";
 import NationalitySelect from "./NationalitySelect";
@@ -15,7 +15,8 @@ const countryCodes = new Set(["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUN
 const keyOf = (field: { applicantId: number | null; code: string }) => `${field.applicantId}:${field.code}`;
 
 /** Drafts live only in this application/applicant instance; never in browser storage. */
-export function ApplicantDataForm({ applicant, questions, saved, onSave, residenceType = "non-gcc", arrivalDate, visaType = "", onEdit, formId }: {
+export function ApplicantDataForm({ applicant, questions, saved, onSave, residenceType = "non-gcc", arrivalDate, visaType = "", onEdit, formId, onValidationCount }: {
+  onValidationCount?: (applicantId: number, count: number) => void;
   formId?: string;
   onEdit?: () => void; visaType?: string; arrivalDate?: string | null; residenceType?: string; applicant: PartyApplicant; questions: readonly FormQuestion[]; saved: readonly FormAnswer[];
   onSave: (submission: ApplicantFormSubmission, continueAfter: boolean) => Promise<void>;
@@ -59,6 +60,7 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
     if (String(valueOf(field)).trim() === "") errors[keyOf(field)] = t("validation.required", { field: t(`simple.fields.${field.code}`, { defaultValue: field.label }) });
   }
   const feedback = useValidationFeedback(errors, t("validation.format"));
+  useEffect(() => { onValidationCount?.(applicant.applicantId, feedback.count); }, [applicant.applicantId, feedback.count, onValidationCount]);
   const fieldClass = "aria-[invalid=true]:border-red-700 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-700 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-[#C9A04C] focus:outline-none focus:ring-2 focus:ring-[#C9A04C]/20";
   const labelFor = (field: FormQuestion) => t(`simple.fields.${field.code}`, { defaultValue: field.label });
   return <form id={formId} onBlur={event => {
@@ -107,7 +109,7 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
         <input {...feedback.fieldProps("profession")} required minLength={2} maxLength={255} value={profession} className={fieldClass} onChange={event => setProfession(event.target.value)} />{feedback.errorFor("profession")}</label>
     </fieldset>
     {error && <p role="alert" className="mt-5 text-sm text-red-700">{t("simple.error")}</p>}
-    <p aria-live="polite" aria-atomic="true" className="mt-3 text-sm text-red-700">{feedback.count > 0 ? t("validation.summary", { count: feedback.count }) : ""}</p>
+    {!onValidationCount && <p aria-live="polite" aria-atomic="true" className="mt-3 text-sm text-red-700">{feedback.count > 0 ? t("validation.summary", { count: feedback.count }) : ""}</p>}
     <button type="submit" className="sr-only" tabIndex={-1} disabled={busy}>{t("simple.saveContinue")}</button>
   </form>;
 }

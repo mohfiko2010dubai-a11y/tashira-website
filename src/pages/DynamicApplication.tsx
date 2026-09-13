@@ -1,5 +1,5 @@
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TravellerContext } from "@/components/customer/TravellerContext";
@@ -41,6 +41,10 @@ export default function DynamicApplication() {
   const [formSaving, setFormSaving] = useState(false);
   const [documentAttempt, setDocumentAttempt] = useState(0);
   const [reviewAttempt, setReviewAttempt] = useState(0);
+  const [validationCounts, setValidationCounts] = useState<Record<number, number>>({});
+  const onValidationCount = useCallback((applicantId: number, count: number) => {
+    setValidationCounts(current => current[applicantId] === count ? current : { ...current, [applicantId]: count });
+  }, []);
   const [newDocumentCodes, setNewDocumentCodes] = useState<Record<number, string[]>>({});
   const answerMutation = trpc.dynamicInterview.answer.useMutation();
   const completeFormMutation = trpc.dynamicInterview.completeForm.useMutation();
@@ -252,7 +256,7 @@ export default function DynamicApplication() {
 
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
-        <ApplicantDataForm applicant={applicant} formId={`traveller-form-${applicant.applicantId}`} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
+        <ApplicantDataForm applicant={applicant} onValidationCount={onValidationCount} formId={`traveller-form-${applicant.applicantId}`} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
           questions={(state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
           saved={state.knownAnswers} onSave={(submission, continueAfter) => saveApplicantForm(applicant.applicantId, submission, continueAfter)} />
       </div>)}
@@ -331,7 +335,10 @@ export default function DynamicApplication() {
           <p id="continue-documents-status" role="status" aria-live="polite" aria-atomic="true" tabIndex={-1} className="text-sm text-slate-600">
             {documentAttempt > 0 && <span key={documentAttempt}>{t(!activeRequirements.length ? "validation.reviewUnavailable" : remainingDocuments > 0 ? "simple.documentsRemaining" : "simple.savedContinue", { count: remainingDocuments })}</span>}
           </p>
-          <button type="submit" value="continue" onMouseDown={event => event.preventDefault()} form={`traveller-form-${activeId}`} aria-describedby="continue-documents-status" disabled={formSaving || docsBusy}
+          <p id="traveller-validation-status" aria-live="polite" aria-atomic="true" className="text-sm text-red-700">
+            {validationCounts[activeId] > 0 ? t("validation.summary", { count: validationCounts[activeId] }) : ""}
+          </p>
+          <button type="submit" value="continue" onMouseDown={event => event.preventDefault()} form={`traveller-form-${activeId}`} aria-describedby="traveller-validation-status continue-documents-status" disabled={formSaving || docsBusy}
             className="min-h-12 rounded-xl bg-[#0A1628] px-6 py-3 font-bold text-white disabled:opacity-50">
             {t(activeIndex < travellers.length - 1 ? "simple.saveNextTraveller" : "simple.saveContinue")}</button>
         </>}
