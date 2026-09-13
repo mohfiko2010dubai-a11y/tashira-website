@@ -125,8 +125,7 @@ export const paymentRouter = createRouter({
       } catch (err: unknown) {
         auditLog("payment.intent_create", "failure", "customer");
         if (err instanceof TRPCError) throw err;
-        const msg = err instanceof Error ? err.message : "Payment error";
-        throw new TRPCError({ code: "BAD_REQUEST", message: msg });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", cause: err });
       }
     }),
 
