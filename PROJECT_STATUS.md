@@ -1,3 +1,7 @@
+# Task 11 step two verified on isolated staging — 2026-09-13
+
+Code c164c23219a3a9e5931aa9536d510a829791a06d is deployed and browser-verified. One context bar, immediate grouped uploads, eight files in six cards for Pakistan/Saudi, accurate progress, Replace and saved edits. Owner's final instruction removes flight booking from the checklist/payment gate. Single/family flows, EN/AR mobile, admin stored-image preview and Stripe TEST payment pass. Correct detail edits save on blur and reload; existing recovery request passes with synthetic email. Same eight-file page reduced 5782→3520 px (39.1%) at 400 px; desktop form 680 px. Check/lint/build and 1011 tests pass, 26 gated skips. See staging/TASK11_STEP2.md and staging/TASK11_UAT.json. Fifteen unrelated dirty files and production untouched; Phase 3 held.
+
 # Approved document rules verified on isolated staging — 2026-09-13
 
 Task 2 is deployed and browser-verified at code SHA `79e018cf5502b4a415251a0fec07cecec55c14df`. Final guard: check/lint/build pass, 1007 tests pass with 26 environment-gated skips, local/public health 200. Four requested nationality/residence combinations pass actual uploads, review and reload; Saudi same-file reuse is rejected. Family flow passes sequential travellers (7 + 8 slots). Saved edits preserve applicable files and Arabic state. Admin diagnostics, document lists and stored-image previews pass. One synthetic Pakistan/Saudi case completed Stripe TEST payment at the server-displayed USD 185 amount.

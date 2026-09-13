@@ -1,0 +1,100 @@
+{
+  "deployedCodeSha": "c164c23219a3a9e5931aa9536d510a829791a06d",
+  "quality": {
+    "check": "PASS",
+    "lint": "PASS",
+    "build": "PASS",
+    "testsPassed": 1011,
+    "testsSkipped": 26,
+    "localHealth": 200,
+    "publicHealth": 200
+  },
+  "baseline": {
+    "url": "https://staging.tashiraev.com/en/apply/TSH-MU00YFC2-734B0F/interview",
+    "initialHeight": 3682,
+    "fullHeight": 6012,
+    "viewport": 400,
+    "eightFileComparisonHeight": 5782
+  },
+  "individual": {
+    "url": "https://staging.tashiraev.com/en/apply/TSH-MU01Q2HR-4F105A/interview",
+    "reference": "TSH-MU01Q2HR-4F105A",
+    "height": 3520,
+    "width": 400,
+    "uploadBeforeDetails": true,
+    "duplicateRejected": true,
+    "collapsedCards": 0,
+    "invalidDetailsBlocked": true,
+    "reviewAndCheckout": true,
+    "reload": true,
+    "contextChangedKeepsFiles": true,
+    "arabic": true,
+    "errors": []
+  },
+  "family": {
+    "reference": "TSH-MU01U04M-67DE3A",
+    "travellers": 2,
+    "counts": [
+      3,
+      4
+    ],
+    "uploadsBeforeDetails": true,
+    "sequentialFlow": true,
+    "checkout": true,
+    "errors": []
+  },
+  "admin": {
+    "applications": [
+      "TSH-MU01Q2HR-4F105A"
+    ],
+    "diagnostics": true,
+    "documentViews": true,
+    "storedImagePreviews": true,
+    "rulePreview": true,
+    "errors": []
+  },
+  "payment": {
+    "referenceNumber": "TSH-MU01Q2HR-4F105A",
+    "documentSlots": 8,
+    "allDocumentsAccepted": true,
+    "suppressedRules": 0,
+    "readiness": "READY",
+    "stripeMode": "TEST",
+    "paymentStatus": "paid",
+    "chargedAmount": 18500,
+    "displayedAmount": 18500
+  },
+  "visual": {
+    "results": [
+      {
+        "language": "en",
+        "height": 3520,
+        "width": 400,
+        "pairedSlotsSideBySide": true,
+        "progressWithinViewport": true,
+        "reducedMotion": true
+      },
+      {
+        "language": "ar",
+        "height": 3401,
+        "width": 400,
+        "pairedSlotsSideBySide": true,
+        "progressWithinViewport": true,
+        "reducedMotion": true
+      }
+    ],
+    "desktopFormWidth": 680
+  },
+  "save": {
+    "validDetailsSavedOnBlur": true,
+    "reloaded": true,
+    "recoveryRequestAccepted": true,
+    "syntheticEmail": true
+  },
+  "replace": {
+    "upload": true,
+    "replace": true,
+    "progressNotDoubleCounted": true,
+    "reloaded": true
+  }
+}
