@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { validatedLegalHtml } from '@/lib/legal-html';
+import { languagePath } from '@contracts/language-routes';
 
 interface LegalProps {
   page: 'terms' | 'privacy' | 'refund' | 'cookies';
@@ -10,7 +11,7 @@ export default function Legal({ page }: LegalProps) {
 
   const title = t(`${page}.title`);
   const content = t(`${page}.content`);
-  const sanitizedContent = validatedLegalHtml(content);
+  const sanitizedContent = validatedLegalHtml(content).replace(/href=(["'])(\/(?!\/)[^"']*)\1/g, (_match, quote: string, href: string) => `href=${quote}${languagePath(href, i18n.language.startsWith('ar') ? 'ar' : 'en')}${quote}`);
 
   return (
     <>

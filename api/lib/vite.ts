@@ -4,9 +4,10 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import fs from "node:fs";
 import path from "node:path";
 import { fixedMetadata, isPublicPage } from "../../contracts/ssr-pages";
-import { renderPageTemplate, NOT_FOUND_HTML } from "./ssr-html";
+import { renderPageTemplate, notFoundHtml } from "./ssr-html";
 import { renderSsrResponse, SsrPageNotFound } from "./ssr-response";
-import { renderInWorker } from "./ssr-worker";
+import { renderInWorker, type RenderTiming } from "./ssr-worker";
+import { languagePath, languageRoute, preferredLanguage } from "../../contracts/language-routes";
 import { verifyAdminSessionAsync } from "./admin-session";
 import { withSsrDeadline } from "./ssr-deadline";
 
@@ -20,14 +21,19 @@ export function serveStaticFiles(app: App) {
   app.use("*", async (c, next) => {
     if (/^\/(api|storage|invoices)\//.test(c.req.path)) return next();
     c.header("Cache-Control", getFrontendCacheControl(c.req.path));
-    if (c.req.path === "/recover") c.header("Referrer-Policy", "no-referrer");
-    if (c.req.path === "/recover" || c.req.path === "/login") c.header("X-Robots-Tag", "noindex, nofollow");
-    const pathname = c.req.path;
+    const route = languageRoute(c.req.path);
+    const pathname = route.pathname;
+    if (pathname === "/recover") c.header("Referrer-Policy", "no-referrer");
+    if (pathname === "/recover" || pathname === "/login") c.header("X-Robots-Tag", "noindex, nofollow");
     const requestUrl = new URL(c.req.url);
+    if (!route.prefixed && (isPublicPage(pathname) || /^\/(apply\/|pay\/|applications\/|deposit\/|recover$)/.test(pathname))) {
+      c.header("Vary", "Accept-Language");
+      return c.redirect(languagePath(pathname, preferredLanguage(c.req.header("Accept-Language") ?? "")) + requestUrl.search, 302);
+    }
     const privatePage = pathname === "/apply" || pathname === "/track" || /[?&](?:ref|token|referenceNumber)=/.test(requestUrl.search);
     if (isPublicPage(pathname) && (c.req.method === "GET" || c.req.method === "HEAD")) {
       const template = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
-      const meta = fixedMetadata(pathname);
+      const meta = fixedMetadata(pathname, route.language);
       let fault: string | undefined;
       const wanted = requestUrl.searchParams.get("__ssr_test");
       if (process.env.PUBLIC_APP_URL?.replace(/\/$/, "") === "https://staging.tashiraev.com" &&
@@ -41,20 +47,28 @@ export function serveStaticFiles(app: App) {
         return c.html(renderPageTemplate(template, meta));
       }
       const started = performance.now();
-      const response = await renderSsrResponse({ routeTemplate: meta ? pathname : "/:section/:slug", noindex: privatePage,
+      let timing: RenderTiming | undefined;
+      const response = await renderSsrResponse({ language: route.language, routeTemplate: meta ? pathname : "/:section/:slug", noindex: privatePage,
         shellHtml: renderPageTemplate(template, meta),
         render: async signal => {
-          const result = await renderInWorker({ url: pathname + requestUrl.search, apiOrigin: `http://127.0.0.1:${process.env.PORT || "3000"}`, fault }, signal);
-          if (result.notFound) throw new SsrPageNotFound();
+          const result = await renderInWorker({ url: c.req.path + requestUrl.search, apiOrigin: `http://127.0.0.1:${process.env.PORT || "3000"}`, fault }, signal);
+          if (result.notFound) {
+            if (meta) throw new Error("Fixed public page data unavailable");
+            throw new SsrPageNotFound();
+          }
+          if (!result.html.trim()) throw new Error("Empty rendered body");
+          timing = result.timing;
           return renderPageTemplate(template, result.meta, { html: result.html, state: result.state });
         },
       });
-      console.info(JSON.stringify({ event: "ssr_render", route: meta ? pathname : "/:section/:slug", elapsedMs: Math.round(performance.now() - started), mode: response.headers.get("X-Tashira-SSR") }));
+      const elapsedMs = performance.now() - started;
+      response.headers.set("Server-Timing", `ssr;dur=${elapsedMs.toFixed(1)}`);
+      console.info(JSON.stringify({ event: "ssr_render", route: meta ? pathname : "/:section/:slug", language: route.language, elapsedMs: Math.round(elapsedMs), mode: response.headers.get("X-Tashira-SSR"), ...(timing ? { ...timing, otherMs: elapsedMs - timing.dataWallMs - timing.reactMs - timing.serializationMs } : {}) }));
       return response;
     }
     if (/^\/(apply\/|pay\/|applications\/|deposit\/|recover$|login$|dashboard$|admin(?:\/|$)|staff(?:\/|$))/.test(pathname)) {
       c.header("X-Robots-Tag", "noindex, nofollow");
-      return c.html(renderPageTemplate(fs.readFileSync(path.join(distPath, "index.html"), "utf8"), null));
+      return c.html(renderPageTemplate(fs.readFileSync(path.join(distPath, "index.html"), "utf8"), null, undefined, route.language));
     }
     return serveStatic({ root: distPath })(c, next);
   });
@@ -62,6 +76,6 @@ export function serveStaticFiles(app: App) {
     if (c.req.path.startsWith("/api/")) return c.json({ error: "Not Found" }, 404);
     c.header("Cache-Control", "private, no-store");
     c.header("X-Robots-Tag", "noindex, nofollow");
-    return c.html(NOT_FOUND_HTML, 404);
+    return c.html(notFoundHtml(languageRoute(c.req.path).language), 404);
   });
 }

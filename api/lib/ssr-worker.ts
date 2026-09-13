@@ -3,7 +3,8 @@ import path from "node:path";
 import type { PageMetadata } from "../../contracts/ssr-pages";
 import { SsrDeadlineError } from "./ssr-deadline";
 
-export type RenderResult = { html: string; meta: PageMetadata | null; state: unknown; notFound?: false } | { notFound: true };
+export type RenderTiming = { dataCalls: { name: string; elapsedMs: number }[]; dataWallMs: number; reactMs: number; serializationMs: number };
+export type RenderResult = { html: string; meta: PageMetadata | null; state: unknown; notFound?: false; timing?: RenderTiming } | { notFound: true };
 let activeWorkers = 0;
 
 /** Workers isolate synchronous React work so the caller's deadline remains enforceable. */

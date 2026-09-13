@@ -28,9 +28,9 @@ export default function FAQSection() {
                 <button
                   type="button"
                   onClick={() => toggle(idx)}
-                  className="w-full flex items-center justify-between py-4 text-left hover:bg-gray-50/50 transition-colors px-1"
+                  className="w-full flex items-center justify-between py-4 text-start hover:bg-gray-50/50 transition-colors px-1"
                 >
-                  <span className="text-[15px] font-medium text-gray-800 pr-4">{item.question}</span>
+                  <span className="text-[15px] font-medium text-gray-800 pe-4">{item.question}</span>
                   <span
                     className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 ${
                       isOpen ? 'bg-[#C9A04C] text-white' : 'bg-gray-200 text-gray-500'

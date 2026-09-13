@@ -12,7 +12,9 @@ describe("unpublished landing hold", () => {
     expect(response.status).toBe(404);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
-    expect(await response.text()).toContain("<h1>Page not found</h1>");
+    const html = await response.text();
+    expect(html).toContain(path.startsWith("/ar/") ? "<h1>الصفحة غير موجودة</h1>" : "<h1>Page not found</h1>");
+    if (path.startsWith("/ar/")) expect(html).toContain('lang="ar" dir="rtl"');
   });
 
   it("leaves existing content and application routes alone", async () => {

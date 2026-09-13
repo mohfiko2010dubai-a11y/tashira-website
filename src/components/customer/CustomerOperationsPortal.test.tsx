@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { CustomerOperationsPortal as Model } from "../../../api/lib/customer/customer-operations-portal";
 import CustomerOperationsPortal from "./CustomerOperationsPortal";
@@ -13,12 +14,13 @@ const model: Model = {
 describe("CustomerOperationsPortal", () => {
   it("renders nothing while closed", () => expect(renderToStaticMarkup(<CustomerOperationsPortal enabled={false} model={model} />)).toBe(""));
   it("renders safe applicant progress, actions and timeline", () => {
-    const html = renderToStaticMarkup(<CustomerOperationsPortal enabled model={model} />);
+    const html = renderToStaticMarkup(<MemoryRouter basename="/ar" initialEntries={["/ar"]}><CustomerOperationsPortal enabled model={model} /></MemoryRouter>);
     expect(html).toContain("DOCUMENTS REQUIRED");
     expect(html).toContain("Applicant 1: Passport");
     expect(html).toContain("APPLICATION RECEIVED");
     expect(html).toContain("Resume application");
-    expect(html).toContain("/apply/TSH-1/interview");
+    expect(html).toContain("/ar/apply/TSH-1/interview");
+    expect(html).toContain("/ar/pay/TSH-1");
     expect(html).toContain("Review payment readiness");
   });
 

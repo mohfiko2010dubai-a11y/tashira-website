@@ -3,21 +3,17 @@ import superjson from "superjson";
 import { queryClient } from "./providers/trpc-client";
 import { StrictMode } from 'react'
 import { createRoot, hydrateRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { LocalizedApp } from './language-navigation'
+import { createLanguageNavigation } from './language-navigation-state'
+import { languageRoute } from '@contracts/language-routes'
 import { TRPCProvider } from '@/providers/trpc'
 import './index.css'
 import App from './App'
 import { initializeGoogleAnalytics } from './lib/google-conversion'
 
-if (location.pathname !== "/recover") initializeGoogleAnalytics()
+if (languageRoute(location.pathname).pathname !== "/recover") initializeGoogleAnalytics()
 
-const router = createBrowserRouter([
-  { path: '*', element: <App /> }
-], {
-  future: {
-    v7_relativeSplatPath: true,
-  },
-})
+const navigation = createLanguageNavigation()
 
 const root = document.getElementById('root')!;
 const payload = document.getElementById('__SSR_DATA');
@@ -25,7 +21,7 @@ if (payload?.textContent) hydrate(queryClient, superjson.deserialize(JSON.parse(
 const app = (
   <StrictMode>
     <TRPCProvider>
-      <RouterProvider router={router} />
+      <LocalizedApp navigation={navigation}><App /></LocalizedApp>
     </TRPCProvider>
   </StrictMode>
 )

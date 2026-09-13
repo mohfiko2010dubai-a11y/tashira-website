@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Menu, X } from 'lucide-react';
+import { useLanguageNavigation } from '@/language-navigation-state';
 
 const navLinks = [
   { key: 'home', label: 'HOME', path: '/' },
@@ -14,16 +15,17 @@ const navLinks = [
 export default function Header() {
   const { t, i18n } = useTranslation('common');
   const location = useLocation();
+  const switchLanguage = useLanguageNavigation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
   const toggleLang = () => {
-    i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar');
+    switchLanguage?.(i18n.language === 'ar' ? 'en' : 'ar');
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
+    <header className="fixed top-0 start-0 end-0 z-50 bg-white border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[88px]">
           {/* Logo */}
@@ -55,7 +57,7 @@ export default function Header() {
               className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-[#C9A04C] transition-colors uppercase tracking-wide"
             >
               {i18n.language === 'ar' ? 'ENGLISH' : 'ARABIC'}
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="ml-1">
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="ms-1">
                 <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -90,7 +92,7 @@ export default function Header() {
           </nav>
           <button
             onClick={toggleLang}
-            className="mt-4 px-4 py-3 text-base font-medium text-gray-700 uppercase tracking-wide w-full text-left hover:bg-gray-50 rounded-lg"
+            className="mt-4 px-4 py-3 text-base font-medium text-gray-700 uppercase tracking-wide w-full text-start hover:bg-gray-50 rounded-lg"
           >
             {i18n.language === 'ar' ? 'ENGLISH' : 'ARABIC'}
           </button>

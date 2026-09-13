@@ -1,8 +1,9 @@
 import { useEffect } from "react";
+import { languagePath } from "@contracts/language-routes";
 
 /** Initial tags come from SSR. This synchronizes later client-side navigation. */
-export default function PageHead({ title, description, canonicalPath, robots }: {
-  title: string; description: string; canonicalPath: string; robots?: string | null;
+export default function PageHead({ title, description, canonicalPath, robots, alternates }: {
+  title: string; description: string; canonicalPath: string; robots?: string | null; alternates?: { en?: string; ar?: string };
 }) {
   useEffect(() => {
     document.title = title;
@@ -20,6 +21,12 @@ export default function PageHead({ title, description, canonicalPath, robots }: 
       document.head.append(canonical);
     }
     canonical.href = `https://www.tashiraev.com${canonicalPath}`;
+    for (const language of ["en", "ar", "x-default"] as const) {
+      let alternate = document.head.querySelector<HTMLLinkElement>(`link[rel="alternate"][hreflang="${language}"]`);
+      if (!alternate) { alternate = document.createElement("link"); alternate.rel = "alternate"; alternate.hreflang = language; document.head.append(alternate); }
+      const locale = language === "ar" ? "ar" : "en";
+      alternate.href = `https://www.tashiraev.com${languagePath(alternates?.[locale] || canonicalPath, locale)}`;
+    }
     if (robots) {
       let tag = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
       if (!tag) { tag = document.createElement("meta"); tag.name = "robots"; document.head.append(tag); }
@@ -27,6 +34,6 @@ export default function PageHead({ title, description, canonicalPath, robots }: 
     } else {
       document.head.querySelector('meta[name="robots"]')?.remove();
     }
-  }, [title, description, canonicalPath, robots]);
+  }, [title, description, canonicalPath, robots, alternates]);
   return null;
 }

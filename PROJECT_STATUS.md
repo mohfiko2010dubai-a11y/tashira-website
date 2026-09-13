@@ -1,3 +1,7 @@
+# Phase 2 language routing candidate - 2026-09-13
+
+Owner approved Phase 1 and authorized Phase 2. Clean candidate adds EN/AR server language routes, canonical/hreflang, state-preserving language navigation, logical RTL styles and render timing breakdowns. All HTML remains private/no-store; no response/data cache or worker tuning. Existing dirty work preserved byte-for-byte. Local quality/browser gates recorded in staging/SSR_PHASE2.md; guarded staging deployment and live verification pending. Phase 3 remains held.
+
 # Phase 1 SSR deployed and verified - 2026-09-13
 
 Staging b9c206c16e545ff7184bfecfd0279f73e9977fc2 passes all 16 English source/no-JS/hydration checks, real 404s, private headers, and authenticated 200 fallbacks (3000ms render / 1000ms data). Server gates: 967 passed, 26 environment skips. Synthetic browser uploads/review/reload and single-use recovery to payment route passed. Fixed only the staging Nginx duplicate Referrer-Policy; production vhost hash unchanged. Observed SSR p95 648ms across 68 verification renders exceeds owner threshold: proposal documented, no cache added. Phase 2 held for owner verification. See staging/SSR_PHASE1_VERIFICATION.md. All 15 old dirty/untracked file hashes unchanged.

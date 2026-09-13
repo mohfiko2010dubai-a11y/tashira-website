@@ -23,7 +23,7 @@ export default function DynamicApplicationReview({ enabled, plan }: Props) {
           <article key={applicant.applicantId} className="rounded-2xl border bg-white p-5 shadow-sm" aria-label={applicant.displayLabel}>
             <h3 className="font-semibold">{applicant.displayLabel}</h3>
             <p className="text-xs uppercase text-slate-500">{applicant.relationship.replaceAll("_", " ")}</p>
-            {applicant.questions.length > 0 && <div className="mt-4"><h4 className="text-sm font-semibold">Questions</h4><ul className="mt-2 list-disc pl-5 text-sm">{applicant.questions.map((question) => <li key={question.code}>{question.prompt}</li>)}</ul></div>}
+            {applicant.questions.length > 0 && <div className="mt-4"><h4 className="text-sm font-semibold">Questions</h4><ul className="mt-2 list-disc ps-5 text-sm">{applicant.questions.map((question) => <li key={question.code}>{question.prompt}</li>)}</ul></div>}
             <div className="mt-4"><h4 className="text-sm font-semibold">Documents</h4>{applicant.uploads.length === 0 ? <p className="mt-2 text-sm text-slate-500">No upload requested by the current evaluation.</p> : <ul className="mt-2 space-y-2">{applicant.uploads.map((upload) => <li key={upload.code} className="rounded-lg bg-slate-50 p-3 text-sm"><strong>{upload.label ?? upload.code}</strong><span className="block text-xs text-slate-500">{classificationLabel[upload.classification]}</span></li>)}</ul>}</div>
           </article>
         ))}

@@ -1,3 +1,4 @@
+import { languagePath, languageRoute } from "../contracts/language-routes";
 import { withSsrDeadline } from "./lib/ssr-deadline";
 import { isHeldPublicPage, registerHeldPublicPages } from "./lib/held-public-pages";
 import { Hono } from "hono";
@@ -459,7 +460,8 @@ registerHeldPublicPages(app);
 
 // ===== CMS-managed safe same-site redirects =====
 app.use("*", async (c, next) => {
-  const pathOnly = c.req.path;
+  const localeRoute = languageRoute(c.req.path);
+  const pathOnly = localeRoute.pathname;
   if (pathOnly.startsWith("/api/") || pathOnly.startsWith("/storage/")) return next();
   try {
     const db = getDb();
@@ -467,7 +469,7 @@ app.use("*", async (c, next) => {
     const [redirect] = await withSsrDeadline(() => db.select().from(contentRedirects)
       .where(eq(contentRedirects.fromPath, pathOnly)).limit(1), { stage: "data" });
     if (redirect && redirect.isActive === 1 && redirect.toPath.startsWith("/") && !redirect.toPath.startsWith("//")) {
-      return c.redirect(redirect.toPath, redirect.statusCode === 302 ? 302 : 301);
+      return c.redirect(localeRoute.prefixed ? languagePath(redirect.toPath, localeRoute.language) : redirect.toPath, redirect.statusCode === 302 ? 302 : 301);
     }
   } catch {
     // Redirect table may not exist yet — fall through to the SPA.

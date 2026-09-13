@@ -13,11 +13,19 @@ import { TRPCProvider } from "./providers/trpc";
 import { trpc } from "./providers/trpc-client";
 import { articleMetadata, fixedMetadata, type PageMetadata } from "@contracts/ssr-pages";
 import { withSsrDeadline } from "../api/lib/ssr-deadline";
+import { languagePath, languageRoute } from "@contracts/language-routes";
 
 type Job = { url: string; apiOrigin: string; fault?: string };
 async function render(job: Job) {
   const url = new URL(job.url, "https://www.tashiraev.com");
-  const path = url.pathname;
+  const route = languageRoute(url.pathname);
+  const path = route.pathname;
+  const language = route.language;
+  const dataCalls: { name: string; elapsedMs: number }[] = [];
+  const measure = async <T,>(name: string, call: () => Promise<T>): Promise<T> => {
+    const started = performance.now();
+    try { return await call(); } finally { dataCalls.push({ name, elapsedMs: performance.now() - started }); }
+  };
   if (job.fault === "render-error") throw new Error("Deliberate staging render error");
   // Block this worker deliberately, proving the parent can enforce a hard deadline.
   if (job.fault === "render-timeout") Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);
@@ -30,30 +38,33 @@ async function render(job: Job) {
       return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers });
     }, { stage: "data" }),
   })] });
-  let meta: PageMetadata | null = fixedMetadata(path);
+  let meta: PageMetadata | null = fixedMetadata(path, language);
   try {
+    const dataStarted = performance.now();
     const work: Promise<unknown>[] = [];
     if (path === "/" || path === "/visa-prices") work.push(queries.fetchQuery({
       queryKey: getQueryKey(trpc.catalog.listActiveProducts, undefined, "query"),
-      queryFn: () => client.catalog.listActiveProducts.query(),
+      queryFn: () => measure("catalog.listActiveProducts", () => client.catalog.listActiveProducts.query()),
     }));
     for (const type of ["GUIDE", "NEWS"] as const) {
       if (path === "/" || path === (type === "GUIDE" ? "/guides" : "/news")) {
-        const input = { contentType: type, language: "en" as const };
-        work.push(queries.fetchQuery({ queryKey: getQueryKey(trpc.content.publicList, input, "query"), queryFn: () => client.content.publicList.query(input) }));
+        const input = { contentType: type, language };
+        work.push(queries.fetchQuery({ queryKey: getQueryKey(trpc.content.publicList, input, "query"), queryFn: () => measure(`content.publicList.${type}`, () => client.content.publicList.query(input)) }));
       }
     }
     if (/^\/(guides|news|uae-visa)\/[^/]+$/.test(path)) {
-      const input = { slug: path.slice(1), language: "en" as const };
-      const article = await queries.fetchQuery({ queryKey: getQueryKey(trpc.content.publicBySlug, input, "query"), queryFn: () => client.content.publicBySlug.query(input) });
+      const input = { slug: path.slice(1), language };
+      const article = await queries.fetchQuery({ queryKey: getQueryKey(trpc.content.publicBySlug, input, "query"), queryFn: () => measure("content.publicBySlug", () => client.content.publicBySlug.query(input)) });
       meta = path.startsWith("/uae-visa/")
-        ? { title: article.seoTitle || article.title, description: article.metaDescription || "", canonicalPath: path, image: article.ogImage }
-        : articleMetadata(article, path);
-      const related = { contentType: "GUIDE" as const, language: "en" as const };
-      work.push(queries.fetchQuery({ queryKey: getQueryKey(trpc.content.publicList, related, "query"), queryFn: () => client.content.publicList.query(related) }));
+        ? { title: article.seoTitle || article.title, description: article.metaDescription || "", canonicalPath: languagePath(path, language), image: article.ogImage, language }
+        : articleMetadata(article, path, language);
+      const related = { contentType: "GUIDE" as const, language };
+      work.push(queries.fetchQuery({ queryKey: getQueryKey(trpc.content.publicList, related, "query"), queryFn: () => measure("content.publicList.GUIDE", () => client.content.publicList.query(related)) }));
     }
     await Promise.all(work);
-    const i18n = createAppI18n("en");
+    const dataWallMs = performance.now() - dataStarted;
+    const i18n = createAppI18n(language);
+    const reactStarted = performance.now();
     const html = await new Promise<string>((resolve, reject) => {
       const output = new PassThrough();
       const chunks: Buffer[] = [];
@@ -61,11 +72,14 @@ async function render(job: Job) {
       output.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
       output.on("error", reject);
       const stream = renderToPipeableStream(
-        <I18nextProvider i18n={i18n}><TRPCProvider client={client} queries={queries}><StaticRouter location={job.url}><PublicApp /></StaticRouter></TRPCProvider></I18nextProvider>,
+        <I18nextProvider i18n={i18n}><TRPCProvider client={client} queries={queries}><StaticRouter basename={route.prefixed ? `/${language}` : "/"} location={job.url}><PublicApp /></StaticRouter></TRPCProvider></I18nextProvider>,
         { onAllReady() { stream.pipe(output); }, onError(error) { stream.abort(); reject(error); } },
       );
     });
-    return { html, meta, state: superjson.serialize(dehydrate(queries)) };
+    const reactMs = performance.now() - reactStarted;
+    const serializeStarted = performance.now();
+    const state = superjson.serialize(dehydrate(queries));
+    return { html, meta, state, timing: { dataCalls, dataWallMs, reactMs, serializationMs: performance.now() - serializeStarted } };
   } catch (error) {
     if (!meta && error instanceof TRPCClientError && error.data?.code === "NOT_FOUND") return { notFound: true };
     throw error;

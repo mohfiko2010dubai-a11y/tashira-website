@@ -50,8 +50,8 @@ export default function HowToApply() {
         <div ref={stepsRef} className="space-y-0">
           {steps.map((step, idx) => (
             <div key={idx}>
-              <div className="step-card relative bg-white rounded-xl p-8 shadow-sm border-l-4 border-[#C9A04C]">
-                <div className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-sm font-bold shadow-md">
+              <div className="step-card relative bg-white rounded-xl p-8 shadow-sm border-s-4 border-[#C9A04C]">
+                <div className="absolute -top-4 start-6 w-8 h-8 rounded-full bg-[#C9A04C] text-white flex items-center justify-center text-sm font-bold shadow-md">
                   {step.number}
                 </div>
                 <h3 className="text-xl font-semibold text-[#1A2332] mt-3">{step.title}</h3>

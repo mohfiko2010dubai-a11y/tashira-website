@@ -27,7 +27,7 @@ export default function Footer() {
               </div>
             </div>
             <div className="hidden sm:block w-px h-8 bg-white/20" />
-            <div className="text-center sm:text-left">
+            <div className="text-center sm:text-start">
               <p className="text-xs text-gray-400">Company Name</p>
               <p className="text-sm font-semibold text-white">Tashira E-Visa and Tourism L.L.C-FZ</p>
             </div>

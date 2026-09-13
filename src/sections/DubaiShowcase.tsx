@@ -61,7 +61,7 @@ export default function DubaiShowcase() {
       {/* ===== MARQUEE GALLERY STRIP ===== */}
       <div className="relative py-6 bg-gradient-to-b from-[#F5F3EE] to-white overflow-hidden">
         {/* Decorative gold line */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C9A04C]/40 to-transparent" />
+        <div className="absolute top-0 start-0 end-0 h-px bg-gradient-to-r from-transparent via-[#C9A04C]/40 to-transparent" />
 
         {/* Section label */}
         <div className="text-center mb-4">
@@ -72,7 +72,7 @@ export default function DubaiShowcase() {
 
         {/* Scrolling marquee */}
         <div className="relative flex overflow-hidden">
-          <div className="flex animate-marquee gap-4 pr-4">
+          <div className="flex animate-marquee gap-4 pe-4">
             {[...marqueeImages, ...marqueeImages, ...marqueeImages].map((img, idx) => (
               <div
                 key={idx}
@@ -86,7 +86,7 @@ export default function DubaiShowcase() {
                 />
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <p className="absolute bottom-3 left-3 right-3 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow">
+                <p className="absolute bottom-3 start-3 end-3 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow">
                   {img.alt}
                 </p>
               </div>
@@ -95,7 +95,7 @@ export default function DubaiShowcase() {
         </div>
 
         {/* Bottom decorative gold line */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C9A04C]/40 to-transparent" />
+        <div className="absolute bottom-0 start-0 end-0 h-px bg-gradient-to-r from-transparent via-[#C9A04C]/40 to-transparent" />
       </div>
 
       {/* ===== DECORATIVE GEOMETRIC DIVIDER ===== */}

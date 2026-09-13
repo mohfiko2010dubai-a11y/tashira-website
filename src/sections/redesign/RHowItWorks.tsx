@@ -22,13 +22,13 @@ export default function RHowItWorks() {
           {STEPS.map(({ icon: Icon, num, titleKey, descKey }, i) => (
             <div key={num} className="relative text-center group">
               {i < STEPS.length - 1 && (
-                <div className="hidden md:block absolute top-12 left-[calc(50%+56px)] w-[calc(100%-112px)] border-t-2 border-dashed border-[#C9A04C]/30" />
+                <div className="hidden md:block absolute top-12 start-[calc(50%+56px)] w-[calc(100%-112px)] border-t-2 border-dashed border-[#C9A04C]/30" />
               )}
               <div className="relative inline-flex">
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#C9A04C]/20 to-[#C9A04C]/5 border border-[#C9A04C]/30 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <Icon size={40} className="text-[#C9A04C]" />
                 </div>
-                <span className="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm font-extrabold flex items-center justify-center">
+                <span className="absolute -top-3 -end-3 w-9 h-9 rounded-full bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white text-sm font-extrabold flex items-center justify-center">
                   {num}
                 </span>
               </div>

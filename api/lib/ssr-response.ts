@@ -1,5 +1,5 @@
 import { SsrDeadlineError, withSsrDeadline } from "./ssr-deadline";
-import { NOT_FOUND_HTML } from "./ssr-html";
+import { notFoundHtml } from "./ssr-html";
 
 export class SsrPageNotFound extends Error {}
 
@@ -15,6 +15,7 @@ export interface SsrFailureEvent {
 
 interface SsrResponseOptions {
   routeTemplate: string;
+  language?: "en" | "ar";
   /** Already contains approved static metadata and the working client entry. */
   shellHtml: string;
   render: (signal: AbortSignal) => Promise<string>;
@@ -38,7 +39,7 @@ export async function renderSsrResponse(options: SsrResponseOptions): Promise<Re
   } catch (error) {
     if (error instanceof SsrPageNotFound) {
       headers.set("X-Robots-Tag", "noindex, nofollow");
-      return new Response(NOT_FOUND_HTML, { status: 404, headers });
+      return new Response(notFoundHtml(options.language), { status: 404, headers });
     }
     const event: SsrFailureEvent = {
       event: "ssr_fallback",

@@ -150,7 +150,7 @@ export default function DynamicApplicationStart() {
             <SectionTitle>{t("step1.visaType")}</SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {visaRoutes.map(([value, label]) => (
-                <SelectCard key={value} icon={Plane} selected={visaType === value} onClick={() => setVisaType(value)} title={label} />
+                <SelectCard key={value} icon={Plane} selected={visaType === value} onClick={() => setVisaType(value)} title={i18n.language.startsWith("ar") ? t(`pricing:visaTypes.${value.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}`) : label} />
               ))}
             </div>
             {feedback.errorFor("visaType")}

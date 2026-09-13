@@ -31,8 +31,8 @@ describe("SEO content hub public experience", () => {
     const head = await readFile(new URL("../src/components/PageHead.tsx", import.meta.url), "utf8");
     const server = await readFile(new URL("./lib/ssr-html.ts", import.meta.url), "utf8");
     expect(server).toContain('rel="canonical"');
-    expect(seo).toContain('tag.hreflang = language');
-    expect(seo).toContain('...alternates');
+    expect(head).toContain('alternate.hreflang = language');
+    expect(seo).toContain('alternates={alternates}');
     expect(seo).toContain("og:title");
     expect(head).toContain('name="robots"');
     expect(seo).toContain("application/ld+json");
