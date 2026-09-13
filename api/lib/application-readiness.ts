@@ -1,3 +1,4 @@
+import { loadTripPurposes } from "./customer/trip-purpose";
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
 import { and, eq, ne } from "drizzle-orm";
 import { applicants, applicationPriceSnapshots, applications, applicationTimelineEvents, documents } from "../../db/schema";
@@ -126,8 +127,9 @@ export async function getApplicationReadiness(applicationId: number, context?: T
     FROM applicant_requirement_document_links l
     JOIN documents d ON d.id=l.document_id AND d.application_id=l.application_id AND d.applicant_id=l.applicant_id
     WHERE l.application_id=? AND d.upload_status='uploaded'`, [applicationId]);
+  const tripPurposes = await loadTripPurposes(sql, applicationId);
   const evidence = applicantList.map(applicant => ({ applicantId: applicant.id,
-    expected: ownerRequiredDocumentCodes(applicant.nationality, applicant.gccResidenceCountry, application.residenceType),
+    expected: ownerRequiredDocumentCodes(applicant.nationality, applicant.gccResidenceCountry, application.visaType, tripPurposes.get(applicant.id)),
     documents: links.filter(row => Number(Reflect.get(row, "applicantId")) === applicant.id)
       .map(row => ({ code: String(Reflect.get(row, "code")), state: "UPLOADED" })) }));
   return evaluateInterviewReadiness({ legacy, application, applicants: applicantList, evidence, relationshipsComplete: true });

@@ -1,3 +1,6 @@
+import { ownerRequiredDocumentCodes } from "../contracts/owner-document-requirements";
+import { tripPurposeSchema, type TripPurpose } from "../contracts/document-requirement-engine";
+import { loadTripPurposes } from "./lib/customer/trip-purpose";
 import { validPassportExpiry } from "../contracts/traveller-details";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -31,7 +34,7 @@ const governedCountryCodeSchema = z.string().trim().length(2).refine(isNationali
 type ApplicationInterviewRecord = { applicationId: number; referenceNumber: string; routeCode: string; applicantIds: readonly number[];
   residenceType?: string; baseType?: string; arrivalDate?: string | null;
   applicantLabels: Readonly<Record<number, string>>; applicants: readonly { applicantId: number; applicantIndex: number; fullName: string;
-    nationality: string | null; residenceCountry: string | null; profileVersion: number; passportNumber?: string | null; passportExpiry?: string | null; profession?: string | null }[] };
+    nationality: string | null; residenceCountry: string | null; tripPurpose?: TripPurpose; profileVersion: number; passportNumber?: string | null; passportExpiry?: string | null; profession?: string | null }[] };
 const travelGroupInputSchema = z.object({ reference: z.string().trim().min(1).max(100), applicantIds: z.array(z.number().int().positive()).min(1).max(50),
   primaryTravellerId: z.number().int().positive(), accompanyingAdultId: z.number().int().positive().nullable(), arrangement: z.enum(["TOGETHER", "SEPARATELY"]),
   origin: z.string().trim().min(2).max(100), destination: z.string().trim().min(2).max(100), plannedArrivalDate: z.iso.date(),
@@ -110,7 +113,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     const questions: readonly QuestionCatalogDefinition[] = catalog.questions; const requirements: readonly RequirementCatalogDefinition[] = catalog.requirements;
     const interview = buildPersistentDynamicInterview({ applicationId: application.applicationId,
       routeCode: application.routeCode, applicantIds: application.applicantIds, questions, requirements, rules, events, evaluatedAt: now,
-      customerForm: ownerForm });
+      customerForm: ownerForm, documentProfiles: application.applicants });
     const applicantId = interview.currentQuestions[0]?.applicantId ?? null;
     const unifiedEnabled = isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
     const partyBundle = unifiedEnabled ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
@@ -134,7 +137,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       }
     }
     return { application, context, flags, ownerForm, partyBundle, catalogVersion: catalog.catalogVersion, questions, requirements, rules, events,
-      state: { ...interview, applicationContext: { baseType: application.baseType, residenceType: application.residenceType, arrivalDate: application.arrivalDate }, currentApplicant: applicantId === null ? null
+      state: { ...interview, applicationContext: { visaType: application.routeCode, baseType: application.baseType, residenceType: application.residenceType, arrivalDate: application.arrivalDate }, currentApplicant: applicantId === null ? null
       : { applicantId, label: application.applicantLabels[applicantId] ?? `Applicant ${application.applicantIds.indexOf(applicantId) + 1}` },
       review: { ...interview.review, applicants: interview.review.applicants.map((item) => ({ ...item,
         label: application.applicantLabels[item.applicantId] ?? `Applicant ${application.applicantIds.indexOf(item.applicantId) + 1}` })) },
@@ -153,7 +156,10 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
           const evaluation = partyBundle.snapshots.current(application.applicationId, currentApplicantId);
           if (!evaluation) return [];
           return partyBundle.family.requirements(application.applicationId, currentApplicantId, evaluation.evaluationId)
-            .filter(({ instance }) => instance.kind === "DOCUMENT").map(({ instance, currentState }) => {
+            .filter(({ instance }) => {
+              const applicant = application.applicants.find(item => item.applicantId === currentApplicantId);
+              return instance.kind === "DOCUMENT" && (!ownerForm || ownerRequiredDocumentCodes(applicant?.nationality, applicant?.residenceCountry, application.routeCode, applicant?.tripPurpose).includes(instance.code));
+            }).map(({ instance, currentState }) => {
               const definition = requirements.find((candidate) => candidate.code === instance.code);
               if (!definition) throw new Error(`UNRESOLVED_REQUIREMENT_CATALOG:${instance.code}`);
               return { applicantId: currentApplicantId, requirementCode: instance.code, documentType: definition.documentType,
@@ -169,7 +175,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     const evaluations = evaluateCompletedInterviewApplicants({ applicationId: runtime.application.applicationId,
       routeCode: runtime.application.routeCode, applicantIds: runtime.application.applicantIds, questions: runtime.questions,
       requirements: runtime.requirements,
-      rules: runtime.rules, events, evaluatedAt, customerForm: runtime.ownerForm });
+      rules: runtime.rules, events, evaluatedAt, customerForm: runtime.ownerForm, documentProfiles: runtime.application.applicants });
     if (!evaluations) return;
     if (!deps.persistCompletedEvaluations) throw new Error("INTERVIEW_EVALUATION_PERSISTENCE_UNAVAILABLE");
     await deps.persistCompletedEvaluations({ applicationId: runtime.application.applicationId, catalogVersion: runtime.catalogVersion,
@@ -205,7 +211,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       const evaluations = evaluateCompletedInterviewApplicants({ applicationId: runtime.application.applicationId,
         routeCode: runtime.application.routeCode, applicantIds: input.applicantId === undefined ? runtime.application.applicantIds : [input.applicantId], questions: runtime.questions,
         requirements: runtime.requirements, rules: runtime.rules, events: runtime.events, evaluatedAt,
-        customerForm: runtime.ownerForm });
+        customerForm: runtime.ownerForm, documentProfiles: runtime.application.applicants });
       if (!evaluations) throw new TRPCError({ code: "CONFLICT", message: "Complete the applicant fields first" });
       const unchanged = evaluations.every(({ applicantId, result }) => {
         const previous = runtime.partyBundle?.snapshots.current(runtime.application.applicationId, applicantId);
@@ -305,7 +311,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     }),
     addApplicant: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50),
       profile: z.object({ fullName: z.string().trim().min(2).max(255), nationality: governedCountryCodeSchema.nullable(),
-        residenceCountry: governedCountryCodeSchema.nullable() }).strict(), reason: z.string().trim().min(3).max(500),
+        residenceCountry: governedCountryCodeSchema.nullable(), tripPurpose: tripPurposeSchema.optional() }).strict(), reason: z.string().trim().min(3).max(500),
       idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
       if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.addApplicant) {
@@ -320,14 +326,16 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     }),
     editApplicant: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive(),
       expectedVersion: z.number().int().positive(), profile: z.object({ fullName: z.string().trim().min(2).max(255),
-        nationality: governedCountryCodeSchema.nullable(), residenceCountry: governedCountryCodeSchema.nullable() }).strict(),
+        nationality: governedCountryCodeSchema.nullable(), residenceCountry: governedCountryCodeSchema.nullable(), tripPurpose: tripPurposeSchema.optional() }).strict(),
       reason: z.string().trim().min(3).max(500), idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
       if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.editApplicant) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Applicant changes unavailable" });
       }
       try { return await deps.editApplicant({ applicationId: application.applicationId, applicantId: input.applicantId,
-        expectedVersion: input.expectedVersion, profile: input.profile, reason: input.reason, actorReference: `customer:${input.referenceNumber}`,
+        expectedVersion: input.expectedVersion, profile: { ...input.profile,
+          tripPurpose: input.profile.tripPurpose ?? application.applicants.find(item => item.applicantId === input.applicantId)?.tripPurpose },
+        reason: input.reason, actorReference: `customer:${input.referenceNumber}`,
         idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
       catch (error) {
         if (error instanceof Error && ["CUSTOMER_APPLICANT_VERSION_CONFLICT", "CUSTOMER_INTERVIEW_IDEMPOTENCY_CONFLICT"].includes(error.message)) {
@@ -423,6 +431,7 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
     const row = applicationRows[0]; if (!row) return null; const applicationId = Number(Reflect.get(row, "id"));
     const applicantRows = await sql.query(`SELECT id,applicant_index AS applicantIndex,full_name AS fullName,nationality,
       gcc_residence_country AS residenceCountry,profile_version AS profileVersion,passport_number AS passportNumber,passport_expiry AS passportExpiry,profession FROM applicants WHERE application_id=? ORDER BY applicant_index,id`, [applicationId]);
+    const tripPurposes = await loadTripPurposes(sql, applicationId);
     const applicantIds = applicantRows.map((applicant) => Number(Reflect.get(applicant, "id")));
     return { applicationId, referenceNumber: String(Reflect.get(row, "referenceNumber")), routeCode: String(Reflect.get(row, "routeCode")),
       baseType: String(Reflect.get(row, "baseType")), residenceType: String(Reflect.get(row, "residenceType")),
@@ -434,6 +443,7 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
         passportNumber: Reflect.get(applicant, "passportNumber") == null ? null : String(Reflect.get(applicant, "passportNumber")),
         passportExpiry: Reflect.get(applicant, "passportExpiry") == null ? null : String(Reflect.get(applicant, "passportExpiry")).slice(0, 10),
         profession: Reflect.get(applicant, "profession") == null ? null : String(Reflect.get(applicant, "profession")),
+        tripPurpose: tripPurposes.get(Number(Reflect.get(applicant, "id"))),
         profileVersion: Number(Reflect.get(applicant, "profileVersion")) })),
       applicantLabels: Object.fromEntries(applicantRows.map((applicant) => { const id = Number(Reflect.get(applicant, "id"));
         const fullName = String(Reflect.get(applicant, "fullName") ?? "").trim(); const index = Number(Reflect.get(applicant, "applicantIndex"));

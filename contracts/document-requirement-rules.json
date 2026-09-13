@@ -1,0 +1,290 @@
+[
+  {
+    "key": "passport_page",
+    "code": "PASSPORT",
+    "label_en": "Passport personal-data page",
+    "label_ar": "صفحة البيانات الشخصية من جواز السفر",
+    "hint_en": "Show all four corners. Passport must be valid for at least 6 months.",
+    "hint_ar": "أظهر الزوايا الأربع كاملة. يجب أن يكون الجواز صالحًا لمدة 6 أشهر على الأقل.",
+    "document_type": "PASSPORT",
+    "applies_when": {},
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "personal_photo",
+    "code": "PERSONAL_PHOTO",
+    "label_en": "Recent personal photo",
+    "label_ar": "صورة شخصية حديثة",
+    "hint_en": "Use a recent photo with a white background.",
+    "hint_ar": "ارفع صورة حديثة بخلفية بيضاء.",
+    "document_type": "PERSONAL_PHOTO",
+    "applies_when": {
+      "visa_category": [
+        "visit"
+      ]
+    },
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "return_ticket",
+    "code": "RETURN_TICKET",
+    "label_en": "Confirmed return or onward ticket",
+    "label_ar": "تذكرة عودة أو متابعة سفر مؤكدة",
+    "hint_en": "Upload the confirmed return or onward booking.",
+    "hint_ar": "ارفع حجز العودة أو متابعة السفر المؤكد.",
+    "document_type": "RETURN_TICKET",
+    "applies_when": {
+      "visa_category": [
+        "visit"
+      ]
+    },
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "uae_accommodation",
+    "code": "UAE_ACCOMMODATION",
+    "label_en": "UAE accommodation booking",
+    "label_ar": "حجز الإقامة في الإمارات",
+    "hint_en": "Upload your accommodation booking in the UAE.",
+    "hint_ar": "ارفع حجز مكان إقامتك في الإمارات.",
+    "document_type": "HOTEL_BOOKING",
+    "applies_when": {
+      "residence_region": "non_gcc"
+    },
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "host_details",
+    "code": "HOST_DETAILS",
+    "label_en": "Host details",
+    "label_ar": "بيانات المضيف",
+    "hint_en": "Upload the host details for your family visit.",
+    "hint_ar": "ارفع بيانات المضيف لزيارة العائلة.",
+    "document_type": "SUPPORTING",
+    "applies_when": {
+      "trip_purpose": [
+        "visiting_family"
+      ]
+    },
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "onward_ticket",
+    "code": "ONWARD_TICKET",
+    "label_en": "Onward destination ticket",
+    "label_ar": "تذكرة وجهة السفر التالية",
+    "hint_en": "Upload the ticket to your onward destination.",
+    "hint_ar": "ارفع تذكرة وجهة السفر التالية.",
+    "document_type": "ONWARD_TICKET",
+    "applies_when": {
+      "trip_purpose": [
+        "transit"
+      ]
+    },
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "home_national_id",
+    "code": "HOME_NATIONAL_ID",
+    "label_en": "National ID issued by your home country",
+    "label_ar": "الهوية الوطنية الصادرة من بلدك الأصلي",
+    "hint_en": "Upload the national ID issued by the applicant’s home country.",
+    "hint_ar": "ارفع الهوية الوطنية الصادرة من البلد الأصلي لمقدم الطلب.",
+    "document_type": "NATIONAL_ID",
+    "applies_when": {
+      "nationality": [
+        "PK",
+        "IQ",
+        "IR",
+        "AF"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "additional_passport_pages",
+    "code": "ADDITIONAL_PASSPORT_PAGES",
+    "label_en": "TBD — pending approval",
+    "label_ar": "يُحدد لاحقًا — بانتظار الاعتماد",
+    "hint_en": "Draft placeholder. Final additional-page wording is not approved.",
+    "hint_ar": "مسودة مؤقتة. لم تُعتمد صياغة متطلبات صفحات الجواز الإضافية.",
+    "document_type": "PASSPORT",
+    "applies_when": {
+      "nationality": [
+        "PK",
+        "IQ",
+        "IR",
+        "AF"
+      ]
+    },
+    "status": "draft",
+    "placeholder": true
+  },
+  {
+    "key": "ksa_iqama_front",
+    "code": "KSA_IQAMA_FRONT",
+    "label_en": "Residence permit (Iqama) — front",
+    "label_ar": "الإقامة السعودية — الوجه الأمامي",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "SA"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "ksa_iqama_back",
+    "code": "KSA_IQAMA_BACK",
+    "label_en": "Residence permit (Iqama) — back",
+    "label_ar": "الإقامة السعودية — الوجه الخلفي",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "SA"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "ksa_residence_proof",
+    "code": "SA_RESIDENCE_PROOF",
+    "label_en": "Proof of residence from Muqeem or Absher",
+    "label_ar": "إثبات الإقامة من مقيم أو أبشر",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "SA"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "ksa_absher_report",
+    "code": "SA_ABSHER_REPORT",
+    "label_en": "Residency report from Absher (separate document)",
+    "label_ar": "تقرير الإقامة من أبشر — مستند مستقل",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "SA"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "kwt_iqama_front",
+    "code": "KWT_IQAMA_FRONT",
+    "label_en": "Residence card — front",
+    "label_ar": "بطاقة الإقامة الكويتية — الوجه الأمامي",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "KW"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "kwt_iqama_back",
+    "code": "KWT_IQAMA_BACK",
+    "label_en": "Residence card — back",
+    "label_ar": "بطاقة الإقامة الكويتية — الوجه الخلفي",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "KW"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "kwt_digital_id",
+    "code": "KW_MOBILE_ID",
+    "label_en": "Digital identity proof from Hawiyati (Kuwait Mobile ID)",
+    "label_ar": "إثبات الهوية الرقمية من هويتي (Kuwait Mobile ID)",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "KW"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "bhr_permit_report",
+    "code": "BH_RESIDENCE_REPORT",
+    "label_en": "Bahraini residence permit report",
+    "label_ar": "تقرير تصريح الإقامة البحريني",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "BH"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "qat_residence_card",
+    "code": "QA_RESIDENCE_CARD",
+    "label_en": "Qatari residence card",
+    "label_ar": "بطاقة الإقامة القطرية",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "QA"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  },
+  {
+    "key": "omn_id_card",
+    "code": "OMN_ID_CARD",
+    "label_en": "Omani ID card / Resident Card (بطاقة مقيم)",
+    "label_ar": "بطاقة الهوية العمانية / بطاقة مقيم (Resident Card)",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "OM"
+      ]
+    },
+    "status": "draft",
+    "placeholder": false
+  }
+]

@@ -5,9 +5,9 @@ import { DOCUMENT_INPUT_ACCEPT, DOCUMENT_MIME_TYPES, DOCUMENT_SIZE_GUIDANCE, MAX
 import type { PartyApplicant, PartyRequirementReadiness } from "./InterviewPartySetup";
 
 type Props = { applicants: readonly PartyApplicant[]; requirements: readonly PartyRequirementReadiness[]; busy: boolean;
-  error: boolean; onUpload: (requirement: PartyRequirementReadiness, file: File, onProgress: (progress: DocumentUploadProgress) => void) => Promise<void> };
+  error: boolean; newlyRequiredCodes?: readonly string[]; onUpload: (requirement: PartyRequirementReadiness, file: File, onProgress: (progress: DocumentUploadProgress) => void) => Promise<void> };
 
-export function InterviewRequirementDocuments({ applicants, requirements, busy, error, onUpload }: Props) {
+export function InterviewRequirementDocuments({ applicants, requirements, busy, error, newlyRequiredCodes = [], onUpload }: Props) {
   const { i18n } = useTranslation();
   const ar = (i18n.language ?? "en").startsWith("ar");
   const [selected, setSelected] = useState<Record<string, File | undefined>>({});
@@ -41,10 +41,12 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
         <h3 className="font-semibold text-slate-950">{applicant.fullName}</h3><div className="mt-3 grid gap-3">{own.map((requirement) => {
           const key = `${requirement.applicantId}:${requirement.requirementCode}`; const complete = ["UPLOADED", "VALIDATED", "WAIVED"].includes(requirement.state);
           const definition = OWNER_DOCUMENTS.find(document => document.code === requirement.requirementCode);
+          if (definition?.status === "draft") return null;
           const label = definition ? (ar ? definition.ar : definition.en) : requirement.requirementCode === "PASSPORT"
             ? (ar ? "جواز السفر — صفحة البيانات كاملة وواضحة" : "Passport — complete, clear personal data page") : requirement.requirementCode === "PERSONAL_PHOTO" ? (ar ? "الصورة الشخصية" : "Personal photo") : requirement.requirementCode.replaceAll("_", " ");
           return <div key={key} className="rounded-xl bg-slate-50 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{label}</strong>
-            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${complete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{complete ? (ar ? "تم الاستلام" : "Received") : (ar ? "مطلوب" : "Needed")}</span></div>
+            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${complete ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`}>{complete ? (ar ? "تم الاستلام" : "Received") : newlyRequiredCodes.includes(requirement.requirementCode) ? (ar ? "مطلوب بعد تحديث البيانات" : "Newly required after your changes") : (ar ? "مطلوب" : "Needed")}</span></div>
+            {definition && <p className="mt-1 text-sm text-slate-600">{ar ? definition.hintAr : definition.hintEn}</p>}
             {!complete && <div className="mt-3 flex flex-wrap items-center gap-2"><input type="file" aria-label={label} accept={DOCUMENT_INPUT_ACCEPT} disabled={busy || uploading}
               onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(requirement, file); }} className="max-w-full text-sm" />
               {selected[key] && uploadErrors[key] && <button type="button" disabled={busy || uploading} className="rounded-lg bg-[#cda64f] px-3 py-2 text-sm font-semibold disabled:opacity-50"

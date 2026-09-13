@@ -1,9 +1,10 @@
+import type { TripPurpose } from "@contracts/document-requirement-engine";
 import { useState } from "react";
 import NationalitySelect from "./NationalitySelect";
 import { buildNewTravelGroupDraft } from "./interview-party-draft";
 
 export type PartyApplicant = { applicantId: number; applicantIndex: number; fullName: string; nationality: string | null;
-  residenceCountry: string | null; profileVersion: number; passportNumber?: string | null; passportExpiry?: string | null; profession?: string | null };
+  residenceCountry: string | null; tripPurpose?: TripPurpose; profileVersion: number; passportNumber?: string | null; passportExpiry?: string | null; profession?: string | null };
 export type PartyRelationship = { relationshipEventId: string; fromApplicantId: number; toApplicantId: number;
   relationship: "SPOUSE" | "PARENT" | "CHILD" | "GUARDIAN" | "DEPENDENT" | "SIBLING" | "OTHER" };
 type WritableRelationship = Exclude<PartyRelationship["relationship"], "SIBLING" | "OTHER">;

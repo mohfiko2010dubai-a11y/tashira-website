@@ -8,9 +8,9 @@ describe("review uses saved document status", () => {
     expect(reviewDocumentStatus(1, evaluated, saved)[0].state).toBe("UPLOADED");
     expect(reviewDocumentStatus(2, evaluated, saved)[0].state).toBe("MISSING");
   });
-  it("includes owner-added pages and excludes superseded requirements", () => {
-    const result = reviewDocumentStatus(1, evaluated, [{ applicantId: 1, requirementCode: "PASSPORT_SECOND_PAGE", state: "UPLOADED" }], true);
-    expect(result).toEqual([{ code: "PASSPORT_SECOND_PAGE", label: "جواز السفر — الصفحة الثانية", classification: "TASHIRA_PROCESSING", state: "UPLOADED" }]);
+  it("includes approved owner documents and excludes superseded requirements", () => {
+    const result = reviewDocumentStatus(1, evaluated, [{ applicantId: 1, requirementCode: "HOST_DETAILS", state: "UPLOADED" }], true);
+    expect(result).toEqual([{ code: "HOST_DETAILS", label: "بيانات المضيف", classification: "TASHIRA_PROCESSING", state: "UPLOADED" }]);
     expect(reviewDocumentStatus(1, evaluated, [])).toEqual([]);
   });
   it("retains the legacy display when saved requirements are unavailable", () => {

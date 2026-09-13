@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { tripPurposeSchema, type TripPurpose } from "../../../contracts/document-requirement-engine";
 import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { validateTravelGroup, type TicketStatus, type TravelArrangement } from "../travel/travel-party";
 import { validateSubmissionPolicyThresholds, type OperationalSubmissionPolicy } from "../travel/operational-submission-policy";
@@ -9,6 +10,7 @@ export type CustomerApplicantProfile = {
   fullName: string;
   nationality: string | null;
   residenceCountry: string | null;
+  tripPurpose?: TripPurpose;
 };
 
 export type CustomerApplicantWriteResult = {
@@ -45,7 +47,8 @@ function parseProfile(value: unknown): CustomerApplicantProfile {
   if (typeof fullName !== "string" || !fullName.trim()
     || (nationality !== null && typeof nationality !== "string")
     || (residenceCountry !== null && typeof residenceCountry !== "string")) throw new Error("CUSTOMER_PROFILE_EVIDENCE_INVALID");
-  return { fullName, nationality, residenceCountry };
+  const tripPurpose = tripPurposeSchema.safeParse(Reflect.get(parsed, "tripPurpose")).data;
+  return { fullName, nationality, residenceCountry, ...(tripPurpose ? { tripPurpose } : {}) };
 }
 
 async function transaction<T>(pool: Pool, work: (connection: PoolConnection) => Promise<T>): Promise<T> {

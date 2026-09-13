@@ -1,3 +1,4 @@
+import { tripPurposeSchema, type TripPurpose } from "@contracts/document-requirement-engine";
 import { minimumPassportExpiry, validPassportExpiry } from "@contracts/traveller-details";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,14 +10,15 @@ type Value = string | number | boolean;
 export type FormQuestion = { code: string; applicantId: number | null; label: string;
   answerType: "TEXT" | "SELECT" | "BOOLEAN" | "NUMBER" | "DATE"; allowedValues: readonly string[] | null };
 export type FormAnswer = { code: string; applicantId: number | null; answer: Value };
-export type ApplicantFormSubmission = { passportNumber: string; passportExpiry: string; profession: string; residenceType: string; profile: { fullName: string; nationality: string | null; residenceCountry: string | null }; answers: FormAnswer[] };
+export type ApplicantFormSubmission = { passportNumber: string; passportExpiry: string; profession: string; residenceType: string; profile: { fullName: string; nationality: string | null; residenceCountry: string | null; tripPurpose?: TripPurpose }; answers: FormAnswer[] };
 const gccCountries = ["SA", "KW", "BH", "QA", "OM", "AE"];
 const countryCodes = new Set(["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "GCC_COUNTRY"]);
 const keyOf = (field: { applicantId: number | null; code: string }) => `${field.applicantId}:${field.code}`;
 
 /** Drafts live only in this application/applicant instance; never in browser storage. */
-export function ApplicantDataForm({ applicant, questions, saved, onSave, residenceType = "non-gcc", arrivalDate, onEdit }: {
-  onEdit?: () => void; arrivalDate?: string | null; residenceType?: string; applicant: PartyApplicant; questions: readonly FormQuestion[]; saved: readonly FormAnswer[];
+export function ApplicantDataForm({ applicant, questions, saved, onSave, residenceType = "non-gcc", arrivalDate, visaType = "", onEdit, onDocumentContextChange }: {
+  onDocumentContextChange?: (profile: { nationality: string | null; residenceCountry: string | null; tripPurpose: TripPurpose }) => void;
+  onEdit?: () => void; visaType?: string; arrivalDate?: string | null; residenceType?: string; applicant: PartyApplicant; questions: readonly FormQuestion[]; saved: readonly FormAnswer[];
   onSave: (submission: ApplicantFormSubmission) => Promise<void>;
 }) {
   const { t } = useTranslation("wizard");
@@ -24,6 +26,7 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
   const isGcc = selectedResidence === "gcc-resident" || selectedResidence === "gcc-accompany";
   const [passportNumber, setPassportNumber] = useState(applicant.passportNumber ?? "");
   const [passportExpiry, setPassportExpiry] = useState(applicant.passportExpiry ?? "");
+  const [tripPurpose, setTripPurpose] = useState<TripPurpose>(applicant.tripPurpose ?? (/transit|96hours/i.test(visaType) ? "transit" : "tourism"));
   const [profession, setProfession] = useState(applicant.profession ?? "");
   const [draft, setDraft] = useState<Record<string, Value>>({});
   const [name, setName] = useState<string | null>(null);
@@ -34,7 +37,10 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
   const valueOf = (field: FormQuestion): Value => draft[keyOf(field)]
     ?? saved.find(item => keyOf(item) === keyOf(field))?.answer
     ?? (field.code === "NATIONALITY" ? applicant.nationality : field.code === "RESIDENCE_COUNTRY" ? applicant.residenceCountry : null) ?? "";
-  const setValue = (field: FormQuestion, value: Value) => { onEdit?.(); setDraft(previous => ({ ...previous, [keyOf(field)]: value })); };
+  const setValue = (field: FormQuestion, value: Value) => {
+    onEdit?.(); setDraft(previous => ({ ...previous, [keyOf(field)]: value }));
+    if (field.code === "NATIONALITY") onDocumentContextChange?.({ nationality: String(value), residenceCountry: residence ?? applicant.residenceCountry, tripPurpose });
+  };
   const visibleQuestions = questions.filter(field => !["PROFESSION", "PASSPORT_NUMBER", "PASSPORT_EXPIRY", "GCC_RESIDENT", "GCC_COUNTRY", "RESIDENCE_COUNTRY", "HAS_CONFIRMED_TICKETS", "PLANNED_ARRIVAL_DATE", "TRAVELLING_TOGETHER"].includes(field.code) && (isGcc || field.code !== "RESIDENCE_EXPIRY"));
   const fullName = name ?? (/^Applicant\s+\d+$/i.test(applicant.fullName) ? "" : applicant.fullName);
   const profileCountry = (code: string, fallback: string | null) => {
@@ -67,7 +73,7 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
   return <form onBlur={event => feedback.revalidateNative(event.currentTarget)} noValidate onChange={() => onEdit?.()} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7" onSubmit={async event => {
     event.preventDefault(); if (!feedback.validate(event.currentTarget) || !complete || busy) return;
     setBusy(true); setError(false);
-    try { await onSave({ passportNumber: passportNumber.trim(), passportExpiry, profession: profession.trim(), residenceType: selectedResidence, profile, answers: [
+    try { await onSave({ passportNumber: passportNumber.trim(), passportExpiry, profession: profession.trim(), residenceType: selectedResidence, profile: { ...profile, tripPurpose }, answers: [
       { code: "PROFESSION", applicantId: applicant.applicantId, answer: profession.trim() },
       { code: "GCC_RESIDENT", applicantId: applicant.applicantId, answer: isGcc },
       ...(profile.residenceCountry ? [{ code: "RESIDENCE_COUNTRY", applicantId: applicant.applicantId, answer: profile.residenceCountry }] : []),
@@ -83,9 +89,9 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
         <input {...feedback.fieldProps("fullName")} required minLength={2} maxLength={255} autoComplete="name" value={fullName} className={fieldClass} onChange={event => setName(event.target.value)} />
       {feedback.errorFor("fullName")}</label>
       {!questions.some(field => field.code === "NATIONALITY") && <div className="grid gap-2 text-sm font-medium">{t("simple.fields.NATIONALITY")} *
-        <NationalitySelect {...feedback.fieldProps("nationality")} compact label={t("simple.fields.NATIONALITY")} value={nationality ?? applicant.nationality ?? ""} onChange={value => { onEdit?.(); setNationality(value); }} />{feedback.errorFor("nationality")}</div>}
+        <NationalitySelect {...feedback.fieldProps("nationality")} compact label={t("simple.fields.NATIONALITY")} value={nationality ?? applicant.nationality ?? ""} onChange={value => { onEdit?.(); setNationality(value); onDocumentContextChange?.({ ...profile, nationality: value, tripPurpose }); }} />{feedback.errorFor("nationality")}</div>}
       {<div className="grid gap-2 text-sm font-medium">{t("simple.fields.RESIDENCE_COUNTRY")} *
-        <NationalitySelect {...feedback.fieldProps("residence")} compact allowedCodes={isGcc ? gccCountries : undefined} label={t("simple.fields.RESIDENCE_COUNTRY")} value={residence ?? applicant.residenceCountry ?? ""} onChange={value => { onEdit?.(); setResidence(value); }} />{feedback.errorFor("residence")}</div>}
+        <NationalitySelect {...feedback.fieldProps("residence")} compact allowedCodes={isGcc ? gccCountries : undefined} label={t("simple.fields.RESIDENCE_COUNTRY")} value={residence ?? applicant.residenceCountry ?? ""} onChange={value => { onEdit?.(); setResidence(value); onDocumentContextChange?.({ ...profile, residenceCountry: value, tripPurpose }); }} />{feedback.errorFor("residence")}</div>}
       <label className="grid gap-2 text-sm font-medium">{t("simple.passportNumber")} *
         <input {...feedback.fieldProps("passportNumber")} required minLength={3} maxLength={50} value={passportNumber} className={fieldClass} onChange={event => setPassportNumber(event.target.value)} />{feedback.errorFor("passportNumber")}</label>
       <label className="grid gap-2 text-sm font-medium">{t("simple.passportExpiry")} *
@@ -93,6 +99,13 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
         <span id={"passport-helper-" + applicant.applicantId} className={passportExpiry && !validPassportExpiry(passportExpiry, arrivalDate) ? "text-xs text-red-700" : "text-xs text-slate-500"}>{t("simple.passportValidity", { date: passportMinimum })}</span>{feedback.errorFor("passportExpiry")}</label>
       <label className="grid gap-2 text-sm font-medium sm:col-span-2">{t("simple.profession")} *
         <input {...feedback.fieldProps("profession")} required minLength={2} maxLength={255} value={profession} className={fieldClass} onChange={event => setProfession(event.target.value)} />{feedback.errorFor("profession")}</label>
+      <label className="grid gap-2 text-sm font-medium sm:col-span-2">{t("simple.tripPurpose", { defaultValue: "Trip purpose" })}
+        <select aria-label={t("simple.tripPurpose", { defaultValue: "Trip purpose" })} className={fieldClass} value={tripPurpose} onChange={event => { const purpose = tripPurposeSchema.parse(event.target.value); setTripPurpose(purpose); onDocumentContextChange?.({ ...profile, tripPurpose: purpose }); }}>
+          <option value="tourism">{t("simple.purposeTourism", { defaultValue: "Tourism" })}</option>
+          <option value="visiting_family">{t("simple.purposeFamily", { defaultValue: "Visiting family" })}</option>
+          <option value="transit">{t("simple.purposeTransit", { defaultValue: "Transit" })}</option>
+        </select>
+      </label>
       {visibleQuestions.map(field => {
         const value = valueOf(field); const props = feedback.fieldProps(keyOf(field)); const id = props.id;
         return <div key={keyOf(field)} className="grid content-start gap-2 text-sm font-medium">

@@ -72,7 +72,7 @@
     "nextTraveller": "Next traveller →",
     "prevTraveller": "← Traveller {{n}}",
     "docsTitle": "Documents required for {{name}}",
-    "docsSub": "Generated automatically from this traveller's nationality and visa rules.",
+    "docsSub": "Generated from this traveller's nationality, country of residence, visa type and trip purpose.",
     "noQuestions": "No more questions for this traveller — upload the required documents below.",
     "waiting": "This traveller's questions unlock as you progress — keep going with the highlighted traveller.",
     "reviewTitle": "Review your travellers",
@@ -161,7 +161,11 @@
     "saveContinue": "Save & Continue →",
     "saveNextTraveller": "Save & Continue to next traveller →",
     "documentsRemaining": "Documents still to upload: {{count}}. Upload them to enable Save & Continue.",
-    "savedContinue": "Your details and documents are saved. Continue to the next stage."
+    "savedContinue": "Your details and documents are saved. Continue to the next stage.",
+    "tripPurpose": "Trip purpose",
+    "purposeTourism": "Tourism",
+    "purposeFamily": "Visiting family",
+    "purposeTransit": "Transit"
   },
   "validation": {
     "format": "This value does not match the required format. Check the field instructions and correct it.",
@@ -180,5 +184,5 @@
     "review": "The application is not ready for payment. Go back and complete the details or uploads listed above.",
     "reviewUnavailable": "Payment readiness could not be confirmed. Retry the check before continuing.",
     "retry": "Retry check"
-}
+  }
 }

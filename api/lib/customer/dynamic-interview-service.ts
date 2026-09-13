@@ -1,5 +1,5 @@
 import { applyOwnerDocumentRequirements } from "./owner-document-policy";
-import { ownerRequiredDocumentCodes } from "../../../contracts/owner-document-requirements";
+import type { TripPurpose } from "../../../contracts/document-requirement-engine";
 import { evaluateEligibility, type EligibilityEvaluationResult, type EligibilityProfile, type EligibilityRule } from "../eligibility/eligibility-engine";
 import { customerReason, type QuestionCatalogDefinition, type RequirementCatalogDefinition } from "../requirements/requirement-catalog";
 import { buildDynamicInterviewState, type DynamicInterviewState, type InterviewAnswerEvent, type InterviewAnswerLookup, type InterviewEligibilityState } from "./dynamic-interview";
@@ -41,7 +41,8 @@ function customerMessage(state: InterviewEligibilityState): string {
 
 type PersistentInterviewInput = { applicationId: number; routeCode: string; applicantIds: readonly number[];
   questions: readonly QuestionCatalogDefinition[]; requirements?: readonly RequirementCatalogDefinition[]; rules: readonly EligibilityRule[];
-  events: readonly InterviewAnswerEvent[]; evaluatedAt: Date; customerForm?: boolean };
+  events: readonly InterviewAnswerEvent[]; evaluatedAt: Date; customerForm?: boolean;
+  documentProfiles?: readonly { applicantId: number; nationality: string | null; residenceCountry: string | null; tripPurpose?: TripPurpose }[] };
 
 function prepare(input: PersistentInterviewInput) {
   const latest = currentEvents(input.events);
@@ -80,8 +81,14 @@ function evaluatePreparedApplicant(input: PersistentInterviewInput, prepared: Re
   const rules = input.customerForm ? [] : input.rules;
   const result = evaluateEligibility({ profile, rules, evaluatedAt: input.evaluatedAt });
   if (input.customerForm) {
+    const saved = input.documentProfiles?.find(item => item.applicantId === applicantId);
+    // Saved applicant data is authoritative; stale legacy GCC answers cannot
+    // override the country the traveller just selected.
+    attributes.nationality = saved?.nationality ?? String(attributes.nationality ?? "");
+    attributes.residenceCountry = saved?.residenceCountry ?? String(attributes.residenceCountry ?? attributes.gccCountry ?? "");
+    if (saved?.tripPurpose) attributes.tripPurpose = saved.tripPurpose;
     const owner = applyOwnerDocumentRequirements(result, profile, input.evaluatedAt);
-    return { profile, result: { ...owner, requiredDocuments: ownerRequiredDocumentCodes(String(attributes.nationality ?? ""), String(attributes.gccCountry ?? ""), attributes.gccResident === true ? "gcc-resident" : "non-gcc"), conditionalDocuments: [] } };
+    return { profile, result: owner };
   }
   return { profile, result };
 }

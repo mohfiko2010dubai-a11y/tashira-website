@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AdminTopNav from '@/components/admin/AdminTopNav';
 import { trpc } from '@/providers/trpc-client';
+import { DocumentRulesPreview } from '@/components/admin/DocumentRulesPreview';
 
 const STATUSES = ['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'ACTIVE', 'RETIRED', 'REJECTED'] as const;
 const ACTIONS: Record<string, { action: 'SUBMIT_FOR_REVIEW' | 'APPROVE' | 'REJECT' | 'ACTIVATE' | 'RETIRE'; label: string }[]> = {
@@ -42,6 +43,7 @@ export default function AdminVisaRules() {
     <div className="min-h-screen bg-[#FAFAF7]">
       <AdminTopNav title="Visa Rules" subtitle={id ? `Rule ${id}` : 'Governance'} />
       <main className="mx-auto max-w-7xl px-4 py-8">
+        {query.data && <DocumentRulesPreview />}
         <div className="mb-5 flex flex-wrap items-center gap-3">
           <input
             value={search}

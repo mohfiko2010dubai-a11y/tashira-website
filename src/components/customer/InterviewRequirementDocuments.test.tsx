@@ -10,16 +10,16 @@ const applicants = [
 ];
 
 describe("InterviewRequirementDocuments", () => {
-  it("keeps extra passport pages and residence reports as independent required uploads", () => {
+  it("renders approved requirements and withholds draft document rows", () => {
     const html = renderToStaticMarkup(<InterviewRequirementDocuments applicants={[applicants[1]]} busy={false} error={false}
       onUpload={vi.fn(async () => undefined)} requirements={[
         { applicantId: 12, requirementCode: "PASSPORT", documentType: "PASSPORT", state: "UPLOADED" },
-        { applicantId: 12, requirementCode: "PASSPORT_SECOND_PAGE", documentType: "PASSPORT", state: "MISSING" },
+        { applicantId: 12, requirementCode: "HOST_DETAILS", documentType: "SUPPORTING", state: "MISSING" },
         { applicantId: 12, requirementCode: "SA_ABSHER_REPORT", documentType: "GCC_RESIDENCE", state: "MISSING" },
       ]} />);
-    expect(html).toContain("Passport — second page");
-    expect(html).toContain("Absher residence report (separate document)");
-    expect(html.match(/type="file"/g)).toHaveLength(2);
+    expect(html).toContain("Host details");
+    expect(html).not.toContain("Absher");
+    expect(html.match(/type="file"/g)).toHaveLength(1);
   });
   it("maps canonical requirements onto the existing storage document classes", () => {
     expect(legacyDocumentType("PASSPORT")).toBe("passport");
@@ -40,9 +40,9 @@ describe("InterviewRequirementDocuments", () => {
     const childStart = html.indexOf("Synthetic Child");
     expect(fatherStart).toBeGreaterThan(-1);
     expect(childStart).toBeGreaterThan(fatherStart);
-    expect(html.slice(fatherStart, childStart)).toContain("Passport — complete, clear personal data page");
-    expect(html.slice(fatherStart, childStart)).not.toContain("Personal photo");
-    expect(html.slice(childStart)).toContain("Personal photo");
+    expect(html.slice(fatherStart, childStart)).toContain("Passport personal-data page");
+    expect(html.slice(fatherStart, childStart)).not.toContain("Recent personal photo");
+    expect(html.slice(childStart)).toContain("Recent personal photo");
     expect(html.match(/type="file"/g)).toHaveLength(1);
   });
 

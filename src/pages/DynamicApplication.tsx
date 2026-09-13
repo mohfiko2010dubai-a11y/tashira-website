@@ -1,4 +1,5 @@
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
+import { requiredDocuments, type TripPurpose } from "../../contracts/document-requirement-engine";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -37,6 +38,8 @@ export default function DynamicApplication() {
   const [formSaving, setFormSaving] = useState(false);
   const [documentAttempt, setDocumentAttempt] = useState(0);
   const [reviewAttempt, setReviewAttempt] = useState(0);
+  const [newDocumentCodes, setNewDocumentCodes] = useState<Record<number, string[]>>({});
+  const [documentDrafts, setDocumentDrafts] = useState<Record<number, { nationality: string | null; residenceCountry: string | null; tripPurpose: TripPurpose } | undefined>>({});
   const answerMutation = trpc.dynamicInterview.answer.useMutation();
   const completeFormMutation = trpc.dynamicInterview.completeForm.useMutation();
   const editMutation = trpc.dynamicInterview.editAnswer.useMutation();
@@ -90,9 +93,10 @@ export default function DynamicApplication() {
     try {
     const applicant = state.partySetup?.applicants.find(item => item.applicantId === applicantId);
     if (!applicant) throw new Error("Applicant unavailable");
+    const previousCodes = ownerRequiredDocumentCodes(applicant.nationality, applicant.residenceCountry, state.applicationContext.visaType, applicant.tripPurpose);
     await updateApplicationMutation.mutateAsync({ referenceNumber, applicantIndex: applicant.applicantIndex,
       passportNumber: submission.passportNumber, passportExpiry: submission.passportExpiry, profession: submission.profession });
-    if (applicant.fullName !== submission.profile.fullName || applicant.nationality !== submission.profile.nationality || applicant.residenceCountry !== submission.profile.residenceCountry) {
+    if (applicant.fullName !== submission.profile.fullName || applicant.nationality !== submission.profile.nationality || applicant.residenceCountry !== submission.profile.residenceCountry || applicant.tripPurpose !== submission.profile.tripPurpose) {
       await editApplicantMutation.mutateAsync({ referenceNumber, applicantId, expectedVersion: applicant.profileVersion,
         profile: submission.profile, reason: "Customer saved applicant form", idempotencyKey: crypto.randomUUID() });
     }
@@ -111,6 +115,9 @@ export default function DynamicApplication() {
     if (!ownMissing) {
       await completeFormMutation.mutateAsync({ referenceNumber, applicantId, submissionId: crypto.randomUUID() });
       await refreshState();
+      const updatedCodes = ownerRequiredDocumentCodes(submission.profile.nationality, submission.profile.residenceCountry, state.applicationContext.visaType, submission.profile.tripPurpose);
+      setNewDocumentCodes(current => ({ ...current, [applicantId]: updatedCodes.filter(code => !previousCodes.includes(code)) }));
+      setDocumentDrafts(current => ({ ...current, [applicantId]: undefined }));
       setActiveTravellerId(applicantId);
       setPhase(4);
     } else { setActiveTravellerId(applicantId); setPhase(3); }
@@ -150,7 +157,7 @@ export default function DynamicApplication() {
 
   const ownerRequirements = state.partySetup?.requirementReadiness.filter(item => {
     const traveller = state.partySetup?.applicants.find(a => a.applicantId === item.applicantId);
-    return ownerRequiredDocumentCodes(traveller?.nationality, traveller?.residenceCountry, state.applicationContext.residenceType ?? "non-gcc").includes(item.requirementCode);
+    return ownerRequiredDocumentCodes(traveller?.nationality, traveller?.residenceCountry, state.applicationContext.visaType, traveller?.tripPurpose).includes(item.requirementCode);
   }).map(item => {
     const receipt = readiness.data?.applicants.find(a => a.applicantId === item.applicantId);
     return receipt && !receipt.missing.some(m => m.code === `document.${item.requirementCode}`)
@@ -162,7 +169,7 @@ export default function DynamicApplication() {
     : [];
   const remainingDocuments = activeRequirements.filter(item => !["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state)).length;
 
-  const currentStep = phase ?? (activeRequirements.length > 0 ? 4 : 3);
+  const currentStep = phase ?? 3;
   const canOpenCheckout = canVisitCheckout(readiness.data);
   return <WizardShell currentStep={currentStep === 5 ? 3 : 2}>
     <div>
@@ -228,10 +235,23 @@ export default function DynamicApplication() {
 
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
-        <ApplicantDataForm applicant={applicant} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
+        <ApplicantDataForm applicant={applicant} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
+          onDocumentContextChange={profile => setDocumentDrafts(current => ({ ...current, [applicant.applicantId]: profile }))}
           questions={(state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
           saved={state.knownAnswers} onSave={submission => saveApplicantForm(applicant.applicantId, submission)} />
       </div>)}
+
+      {currentStep === 3 && documentDrafts[activeId] && <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5" aria-live="polite">
+        <h2 className="font-bold">{i18n.language.startsWith("ar") ? "المستندات حسب اختياراتك الجديدة" : "Documents for your updated choices"}</h2>
+        <p className="mt-2 text-sm">{i18n.language.startsWith("ar") ? "احفظ البيانات لتطبيق التغييرات ورفع المستندات الجديدة. تبقى الملفات المناسبة محفوظة." : "Save details to apply these changes and upload new documents. Applicable uploaded files are kept."}</p>
+        <ul className="mt-3 space-y-2">{requiredDocuments({ nationality: documentDrafts[activeId]?.nationality, country_of_residence: documentDrafts[activeId]?.residenceCountry,
+          visa_type: state.applicationContext.visaType, trip_purpose: documentDrafts[activeId]?.tripPurpose }).map(rule => {
+          const existing = ownerRequirements.find(item => item.applicantId === activeId && item.requirementCode === rule.code);
+          const received = existing && ["UPLOADED", "VALIDATED", "WAIVED"].includes(existing.state);
+          return <li key={rule.key}>{i18n.language.startsWith("ar") ? rule.label_ar : rule.label_en} — {received ? (i18n.language.startsWith("ar") ? "تم الاستلام" : "Received")
+            : !existing ? (i18n.language.startsWith("ar") ? "مطلوب جديد" : "Newly required") : (i18n.language.startsWith("ar") ? "مطلوب" : "Needed")}</li>;
+        })}</ul>
+      </section>}
 
       {/* Active traveller documents */}
       {currentStep === 4 && state.partySetup && activeRequirements.length > 0 && <div className="mb-3 mt-8">
@@ -242,6 +262,7 @@ export default function DynamicApplication() {
         <p className="mt-1 text-sm text-gray-500">{t("step2.docsSub")}</p>
       </div>}
       {state.partySetup && <div hidden={currentStep !== 4}><InterviewRequirementDocuments applicants={activeApplicants} requirements={activeRequirements}
+        newlyRequiredCodes={newDocumentCodes[activeId]}
         busy={docsBusy}
         error={docsError}
         onUpload={uploadHandler} /></div>}

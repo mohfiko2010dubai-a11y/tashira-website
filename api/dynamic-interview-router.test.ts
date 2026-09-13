@@ -52,7 +52,7 @@ function deps(currentFlags = flags) {
   return { flagContextForContext: async () => ({ environment: "STAGING" as const }), flagsForContext: async () => currentFlags,
     loadApplication: async (value: string) => value === reference ? ({ applicationId: 9, referenceNumber: reference, routeCode: "UAE_VISIT",
       applicantIds: [21], applicantLabels: { 21: "Ahmed — Father" }, applicants: [{ applicantId: 21, applicantIndex: 0,
-        fullName: "Ahmed", nationality: "EG", residenceCountry: null, profileVersion: 1 }] }) : null,
+        fullName: "Ahmed", nationality: "EG", residenceCountry: null as string | null, profileVersion: 1 }] }) : null,
     loadCatalog: async () => ({ catalogVersion: "test-catalog-v1", questions: [question], requirements: [requirement] }),
     loadRules: async () => [rule], loadEvents: async () => events,
     loadUnifiedBundle, addApplicant, editApplicant, defineRelationship, createTravelGroup, updateTravelGroup, linkSharedDocument, linkRequirementDocument,
@@ -60,10 +60,11 @@ function deps(currentFlags = flags) {
 }
 
 describe("authenticated Dynamic Interview API", () => {
-  it("completes the merged GCC form without tickets and derives the full owner document matrix", async () => {
+  it("derives approved documents from saved residence, ignoring stale GCC answers and draft rules", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
     const loadApplication = current.loadApplication;
-    current.loadApplication = async value => { const application = await loadApplication(value); return application ? { ...application, baseType: "single", residenceType: "gcc-resident", arrivalDate: "2026-10-01", applicants: application.applicants.map(applicant => ({ ...applicant, passportNumber: "TEST12345", passportExpiry: "2028-01-01", profession: "Engineer" })) } : null; };
+    let residenceCountry = "SA";
+    current.loadApplication = async value => { const application = await loadApplication(value); return application ? { ...application, baseType: "single", residenceType: "gcc-resident", arrivalDate: "2026-10-01", applicants: application.applicants.map(applicant => ({ ...applicant, nationality: "PK", residenceCountry, passportNumber: "TEST12345", passportExpiry: "2028-01-01", profession: "Engineer" })) } : null; };
     current.now = () => new Date("2026-09-12T00:00:00Z");
     current.loadRules = async () => [{ ...rule, eligibilityEffect: "INELIGIBLE", conditions: [{ field: "hasConfirmedTickets", operator: "EXISTS" }], requiredDocuments: ["OLD_CATALOG_DOCUMENT"] }];
     current.loadCatalog = async () => ({ catalogVersion: "test", requirements: [requirement], questions: [question,
@@ -79,14 +80,18 @@ describe("authenticated Dynamic Interview API", () => {
     expect(current.persistCompletedEvaluations).not.toHaveBeenCalled();
     await caller.completeForm({ referenceNumber: reference, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" });
     expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ result: expect.objectContaining({
-      matchedRules: [], requiredDocuments: expect.arrayContaining(["PASSPORT_SECOND_PAGE", "SA_ABSHER_REPORT"]),
+      matchedRules: [], requiredDocuments: ["PASSPORT", "PERSONAL_PHOTO", "RETURN_TICKET"],
     }) })] }));
     expect(completed.currentQuestions).toEqual([]);
     expect(completed.nextAction).not.toBe("ANSWER_QUESTIONS");
     expect(completed.review.applicants[0].requirements.map(item => item.code).sort()).toEqual([
-      "PASSPORT", "PERSONAL_PHOTO", "PASSPORT_SECOND_PAGE", "HOME_NATIONAL_ID", "RESIDENCE_CARD_FRONT", "RESIDENCE_CARD_BACK", "SA_RESIDENCE_PROOF", "SA_ABSHER_REPORT",
+      "PASSPORT", "PERSONAL_PHOTO", "RETURN_TICKET",
     ].sort());
     expect(completed.formQuestions?.some(field => ["HAS_CONFIRMED_TICKETS", "RESIDENCE_EXPIRY", "PLANNED_ARRIVAL_DATE"].includes(field.code))).toBe(false);
+    residenceCountry = "EG";
+    const changed = await caller.current({ referenceNumber: reference });
+    expect(changed.review.applicants[0].requirements.map(item => item.code)).toContain("UAE_ACCOMMODATION");
+    expect(changed.review.applicants[0].requirements.map(item => item.code)).not.toContain("SA_ABSHER_REPORT");
   });
   it("completes one family traveller before the next has answers and enforces passport validity and ownership", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);

@@ -5,7 +5,7 @@ type SavedRequirement = { applicantId: number; requirementCode: string; state: s
 
 export function reviewDocumentStatus(applicantId: number, evaluated: readonly ReviewRequirement[], saved: readonly SavedRequirement[] | undefined, ar = false): ReviewRequirement[] {
   if (!saved) return [...evaluated];
-  return saved.filter(item => item.applicantId === applicantId).map(item => {
+  return saved.filter(item => item.applicantId === applicantId && OWNER_DOCUMENTS.find(rule => rule.code === item.requirementCode)?.status !== "draft").map(item => {
     const original = evaluated.find(requirement => requirement.code === item.requirementCode);
     const owner = OWNER_DOCUMENTS.find(requirement => requirement.code === item.requirementCode);
     const label = owner ? (ar ? owner.ar : owner.en) : original?.label ?? item.requirementCode.replaceAll("_", " ");
