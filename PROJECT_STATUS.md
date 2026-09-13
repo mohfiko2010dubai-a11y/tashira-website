@@ -1,3 +1,7 @@
+## 2026-09-13 held landing hotfix deployed and verified
+
+Staging 7ecc5800310dceced5346f224019fe00b56ad58e, health 200. Server check/lint/build and 927 tests pass, 26 gated skips. Actual HTML requests /uae-visa and /dubai-visa now return 404 with readable not-found body; sitemap excludes both; /apply and /visa-prices remain 200. SSR and 16-route metadata not deployed. Evidence: output/task7-phase1/HELD-LIVE-RESULTS.json. Production untouched.
+
 ## 2026-09-13 held landing 404 hotfix - ready for staging
 
 Owner directs /uae-visa and /dubai-visa held until bilingual content exists. Confirmed browser HTML requests currently return empty SPA with 200. Separate hotfix returns 404 before CMS redirects/SPA and excludes held paths from sitemap even if records appear. Local check/lint/build pass; 927 tests pass, 26 gated skips. Old unrelated uncommitted work remains untouched. This does not deploy SSR Phase 1 or metadata pending owner review.
