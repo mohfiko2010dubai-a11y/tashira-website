@@ -1,0 +1,541 @@
+{
+  "deployedSha": "ced7aa5b50c9d03791d29da89714366707bea83a",
+  "quality": {
+    "check": "PASS",
+    "lint": "PASS",
+    "build": "PASS",
+    "testsPassed": 1018,
+    "environmentGatedSkipped": 26
+  },
+  "browser": {
+    "syntheticReference": "TSH-MU06S5PY-7B21B5",
+    "en": {
+      "files": 8,
+      "cards": 6,
+      "mobileWidth": 400,
+      "prefill": true,
+      "errors": []
+    },
+    "ar": {
+      "files": 8,
+      "cards": 6,
+      "mobileWidth": 400,
+      "prefill": true,
+      "errors": []
+    }
+  },
+  "headings": [
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/",
+      "status": 200,
+      "headingTop": 167,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/visa-prices",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/how-to-apply",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/apply",
+      "status": 200,
+      "headingTop": 271,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/track",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/guides",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/news",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/contact",
+      "status": 200,
+      "headingTop": 161,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/refund",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/terms",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/privacy",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/cookies",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/visa-pre-check",
+      "status": 200,
+      "headingTop": 156,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/about",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/editorial-policy",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "en",
+      "path": "/sources-and-verification",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/",
+      "status": 200,
+      "headingTop": 223,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/visa-prices",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/how-to-apply",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/apply",
+      "status": 200,
+      "headingTop": 256,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/track",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/guides",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/news",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/contact",
+      "status": 200,
+      "headingTop": 161,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/refund",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/terms",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/privacy",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/cookies",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/visa-pre-check",
+      "status": 200,
+      "headingTop": 156,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/about",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/editorial-policy",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 400,
+      "lang": "ar",
+      "path": "/sources-and-verification",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/",
+      "status": 200,
+      "headingTop": 264.5,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/visa-prices",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/how-to-apply",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/apply",
+      "status": 200,
+      "headingTop": 273,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/track",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/guides",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/news",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/contact",
+      "status": 200,
+      "headingTop": 161,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/refund",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/terms",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/privacy",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/cookies",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/visa-pre-check",
+      "status": 200,
+      "headingTop": 156,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/about",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/editorial-policy",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "en",
+      "path": "/sources-and-verification",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/",
+      "status": 200,
+      "headingTop": 326,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/visa-prices",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/how-to-apply",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/apply",
+      "status": 200,
+      "headingTop": 273,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/track",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/guides",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/news",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/contact",
+      "status": 200,
+      "headingTop": 161,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/refund",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/terms",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/privacy",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/cookies",
+      "status": 200,
+      "headingTop": 128,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/visa-pre-check",
+      "status": 200,
+      "headingTop": 156,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/about",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/editorial-policy",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    },
+    {
+      "width": 1440,
+      "lang": "ar",
+      "path": "/sources-and-verification",
+      "status": 200,
+      "headingTop": 181,
+      "headerBottom": 89
+    }
+  ]
+}

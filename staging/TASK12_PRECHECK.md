@@ -22,3 +22,7 @@ Header height is 89px (88px content plus border). Shared scroll padding and clea
 ## Manual acceptance
 
 Open `/en/visa-pre-check` or `/ar/visa-pre-check`. Choose Pakistan and Saudi Arabia, then 30 Days Visa. Submit: eight files in six grouped cards, with optional flight separately. Click the application CTA: all four choices are present. Enter synthetic contact details and continue: the same eight document slots appear. Repeat with Oman and observe only Oman residence requirements. On mobile the result follows the form; on desktop the initial skeleton is sticky. Empty submission visibly identifies both missing countries.
+
+## Isolated staging acceptance
+
+Deployed ced7aa5b50c9d03791d29da89714366707bea83a through the staging guard: all quality gates pass, LOCAL_HEALTH=200, PUBLIC_HEALTH=200. Live EN/AR pre-check and CTA/reload pass at 400px, with eight slots and six cards. Synthetic application TSH-MU06S5PY-7B21B5 saved the same tuple and returned the same eight server document slots. All 64 public-route/language/viewport heading and anchor checks pass live. Desktop sticky empty state confirmed. See TASK12_UAT.json. Production and 15 preserved unrelated files are untouched.

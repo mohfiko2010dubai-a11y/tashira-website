@@ -1,3 +1,7 @@
+# Task 12 pre-check verified on isolated staging — 2026-09-13
+
+Deployed ced7aa5b50c9d03791d29da89714366707bea83a. Shared governed ISO pickers and exact wizard document union/grouping; eight PK/SA files in six cards, optional flight information excluded from counts/gates. Removed age, ticket status and GCC checkbox; no new question, purpose visibly derived as tourism/transit. Four-answer handoff survives reload and creates a matching synthetic server application. EN/AR mobile and desktop pass; 64 live public-route/language/viewport heading checks pass. Check/lint/build and 1018 tests pass, 26 environment-gated skips. See staging/TASK12_PRECHECK.md and TASK12_UAT.json. Production and 15 unrelated dirty files preserved.
+
 # Task 11 step two verified on isolated staging — 2026-09-13
 
 Code c164c23219a3a9e5931aa9536d510a829791a06d is deployed and browser-verified. One context bar, immediate grouped uploads, eight files in six cards for Pakistan/Saudi, accurate progress, Replace and saved edits. Owner's final instruction removes flight booking from the checklist/payment gate. Single/family flows, EN/AR mobile, admin stored-image preview and Stripe TEST payment pass. Correct detail edits save on blur and reload; existing recovery request passes with synthetic email. Same eight-file page reduced 5782→3520 px (39.1%) at 400 px; desktop form 680 px. Check/lint/build and 1011 tests pass, 26 gated skips. See staging/TASK11_STEP2.md and staging/TASK11_UAT.json. Fifteen unrelated dirty files and production untouched; Phase 3 held.
