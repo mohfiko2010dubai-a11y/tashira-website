@@ -6,7 +6,7 @@ use the same engine and saved nationality/residence/visa/purpose values.
 
 Each row contains its document key, existing storage code/type, English and
 Arabic labels and hints, `applies_when`, `status` and `placeholder`.
-Use ISO country codes (SA, KW, BH, QA, OM, AE, PK, IQ, IR, AF).
+Country fields take ISO codes (SA, KW, BH, QA, OM, AE, PK, IQ, IR, AF).
 An empty `applies_when` means every applicant; fields within a row are ANDed.
 Matching rows form a union, deduplicated by `key`.
 
