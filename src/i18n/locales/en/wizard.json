@@ -118,7 +118,7 @@
   "simple": {
     "title": "Applicant details",
     "subtitle": "Fill in the fields below for this traveller. Required fields are marked *.",
-    "fullName": "Full name as shown on passport",
+    "fullName": "Full name in Latin letters, exactly as printed in your passport",
     "wholeParty": "All travellers",
     "select": "Select",
     "yes": "Yes",
@@ -165,7 +165,13 @@
     "tripPurpose": "Trip purpose",
     "purposeTourism": "Tourism",
     "purposeFamily": "Visiting family",
-    "purposeTransit": "Transit"
+    "purposeTransit": "Transit",
+    "passportNameHint": "Enter the name in English exactly as printed in your passport.",
+    "residenceHint": "The country you currently live in — not your country of citizenship.",
+    "documentReceived": "Received",
+    "documentNew": "Newly required",
+    "documentNeeded": "Needed",
+    "documentPreviewHint": "Save the traveller details below to upload documents. Applicable uploaded files are kept."
   },
   "validation": {
     "format": "This value does not match the required format. Check the field instructions and correct it.",
@@ -183,6 +189,7 @@
     "summary_other": "{{count}} fields need attention. Check the messages beside the fields.",
     "review": "The application is not ready for payment. Go back and complete the details or uploads listed above.",
     "reviewUnavailable": "Payment readiness could not be confirmed. Retry the check before continuing.",
-    "retry": "Retry check"
+    "retry": "Retry check",
+    "passportName": "Enter the name in English exactly as printed in your passport."
   }
 }

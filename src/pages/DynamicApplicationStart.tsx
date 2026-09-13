@@ -72,7 +72,6 @@ export default function DynamicApplicationStart() {
   const [visaType, setVisaType] = useState<string>(knownVisaId ?? visaPrefill[visaParam] ?? visaRoutes[2][0]);
   const processingParam = searchParams.get("processing") ?? "";
   const [processingType, setProcessingType] = useState<"regular" | "express">(processingParam === "express" ? "express" : "regular");
-  const [residenceType, setResidenceType] = useState<"non-gcc" | "gcc-resident" | "gcc-accompany">(visaParam === "gcc-residents" ? "gcc-resident" : "non-gcc");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [arrivalDate, setArrivalDate] = useState("");
@@ -115,7 +114,7 @@ export default function DynamicApplicationStart() {
     create.mutate({
       referenceNumber: createReference(),
       baseType: applicationType,
-      residenceType,
+      residenceType: "non-gcc", // Actual residence is collected once per traveller in step 2.
       visaType,
       processingType,
       contactEmail: email.trim(),
@@ -133,11 +132,6 @@ export default function DynamicApplicationStart() {
         {(
           <>
             <StepHeader step={1} title={t("step1.title")} subtitle={t("step1.subtitle")} />
-            <SectionTitle>{t("simple.residence")}</SectionTitle>
-            <div className="grid gap-3 sm:grid-cols-3">{([["non-gcc", "residenceNonGcc"], ["gcc-resident", "residenceGcc"], ["gcc-accompany", "residenceGccAcc"]] as const).map(([value, label]) =>
-              <SelectCard key={value} selected={residenceType === value} onClick={() => setResidenceType(value)} title={t(`step1.${label}`)} />)}</div>
-
-
             <SectionTitle>{t("step1.whoTravelling")}</SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2">
               <SelectCard icon={UserRound} selected={applicationType === "single"} onClick={() => setApplicationType("single")}

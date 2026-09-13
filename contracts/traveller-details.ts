@@ -12,3 +12,8 @@ export function validPassportExpiry(expiry: string, arrivalDate?: string | null,
   const parsed = new Date(`${expiry}T00:00:00Z`);
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === expiry && expiry >= minimumPassportExpiry(arrivalDate, now);
 }
+
+/** Latin passport names allow spaces and common name punctuation, not other scripts. */
+export function validPassportName(name: string): boolean {
+  return /\p{Script=Latin}/u.test(name) && /^[\p{Script=Latin}\p{M} .'’-]+$/u.test(name.trim());
+}

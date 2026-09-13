@@ -1,5 +1,4 @@
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
-import { requiredDocuments, type TripPurpose } from "../../contracts/document-requirement-engine";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -39,7 +38,6 @@ export default function DynamicApplication() {
   const [documentAttempt, setDocumentAttempt] = useState(0);
   const [reviewAttempt, setReviewAttempt] = useState(0);
   const [newDocumentCodes, setNewDocumentCodes] = useState<Record<number, string[]>>({});
-  const [documentDrafts, setDocumentDrafts] = useState<Record<number, { nationality: string | null; residenceCountry: string | null; tripPurpose: TripPurpose } | undefined>>({});
   const answerMutation = trpc.dynamicInterview.answer.useMutation();
   const completeFormMutation = trpc.dynamicInterview.completeForm.useMutation();
   const editMutation = trpc.dynamicInterview.editAnswer.useMutation();
@@ -117,7 +115,6 @@ export default function DynamicApplication() {
       await refreshState();
       const updatedCodes = ownerRequiredDocumentCodes(submission.profile.nationality, submission.profile.residenceCountry, state.applicationContext.visaType, submission.profile.tripPurpose);
       setNewDocumentCodes(current => ({ ...current, [applicantId]: updatedCodes.filter(code => !previousCodes.includes(code)) }));
-      setDocumentDrafts(current => ({ ...current, [applicantId]: undefined }));
       setActiveTravellerId(applicantId);
       setPhase(4);
     } else { setActiveTravellerId(applicantId); setPhase(3); }
@@ -236,22 +233,10 @@ export default function DynamicApplication() {
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
         <ApplicantDataForm applicant={applicant} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
-          onDocumentContextChange={profile => setDocumentDrafts(current => ({ ...current, [applicant.applicantId]: profile }))}
+          requirements={ownerRequirements}
           questions={(state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
           saved={state.knownAnswers} onSave={submission => saveApplicantForm(applicant.applicantId, submission)} />
       </div>)}
-
-      {currentStep === 3 && documentDrafts[activeId] && <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5" aria-live="polite">
-        <h2 className="font-bold">{i18n.language.startsWith("ar") ? "المستندات حسب اختياراتك الجديدة" : "Documents for your updated choices"}</h2>
-        <p className="mt-2 text-sm">{i18n.language.startsWith("ar") ? "احفظ البيانات لتطبيق التغييرات ورفع المستندات الجديدة. تبقى الملفات المناسبة محفوظة." : "Save details to apply these changes and upload new documents. Applicable uploaded files are kept."}</p>
-        <ul className="mt-3 space-y-2">{requiredDocuments({ nationality: documentDrafts[activeId]?.nationality, country_of_residence: documentDrafts[activeId]?.residenceCountry,
-          visa_type: state.applicationContext.visaType, trip_purpose: documentDrafts[activeId]?.tripPurpose }).map(rule => {
-          const existing = ownerRequirements.find(item => item.applicantId === activeId && item.requirementCode === rule.code);
-          const received = existing && ["UPLOADED", "VALIDATED", "WAIVED"].includes(existing.state);
-          return <li key={rule.key}>{i18n.language.startsWith("ar") ? rule.label_ar : rule.label_en} — {received ? (i18n.language.startsWith("ar") ? "تم الاستلام" : "Received")
-            : !existing ? (i18n.language.startsWith("ar") ? "مطلوب جديد" : "Newly required") : (i18n.language.startsWith("ar") ? "مطلوب" : "Needed")}</li>;
-        })}</ul>
-      </section>}
 
       {/* Active traveller documents */}
       {currentStep === 4 && state.partySetup && activeRequirements.length > 0 && <div className="mb-3 mt-8">

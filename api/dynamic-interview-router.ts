@@ -1,7 +1,7 @@
 import { ownerRequiredDocumentCodes } from "../contracts/owner-document-requirements";
 import { tripPurposeSchema, type TripPurpose } from "../contracts/document-requirement-engine";
 import { loadTripPurposes } from "./lib/customer/trip-purpose";
-import { validPassportExpiry } from "../contracts/traveller-details";
+import { validPassportExpiry, validPassportName } from "../contracts/traveller-details";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { TrpcContext } from "./context";
@@ -310,7 +310,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       }
     }),
     addApplicant: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50),
-      profile: z.object({ fullName: z.string().trim().min(2).max(255), nationality: governedCountryCodeSchema.nullable(),
+      profile: z.object({ fullName: z.string().trim().min(2).max(255).refine(validPassportName, "Enter the name in English exactly as printed in your passport."), nationality: governedCountryCodeSchema.nullable(),
         residenceCountry: governedCountryCodeSchema.nullable(), tripPurpose: tripPurposeSchema.optional() }).strict(), reason: z.string().trim().min(3).max(500),
       idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
@@ -325,7 +325,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       }
     }),
     editApplicant: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), applicantId: z.number().int().positive(),
-      expectedVersion: z.number().int().positive(), profile: z.object({ fullName: z.string().trim().min(2).max(255),
+      expectedVersion: z.number().int().positive(), profile: z.object({ fullName: z.string().trim().min(2).max(255).refine(validPassportName, "Enter the name in English exactly as printed in your passport."),
         nationality: governedCountryCodeSchema.nullable(), residenceCountry: governedCountryCodeSchema.nullable(), tripPurpose: tripPurposeSchema.optional() }).strict(),
       reason: z.string().trim().min(3).max(500), idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);

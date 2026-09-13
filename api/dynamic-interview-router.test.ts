@@ -244,6 +244,10 @@ describe("authenticated Dynamic Interview API", () => {
       scopeType: "APPLICATION", scopeReference: reference };
     const current = deps([...flags, dynamicRequirements]); const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
     const profile = { fullName: "Sara Ahmed", nationality: "EG", residenceCountry: null };
+    await expect(caller.editApplicant({ referenceNumber: reference, applicantId: 21, expectedVersion: 1,
+      profile: { ...profile, fullName: "محمد زكي" }, reason: "Correct applicant", idempotencyKey: "latin-name-test" }))
+      .rejects.toThrow("Enter the name in English exactly as printed in your passport.");
+    expect(current.editApplicant).not.toHaveBeenCalled();
     expect(await caller.addApplicant({ referenceNumber: reference, profile, reason: "Add family member", idempotencyKey: "add-sara-123" }))
       .toMatchObject({ applicantId: 22, applicantIndex: 1, profileVersion: 1 });
     expect(current.addApplicant).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 9, profile }));

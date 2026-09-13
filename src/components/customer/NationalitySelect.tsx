@@ -11,7 +11,8 @@ type Entry = { code: string; nameEn: string; nameAr: string; region: string };
  * in-menu search. Stores the ISO 3166-1 alpha-2 CODE (never free text),
  * matching the server-side catalog validation.
  */
-export default function NationalitySelect({ value, onChange, label, id, compact = false, allowedCodes, onBlur, "aria-invalid": invalid, "aria-describedby": describedBy }: {
+export default function NationalitySelect({ value, onChange, label, id, purpose = "nationality", compact = false, allowedCodes, onBlur, "aria-invalid": invalid, "aria-describedby": describedBy }: {
+  purpose?: "nationality" | "residence";
   onBlur?: () => void;
   "aria-invalid"?: AriaAttributes["aria-invalid"];
   "aria-describedby"?: string;
@@ -24,6 +25,8 @@ export default function NationalitySelect({ value, onChange, label, id, compact 
 }) {
   const { i18n } = useTranslation();
   const isArabic = isRtlLanguage(i18n.language);
+  const isResidence = purpose === "residence";
+  const pickerLabel = label ?? (isResidence ? (isArabic ? "بلد الإقامة" : "Country of residence") : (isArabic ? "الجنسية" : "Nationality"));
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
@@ -53,7 +56,7 @@ export default function NationalitySelect({ value, onChange, label, id, compact 
         id={id}
         aria-invalid={invalid}
         aria-describedby={describedBy}
-        aria-label={label}
+        aria-label={pickerLabel}
         type="button"
         onClick={() => { setOpen((v) => !v); setQuery(""); }}
         aria-haspopup="listbox"
@@ -63,7 +66,7 @@ export default function NationalitySelect({ value, onChange, label, id, compact 
         }`}
       >
         <span className={`text-sm ${selected ? "font-semibold text-[#0A1628]" : "text-gray-400"}`}>
-          {selected ? (isArabic ? selected.nameAr : selected.nameEn) : isArabic ? "اختر الجنسية…" : "Select nationality…"}
+          {selected ? (isArabic ? selected.nameAr : selected.nameEn) : isResidence ? (isArabic ? "اختر بلد الإقامة…" : "Select country of residence…") : isArabic ? "اختر الجنسية…" : "Select nationality…"}
         </span>
         <span className="flex items-center gap-2">
           {selected && <span className="text-xs text-gray-400">{selected.code}</span>}
@@ -79,12 +82,12 @@ export default function NationalitySelect({ value, onChange, label, id, compact 
               autoFocus
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={isArabic ? "ابحث عن الجنسية…" : "Search nationality…"}
+              placeholder={isResidence ? (isArabic ? "ابحث عن بلد الإقامة…" : "Search country of residence…") : (isArabic ? "ابحث عن الجنسية…" : "Search nationality…")}
               className="w-full bg-transparent text-sm focus:outline-none"
               autoComplete="off"
             />
           </div>
-          <div className="max-h-64 overflow-y-auto p-1" role="listbox" aria-label="Nationality">
+          <div className="max-h-64 overflow-y-auto p-1" role="listbox" aria-label={pickerLabel}>
             {catalog.isLoading && <p className="px-3 py-2 text-sm text-gray-400">Loading…</p>}
             {catalog.isError && <p className="px-3 py-2 text-sm text-rose-600">Catalog unavailable — please retry.</p>}
             {entries.map((e) => (
@@ -103,7 +106,7 @@ export default function NationalitySelect({ value, onChange, label, id, compact 
               </button>
             ))}
             {catalog.data && entries.length === 0 && (
-              <p className="px-3 py-2 text-sm text-gray-400">{isArabic ? "لا توجد نتائج مطابقة" : "No matching nationality"}</p>
+              <p className="px-3 py-2 text-sm text-gray-400">{isArabic ? "لا توجد نتائج مطابقة" : "No matching country"}</p>
             )}
           </div>
         </div>

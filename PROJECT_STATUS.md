@@ -1,3 +1,7 @@
+## Task 4 field order locally verified - 2026-09-13
+
+Nationality and residence now precede conditional fields, approved-document preview and passport identity. The redundant residence-type selector was removed from step 1; actual per-traveller country drives GCC conditions. Saved profiles and applicable receipts remain intact. EN/AR residence picker copy and helper distinguish citizenship from residence. Shared Latin-name validation protects customer form and profile API. Clean TypeScript/lint/build and 914 tests pass, 26 gated skips. Actual-component browser checks pass new/saved cases, document ordering, name feedback/focus, EN/AR and step-1 removal. Guarded staging deployment and live verification pending.
+
 ## Task 2 deployed and live browser verified - 2026-09-13
 
 Guard deployed 45f41893197fc229c10a117a62c22e3bee64a9fd; local/public health 200. Local/server check, lint, build and 902 tests pass; 26 environment-gated skips. Synthetic TSH-MTZ1GDIP-47EF24 proves residence/nationality recomputation, preserved HEIC/JPEG receipts, new approved ticket and family-host uploads, persisted purpose after reload, and Review & Pay readiness with canonical payment link. Admin preview confirms Saudi 3 approved + 5 draft + 1 wording placeholder; Oman replaces Saudi rows. Draft rules do not gate customers or payment. No real payment/email/customer data or production changes. Full evidence: output/task2-documents-20260913/REVIEW.md.
