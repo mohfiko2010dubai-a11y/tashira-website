@@ -1,3 +1,7 @@
+# Next task 2 iPhone uploads verified — 2026-09-13
+
+Deployed 4305032546f616f9ea92c9d23b9047664e73c99a. Existing HEIF conversion, 20 MB limit, orientation, progress and retry retained; fixed premature browser MIME trust with server content sniffing. Live HEIC/HEIF and >15 MB JPEG uploads, stored JPEG orientation/EXIF removal, explicit DOCX/conversion errors and aborted-upload retry pass. Review/payment link and reload pass. Check/lint/build and 1023 tests pass, 26 gated skips. See staging/NEXT2_IPHONE_UPLOAD.md and NEXT2_IPHONE_UPLOAD_UAT.json.
+
 # Next task 1 validation verified — 2026-09-13
 
 Original four silent-validation cases already worked. Verified and fixed two remaining gaps: traveller error summary now beside the real footer submit button; family context now has inline/ARIA/focus feedback for missing countries. Deployed c2888446e073d410abb60d32fb0cc34f51a81edb; all four cases, pre-check and EN/AR family correction pass live. Rules unchanged. Check/lint/build and 1018 tests pass, 26 gated skips. See staging/NEXT1_VALIDATION.md and NEXT1_VALIDATION_UAT.json.
