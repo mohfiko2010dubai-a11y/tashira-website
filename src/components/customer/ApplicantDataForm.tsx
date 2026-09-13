@@ -99,7 +99,10 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
       })}
       <label className="grid gap-2 text-sm font-medium">{t("simple.fullName")} *
         <input {...feedback.fieldProps("fullName", "name-helper-" + applicant.applicantId)} required minLength={2} maxLength={255} autoComplete="name" dir="ltr" value={fullName} className={fieldClass} onChange={event => setName(event.target.value)} />
-      <span id={"name-helper-" + applicant.applicantId} className="text-xs text-slate-500">{t("simple.passportNameHint")}</span>{feedback.errorFor("fullName")}</label>
+      <span id={"name-helper-" + applicant.applicantId} className="text-xs text-slate-500">
+        {t("simple.passportNameHint")}
+        <span className="mt-1 block" role="status" aria-live="polite">{validPassportName(profile.fullName) && !/\s/.test(profile.fullName) ? t("simple.singleNameNotice") : ""}</span>
+      </span>{feedback.errorFor("fullName")}</label>
       <label className="grid gap-2 text-sm font-medium">{t("simple.passportNumber")} *
         <input {...feedback.fieldProps("passportNumber")} required minLength={3} maxLength={50} value={passportNumber} className={fieldClass} onChange={event => setPassportNumber(event.target.value)} />{feedback.errorFor("passportNumber")}</label>
       <label className="grid gap-2 text-sm font-medium">{t("simple.passportExpiry")} *

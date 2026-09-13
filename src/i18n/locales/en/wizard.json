@@ -123,7 +123,7 @@
   "simple": {
     "title": "Applicant details",
     "subtitle": "Fill in the fields below for this traveller. Required fields are marked *.",
-    "fullName": "Full name in Latin letters, exactly as printed in your passport",
+    "fullName": "Full name as shown on passport",
     "wholeParty": "All travellers",
     "select": "Select",
     "yes": "Yes",
@@ -171,7 +171,8 @@
     "purposeTourism": "Tourism",
     "purposeFamily": "Visiting family",
     "purposeTransit": "Transit",
-    "passportNameHint": "Enter the name in English exactly as printed in your passport.",
+    "passportNameHint": "In English letters, exactly as printed in your passport — including middle names.",
+    "singleNameNotice": "Is this the full name as printed? Many passports show more than one name.",
     "residenceHint": "The country you currently live in — not your country of citizenship.",
     "documentReceived": "Received",
     "documentNew": "Newly required",
