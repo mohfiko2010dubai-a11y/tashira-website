@@ -8,6 +8,7 @@ export default function BrandLoad() {
     const element = host.current;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let observer: PerformanceObserver | undefined;
+    let visibility: IntersectionObserver | undefined;
     const start = () => {
       try {
         if (sessionStorage.getItem('tashira-brand-seen')) return;
@@ -15,12 +16,23 @@ export default function BrandLoad() {
       } catch { return; }
       if (!matchMedia('(prefers-reduced-motion: reduce)').matches) element?.classList.add('brand-play');
     };
-    if (performance.getEntriesByType('paint').length) timer = setTimeout(start, 0);
+    const afterPaint = () => {
+      if (!element) return;
+      // Do not consume the session animation while the footer is off screen.
+      visibility = new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting)) {
+          visibility?.disconnect();
+          start();
+        }
+      });
+      visibility.observe(element);
+    };
+    if (performance.getEntriesByType('paint').length) timer = setTimeout(afterPaint, 0);
     else if (typeof PerformanceObserver !== 'undefined') {
-      observer = new PerformanceObserver(() => { observer?.disconnect(); timer = setTimeout(start, 0); });
+      observer = new PerformanceObserver(() => { observer?.disconnect(); timer = setTimeout(afterPaint, 0); });
       observer.observe({ type: 'paint', buffered: true });
     }
-    return () => { clearTimeout(timer); observer?.disconnect(); element?.classList.remove('brand-play'); };
+    return () => { clearTimeout(timer); observer?.disconnect(); visibility?.disconnect(); element?.classList.remove('brand-play'); };
   }, []);
   return <span ref={host}><Logo theme="dark" size={26} /></span>;
 }
