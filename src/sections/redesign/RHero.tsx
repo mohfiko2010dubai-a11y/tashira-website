@@ -68,7 +68,7 @@ export default function RHero() {
       </div>
 
       <div className="relative z-10 pb-8 flex justify-center">
-        <span className="text-gray-400 text-xs flex flex-col items-center gap-1 animate-bounce">
+        <span className="text-gray-400 text-xs flex flex-col items-center gap-1">
           <ChevronDown size={18} />
           {isAr ? 'مرر لاستكشاف خيارات التأشيرة' : 'Scroll to explore visa options'}
         </span>

@@ -55,7 +55,7 @@ export default function CountriesSection() {
                   </span>
                   <ChevronDown
                     size={18}
-                    className={`text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                    className={`text-gray-400 transition-transform [transition-duration:var(--dur-ui)] ${isExpanded ? 'rotate-180' : ''}`}
                   />
                 </button>
 

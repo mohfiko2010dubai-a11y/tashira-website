@@ -70,10 +70,10 @@ export default function DubaiShowcase() {
           </p>
         </div>
 
-        {/* Scrolling marquee */}
-        <div className="relative flex overflow-hidden">
-          <div className="flex animate-marquee gap-4 pe-4">
-            {[...marqueeImages, ...marqueeImages, ...marqueeImages].map((img, idx) => (
+        {/* Static gallery: scrolling stays under customer control. */}
+        <div className="relative flex overflow-x-auto" tabIndex={0} role="region" aria-label="Discover the Emirates">
+          <div className="flex gap-4 pe-4">
+            {marqueeImages.map((img, idx) => (
               <div
                 key={idx}
                 className="relative flex-shrink-0 w-[280px] sm:w-[340px] h-[160px] sm:h-[190px] rounded-xl overflow-hidden group shadow-lg"
@@ -81,12 +81,12 @@ export default function DubaiShowcase() {
                 <img
                   src={img.src}
                   alt={img.alt}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="w-full h-full object-cover"
                   loading="lazy"
                 />
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <p className="absolute bottom-3 start-3 end-3 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100" />
+                <p className="absolute bottom-3 start-3 end-3 text-white text-xs font-medium opacity-0 group-hover:opacity-100 drop-shadow">
                   {img.alt}
                 </p>
               </div>

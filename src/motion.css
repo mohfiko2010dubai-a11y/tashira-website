@@ -63,3 +63,6 @@
   .upload-check path, .brand-arc { stroke-dashoffset:0; }
   .upload-bar > .upload-shuttle { transform:none; }
 }
+
+/* Working surfaces keep legacy chat/loading decorations still; real upload CSS is separate. */
+body:has([data-application-layout]) :is(.animate-bounce,.animate-pulse,.animate-spin,.animate-ping) { animation:none!important; }

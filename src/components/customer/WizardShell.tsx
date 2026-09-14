@@ -25,7 +25,7 @@ export default function WizardShell({ currentStep, children, compactContent = fa
   const progress = (currentStep / WIZARD_STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#FAFAF7]">
+    <div data-application-layout className="min-h-screen bg-[#FAFAF7]">
       {/* Progress bar */}
       <div className="sticky top-[var(--site-header-height)] z-40 bg-[#FAFAF7]/90 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 pt-5 pb-3">
