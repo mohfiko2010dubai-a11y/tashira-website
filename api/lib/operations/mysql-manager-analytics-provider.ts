@@ -42,6 +42,7 @@ export class MysqlOperationsManagerAnalyticsProvider {
         WHERE schedule.application_id=a.id ORDER BY schedule.evaluated_at DESC,schedule.id DESC LIMIT 1)
       LEFT JOIN family_readiness_snapshots latest_family ON latest_family.id=(SELECT family.id FROM family_readiness_snapshots family
         WHERE family.application_id=a.id ORDER BY family.evaluated_at DESC,family.id DESC LIMIT 1)
+      WHERE a.is_test=0
       ORDER BY a.id`);
     return rows.map((row) => { const scheduleState = text(row, "scheduleState"); const familyState = text(row, "familyReadinessState");
       return { applicationId: integer(row, "applicationId"), applicantCount: integer(row, "applicantCount"),

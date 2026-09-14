@@ -5,12 +5,13 @@
  *  - 2 synthetic news items labelled STAGING_TEST_SYNTHETIC_NOT_REGULATORY, status DRAFT
  * Idempotent: INSERT IGNORE keyed on UNIQUE(language, slug).
  */
-import { createPool, type PoolConnection } from "mysql2/promise";
+import { createPool, type PoolConnection, type RowDataPacket } from "mysql2/promise";
+import { realpathSync } from "node:fs";
+import { assertSyntheticSeedConnection, assertSyntheticSeedTarget } from "../api/lib/synthetic-seed-guard";
 import { env } from "../api/lib/env";
 
-const databaseUrl = new URL(env.databaseUrl);
-if (databaseUrl.pathname.slice(1) !== "tashira_staging") throw new Error("STAGING_CONTENT_DATABASE_IDENTITY_FAILED");
-if (!process.cwd().replaceAll("\\", "/").endsWith("/var/www/tashira-staging")) throw new Error("STAGING_CONTENT_PATH_IDENTITY_FAILED");
+assertSyntheticSeedTarget({ directory: realpathSync(process.cwd()), databaseUrl: env.databaseUrl,
+  storageRoot: realpathSync(process.env.STORAGE_ROOT || '.') });
 
 type Block =
   | { type: "heading"; text: string }
@@ -619,6 +620,8 @@ async function insertItem(conn: PoolConnection, item: Item, lang: "en" | "ar"): 
 const pool = createPool({ uri: env.databaseUrl, connectionLimit: 1 });
 const connection = await pool.getConnection();
 try {
+  const [identity] = await connection.query<RowDataPacket[]>("SELECT DATABASE() db,CURRENT_USER() user");
+  assertSyntheticSeedConnection(String(identity[0].db), String(identity[0].user));
   await connection.beginTransaction();
   for (const item of ALL) {
     await insertItem(connection, item, "en");

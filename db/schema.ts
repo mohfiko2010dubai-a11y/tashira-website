@@ -1,5 +1,6 @@
 import {
   int,
+  boolean,
   json,
   date,
   mysqlTable,
@@ -29,6 +30,7 @@ export const users = mysqlTable("users", {
 
 export const applications = mysqlTable("applications", {
   id: serial("id").primaryKey(),
+  isTest: boolean("is_test").notNull().default(false),
   referenceNumber: varchar("reference_number", { length: 50 }).notNull().unique(),
   baseType: mysqlEnum("base_type", ["single", "family"]).notNull(),
   residenceType: mysqlEnum("residence_type", ["non-gcc", "gcc-resident", "non-gcc-accompany", "gcc-accompany"]).notNull(),

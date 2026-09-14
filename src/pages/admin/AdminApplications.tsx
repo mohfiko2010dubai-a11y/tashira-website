@@ -28,12 +28,14 @@ const statusColors: Record<string, string> = {
 export default function AdminApplications() {
   const { logout } = useAdminAuth();
   const [search, setSearch] = useState('');
+  const [includeTest, setIncludeTest] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'' | 'submitted' | 'payment_received' | 'documents_pending' | 'documents_received' | 'under_review' | 'visa_processing' | 'visa_received' | 'completed' | 'rejected' | 'cancelled'>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [costModalApp, setCostModalApp] = useState<number | null>(null);
 
   const { data: applications, isLoading, refetch } = trpc.application.list.useQuery({
+    includeTest,
     status: statusFilter || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
@@ -65,6 +67,7 @@ export default function AdminApplications() {
       const profitAed = totalAed - costAed;
       return {
         'Ref #': app.referenceNumber,
+        'Test order': app.isTest ? 'Yes' : 'No',
         'Date': app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-',
         'Name': app.applicants?.[0]?.fullName || '-',
         'Email': app.contactEmail,
@@ -162,6 +165,10 @@ export default function AdminApplications() {
         </div>
 
         {/* Filters */}
+        <label className="mb-3 flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={includeTest} onChange={event => setIncludeTest(event.target.checked)} />
+          Show test orders (excluded from financial totals)
+        </label>
         <div className="bg-white rounded-lg border border-gray-100 p-4 mb-6">
           <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
@@ -227,7 +234,7 @@ export default function AdminApplications() {
                     const margin = totalAed > 0 ? ((profitAed / totalAed) * 100).toFixed(0) : '0';
                     return (
                       <tr key={app.id} className="hover:bg-gray-50/50">
-                        <td className="px-3 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}</td>
+                        <td className="px-3 py-2 font-mono text-[#C9A04C] font-semibold">{app.referenceNumber}{app.isTest && <span className="ms-2 text-xs text-amber-800">TEST</span>}</td>
                         <td className="px-3 py-2 text-gray-500">{app.createdAt ? new Date(app.createdAt).toLocaleDateString() : '-'}</td>
                         <td className="px-3 py-2">{app.applicants?.[0]?.fullName || '-'}</td>
                         <td className="px-3 py-2">{app.visaType}<br/><span className="text-gray-400">{app.processingType}</span></td>

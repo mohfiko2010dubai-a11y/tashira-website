@@ -1,5 +1,7 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import { financialApplicationScope } from "./lib/financial-application-scope";
+import { alias } from "drizzle-orm/mysql-core";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import {
   currentApplicationPriceSnapshots as applicationPriceSnapshots, applications, businessSettingsVersions, financialEvents,
@@ -121,7 +123,8 @@ export const businessRouter = createRouter({
 
   cockpit: adminQuery.query(async () => {
     const db = getDb();
-    const liveOnly = eq(applications.dataClassification, "LIVE");
+    const liveOnly = financialApplicationScope();
+    const eventPayment = alias(payments, "event_payment");
     const livePaid = and(liveOnly, eq(applications.paymentStatus, "paid"));
     const [sales, paymentCounts, eventCounts, settings, abandonmentRows, visaRows, countryRows, monthlyTrend] = await Promise.all([
       db.select({
@@ -136,8 +139,9 @@ export const businessRouter = createRouter({
         .innerJoin(applications, eq(payments.applicationId, applications.id))
         .where(liveOnly).groupBy(payments.status),
       db.select({ type: financialEvents.eventType, count: sql<number>`count(*)` }).from(financialEvents)
-        .leftJoin(applications, eq(financialEvents.applicationId, applications.id))
-        .where(or(isNull(financialEvents.applicationId), liveOnly)).groupBy(financialEvents.eventType),
+        .leftJoin(eventPayment, eq(financialEvents.paymentId, eventPayment.id))
+        .leftJoin(applications, sql`${applications.id}=coalesce(${financialEvents.applicationId},${eventPayment.applicationId})`)
+        .where(or(and(isNull(financialEvents.applicationId), isNull(financialEvents.paymentId)), liveOnly)).groupBy(financialEvents.eventType),
       activeBusinessSettings(),
       db.select({ count: sql<number>`count(*)` }).from(applicationTimelineEvents)
         .innerJoin(applications, eq(applicationTimelineEvents.applicationId, applications.id))

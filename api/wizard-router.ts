@@ -445,14 +445,8 @@ export const wizardRouter = createRouter({
   getByReference: applicationAccessQuery
     .input(z.object({ referenceNumber: z.string() }))
     .query(async ({ input, ctx }) => {
-      try {
-        assertApplicationReferenceAccess(ctx, input.referenceNumber);
-        return await getCanonicalApplicationByReference(input.referenceNumber);
-      } catch (error: unknown) {
-        const message = getErrorMessage(error);
-        console.error("[Wizard] Failed to get application:", message);
-        throw new Error(`Failed to get application: ${message}`);
-      }
+      assertApplicationReferenceAccess(ctx, input.referenceNumber);
+      return getCanonicalApplicationByReference(input.referenceNumber);
     }),
 
   getProgress: applicationAccessQuery

@@ -13,14 +13,15 @@ describe("production test-data classification", () => {
     expect(migration).not.toMatch(/\bUPDATE\s+`?applications`?/i);
   });
 
-  it("filters administrative lists and analytics to LIVE applications", async () => {
+  it("uses the common test-excluding scope for default administrative lists and financial analytics", async () => {
     const [applicationRouter, businessRouter] = await Promise.all([
       readFile(new URL("../application-router.ts", import.meta.url), "utf8"),
       readFile(new URL("../business-router.ts", import.meta.url), "utf8"),
     ]);
-    expect(applicationRouter).toContain('eq(applications.dataClassification, "LIVE")');
+    expect(applicationRouter).toContain('input?.includeTest ? [] : [financialApplicationScope()]');
+    expect(applicationRouter).toContain('const liveOnly = financialApplicationScope()');
     expect(applicationRouter).toContain("const livePaid = and(liveOnly");
-    expect(businessRouter).toContain('eq(applications.dataClassification, "LIVE")');
+    expect(businessRouter).toContain('const liveOnly = financialApplicationScope()');
     expect(businessRouter).toContain("innerJoin(applications, eq(payments.applicationId, applications.id))");
     expect(businessRouter).toContain("innerJoin(applications, eq(applicants.applicationId, applications.id))");
   });
