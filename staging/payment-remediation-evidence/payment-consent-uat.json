@@ -1,0 +1,10 @@
+{
+  "reference": "TSH-CONSENT-1789363934289",
+  "legacyCreateRecordsNoConsent": true,
+  "falseAcceptanceRejected": true,
+  "explicitAcceptanceOnly": true,
+  "version": "legal-bundle-2026-08-19-v2",
+  "timestampRecorded": true,
+  "applicationIdRecorded": true,
+  "historicalRecordVisiblyFlagged": true
+}

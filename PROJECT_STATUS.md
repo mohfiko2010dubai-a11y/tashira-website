@@ -1,3 +1,7 @@
+# Explicit consent verified — 2026-09-14
+
+Staging a146376d1c01ffa38ea396a948c75fb0f8d54934 removes legacy automatic acceptance. Migration 049 preserves original timeline rows and flags 109 automatic plus 12 system test records invalid. Staging tests verify no auto acceptance, rejected false, explicit true with app/version/time and visible invalidity metadata. Full gates 1052 passed, 26 gated skips. Item 6 creation idempotency/recovery is in progress locally; no launch. All 15 unrelated dirty files preserved; no test orders deleted or is_test flags set.
+
 # Payment event integrity verified — 2026-09-14
 
 Staging e5390827bfe8b1b9c153b42acdc851c8fa5c265f preserves paid state against late failure events and atomically claims webhook attempts. Real Stripe TEST payment, signed concurrent delivery, failed-retry race and crashed-worker recovery passed; one payment confirmation. Full gates: 1047 tests pass, 26 gated skips. Migrations 047/048 backed up. Consent migration 049 applied with immutable invalidation flags; consent code is local and awaiting deployment. Item 6 and remaining audit delta remain launch blockers. No production/test-order deletion or test flagging.
