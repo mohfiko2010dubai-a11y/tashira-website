@@ -1,7 +1,7 @@
-# TASK16 — local candidate, staging transfer blocked
+# TASK16 — deployed to staging; device acceptance remains open
 
 Code candidate: `3976592aa5264b288a9c221a0f9c369e2fcf5466` on `kimi/unified-wizard-reviewed`.
-TASK16 is NOT deployed and is NOT fully accepted. No production change, migration, payment or real customer upload occurred.
+TASK16 is deployed to staging after explicit source-transfer approval. Device/performance acceptance remains open. No production change, migration, payment or real customer upload occurred.
 
 ## Owner-approved interpretation
 
@@ -30,22 +30,22 @@ All specified brand, upload, transition and background timings are retained. The
 - Brand browser check: middle arch stays undrawn and star stays hidden during their delay; cancelling animations restores complete base appearance; reloading the same session does not replay.
 - Unit tests cover 96/100 acceptance separation, unknown totals, failure drain, inline filename/retry, and server fallback layout boundaries.
 
-## Still required after staging transfer approval
+## Staging verification - 2026-09-14
 
-- Actual throttled HEIC upload, verifying-to-accepted and review navigation on the synthetic staging fixture. The prepared script has NOT run against this candidate.
-- Post-deploy LCP/CLS comparison, native/fallback direction/focus and saved-application smoke. Baseline contains six unthrottled desktop Chromium runs at 390x844 (three per language), with substantial variability. It is not a p95 or an Android performance result. Zero CLS contribution and no LCP regression are NOT yet certified.
-- Real OS reduced-motion setting and physical mid-range Android 60fps/scroll trace. Browser emulation is not a substitute; neither hardware criterion is claimed passed.
-- Direct browser verification of no-JavaScript server output and the deployed fallback/404.
+Explicit owner approval resolved the source-transfer gate. Guard deployed candidate 3976592, with 1094 tests passed, 26 existing skips, all check/lint/build gates and local/public health 200. No alternate transfer method was used.
 
-## Concrete blocked action
+- Throttled synthetic HEIC replacement: 96 during processing/saving, 100 after acceptance. Unsupported .docx shows filename/error/retry. Save & Continue reaches review, no payment or page errors. Initial UAT needed to expand the already-completed identity group; no lost documents.
+- EN/AR marketing: one backdrop, static header. Apply and admin/staff login: zero backdrop. Reduced-motion browser emulation: zero running animations.
+- Raw SSR home/prices contain rendered content/backdrop; apply and admin shell exclude backdrop. Real missing page returns 404. Authenticated render-error/render-timeout return 200 fallback, Arabic lang/dir and metadata/canonical. HTML remains private, no-store.
+- To trigger fallback while logged into staging admin: /ar/visa-prices?__ssr_test=render-error or ?__ssr_test=render-timeout. Expected X-Tashira-SSR: fallback, HTTP 200.
+- Six desktop Chromium runs at 390x844: EN median LCP baseline 4100ms / candidate 3760ms; AR 4368ms / 2556ms. EN CLS about .0046 / .0045, AR median .0931 / .0784. Candidate EN outlier 8560ms. Small noisy sample does not certify no regression, p95, zero motion-attributable CLS or Android performance.
+- Fifteen unrelated dirty files rehashed and unchanged.
 
-Incremental Git bundle: `C:/Users/ADMIN/OneDrive/Documents/TASHIRA/tmp/task16-reviewed.bundle`.
-SHA-256: `926e7c7246f848d8fc3bb338d8eec42d66730dc4b90274d09d266df305b4fcf0`.
-Required base: `d79a8bc57b5e2a9f50869e7d1c39283661885498`.
-Destination: staging server `168.231.85.149` (DNS matches `staging.tashiraev.com`; also documented in `handoff/kimi/KIMI_STAGING_RUNBOOK.md`), constrained review repository `/var/lib/tashira-kimi-review/repository.git` through `/usr/local/bin/tashira-kimi-readonly ingest-bundle`, running as `kimi-deploy`.
-Then: guarded staging-only deployment to `/var/www/tashira-staging`, conditional on exact base/candidate, full guard gates and health checks. No production deployment.
+## Outstanding acceptance
 
-Automatic approval review rejected source transfer twice, including after DNS/runbook/incremental-bundle evidence. Its stated reason was that general staging authorization did not explicitly authorize source disclosure to this destination. No alternate upload method was used. Explicit owner authorization for this source transfer is now requested.
+Physical mid-range Android 60fps/scroll trace, real OS reduced-motion and explicit native/fallback forward/back direction and focus UAT remain unverified. Browser emulation is not a substitute. Not all motion criteria are claimed passed.
+
+Evidence is in staging/task16-evidence: task16-upload-uat.json, task16-staging-browser.json, task16-ssr-uat.json, task16-candidate-metrics.json, task16-baseline-metrics.json. Full deploy log retained at tmp/task16-reviewed-deploy.log.
 
 ## Staging maintenance performed
 

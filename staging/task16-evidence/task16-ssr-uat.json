@@ -1,0 +1,50 @@
+[
+  {
+    "path": "/en/",
+    "status": 200,
+    "ambient": true,
+    "ssr": "rendered"
+  },
+  {
+    "path": "/ar/",
+    "status": 200,
+    "ambient": true,
+    "ssr": "rendered"
+  },
+  {
+    "path": "/ar/visa-prices",
+    "status": 200,
+    "ambient": true,
+    "ssr": "rendered"
+  },
+  {
+    "path": "/ar/apply",
+    "status": 200,
+    "ambient": false,
+    "ssr": "rendered"
+  },
+  {
+    "path": "/en/admin/login",
+    "status": 200,
+    "ambient": false,
+    "ssr": null
+  },
+  {
+    "path": "/ar/motion-missing-page",
+    "status": 404,
+    "ambient": true,
+    "ssr": null
+  },
+  {
+    "fault": "render-error",
+    "status": 200,
+    "ambient": true,
+    "metadata": true
+  },
+  {
+    "fault": "render-timeout",
+    "status": 200,
+    "ambient": true,
+    "metadata": true
+  }
+]

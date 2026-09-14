@@ -1,3 +1,7 @@
+# TASK16 deployed and staging UAT verified - 2026-09-14
+
+Owner explicitly approved source transfer to 168.231.85.149. Guarded staging deployment of 3976592 passed check/lint/test/build (1094 passed, 26 existing skips), local/public health 200. Synthetic HEIC verified 96% processing, 100% acceptance, failure/retry and review navigation without payment. Marketing-only backdrop, reduced-motion emulation, SSR fallback 200 and real 404 verified. Physical Android/OS and explicit transition direction/focus checks remain outstanding. Performance sample is noisy. All 15 unrelated files unchanged; production untouched. TASK15 Express remains unfinished. See staging/TASK16_MOTION_REVIEW.md.
+
 # TASK16 local candidate; explicit source-transfer approval required — 2026-09-14
 
 Code 3976592aa5264b288a9c221a0f9c369e2fcf5466 implements revised layout-scoped motion and honest upload feedback. Frozen-source check/lint/test/build passed (1094 tests, 26 existing skips); client gzip is 42,773 bytes smaller. Local layout/reduced-motion emulation and brand cancellation/session checks pass. TASK16 is not deployed: automatic permission review rejected incremental source-bundle transfer to the documented staging host twice. Explicit owner authorization for source transfer is required. Staging upload/LCP/CLS and real-device/OS criteria remain unverified. Fifteen unrelated files preserved; no production, payment or customer-data changes. See staging/TASK16_MOTION_REVIEW.md. TASK15 Express guarantee remains unfinished.

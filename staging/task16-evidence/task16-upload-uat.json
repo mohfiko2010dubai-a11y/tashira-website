@@ -1,0 +1,8 @@
+{
+  "newPaymentCreated": false,
+  "failureKeepsFilenameAndRetry": true,
+  "verifyingHolds96": true,
+  "heicAccepted100": true,
+  "reviewReached": true,
+  "pageErrors": []
+}
