@@ -52,3 +52,7 @@ Evidence is in staging/task16-evidence: task16-upload-uat.json, task16-staging-b
 Only three obsolete, reproducible node_modules caches were removed after exact path, revision, symlink and active-runtime checks: 58e93d9…, a7be072…, a938f6c…. Source, locks, backups and active dependencies were retained; available disk increased to about 4.6GB. No DB, application source or customer storage mutation occurred.
 
 TASK15's separately approved 24-continuous-hour Express guarantee remains unfinished; this motion work does not complete it.
+
+## Visibility correction - 2026-09-14
+
+Owner reported no visible motion. The old open tab still had the pre-TASK16 triplicated gallery; a fresh tab loaded the new implementation. Separately, brand playback was consumed while the footer was below the viewport. Commit 3d8ae0be27dd352d13d64a7d06e9bb3e1af0338e defers playback/session marking until IntersectionObserver reports the footer mark visible, after paint. No duration/opacity/geometry change. Full local and guarded gates passed, health 200. Local and deployed browser verification prove pending state off-screen, playback on visibility, static header, and no replay on reload. A real staging capture is retained in tmp/task16-visible-brand.webm. Hardware/performance and explicit route-direction checks remain open.

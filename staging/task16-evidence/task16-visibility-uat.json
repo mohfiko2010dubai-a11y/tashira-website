@@ -1,0 +1,7 @@
+{
+  "origin": "https://staging.tashiraev.com",
+  "offscreenDoesNotConsumeSession": true,
+  "playsWhenVisible": true,
+  "reloadDoesNotReplay": true,
+  "headerStatic": true
+}

@@ -1,3 +1,7 @@
+# TASK16 visible brand timing corrected - 2026-09-14
+
+Staging 3d8ae0be27dd352d13d64a7d06e9bb3e1af0338e fixes the brand animation being consumed below the fold. It now starts after paint when the footer logo first intersects the viewport; SSR stays complete and header static. Local and guarded check/lint/test/build pass (1094 tests, 26 existing skips). Local and deployed browser UAT verify no off-screen session consumption, visible playback, no repeat after reload. Recording: tmp/task16-visible-brand.webm; evidence: staging/task16-evidence/task16-visibility-uat.json. Two obsolete staging node_modules caches (64f3891, c288844) removed with path/revision/active-runtime checks; source/locks/backups retained. All 15 unrelated files unchanged; production untouched. Other outstanding TASK16 hardware/direction checks and TASK15 Express work remain open.
+
 # TASK16 deployed and staging UAT verified - 2026-09-14
 
 Owner explicitly approved source transfer to 168.231.85.149. Guarded staging deployment of 3976592 passed check/lint/test/build (1094 passed, 26 existing skips), local/public health 200. Synthetic HEIC verified 96% processing, 100% acceptance, failure/retry and review navigation without payment. Marketing-only backdrop, reduced-motion emulation, SSR fallback 200 and real 404 verified. Physical Android/OS and explicit transition direction/focus checks remain outstanding. Performance sample is noisy. All 15 unrelated files unchanged; production untouched. TASK15 Express remains unfinished. See staging/TASK16_MOTION_REVIEW.md.
