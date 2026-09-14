@@ -1,0 +1,102 @@
+[
+  {
+    "route": "/en/",
+    "width": 1280,
+    "logos": 2,
+    "uniqueGradientIds": true,
+    "overflow": false,
+    "before": {
+      "x": 32,
+      "y": 15.859375,
+      "width": 232.8125,
+      "height": 56.265625
+    },
+    "after": {
+      "x": 32,
+      "y": 15.859375,
+      "width": 232.8125,
+      "height": 56.265625
+    },
+    "errors": []
+  },
+  {
+    "route": "/ar/",
+    "width": 375,
+    "logos": 2,
+    "uniqueGradientIds": true,
+    "overflow": false,
+    "before": {
+      "x": 126.1875,
+      "y": 15.859375,
+      "width": 232.8125,
+      "height": 56.265625
+    },
+    "after": {
+      "x": 126.1875,
+      "y": 15.859375,
+      "width": 232.8125,
+      "height": 56.265625
+    },
+    "errors": []
+  },
+  {
+    "route": "/en/",
+    "width": 320,
+    "logos": 2,
+    "uniqueGradientIds": true,
+    "overflow": false,
+    "before": {
+      "x": 16,
+      "y": 15.859375,
+      "width": 232.8125,
+      "height": 56.265625
+    },
+    "after": {
+      "x": 16,
+      "y": 15.859375,
+      "width": 232.8125,
+      "height": 56.265625
+    },
+    "errors": []
+  },
+  {
+    "route": "/admin/login",
+    "width": 1280,
+    "logos": 1,
+    "uniqueGradientIds": true,
+    "overflow": false,
+    "before": {
+      "x": 612.234375,
+      "y": 245.703125,
+      "width": 55.515625,
+      "height": 64.609375
+    },
+    "after": {
+      "x": 612.234375,
+      "y": 245.703125,
+      "width": 55.515625,
+      "height": 64.609375
+    },
+    "errors": []
+  },
+  {
+    "route": "/staff/login",
+    "width": 1280,
+    "logos": 3,
+    "uniqueGradientIds": true,
+    "overflow": false,
+    "before": {
+      "x": 32,
+      "y": 15.859375,
+      "width": 232.8125,
+      "height": 56.265625
+    },
+    "after": {
+      "x": 32,
+      "y": 15.859375,
+      "width": 232.8125,
+      "height": 56.265625
+    },
+    "errors": []
+  }
+]

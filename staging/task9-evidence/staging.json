@@ -1,0 +1,234 @@
+{
+  "revision": "d29df9727db5764f2c996376bec07b03fe6f8367",
+  "rows": [
+    {
+      "route": "/en/",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/home.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/home.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/visa-prices",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/visa-prices.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/visa-prices",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/visa-prices.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/how-to-apply",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/how-to-apply.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/how-to-apply",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/how-to-apply.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/apply",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/apply.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/apply",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/apply.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/track",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/track.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/track",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/track.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/guides",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/guides.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/guides",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/guides.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/news",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/news.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/news",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/news.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/contact",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/contact.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/contact",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/contact.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/refund",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/refund.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/refund",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/refund.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/terms",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/terms.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/terms",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/terms.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/privacy",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/privacy.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/privacy",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/privacy.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/cookies",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/cookies.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/cookies",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/cookies.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/visa-pre-check",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/visa-pre-check.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/visa-pre-check",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/visa-pre-check.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/about",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/about.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/about",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/about.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/editorial-policy",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/editorial-policy.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/editorial-policy",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/editorial-policy.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/en/sources-and-verification",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/en/sources-and-verification.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    },
+    {
+      "route": "/ar/sources-and-verification",
+      "status": 200,
+      "image": "https://staging.tashiraev.com/og/ar/sources-and-verification.jpg",
+      "exactSuppliedAsset": true,
+      "ssr": "rendered"
+    }
+  ],
+  "iconsReachable": true,
+  "oldAssets404": true,
+  "adminHeader": true,
+  "brandedArabicSsrFallback200": true,
+  "externalMessagesSent": 0
+}
