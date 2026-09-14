@@ -1,0 +1,77 @@
+{
+  "access": [
+    {
+      "who": "anonymous",
+      "proc": "application.getByReference",
+      "status": 401,
+      "orderDataReturned": false
+    },
+    {
+      "who": "anonymous",
+      "proc": "wizard.getByReference",
+      "status": 401,
+      "orderDataReturned": false
+    },
+    {
+      "who": "anonymous",
+      "proc": "payment.readiness",
+      "status": 401,
+      "orderDataReturned": false
+    },
+    {
+      "who": "anonymous",
+      "proc": "payment.getInvoice",
+      "status": 401,
+      "orderDataReturned": false
+    },
+    {
+      "who": "anonymous",
+      "proc": "dynamicInterview.current",
+      "status": 401,
+      "orderDataReturned": false
+    },
+    {
+      "who": "anonymous",
+      "proc": "payment.status",
+      "status": 401,
+      "orderDataReturned": false
+    },
+    {
+      "who": "different-owner",
+      "proc": "application.getByReference",
+      "status": 403,
+      "orderDataReturned": false
+    },
+    {
+      "who": "different-owner",
+      "proc": "wizard.getByReference",
+      "status": 403,
+      "orderDataReturned": false
+    },
+    {
+      "who": "different-owner",
+      "proc": "payment.readiness",
+      "status": 403,
+      "orderDataReturned": false
+    },
+    {
+      "who": "different-owner",
+      "proc": "payment.getInvoice",
+      "status": 403,
+      "orderDataReturned": false
+    },
+    {
+      "who": "different-owner",
+      "proc": "dynamicInterview.current",
+      "status": 403,
+      "orderDataReturned": false
+    },
+    {
+      "who": "different-owner",
+      "proc": "payment.status",
+      "status": 403,
+      "orderDataReturned": false
+    }
+  ],
+  "trackingRequiresSecureRetrieval": true
+}

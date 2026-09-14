@@ -1,0 +1,2 @@
+{"identity":{"db":"tashira_staging","user":"tashira_staging_app"},"consentCounts":[{"event_source":"APPLICATION_API","actor_type":"CUSTOMER","count":96},{"event_source":"CHATBOT_WIZARD","actor_type":"CUSTOMER","count":13},{"event_source":"PAYMENT_API","actor_type":"CUSTOMER","count":13},{"event_source":"STAGING_UAT","actor_type":"SYSTEM","count":12}],"invalidations":[{"reason":"LEGACY_AUTOMATIC","count":109},{"reason":"UNVERIFIED_SOURCE","count":12}],"noUnflaggedLegacyConsent":true,"historicalIssuedIntentApplicantCountMismatches":0}
+

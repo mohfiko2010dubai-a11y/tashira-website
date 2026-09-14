@@ -1,0 +1,10 @@
+{
+  "adminDefaultExcludesTest": true,
+  "showTestToggle": true,
+  "financialTotalsUnaffectedByToggle": true,
+  "defaultRows": 179,
+  "expandedRows": 186,
+  "flaggedRows": 0,
+  "historicalInvalidConsentVisible": true,
+  "browserErrors": []
+}

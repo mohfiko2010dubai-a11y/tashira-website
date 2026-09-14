@@ -1,0 +1,80 @@
+{
+  "environment": "tashira_staging",
+  "proposedCount": 7,
+  "records": [
+    {
+      "id": 149,
+      "reference": "TSH-MTYYW9IT-7747FD",
+      "createdAt": "2026-09-12T22:39:20.000Z",
+      "paymentStatus": "pending",
+      "totalUsd": "185.00",
+      "basis": "Owner explicitly identified this exact reference as a test application in the payment-audit request.",
+      "approval": "PENDING",
+      "action": "Set is_test=true only after owner approves this record"
+    },
+    {
+      "id": 189,
+      "reference": "TSH-PRICE-1789361792834",
+      "createdAt": "2026-09-14T04:56:32.000Z",
+      "paymentStatus": "pending",
+      "totalUsd": "580.00",
+      "basis": "Exact synthetic fixture created by the approved price-remediation UAT.",
+      "approval": "PENDING",
+      "action": "Set is_test=true only after owner approves this record"
+    },
+    {
+      "id": 190,
+      "reference": "TSH-PRICE-1789361860057",
+      "createdAt": "2026-09-14T04:57:39.000Z",
+      "paymentStatus": "paid",
+      "totalUsd": "580.00",
+      "basis": "Exact synthetic price and webhook-remediation fixture; Stripe TEST payment verified.",
+      "approval": "PENDING",
+      "action": "Set is_test=true only after owner approves this record"
+    },
+    {
+      "id": 191,
+      "reference": "TSH-MU0RV6AZ-19BED7",
+      "createdAt": "2026-09-14T04:58:03.000Z",
+      "paymentStatus": "pending",
+      "totalUsd": "555.00",
+      "basis": "Exact synthetic family fixture in payment-price-uat.json.",
+      "approval": "PENDING",
+      "action": "Set is_test=true only after owner approves this record"
+    },
+    {
+      "id": 192,
+      "reference": "TSH-CONSENT-1789363934289",
+      "createdAt": "2026-09-14T05:32:13.000Z",
+      "paymentStatus": "pending",
+      "totalUsd": "185.00",
+      "basis": "Exact synthetic fixture in payment-consent-uat.json.",
+      "approval": "PENDING",
+      "action": "Set is_test=true only after owner approves this record"
+    },
+    {
+      "id": 193,
+      "reference": "TSH-46427A48FE574D329126F49C2B7C8CBF",
+      "createdAt": "2026-09-14T05:55:28.000Z",
+      "paymentStatus": "paid",
+      "totalUsd": "185.00",
+      "basis": "Exact synthetic interrupted-confirmation fixture in payment-refresh-uat.json.",
+      "approval": "PENDING",
+      "action": "Set is_test=true only after owner approves this record"
+    },
+    {
+      "id": 194,
+      "reference": "TSH-F9AAD6EDBCEF4E50B369EE693F201AB2",
+      "createdAt": "2026-09-14T05:56:58.000Z",
+      "paymentStatus": "paid",
+      "totalUsd": "185.00",
+      "basis": "Exact synthetic declined-card and closed-browser fixture in payment-creation-uat.json.",
+      "approval": "PENDING",
+      "action": "Set is_test=true only after owner approves this record"
+    }
+  ],
+  "applied": false,
+  "deleted": 0,
+  "otherOrders": "Unclassified by this proposal. No name/email/date heuristics used."
+}
+

@@ -1,0 +1,7 @@
+{
+  "status": 500,
+  "genericInternalError": true,
+  "correlationIdPresent": true,
+  "piiSqlStackReturned": false,
+  "applicationCreated": false
+}
