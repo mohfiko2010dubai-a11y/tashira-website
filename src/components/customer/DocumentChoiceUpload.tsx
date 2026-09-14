@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { useState } from "react";
 import { requirementSatisfied, type DocumentRequirementRule } from "@contracts/document-requirement-engine";
 import { DOCUMENT_INPUT_ACCEPT } from "@contracts/document-upload-policy";
@@ -20,7 +21,7 @@ export function DocumentChoiceUpload({ rule, uploadedCodes, disabled, ar, onUplo
   }
   if (rule.all_of) return <div className="grid gap-3"><p className="text-sm">{ar ? "جميع المستندات التالية مطلوبة" : "All the following documents are required"}</p>
     {rule.all_of.map(child => <DocumentChoiceUpload key={child.key} rule={child} uploadedCodes={uploadedCodes} disabled={disabled} ar={ar} onUpload={onUpload} />)}</div>;
-  if (requirementSatisfied(rule, new Set(uploadedCodes))) return <p className="text-sm text-emerald-800">{label} — {ar ? "تم الاستلام" : "Received"}</p>;
+  if (requirementSatisfied(rule, new Set(uploadedCodes))) return <p className="text-sm text-emerald-800"><Logo variant="mark-only" size={20} /> {label} — {ar ? "تم الاستلام" : "Received"}</p>;
   return <label className="grid gap-2 text-sm">{label}<span className="text-xs text-slate-600">{ar ? rule.hint_ar : rule.hint_en}</span>
     <input type="file" aria-label={label} accept={DOCUMENT_INPUT_ACCEPT} disabled={disabled}
       onChange={event => { const file = event.target.files?.[0]; if (file) onUpload(rule, file); }} className="max-w-full text-sm" />

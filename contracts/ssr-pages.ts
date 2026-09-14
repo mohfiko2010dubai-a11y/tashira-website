@@ -7,7 +7,7 @@ export function fixedMetadata(path: string, language = "en"): PageMetadata | nul
   const route = languageRoute(path);
   const lang = route.prefixed ? route.language : language.startsWith("ar") ? "ar" : "en";
   const page = Object.hasOwn(metadata, route.pathname) ? metadata[route.pathname as FixedPath] : null;
-  return page ? { ...page[lang], canonicalPath: languagePath(route.pathname, lang), language: lang } : null;
+  return page ? { ...page[lang], canonicalPath: languagePath(route.pathname, lang), image: `/og/${lang}/${route.pathname === "/" ? "home" : route.pathname.slice(1)}.jpg`, language: lang } : null;
 }
 export function isPublicPage(path: string): boolean {
   return Boolean(fixedMetadata(path)) || /^\/(guides|news|uae-visa)\/[^/]+$/.test(path);

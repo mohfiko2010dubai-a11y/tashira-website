@@ -1,3 +1,4 @@
+import { BRAND_MARK_PNG } from "@contracts/brand-bitmap";
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -42,7 +43,12 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setTextColor(goldColor);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('TASHIRA', 15, 25);
+  doc.setFillColor("#FFFFFF");
+  doc.roundedRect(11, 6, 22, 22, 2, 2, "F");
+  doc.addImage(BRAND_MARK_PNG, 'PNG', 12, 7, 20, 20);
+  doc.text('TASHIRA', 35, 23);
+  doc.setFontSize(8);
+  doc.text('UAE E-VISA SERVICES', 35, 28);
 
   doc.setTextColor('#FFFFFF');
   doc.setFontSize(9);

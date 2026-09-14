@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import type { DocumentRequirementContext } from "@contracts/document-requirement-engine";
@@ -9,6 +10,7 @@ export default function CustomerPrecheckResult({ context }: { context: DocumentR
   const ar = i18n.language.startsWith("ar");
   const result = context ? precheckDocuments(context) : null;
   return <section className="rounded-2xl border border-[#e8e0d2] bg-white p-5 shadow-sm sm:p-6" aria-live="polite">
+    <Logo variant="mark-only" watermark={!result} size={26} />
     <h2 className="text-2xl font-bold text-[#0A1628]">{result ? ar ? `مستنداتك: ${result.rules.length.toLocaleString("ar")} ملفات` : `Your documents: ${result.rules.length} files` : ar ? "قائمة مستنداتك" : "Your document checklist"}</h2>
     {context && result ? <>
       {result.groups.map(group => <section key={group.key} data-document-group={group.key} className="mt-6">

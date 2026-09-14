@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
@@ -90,7 +91,7 @@ export default function StaffApplicationDetail() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-lg font-bold">Application Details</h1>
+            <h1 className="text-lg font-bold"><Logo variant="mark-only" theme="dark" size={20} /> Application Details</h1>
             <p className="text-xs text-gray-400 font-mono">{app.referenceNumber}</p>
           </div>
         </div>

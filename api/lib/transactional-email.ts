@@ -1,4 +1,4 @@
-import { requirePublicAppUrl } from "./public-app-url";
+import { requirePublicAppUrl, publicAppOrigin } from "./public-app-url";
 
 export const EMAIL_TEMPLATES = [
   "APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED",
@@ -43,7 +43,7 @@ export function validateTemplateVariables(template: EmailTemplate, variables: Re
   if (missing.length) throw new Error(`Missing email template variables: ${missing.join(", ")}`);
 }
 
-export function renderTransactionalEmail(template: EmailTemplate, variables: Record<string, string>) {
+function renderEmailContent(template: EmailTemplate, variables: Record<string, string>) {
   validateTemplateVariables(template, variables);
   const reference = variables.referenceNumber;
   const content: Record<EmailTemplate, { subject: string; body: string }> = {
@@ -115,4 +115,11 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;",
   })[character] ?? character);
+}
+
+export function renderTransactionalEmail(template: EmailTemplate, variables: Record<string, string>) {
+  const rendered = renderEmailContent(template, variables);
+  const logo = '<img src="' + publicAppOrigin() + '/icons/mark-1024-transparent.png" width="64" height="64" alt="TASHIRA — UAE E-Visa Services" style="display:block;border:0;margin:16px 0" />';
+  const html = rendered.html ? rendered.html.replace(/(<body[^>]*>)/, '$1' + logo) : '<!doctype html><html><body style="font-family:Arial,sans-serif">' + logo + '<p>' + escapeHtml(rendered.body).replaceAll('\n', '<br>') + '</p></body></html>';
+  return { ...rendered, html };
 }

@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +31,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-[88px]">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <img src="/tashira-logo.svg" alt="TASHIRA" className="h-[72px] w-auto" />
+            <Logo size={26} />
           </Link>
 
           {/* Desktop Nav - Center */}

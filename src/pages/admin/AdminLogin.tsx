@@ -1,7 +1,8 @@
+import Logo from '@/components/shared/Logo';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { Lock, Shield, UserCircle } from 'lucide-react';
+import { Lock, UserCircle } from 'lucide-react';
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('');
@@ -23,7 +24,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-[#C9A04C]/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Shield size={32} className="text-[#C9A04C]" />
+            <Logo variant="mark-only" theme="dark" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
           <p className="text-gray-400 text-sm mt-1">TASHIRA E-Visa Management</p>

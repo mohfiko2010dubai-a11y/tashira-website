@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { Link } from "react-router-dom";
 import { ArrowLeft, Activity, AlertTriangle, DollarSign, Percent, Receipt, TrendingUp } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
@@ -13,7 +14,7 @@ export default function AdminFinanceCockpit() {
   const data = cockpit.data;
   const money = (value: number) => `${data.currency} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return <div className="min-h-screen bg-gray-50">
-    <header className="flex items-center gap-3 bg-[#1A2332] px-6 py-4 text-white"><Link to="/admin/applications" className="text-gray-400 hover:text-white"><ArrowLeft size={20} /></Link><div><h1 className="font-bold">Finance Cockpit</h1><p className="text-xs text-gray-400">Server-authoritative snapshots and append-only financial events</p></div></header>
+    <header className="flex items-center gap-3 bg-[#1A2332] px-6 py-4 text-white"><Link to="/admin/applications" className="text-gray-400 hover:text-white"><ArrowLeft size={20} /></Link><div><h1 className="font-bold"><Logo variant="mark-only" theme="dark" size={20} /> Finance Cockpit</h1><p className="text-xs text-gray-400">Server-authoritative snapshots and append-only financial events</p></div></header>
     <main className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Metric label="Revenue" value={money(data.revenue)} icon={DollarSign} />

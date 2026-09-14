@@ -1,7 +1,8 @@
+import Logo from '@/components/shared/Logo';
 import { useState } from 'react';
 import { trpc } from '@/providers/trpc-client';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
-import { UserCircle, LogIn, Eye, EyeOff } from 'lucide-react';
+import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function StaffLogin() {
   const [username, setUsername] = useState('');
@@ -36,7 +37,7 @@ export default function StaffLogin() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-[#C9A04C]/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <UserCircle size={32} className="text-[#C9A04C]" />
+            <Logo variant="mark-only" theme="dark" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-white">Staff Login</h1>
           <p className="text-gray-400 text-sm mt-1">Staff Portal Access</p>

@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { Link, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { LogOut } from 'lucide-react';
@@ -26,7 +27,7 @@ export default function AdminTopNav({ title, subtitle }: { title: string; subtit
     <header className="bg-[#0A1628] text-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <div>
-          <p className="text-lg font-extrabold tracking-wide text-[#C9A04C]">TASHIRA Admin</p>
+          <p className="flex items-center gap-2 text-sm font-semibold"><Logo variant="mark-only" theme="dark" size={20} /> <span>Admin</span></p>
           <h1 className="text-sm font-semibold text-white/90">{title}{subtitle ? ` — ${subtitle}` : ''}</h1>
         </div>
         <button onClick={logout} className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-gray-300 hover:text-white">

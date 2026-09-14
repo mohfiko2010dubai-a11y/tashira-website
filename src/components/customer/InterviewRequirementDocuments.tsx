@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { documentCardCopy, documentGroupHeading } from "./document-card-copy";
 import { DocumentChoiceUpload } from "./DocumentChoiceUpload";
 import { Check, Upload } from "lucide-react";
@@ -49,7 +50,7 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
     const choosing = !complete || replacing[key];
     return <div key={key} data-document-code={requirement.requirementCode} className="min-w-0">
       {shortLabel && complete && <p className="mb-1 text-xs font-medium">{shortLabel}</p>}
-      {complete && <div className="flex flex-wrap items-center gap-2 text-sm text-emerald-800"><Check size={16} aria-hidden="true" /><span>{ar ? "تم الرفع" : "Uploaded"}</span>
+      {complete && <div className="flex flex-wrap items-center gap-2 text-sm text-emerald-800"><Logo variant="mark-only" size={20} /><Check size={16} aria-hidden="true" /><span>{ar ? "تم الاستلام" : "Received"}</span>
         <button type="button" className="min-h-11 px-2 text-xs underline" disabled={busy || uploading} onClick={() => setReplacing(current => ({ ...current, [key]: !current[key] }))}>{ar ? "استبدال" : "Replace"}</button></div>}
       {choosing && (definition?.rule.any_of || definition?.rule.all_of ? <DocumentChoiceUpload rule={definition.rule} ar={ar} disabled={busy || uploading} uploadedCodes={complete ? [] : requirement.uploadedCodes ?? []}
         onUpload={(leaf, file) => { void upload({ ...requirement, documentKey: leaf.key, documentType: leaf.document_type }, file); }} />

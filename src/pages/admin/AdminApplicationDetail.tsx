@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { ApplicationDocumentDiagnostics } from "@/components/admin/ApplicationDocumentDiagnostics";
 import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
@@ -109,7 +110,7 @@ export default function AdminApplicationDetail() {
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1">
-          <h1 className="text-lg font-bold">Application #{app.referenceNumber}</h1>
+          <h1 className="text-lg font-bold"><Logo variant="mark-only" theme="dark" size={20} /> Application #{app.referenceNumber}</h1>
           <p className="text-xs text-gray-400">{app.visaType} · {app.processingType} · {app.applicants?.length || 0} applicant{(app.applicants?.length || 0) > 1 ? "s" : ""}</p>
         </div>
         <div className="flex items-center gap-3">

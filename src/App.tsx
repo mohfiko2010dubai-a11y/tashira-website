@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import PublicApp from "./PublicApp";
 import { isPublicPage } from "@contracts/ssr-pages";
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
@@ -84,7 +85,7 @@ function AppContent() {
       {!isAdminRoute && <Header />}
       <main className={isAdminRoute ? undefined : "site-header-clearance"}>
         <ChunkLoadErrorBoundary>
-          <Suspense fallback={<div className="min-h-[40vh]" aria-label="Loading page" />}>
+          <Suspense fallback={<div className="min-h-[40vh]" aria-label="Loading page">{!location.pathname.startsWith('/pay/') && <Logo variant="mark-only" watermark size={32} />}</div>}>
           <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/visa-prices" element={<Pricing />} />

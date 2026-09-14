@@ -1,3 +1,5 @@
+import { fixedMetadata } from "@contracts/ssr-pages";
+import { socialMetadata } from "@contracts/social-metadata";
 import { useEffect } from "react";
 import { languagePath } from "@contracts/language-routes";
 
@@ -6,6 +8,13 @@ export default function PageHead({ title, description, canonicalPath, robots, al
   title: string; description: string; canonicalPath: string; robots?: string | null; alternates?: { en?: string; ar?: string };
 }) {
   useEffect(() => {
+    const meta = fixedMetadata(canonicalPath);
+    if (meta) for (const [key, value] of Object.entries(socialMetadata(meta, window.location.origin))) {
+      const attribute = key.startsWith("twitter:") ? "name" : "property";
+      let tag = document.head.querySelector<HTMLMetaElement>(`meta[${attribute}="${key}"]`);
+      if (!tag) { tag = document.createElement("meta"); tag.setAttribute(attribute, key); document.head.append(tag); }
+      tag.content = value;
+    }
     document.title = title;
     let descriptionTag = document.head.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!descriptionTag) {

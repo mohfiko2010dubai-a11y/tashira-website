@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trpc } from '@/providers/trpc-client';
 import Seo from '@/components/Seo';
+import Logo from '@/components/shared/Logo';
 
 /** Public index page for /guides and /news — lists published content only. */
 export default function ContentIndexPage({ type }: { type: 'GUIDE' | 'NEWS' }) {
@@ -30,9 +31,9 @@ export default function ContentIndexPage({ type }: { type: 'GUIDE' | 'NEWS' }) {
         <p className="mx-auto max-w-4xl px-4 py-3 text-sm text-[#0A1628]/80">{t('disclosure')}</p>
       </div>
       <main className="mx-auto max-w-4xl px-4 py-10">
-        {query.isLoading && <p className="text-center text-gray-400">…</p>}
+        {query.isLoading && <p className="text-center text-gray-400"><Logo variant="mark-only" watermark size={26} />…</p>}
         {query.data && query.data.length === 0 && (
-          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500">{t('indexEmpty')}</p>
+          <p className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-500"><Logo variant="mark-only" watermark size={26} />{t('indexEmpty')}</p>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           {query.data?.map((item) => (

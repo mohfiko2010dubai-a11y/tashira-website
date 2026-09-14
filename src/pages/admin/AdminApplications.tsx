@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -98,7 +99,7 @@ export default function AdminApplications() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-[#1A2332] text-white px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3"><h1 className="text-lg font-bold">TASHIRA Admin</h1></div>
+        <div className="flex items-center gap-3"><h1 className="flex items-center gap-2 text-sm font-bold"><Logo variant="mark-only" theme="dark" size={20} /> <span>Admin</span></h1></div>
         <div className="flex items-center gap-3">
           <Link to="/admin/chat" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors relative">
             <MessageSquare size={14} /> Chat Inbox

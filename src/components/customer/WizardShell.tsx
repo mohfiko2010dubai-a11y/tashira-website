@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import type { ReactNode } from 'react';
 import { Check, MessageCircleQuestion } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -50,7 +51,7 @@ export default function WizardShell({ currentStep, children, compactContent = fa
       <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6 items-start">
         {/* Sidebar */}
         <aside className="hidden lg:block w-52 shrink-0 rounded-2xl bg-[#0A1628] p-5 sticky top-28">
-          <p className="text-lg font-extrabold text-[#C9A04C] tracking-wide">TASHIRA</p>
+          {currentStep < 3 ? <Logo variant="mark-only" theme="dark" size={26} /> : <p className="text-lg font-extrabold text-[#C9A04C] tracking-wide">TASHIRA</p>}
           <div className="my-4 h-px bg-[#C9A04C]/20" />
           <ol className="space-y-3">
             {WIZARD_STEPS.map((s) => (

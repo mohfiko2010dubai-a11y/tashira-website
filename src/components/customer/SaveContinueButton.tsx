@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MailCheck, Save } from 'lucide-react';
@@ -52,6 +53,7 @@ export function SaveContinueButton({ email }: { email?: string }) {
         />{feedback.errorFor("email")}
         </div>
       )}
+      {sent && <Logo variant="mark-only" size={24} />}
       <span className="text-xs text-gray-500 leading-snug max-w-[17rem]">
         {sent ? t('save.sent') : request.isError ? t('save.error') : t('save.note')}
       </span>

@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -50,7 +51,7 @@ export default function AdminSuppliers() {
       <header className="bg-[#1A2332] text-white px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link to="/admin/applications" className="text-gray-400 hover:text-white"><ArrowLeft size={20} /></Link>
-          <h1 className="text-lg font-bold">Suppliers</h1>
+          <h1 className="text-lg font-bold"><Logo variant="mark-only" theme="dark" size={20} /> Suppliers</h1>
         </div>
         <button onClick={logout} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"><LogOut size={14} /> Logout</button>
       </header>

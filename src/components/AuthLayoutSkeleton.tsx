@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { Skeleton } from "./ui/skeleton";
 
 export function AuthLayoutSkeleton() {
@@ -7,7 +8,7 @@ export function AuthLayoutSkeleton() {
       <div className="w-70 border-r border-border bg-background p-4 space-y-6">
         {/* Logo area */}
         <div className="flex items-center gap-3 px-2">
-          <Skeleton className="h-8 w-8 rounded-md" />
+          <Logo variant="mark-only" watermark size={24} />
           <Skeleton className="h-4 w-24" />
         </div>
 

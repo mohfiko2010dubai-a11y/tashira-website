@@ -1,0 +1,78 @@
+<!--
+TASHIRA header lockup — drop-in component.
+
+Why the wordmark is live text and not baked into the SVG:
+  - it stays crisp at every size and on every screen
+  - it recolours per theme with one CSS variable
+  - it is readable by search engines and screen readers
+  - no font has to be embedded inside an SVG file
+The MARK is vector (below). The WORDMARK is text. That split is deliberate.
+
+Required font: the site's Arabic/Latin webfont at weight 900 for the wordmark.
+Fallback stack included. Do not substitute a serif — the current header's serif
+"TASHIRA" is the old mark and is being replaced by this.
+-->
+
+<style>
+.tsh-logo{
+  --tsh-ink:#0A1628;        /* wordmark colour on light backgrounds */
+  --tsh-gold:#C9A04C;
+  --tsh-gold-2:#DDBB7A;
+  display:inline-flex; align-items:center; gap:.62em;
+  direction:ltr;            /* the lockup is always LTR, even on Arabic pages */
+  text-decoration:none; line-height:1;
+  font-size:34px;           /* the ONLY thing you change to resize the lockup */
+}
+.tsh-logo__mark{ height:1.28em; width:auto; display:block; flex:none }
+.tsh-logo__type{ display:flex; flex-direction:column; gap:.19em }
+.tsh-logo__name{
+  font-family:"IBM Plex Sans Arabic","Cairo",system-ui,sans-serif;
+  font-weight:900; font-size:1em; letter-spacing:.235em;
+  color:var(--tsh-ink); white-space:nowrap;
+  /* letter-spacing adds a trailing gap; pull it back so the lockup is centred */
+  margin-inline-end:-.235em;
+}
+.tsh-logo__tag{
+  font-family:"IBM Plex Sans Arabic","Cairo",system-ui,sans-serif;
+  font-weight:700; font-size:.235em; letter-spacing:.42em;
+  color:var(--tsh-gold); white-space:nowrap; margin-inline-end:-.42em;
+}
+/* on navy / dark grounds */
+.tsh-logo--on-dark{ --tsh-ink:#FFFFFF; --tsh-gold:var(--tsh-gold-2) }
+/* compact: mark + name, no tagline — use under ~26px */
+.tsh-logo--compact .tsh-logo__tag{ display:none }
+
+@media (max-width:640px){ .tsh-logo{ font-size:26px } .tsh-logo__tag{ display:none } }
+</style>
+
+<a class="tsh-logo" href="/" aria-label="TASHIRA — home">
+  <svg class="tsh-logo__mark" viewBox="30 2 140 180" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="tsh-g" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0" stop-color="#C9A04C"/><stop offset="1" stop-color="#DDBB7A"/>
+      </linearGradient>
+    </defs>
+    <path d="M40 172 V104 C40 70 68 46 100 24 C132 46 160 70 160 104 V172"
+          fill="none" stroke="#00843D" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M55 172 V104 C55 79 76.6 61 100 42.75 C123.4 61 145 79 145 104 V172"
+          fill="none" stroke="#D4D4D4" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M70 172 V104 C70 88 85.2 76 100 61.5 C114.8 76 130 88 130 104 V172"
+          fill="none" stroke="#111111" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M100 6 l4 7 -4 7 -4 -7z" fill="url(#tsh-g)"/>
+    <rect x="75" y="98" width="50" height="9" rx="4.5" fill="#EF3340"/>
+    <rect x="95.5" y="98" width="9" height="62" rx="4.5" fill="#EF3340"/>
+    <circle cx="100" cy="174" r="6.5" fill="url(#tsh-g)"/>
+  </svg>
+  <span class="tsh-logo__type">
+    <span class="tsh-logo__name">TASHIRA</span>
+    <span class="tsh-logo__tag">UAE E-VISA SERVICES</span>
+  </span>
+</a>
+
+<!--
+IMPORTANT — the gradient id.
+`tsh-g` must be UNIQUE in the document. If this component can render more than
+once on a page (header + footer), generate a per-instance id, or the second
+instance will reuse the first one's gradient and the mark will lose its gold on
+some browsers. In React: const gid = useId().
+-->

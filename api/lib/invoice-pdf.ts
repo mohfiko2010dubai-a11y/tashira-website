@@ -1,3 +1,4 @@
+import { BRAND_MARK_PNG } from "../../contracts/brand-bitmap";
 import fs from "fs";
 import path from "path";
 import { jsPDF } from "jspdf";
@@ -121,9 +122,12 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setTextColor("#C9A04C");
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text("TASHIRA", 15, 20);
+  doc.setFillColor("#FFFFFF");
+  doc.roundedRect(11, 6, 22, 22, 2, 2, "F");
+  doc.addImage(BRAND_MARK_PNG, "PNG", 12, 7, 20, 20);
+  doc.text("TASHIRA", 35, 20);
   doc.setFontSize(8);
-  doc.text("E-VISA & TOURISM SERVICES", 15, 26);
+  doc.text("UAE E-VISA SERVICES", 35, 26);
   doc.setTextColor("#FFFFFF");
   doc.setFont("helvetica", "normal");
   doc.text("E-Visa & Tourism L.L.C-FZ", 15, 33);

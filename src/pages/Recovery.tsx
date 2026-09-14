@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
@@ -36,6 +37,7 @@ export default function Recovery() {
   return (
     <section className="min-h-[70vh] px-4 py-16 bg-[#FAFAF7]">
       <div className="max-w-md mx-auto bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-5">
+        <Logo size={26} />
         <h1 className="text-2xl font-bold text-[#1A2332]">Resume your application</h1>
         {token ? <p>Verifying your secure single-use link…</p> : <>
           <label className="block text-sm font-medium">Email address

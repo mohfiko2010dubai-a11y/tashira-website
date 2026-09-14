@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Phone, Mail, MapPin, ShieldCheck, FileCheck } from 'lucide-react';
@@ -40,10 +41,7 @@ export default function Footer() {
           {/* Company Info */}
           <div>
             <div className="mb-4">
-              <span className="text-xl font-bold text-[#C9A04C]">{t('brand.name')}</span>
-              <span className="block text-[9px] font-semibold text-gray-400 uppercase tracking-[0.15em] -mt-0.5">
-                {t('brand.subtitle')}
-              </span>
+              <Logo theme="dark" size={26} /><p className="mt-2 text-xs text-gray-400" dir="ltr">2541485.01</p>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed mb-5">
               {t('footer.description')}

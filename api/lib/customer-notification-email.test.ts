@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderTransactionalEmail } from "./transactional-email";
 import fs from "node:fs";
 
 describe("customer notification email templates", () => {
+  beforeEach(() => vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com'));
+  afterEach(() => vi.unstubAllEnvs());
   it("renders a status update with the human-readable status", () => {
     const email = renderTransactionalEmail("STATUS_CHANGED", {
       referenceNumber: "TSH-UAT-123",

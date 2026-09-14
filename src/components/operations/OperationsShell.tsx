@@ -1,3 +1,4 @@
+import Logo from '@/components/shared/Logo';
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { useStaffAuth } from "@/hooks/useStaffAuth";
@@ -22,7 +23,7 @@ export default function OperationsShell({ title, subtitle, children }: { title: 
     <aside className="bg-slate-950 px-4 py-5 text-white lg:min-h-screen">
       <div className="flex items-center gap-3 border-b border-white/10 px-2 pb-5">
         <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400 text-slate-950"><ShieldCheck size={21}/></span>
-        <div><p className="font-bold tracking-[.18em]">TASHIRA</p><p className="text-xs text-slate-400">Visa Operations OS</p></div>
+        <div><Logo variant="mark-only" theme="dark" size={20} /><p className="text-xs text-slate-400">Visa Operations OS</p></div>
       </div>
       <nav aria-label="Operations navigation" className="mt-5 grid gap-1 sm:grid-cols-2 lg:grid-cols-1">
         {navigation.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} end={to === "/staff/operations"}
