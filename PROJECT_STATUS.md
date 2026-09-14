@@ -1,3 +1,7 @@
+# Payment creation and recovery verified — 2026-09-14
+
+Staging a46b34d9902bd08b48e83a740fcd134ee89ffe18: server-issued creation keys/references, atomic core creation, durable payment reservations and saved-intent recovery. Concurrent creation/payment, declined TEST card, back, refresh, closed browser and interrupted browser confirmation reverified. Both synthetic fixtures have one successful charge each. Full gates 1063 passed, 26 gated skips; migrations 050/051 backed up. Item 8 ownership status and explicit is_test classification infrastructure are in progress locally. No orders deleted or flagged; production untouched. See staging/PAYMENT_REMEDIATION_DELTA.md.
+
 # Explicit consent verified — 2026-09-14
 
 Staging a146376d1c01ffa38ea396a948c75fb0f8d54934 removes legacy automatic acceptance. Migration 049 preserves original timeline rows and flags 109 automatic plus 12 system test records invalid. Staging tests verify no auto acceptance, rejected false, explicit true with app/version/time and visible invalidity metadata. Full gates 1052 passed, 26 gated skips. Item 6 creation idempotency/recovery is in progress locally; no launch. All 15 unrelated dirty files preserved; no test orders deleted or is_test flags set.

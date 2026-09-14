@@ -1,0 +1,16 @@
+{
+  "clientReferenceRejected": true,
+  "reference": "TSH-F9AAD6EDBCEF4E50B369EE693F201AB2",
+  "concurrentCreationSameOrder": true,
+  "changedPayloadDenied": true,
+  "foreignCreationKeyDenied": true,
+  "refreshResumesSameOrder": true,
+  "browserResumeNotice": true,
+  "concurrentPaymentSameIntent": true,
+  "intentId": "pi_3UFSt7QuJW86CmXv0WFNcT2F",
+  "refreshAndBackSameIntent": true,
+  "tabClosedBeforeConfirmation": true,
+  "declinedCardCanRetrySameIntent": true,
+  "closedTabRecoveryConfirmed": true,
+  "refreshAfterPaymentConfirmed": true
+}

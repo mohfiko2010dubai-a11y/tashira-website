@@ -1,0 +1,7 @@
+{
+  "reference": "TSH-46427A48FE574D329126F49C2B7C8CBF",
+  "intentId": "pi_3UFSrkQuJW86CmXv0t9KWsjX",
+  "realStripeTestCard": true,
+  "interruptedBrowserConfirmation": true,
+  "refreshRecoveredSamePayment": true
+}
