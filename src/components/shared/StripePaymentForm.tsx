@@ -49,7 +49,6 @@ interface PaymentFormInnerProps {
 }
 
 function PaymentFormInner({
-  amount,
   referenceNumber,
   applicantData,
   onSuccess,
@@ -69,6 +68,8 @@ function PaymentFormInner({
   const createIntent = trpc.payment.createIntent.useMutation();
   const confirmPayment = trpc.payment.confirm.useMutation();
   const readiness = trpc.payment.readiness.useQuery({ referenceNumber });
+  const price = trpc.payment.quote.useQuery({ referenceNumber }, { staleTime: 0 });
+  const amount = price.data?.amount ?? 0;
 
   useEffect(() => {
     if (stripe && elements) paymentElementLoaded();
@@ -83,6 +84,7 @@ function PaymentFormInner({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements || readiness.data?.status !== 'READY' || readiness.data.paymentStatus === 'paid') return;
+    if (!price.data) { setError('The current price is unavailable. Refresh the page before paying.'); return; }
     const thirdParty = isThirdPartyPayer(payerName, applicantData.customerName);
     if (!payerAuthorizationAccepted) {
       setError('Please confirm that you are authorized to use this payment method.');
@@ -102,6 +104,7 @@ function PaymentFormInner({
     try {
       const intentResult = await createIntent.mutateAsync({
         amount: amount * 100,
+        displayedQuoteId: price.data.quoteId,
         currency: 'usd',
         referenceNumber,
         payerName,
@@ -145,6 +148,7 @@ function PaymentFormInner({
     } catch (err: unknown) {
       if (!failureRecorded) paymentTimeline.paymentFailed('unknown');
       setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
+      await price.refetch();
     } finally {
       setLoading(false);
     }
@@ -159,7 +163,7 @@ function PaymentFormInner({
 
       <div className="bg-gradient-to-r from-[#C9A04C]/10 to-[#C9A04C]/5 border border-[#C9A04C]/20 rounded-xl p-4 text-center">
         <p className="text-sm text-gray-500 mb-1">Total Amount</p>
-        <p className="text-3xl font-bold text-[#C9A04C]">${amount}</p>
+        <p className="text-3xl font-bold text-[#C9A04C]">{price.data ? `$${amount.toFixed(2)}` : 'Loading current price…'}</p>
         <p className="text-xs text-gray-400 mt-1">Ref: {referenceNumber}</p>
       </div>
 
@@ -208,8 +212,8 @@ function PaymentFormInner({
         <button type="button" onClick={onClose} className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
           Cancel
         </button>
-        <button type="submit" disabled={!stripe || loading || readiness.isLoading || readiness.data?.status !== 'READY' || readiness.data?.paymentStatus === 'paid'} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50">
-          {loading ? 'Processing...' : `Pay $${amount}`}
+        <button type="submit" disabled={!stripe || loading || !price.data || readiness.isLoading || readiness.data?.status !== 'READY' || readiness.data?.paymentStatus === 'paid'} className="flex-1 px-4 py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50">
+          {loading ? 'Processing...' : !price.data ? 'Waiting for current price' : `Pay $${amount}`}
         </button>
       </div>
     </form>

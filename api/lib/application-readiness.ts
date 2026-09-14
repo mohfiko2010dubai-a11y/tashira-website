@@ -2,7 +2,7 @@ import { loadTripPurposes } from "./customer/trip-purpose";
 import { requiredDocuments } from "../../contracts/document-requirement-engine";
 import { loadOwnerDocumentEvidence, projectOwnerDocuments } from "./customer/owner-document-evidence";
 import { and, eq, ne } from "drizzle-orm";
-import { applicants, applicationPriceSnapshots, applications, applicationTimelineEvents, documents } from "../../db/schema";
+import { applicants, currentApplicationPriceSnapshots as applicationPriceSnapshots, applications, applicationTimelineEvents, documents } from "../../db/schema";
 import { TERMS_POLICY_VERSION } from "../../contracts/constants";
 import { getDb } from "../queries/connection";
 import { validPassportExpiry } from "../../contracts/traveller-details";

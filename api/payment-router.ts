@@ -4,7 +4,8 @@ import { getDb } from "./queries/connection";
 import { applications, applicants, payments, invoices } from "@db/schema";
 import { asc, eq } from "drizzle-orm";
 import { auditLog } from "./lib/audit-log";
-import { createStripeTestIntent } from "./lib/stripe";
+import { createStripeTestIntent, retrieveStripeTestIntent } from "./lib/stripe";
+import { drizzle } from "drizzle-orm/mysql2";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { finalizeStripeTestPayment } from "./lib/payment-finalization";
 import { hasTimelinePolicyAcceptance, recordTimelineEvent } from "./lib/application-timeline";
@@ -15,8 +16,23 @@ import { getApplicationReadiness } from "./lib/application-readiness";
 import { recordPayerAuthorization } from "./lib/payer-authorization";
 import { validatePayerAuthorization } from "./lib/payer-authorization-core";
 import { PAYER_AUTHORIZATION_VERSION, PAYER_RELATIONSHIPS } from "@contracts/payer-authorization";
+import { assertDisplayedQuote, refreshCheckoutQuote, withCheckoutLock } from "./lib/checkout-quote";
 
 export const paymentRouter = createRouter({
+  quote: applicationAccessQuery.input(z.object({ referenceNumber: z.string() })).query(async ({ input, ctx }) => {
+    assertApplicationReferenceAccess(ctx, input.referenceNumber);
+    const [app] = await getDb().select({ id: applications.id, paymentStatus: applications.paymentStatus }).from(applications)
+      .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+    if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found. Reopen your saved application." });
+    if (app.paymentStatus === "paid") {
+      const snapshot = await getApplicationPriceSnapshot(app.id);
+      return { quoteId: snapshot.id, amount: Number(snapshot.totalPrice), currency: snapshot.currency, applicantCount: snapshot.applicantCount };
+    }
+    return withCheckoutLock(app.id, async connection => {
+      const current = await refreshCheckoutQuote(connection, app.id);
+      return { quoteId: current.id, amount: current.quote.totalPrice, currency: current.quote.currency, applicantCount: current.quote.applicantCount };
+    });
+  }),
   acceptPolicies: paymentQuery.input(z.object({ referenceNumber: z.string(), accepted: z.literal(true), policyVersion: z.literal(TERMS_POLICY_VERSION) }).strict())
     .mutation(async ({ input, ctx }) => {
       assertApplicationReferenceAccess(ctx, input.referenceNumber);
@@ -32,6 +48,7 @@ export const paymentRouter = createRouter({
     .input(z.object({
       amount: z.number().optional(), // Legacy client hint; never trusted.
       currency: z.string().optional(), // Legacy client hint; never trusted.
+      displayedQuoteId: z.string().uuid(),
       referenceNumber: z.string(),
       payerName: z.string().min(2).max(100),
       payerRelationship: z.enum(PAYER_RELATIONSHIPS),
@@ -69,59 +86,44 @@ export const paymentRouter = createRouter({
           leadApplicantName: leadApplicant.fullName,
         });
 
-        const priceSnapshot = await getApplicationPriceSnapshot(app.id);
-        if (priceSnapshot.currency.toUpperCase() !== "USD") throw new Error("Stripe checkout requires a USD price snapshot");
-        const serverAmountUsd = Number(priceSnapshot.totalPrice);
-        if (!Number.isFinite(serverAmountUsd) || serverAmountUsd <= 0) {
-          throw new Error("Application amount is invalid");
-        }
-        const amountCents = Math.round(serverAmountUsd * 100);
-        const paymentIntent = await createStripeTestIntent({
-          amountCents,
-          referenceNumber: app.referenceNumber,
-          idempotencyKey: `tashira-application-${app.id}`,
+        const issued = await withCheckoutLock(app.id, async connection => {
+          const db = drizzle(connection);
+          const [locked] = await db.select().from(applications).where(eq(applications.id, app.id)).limit(1);
+          if (locked.paymentStatus === "paid") throw new TRPCError({ code: "CONFLICT", message: "Application is already paid. Refresh to see your confirmation." });
+          const currentQuote = await refreshCheckoutQuote(connection, app.id);
+          assertDisplayedQuote(currentQuote, input.displayedQuoteId);
+          const priceSnapshot = currentQuote.quote;
+          if (priceSnapshot.currency !== "USD") throw new Error("Stripe checkout requires a USD price snapshot");
+          const serverAmountUsd = priceSnapshot.totalPrice;
+          if (!Number.isFinite(serverAmountUsd) || serverAmountUsd <= 0) throw new Error("Application amount is invalid");
+          const amountCents = Math.round(serverAmountUsd * 100);
+          const paymentIntent = locked.stripePaymentIntentId
+            ? await retrieveStripeTestIntent(locked.stripePaymentIntentId)
+            : await createStripeTestIntent({ amountCents, referenceNumber: app.referenceNumber, idempotencyKey: `tashira-application-${app.id}` });
+          if (paymentIntent.amount !== amountCents || paymentIntent.currency !== "usd" || paymentIntent.metadata?.referenceNumber !== app.referenceNumber) {
+            throw new TRPCError({ code: "CONFLICT", message: "The saved payment does not match this application. Contact support before trying again." });
+          }
+          if (!paymentIntent.client_secret) throw new Error("Stripe did not return a client secret");
+          const [existingPayment] = await db.select({ id: payments.id }).from(payments)
+            .where(eq(payments.stripePaymentIntentId, paymentIntent.id)).limit(1);
+          let paymentId = existingPayment?.id;
+          if (!paymentId) {
+            const [created] = await db.insert(payments).values({ applicationId: app.id, stripePaymentIntentId: paymentIntent.id,
+              amount: serverAmountUsd.toFixed(2), currency: "usd", status: "pending" }).$returningId();
+            paymentId = created.id;
+          }
+          await db.update(applications).set({ stripePaymentIntentId: paymentIntent.id, stripeAmountUsd: serverAmountUsd.toFixed(2) })
+            .where(eq(applications.id, app.id));
+          return { paymentId, paymentIntentId: paymentIntent.id, clientSecret: paymentIntent.client_secret };
         });
-        if (!paymentIntent.client_secret) throw new Error("Stripe did not return a client secret");
-
-        const [existingPayment] = await db.select({ id: payments.id }).from(payments)
-          .where(eq(payments.stripePaymentIntentId, paymentIntent.id)).limit(1);
-        let paymentId = existingPayment?.id;
-        if (!paymentId) {
-          const [createdPayment] = await db.insert(payments).values({
-            applicationId: app.id,
-            stripePaymentIntentId: paymentIntent.id,
-            amount: serverAmountUsd.toFixed(2),
-            currency: "usd",
-            status: "pending",
-          }).$returningId();
-          paymentId = createdPayment.id;
-        }
-        await recordPayerAuthorization({
-          applicationId: app.id,
-          paymentId,
-          payerName: input.payerName,
-          payerRelationship: input.payerRelationship,
-          authorizationAccepted: input.payerAuthorizationAccepted,
-          authorizationVersion: input.payerAuthorizationVersion,
-          leadApplicantName: leadApplicant.fullName,
-        });
-        await db.update(applications).set({
-          stripePaymentIntentId: paymentIntent.id,
-          stripeAmountUsd: serverAmountUsd.toFixed(2),
-        }).where(eq(applications.id, app.id));
-        await recordTimelineEvent({
-          applicationId: app.id,
-          paymentId,
-          eventName: "PAYMENT_INTENT_CREATED",
-          eventSource: "PAYMENT_API",
-          actorType: "SYSTEM",
-          actorReference: paymentIntent.id,
-          resultingState: "pending",
-          summary: "Stripe PaymentIntent created",
-        });
-
+        await recordPayerAuthorization({ applicationId: app.id, paymentId: issued.paymentId, payerName: input.payerName,
+          payerRelationship: input.payerRelationship, authorizationAccepted: input.payerAuthorizationAccepted,
+          authorizationVersion: input.payerAuthorizationVersion, leadApplicantName: leadApplicant.fullName });
+        await recordTimelineEvent({ applicationId: app.id, paymentId: issued.paymentId, eventName: "PAYMENT_INTENT_CREATED",
+          eventSource: "PAYMENT_API", actorType: "SYSTEM", actorReference: issued.paymentIntentId,
+          resultingState: "pending", summary: "Stripe PaymentIntent created" });
         auditLog("payment.intent_create", "success", "customer");
-        return { clientSecret: paymentIntent.client_secret };
+        return { clientSecret: issued.clientSecret };
       } catch (err: unknown) {
         auditLog("payment.intent_create", "failure", "customer");
         if (err instanceof TRPCError) throw err;

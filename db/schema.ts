@@ -3,6 +3,7 @@ import {
   json,
   date,
   mysqlTable,
+  mysqlView,
   serial,
   varchar,
   timestamp,
@@ -219,7 +220,7 @@ export const pricingRules = mysqlTable("pricing_rules", {
   index("pricing_rule_active_idx").on(table.serviceCode, table.processingType, table.effectiveAt, table.expiresAt),
 ]);
 
-export const applicationPriceSnapshots = mysqlTable("application_price_snapshots", {
+function priceSnapshotColumns() { return {
   id: varchar("id", { length: 36 }).primaryKey(),
   applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull().unique(),
   pricingRuleId: bigint("pricing_rule_id", { mode: "number", unsigned: true }).notNull(),
@@ -236,7 +237,10 @@ export const applicationPriceSnapshots = mysqlTable("application_price_snapshots
   baseCurrency: varchar("snapshot_base_currency", { length: 3 }).notNull(),
   totalInBaseCurrency: decimal("total_in_base_currency", { precision: 12, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
+}; }
+
+export const currentApplicationPriceSnapshots = mysqlView("current_application_price_snapshots", priceSnapshotColumns()).existing();
+export const applicationPriceSnapshots = mysqlTable("application_price_snapshots", priceSnapshotColumns(), (table) => [
   foreignKey({ name: "price_snapshot_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
   foreignKey({ name: "price_snapshot_rule_fk", columns: [table.pricingRuleId], foreignColumns: [pricingRules.id] }).onDelete("restrict"),
 ]);

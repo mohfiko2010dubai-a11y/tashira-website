@@ -14,9 +14,11 @@ import { getCanonicalApplicationByReference } from "./lib/application-projection
 import { createCustomerApplicationCookie } from "./lib/customer-session";
 import { documentUploadEvent, hasTimelineEvent, hasTimelinePolicyAcceptance, recordTimelineEvent } from "./lib/application-timeline";
 import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
-import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { quoteApplicationPrice, ensureInitialPriceSnapshot } from "./lib/pricing-engine";
 import { assertCompleteApplicantSequence, assertRequiredApplicantDocuments } from "./lib/wizard-applicants";
 import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
+import { drizzle } from "drizzle-orm/mysql2";
+import { assertCheckoutEditable, refreshCheckoutQuote, withCheckoutLock } from "./lib/checkout-quote";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -44,8 +46,8 @@ type ApplicantInput = {
   countryFrom?: string;
 };
 
-async function persistApplicant(applicationId: number, applicantIndex: number, input: ApplicantInput) {
-  const db = getDb();
+async function persistApplicant(applicationId: number, applicantIndex: number, input: ApplicantInput,
+  db: Pick<ReturnType<typeof getDb>, "select" | "insert" | "update"> = getDb()) {
   const [existing] = await db.select().from(applicants)
     .where(and(eq(applicants.applicationId, applicationId), eq(applicants.applicantIndex, applicantIndex)))
     .limit(1);
@@ -225,6 +227,13 @@ export const wizardRouter = createRouter({
         assertApplicationReferenceAccess(ctx, input.referenceNumber);
         const db = getDb();
 
+        const [target] = await db.select({ id: applications.id }).from(applications)
+          .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+        if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found. Reopen your saved application." });
+        const events: Array<Parameters<typeof recordTimelineEvent>[0]> = [];
+        const result = await withCheckoutLock(target.id, async connection => {
+        await assertCheckoutEditable(connection, target.id);
+        const db = drizzle(connection);
         const updateData: Partial<typeof applications.$inferInsert> = {
           updatedAt: new Date(),
         };
@@ -246,8 +255,8 @@ export const wizardRouter = createRouter({
           .limit(1);
 
         if (updated) {
-          const applicant = await persistApplicant(updated.id, input.applicantIndex, input);
-          if (applicant?.updated) await recordTimelineEvent({
+          const applicant = await persistApplicant(updated.id, input.applicantIndex, input, db);
+          if (applicant?.updated) events.push({
             applicationId: updated.id,
             eventName: "APPLICANT_UPDATED",
             eventSource: "CHATBOT_WIZARD",
@@ -255,7 +264,7 @@ export const wizardRouter = createRouter({
             actorReference: `applicant:${applicant.id}`,
             summary: `Applicant ${input.applicantIndex + 1} updated`,
           });
-          if (applicant?.created) await recordTimelineEvent({
+          if (applicant?.created) events.push({
             applicationId: updated.id,
             eventName: "APPLICANT_ADDED",
             eventSource: "CHATBOT_WIZARD",
@@ -264,19 +273,21 @@ export const wizardRouter = createRouter({
             summary: `Applicant ${input.applicantIndex + 1} added`,
           });
 
-          return {
-            success: true,
-            referenceNumber: input.referenceNumber,
-            applicationId: updated.id,
-            applicantId: applicant?.id,
-            applicantIndex: input.applicantIndex,
-          };
+          const [priceContext] = await db.select({ visaType: applications.visaType }).from(applications).where(eq(applications.id, updated.id)).limit(1);
+          const members = await db.select({ id: applicants.id }).from(applicants).where(eq(applicants.applicationId, updated.id));
+          if (priceContext?.visaType && members.length) await refreshCheckoutQuote(connection, updated.id);
+          return { success: true, referenceNumber: input.referenceNumber, applicationId: updated.id,
+            applicantId: applicant?.id, applicantIndex: input.applicantIndex };
         }
 
         return { success: true, referenceNumber: input.referenceNumber, applicationId: undefined };
+        });
+        for (const event of events) await recordTimelineEvent(event);
+        return result;
       } catch (error: unknown) {
         const message = getErrorMessage(error);
         console.error("[Wizard] Failed to update application:", message);
+        if (error instanceof TRPCError) throw error;
         throw new Error(`Failed to update application: ${message}`);
       }
     }),
@@ -321,22 +332,17 @@ export const wizardRouter = createRouter({
           }],
           input.applicantCount,
         );
-        const quote = await quoteApplicationPrice({
-          serviceCode: input.visaType,
-          processingType,
-          applicantCount: input.applicantCount,
-        });
-        if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
-
         const [updated] = await db.select({ id: applications.id })
           .from(applications)
           .where(eq(applications.referenceNumber, input.referenceNumber))
           .limit(1);
         if (!updated) throw new Error("Application not found");
-
+        const quote = await withCheckoutLock(updated.id, async connection => {
+        await assertCheckoutEditable(connection, updated.id);
+        const db = drizzle(connection);
         const persistedApplicants: Array<{ id: number; applicantIndex: number }> = [];
         for (const applicant of submittedApplicants) {
-          const persisted = await persistApplicant(updated.id, applicant.applicantIndex, applicant);
+          const persisted = await persistApplicant(updated.id, applicant.applicantIndex, applicant, db);
           if (!persisted) throw new Error(`Unable to persist applicant ${applicant.applicantIndex + 1}`);
           persistedApplicants.push({ id: persisted.id, applicantIndex: applicant.applicantIndex });
         }
@@ -356,16 +362,15 @@ export const wizardRouter = createRouter({
             arrivalDate: input.arrivalDate,
             contactEmail: input.email,
             contactPhone: input.phone,
-            totalAmountAed: quote.totalInBaseCurrency.toFixed(2),
-            totalAmountUsd: quote.totalPrice.toFixed(2),
-            exchangeRate: quote.exchangeRateToBase.toFixed(4),
             status: "documents_pending",
             paymentStatus: "pending",
             updatedAt: new Date(),
           })
           .where(eq(applications.referenceNumber, input.referenceNumber));
 
-        await saveApplicationPriceSnapshot(updated.id, quote);
+        return (await refreshCheckoutQuote(connection, updated.id)).quote;
+        });
+        await ensureInitialPriceSnapshot(updated.id, quote);
         if (!await hasTimelineEvent(updated.id, "APPLICATION_SUBMITTED")) await recordTimelineEvent({
             applicationId: updated.id,
             eventName: "APPLICATION_SUBMITTED",

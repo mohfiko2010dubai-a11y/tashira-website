@@ -8,6 +8,7 @@ import { validateTravelGroup, type TicketStatus, type TravelArrangement } from "
 import { validateSubmissionPolicyThresholds, type OperationalSubmissionPolicy } from "../travel/operational-submission-policy";
 import type { SubmissionScheduleSnapshot, SubmissionTimingRule } from "../travel/submission-scheduler";
 import { recalculateForTravelDateChange } from "../travel/travel-date-recalculation";
+import { assertCheckoutEditable, refreshCheckoutQuote } from "../checkout-quote";
 
 export type CustomerApplicantProfile = {
   fullName: string;
@@ -83,6 +84,7 @@ export class MysqlCustomerInterviewWriteRepository {
       const [applications] = await connection.execute<RowDataPacket[]>("SELECT id FROM applications WHERE id=? FOR UPDATE", [input.applicationId]);
       if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
       const existing = await replay(connection, { ...input, commandSha256 }); if (existing) return existing;
+      await assertCheckoutEditable(connection, input.applicationId);
       const [applicants] = await connection.execute<RowDataPacket[]>("SELECT applicant_index AS applicantIndex FROM applicants WHERE application_id=? ORDER BY applicant_index FOR UPDATE", [input.applicationId]);
       const applicantIndex = applicants.length ? Math.max(...applicants.map((row) => Number(row.applicantIndex))) + 1 : 0;
       const [insert] = await connection.execute<ResultSetHeader>(`INSERT INTO applicants
@@ -93,6 +95,7 @@ export class MysqlCustomerInterviewWriteRepository {
         (id,application_id,applicant_id,profile_version,event_type,profile_json,reason,actor_reference,command_sha256,idempotency_key,occurred_at)
         VALUES (?,?,?,1,'CREATED',?,?,?,?,?,?)`, [eventId, input.applicationId, applicantId, JSON.stringify(input.profile), input.reason,
         input.actorReference, commandSha256, input.idempotencyKey, input.occurredAt]);
+      await refreshCheckoutQuote(connection, input.applicationId);
       return { applicantId, applicantIndex, profileVersion: 1, profile: structuredClone(input.profile), replayed: false };
     });
   }

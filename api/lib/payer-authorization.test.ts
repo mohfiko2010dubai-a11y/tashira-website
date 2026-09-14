@@ -84,7 +84,9 @@ describe("payer authorization evidence", () => {
     expect(checkout).toContain("Name on Card");
     expect(checkout).toContain("The payer and visa applicant may be different persons.");
     expect(paymentApi).toContain("recordPayerAuthorization");
-    expect(paymentApi.indexOf("validatePayerAuthorization({")).toBeLessThan(paymentApi.indexOf("const paymentIntent = await createStripeTestIntent"));
+    const stripeCreation = paymentApi.indexOf("await createStripeTestIntent(");
+    expect(stripeCreation).toBeGreaterThan(0);
+    expect(paymentApi.indexOf("validatePayerAuthorization({")).toBeLessThan(stripeCreation);
     expect(evidence).toContain("payerAuthorization");
     expect(evidence).toContain("leadApplicant");
     expect(admin).toContain("PAYER_AUTHORIZATION_ACCEPTED");

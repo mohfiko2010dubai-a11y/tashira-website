@@ -32,9 +32,10 @@ const stripePublishableKey = validatedStripePublishableKey(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
 );
 
-function PaymentForm({ referenceNumber, amount, applicantName, policiesAccepted, onConfirmed }: {
+function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policiesAccepted, onConfirmed }: {
   referenceNumber: string;
   amount: number;
+  quoteId: string;
   visaType: string;
   applicantName: string;
   policiesAccepted: boolean;
@@ -93,6 +94,7 @@ function PaymentForm({ referenceNumber, amount, applicantName, policiesAccepted,
       // Create payment intent via tRPC
       const result = await createIntent.mutateAsync({
         referenceNumber,
+        displayedQuoteId: quoteId,
         amount: amountInCents,
         currency: 'usd',
         payerName,
@@ -142,6 +144,7 @@ function PaymentForm({ referenceNumber, amount, applicantName, policiesAccepted,
     } catch (err: unknown) {
       paymentTimeline.paymentFailed("unknown");
       setError(safeCheckoutErrorMessage(err));
+      await utils.payment.quote.invalidate({ referenceNumber });
     } finally {
       setLoading(false);
     }
@@ -235,6 +238,7 @@ export default function PaymentPage() {
     { referenceNumber: referenceNumber! },
     { enabled: !!referenceNumber && !!app },
   );
+  const price = trpc.payment.quote.useQuery({ referenceNumber: referenceNumber! }, { enabled: !!referenceNumber && !!app, staleTime: 0 });
   const stripePromise = useMemo(
     () => readiness.data?.status === 'READY' && stripePublishableKey
       ? loadStripe(stripePublishableKey)
@@ -249,7 +253,7 @@ export default function PaymentPage() {
     }
   }, [error]);
 
-  if (isLoading || (!!app && readiness.isLoading)) {
+  if (isLoading || (!!app && (readiness.isLoading || price.isLoading))) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 size={32} className="text-[#C9A04C] animate-spin" />
@@ -283,7 +287,7 @@ export default function PaymentPage() {
   // Never fall back to hard-coded client prices: if the snapshot is missing
   // we fail closed instead of displaying an amount that can disagree with
   // the amount Stripe will actually charge.
-  const { amount, priceSnapshotMissing } = resolvePaymentDisplayAmount(app);
+  const { amount, priceSnapshotMissing } = resolvePaymentDisplayAmount({ totalAmountUsd: price.data ? String(price.data.amount) : null });
   const applicantName = app.applicants.find((applicant) => Number(applicant.applicantIndex) === 0)?.fullName || 'Applicant';
   const completionGroups = readiness.data?.status === 'INCOMPLETE'
     ? completionPanelGroups(readiness.data)
@@ -379,8 +383,8 @@ export default function PaymentPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         {priceSnapshotMissing ? (
           <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
-            The price for this application is not configured yet, so payment is not available.
-            Please contact support and we will complete it for you.
+            <p>{price.error?.message ?? 'The current price is unavailable. Refresh the price or contact support before paying.'}</p>
+            <button type="button" onClick={() => void price.refetch()} className="mt-2 underline">Refresh price</button>
           </div>
         ) : readiness.error ? (
           <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
@@ -418,6 +422,7 @@ export default function PaymentPage() {
             <PaymentForm
               referenceNumber={referenceNumber!}
               amount={amount}
+              quoteId={price.data?.quoteId ?? ''}
               visaType={app.visaType || 'Tourist Visa'}
               applicantName={applicantName}
               policiesAccepted={policiesAccepted}

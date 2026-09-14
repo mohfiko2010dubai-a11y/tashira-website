@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import {
-  applicationPriceSnapshots, applications, businessSettingsVersions, financialEvents,
+  currentApplicationPriceSnapshots as applicationPriceSnapshots, applications, businessSettingsVersions, financialEvents,
   payments, pricingRules, applicationTimelineEvents, applicants,
 } from "@db/schema";
 import { adminQuery, createRouter, publicQuery } from "./middleware";

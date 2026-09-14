@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { and, desc, eq, isNull, lte, or, gt } from "drizzle-orm";
-import { applicationPriceSnapshots, businessSettingsVersions, pricingRules } from "@db/schema";
+import { applicationPriceSnapshots, currentApplicationPriceSnapshots, businessSettingsVersions, pricingRules } from "@db/schema";
 import { getDb } from "../queries/connection";
 import { priceSnapshotMatchesQuote } from "./price-snapshot-match";
 
@@ -129,8 +129,14 @@ async function getApplicationPriceSnapshotIfPresent(applicationId: number) {
   return snapshot;
 }
 
+export async function ensureInitialPriceSnapshot(applicationId: number, quote: PriceQuote) {
+  const existing = await getApplicationPriceSnapshotIfPresent(applicationId);
+  return existing?.id ?? saveApplicationPriceSnapshot(applicationId, quote);
+}
+
 export async function getApplicationPriceSnapshot(applicationId: number) {
-  const snapshot = await getApplicationPriceSnapshotIfPresent(applicationId);
+  const [snapshot] = await getDb().select().from(currentApplicationPriceSnapshots)
+    .where(eq(currentApplicationPriceSnapshots.applicationId, applicationId)).limit(1);
   if (!snapshot) throw new Error("Application price snapshot is missing");
   return snapshot;
 }
