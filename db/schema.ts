@@ -55,6 +55,7 @@ export const applications = mysqlTable("applications", {
   paymentStatus: mysqlEnum("payment_status", ["pending","paid","failed"]).default("pending").notNull(),
   stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 100 }),
   stripeAmountUsd: decimal("stripe_amount_usd", { precision: 10, scale: 2 }),
+  stripeEventCreated: bigint("stripe_event_created", { mode: "number", unsigned: true }).default(0).notNull(),
   invoiceNumber: varchar("invoice_number", { length: 50 }),
   invoicePdfPath: varchar("invoice_pdf_path", { length: 255 }),
   invoicePdfUrl: varchar("invoice_pdf_url", { length: 255 }),
@@ -89,6 +90,7 @@ export const payments = mysqlTable("payments", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 10 }).notNull(),
   status: mysqlEnum("status", ["pending", "succeeded", "failed"]).default("pending").notNull(),
+  stripeEventCreated: bigint("stripe_event_created", { mode: "number", unsigned: true }).default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

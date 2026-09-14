@@ -22,6 +22,7 @@ import { internalFailure } from "./lib/public-error";
 import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
 import { isSupportedStripeWebhookEvent, verifyStripeWebhook } from "./lib/stripe-webhook";
 import { finalizeStripeTestPayment, recordStripeTestPaymentFailure } from "./lib/payment-finalization";
+import { SupersededStripeEvent } from "./lib/payment-state";
 import { auditLog } from "./lib/audit-log";
 import { createAdminSessionCookie, verifyAdminSession } from "./lib/admin-session";
 import { BrowserAuthRateLimiter, consumeStagingOwnerBrowserToken } from "./lib/staging-owner-browser-auth";
@@ -32,6 +33,7 @@ import {
   claimStripeWebhookEvent,
   markStripeWebhookFailed,
   markStripeWebhookProcessed,
+  type StripeWebhookClaim,
 } from "./lib/stripe-webhook-idempotency";
 import { verifyInvoiceDownloadToken } from "./lib/invoice-download-token";
 import { getCanonicalInvoiceCustomerIdentity } from "./lib/invoice-customer-name";
@@ -71,7 +73,7 @@ app.get("/staging-owner-auth/:token", (c) => {
 });
 
 app.post("/api/stripe/webhook", async (c) => {
-  let claimedEventId: string | null = null;
+  let claimedEvent: StripeWebhookClaim | null = null;
   try {
     const payload = await c.req.text();
     if (Buffer.byteLength(payload, "utf8") > 1024 * 1024) throw new Error("Stripe webhook payload is too large");
@@ -82,8 +84,11 @@ app.post("/api/stripe/webhook", async (c) => {
         eventType: event.type,
         paymentIntentId: event.data.object.id,
       });
-      if (claim === "duplicate") return c.json({ received: true, duplicate: true });
-      claimedEventId = event.id;
+      if (claim.status !== "process") {
+        return claim.status === "duplicate" ? c.json({ received: true, duplicate: true })
+          : c.json({ error: "Event is already processing. Retry delivery." }, 503);
+      }
+      claimedEvent = claim;
       const depositRequestId = event.data.object.metadata.securityDepositRequestId;
       const referenceNumber = event.data.object.metadata.referenceNumber;
       const context = depositRequestId
@@ -131,20 +136,27 @@ app.post("/api/stripe/webhook", async (c) => {
           await finalizeStripeTestPayment(context.referenceNumber, event.data.object.id, {
             actorType: "STRIPE",
             eventSource: "STRIPE_WEBHOOK",
+            eventCreated: event.created,
           });
         }
       } else {
         if (depositRequestId) await recordSecurityDepositPaymentFailure(event.data.object.id, depositRequestId);
-        else await recordStripeTestPaymentFailure(context.referenceNumber, event.data.object.id);
+        else await recordStripeTestPaymentFailure(context.referenceNumber, event.data.object.id, event.created);
       }
-      await markStripeWebhookProcessed(event.id);
+      const completedClaim = claimedEvent;
+      claimedEvent = null;
+      await markStripeWebhookProcessed(completedClaim);
       auditLog("payment.confirm", "success", "system");
     }
     return c.json({ received: true });
   } catch (error: unknown) {
-    if (claimedEventId) {
+    if (claimedEvent) {
+      if (error instanceof SupersededStripeEvent) {
+        await markStripeWebhookProcessed(claimedEvent);
+        return c.json({ received: true, ignored: true });
+      }
       try {
-        await markStripeWebhookFailed(claimedEventId);
+        await markStripeWebhookFailed(claimedEvent);
       } catch (markError: unknown) {
         console.error("[Stripe Webhook State]", getErrorMessage(markError));
       }

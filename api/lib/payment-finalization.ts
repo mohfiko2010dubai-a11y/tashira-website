@@ -10,11 +10,12 @@ import { sendPaymentSuccessEmail } from "./payment-success-email";
 import { getCanonicalInvoiceCustomerIdentity } from "./invoice-customer-name";
 import { getPayerEvidence } from "./payer-authorization";
 import { retrieveStripeTestCardSummary } from "./stripe";
+import { applyStripePaymentState, SupersededStripeEvent } from "./payment-state";
 
 export async function finalizeStripeTestPayment(
   referenceNumber: string,
   paymentIntentId: string,
-  evidence: { actorType: TimelineActorType; eventSource: string },
+  evidence: { actorType: TimelineActorType; eventSource: string; eventCreated?: number },
 ) {
   const db = getDb();
   const [application] = await db.select().from(applications)
@@ -35,20 +36,10 @@ export async function finalizeStripeTestPayment(
     throw new Error("Stripe payment verification failed");
   }
 
-  if (application.paymentStatus !== "paid") {
-    await db.update(applications).set({ paymentStatus: "paid", status: "payment_received" })
-      .where(eq(applications.id, application.id));
-    await db.update(payments).set({ status: "succeeded" }).where(eq(payments.id, payment.id));
-    await recordTimelineEvent({
-      applicationId: application.id,
-      paymentId: payment.id,
-      eventName: "PAYMENT_CONFIRMED",
-      eventSource: evidence.eventSource,
-      actorType: evidence.actorType,
-      actorReference: paymentIntentId,
-      resultingState: "paid",
-      summary: "Payment confirmed by Stripe",
-    });
+  const transition = await applyStripePaymentState({ applicationId: application.id, paymentId: payment.id,
+    paymentIntentId, target: "paid", ...evidence });
+  if (!transition.paid) throw new SupersededStripeEvent("A newer payment event supersedes this confirmation");
+  if (transition.applied) {
     if (await hasTimelineEvent(application.id, "THREE_DS_REQUIRED")) {
       await recordTimelineEvent({
         applicationId: application.id,
@@ -168,7 +159,7 @@ export async function finalizeStripeTestPayment(
   };
 }
 
-export async function recordStripeTestPaymentFailure(referenceNumber: string, paymentIntentId: string) {
+export async function recordStripeTestPaymentFailure(referenceNumber: string, paymentIntentId: string, eventCreated: number) {
   const db = getDb();
   const [application] = await db.select({ id: applications.id }).from(applications)
     .where(eq(applications.referenceNumber, referenceNumber)).limit(1);
@@ -178,18 +169,7 @@ export async function recordStripeTestPaymentFailure(referenceNumber: string, pa
     eq(payments.applicationId, application.id),
   )).limit(1);
   if (!payment) throw new Error("Payment does not belong to this application");
-  await db.update(payments).set({ status: "failed" }).where(eq(payments.id, payment.id));
-  await db.update(applications).set({ paymentStatus: "failed" }).where(eq(applications.id, application.id));
-  await recordTimelineEvent({
-    applicationId: application.id,
-    paymentId: payment.id,
-    eventName: "PAYMENT_FAILED",
-    eventSource: "STRIPE_WEBHOOK",
-    actorType: "STRIPE",
-    actorReference: paymentIntentId,
-    sanitizedCategory: "unknown",
-    resultingState: "failed",
-    summary: "Stripe reported payment failure",
-  });
-  return { applicationId: application.id, paymentId: payment.id };
+  const transition = await applyStripePaymentState({ applicationId: application.id, paymentId: payment.id,
+    paymentIntentId, target: "failed", eventCreated, eventSource: "STRIPE_WEBHOOK", actorType: "STRIPE" });
+  return { applicationId: application.id, paymentId: payment.id, ignored: !transition.applied };
 }

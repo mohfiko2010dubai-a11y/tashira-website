@@ -13,6 +13,7 @@ export type StripeIntent = {
 async function stripeRequest(url: string, init?: RequestInit): Promise<StripeIntent> {
   const response = await fetch(url, {
     ...init,
+    signal: AbortSignal.timeout(15000),
     headers: {
       Authorization: `Bearer ${stripeSecretKey()}`,
       ...init?.headers,

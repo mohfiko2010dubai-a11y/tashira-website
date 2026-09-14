@@ -21,6 +21,7 @@ export type StripeWebhookIntent = {
 export type StripeWebhookEvent = {
   id: string;
   type: string;
+  created: number;
   livemode: boolean;
   data: { object: StripeWebhookIntent };
 };
@@ -43,7 +44,7 @@ export function verifyStripeWebhook(payload: string, signatureHeader: string, no
   if (!valid) throw new Error("Invalid Stripe webhook signature");
 
   const event = JSON.parse(payload) as StripeWebhookEvent;
-  if (!event.id || !event.type || !event.data?.object?.id) throw new Error("Invalid Stripe webhook payload");
+  if (!event.id || !event.type || !event.data?.object?.id || !Number.isSafeInteger(event.created) || event.created < 0) throw new Error("Invalid Stripe webhook payload");
   const expectedLiveMode = stripeRuntimeMode() === "LIVE";
   if (event.livemode !== expectedLiveMode || event.data.object.livemode !== expectedLiveMode) {
     throw new Error("Stripe webhook event mode does not match the configured runtime");

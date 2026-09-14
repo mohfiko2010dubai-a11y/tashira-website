@@ -36,9 +36,9 @@ export async function recordTimelineEvent(input: {
   policyVersion?: string;
   evidenceHash?: string;
   summary?: string;
-}) {
+}, db: Pick<ReturnType<typeof getDb>, "insert"> = getDb()) {
   const id = randomUUID();
-  await getDb().insert(applicationTimelineEvents).values({
+  await db.insert(applicationTimelineEvents).values({
     id,
     applicationId: input.applicationId,
     paymentId: input.paymentId,

@@ -6,6 +6,7 @@ const timestamp = 1_800_000_000;
 const payload = JSON.stringify({
   id: "evt_test_review",
   type: "payment_intent.succeeded",
+  created: timestamp,
   livemode: false,
   data: { object: { id: "pi_test_review", status: "succeeded", livemode: false, metadata: { referenceNumber: "TSH-REVIEW" } } },
 });
