@@ -172,6 +172,17 @@ export const documents = mysqlTable("documents", {
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
 });
 
+export const applicationSupplements = mysqlTable("application_supplements", {
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).primaryKey().references(() => applications.id),
+  additionalNotes: text("additional_notes").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export const applicationSupportingDocuments = mysqlTable("application_supporting_documents", {
+  documentId: bigint("document_id", { mode: "number", unsigned: true }).primaryKey().references(() => documents.id),
+  applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull().references(() => applications.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const stripeWebhookEvents = mysqlTable("stripe_webhook_events", {
   eventId: varchar("event_id", { length: 255 }).primaryKey(),
   eventType: varchar("event_type", { length: 100 }).notNull(),

@@ -128,7 +128,7 @@ export async function getApplicationReadiness(applicationId: number, context?: T
   const tripPurposes = await loadTripPurposes(sql, applicationId);
   const evidence = applicantList.map(applicant => {
     const rules = requiredDocuments({ nationality: applicant.nationality, country_of_residence: applicant.gccResidenceCountry,
-      visa_type: application.visaType, trip_purpose: tripPurposes.get(applicant.id) });
+      visa_type: application.visaType, residence_type: application.residenceType, trip_purpose: tripPurposes.get(applicant.id) });
     return { applicantId: applicant.id, expected: rules.map(rule => rule.code),
       documents: projectOwnerDocuments(rules, links, applicant.id).map(item => ({ code: item.requirementCode, state: item.state })) };
   });
@@ -146,6 +146,11 @@ export function evaluateInterviewReadiness(input: { legacy: ApplicationReadiness
       if (!present(applicant[key])) missing.push({ code: `applicant.${key}`, label });
     }
     if (!validPassportExpiry(applicant.passportExpiry ?? "", input.application.arrivalDate)) missing.push({ code: "applicant.passportExpiry", label: "Passport valid for at least six months" });
+    if (input.application.residenceType === "gcc-accompany") {
+      for (const [key, label] of [["sponsorName", "Enter the sponsor's full name"], ["sponsorRelation", "Enter the sponsor's relationship"]] as const) {
+        if (!present(applicant[key])) missing.push({ code: `applicant.${key}`, label });
+      }
+    }
     const old = input.legacy.applicants.find(item => item.applicantId === applicant.id);
     missing.push(...(old?.missing.filter(item => item.code === "applicant.invalid_state") ?? []));
     const evidence = input.evidence.find(item => item.applicantId === applicant.id);

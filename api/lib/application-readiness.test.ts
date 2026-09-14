@@ -24,6 +24,18 @@ describe("owner wizard checkout uses applicant-scoped persisted requirements", (
     legacy: evaluate({ applicants: [applicant], documents: [], application: { ...application, arrivalDate: "" } }),
     application: { ...application, arrivalDate: "" }, applicants: [applicant], evidence: [evidence], relationshipsComplete: true, ...overrides });
   it("accepts one passport page for Egypt without fields removed from the owner form", () => expect(run().status).toBe("READY"));
+  it("optional files and notes do not enter the required evidence set", () => {
+    for (const count of [0, 1, 6]) {
+      const optional = Array.from({ length: count }, (_, index) => ({ code: `OPTIONAL_${index}`, state: "MISSING" }));
+      expect(run({ evidence: [{ ...evidence, documents: [...evidence.documents, ...optional] }] }).status).toBe("READY");
+    }
+  });
+  it("requires companion identity details, independently of uploaded sponsor evidence", () => {
+    const app = { ...application, residenceType: "gcc-accompany" as const };
+    const docs = { ...evidence, expected: [...evidence.expected, "SPONSOR_ID"], documents: [...evidence.documents, { code: "SPONSOR_ID", state: "UPLOADED" }] };
+    expect(run({ application: app, evidence: [docs] }).applicants[0].missing.map(item => item.code)).toEqual(["applicant.sponsorName", "applicant.sponsorRelation"]);
+    expect(run({ application: app, evidence: [docs], applicants: [{ ...applicant, sponsorName: "Synthetic Sponsor", sponsorRelation: "Parent" }] }).status).toBe("READY");
+  });
   it("requires every nationality-specific document independently", () => {
     const result = run({ evidence: [{ ...evidence, expected: [...evidence.expected, "PASSPORT_SECOND_PAGE"] }] });
     expect(result.applicants[0].missing).toContainEqual(expect.objectContaining({ code: "document.PASSPORT_SECOND_PAGE" }));

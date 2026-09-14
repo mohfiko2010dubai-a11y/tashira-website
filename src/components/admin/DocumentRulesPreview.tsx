@@ -8,7 +8,8 @@ export function DocumentRulesPreview() {
   const [visa, setVisa] = useState("30days");
   const [purpose, setPurpose] = useState<TripPurpose>("tourism");
   const [all, setAll] = useState(false);
-  const preview = requiredDocuments({ nationality, country_of_residence: residence, visa_type: visa, trip_purpose: purpose }, { previewDrafts: true });
+  const [companion, setCompanion] = useState(false);
+  const preview = requiredDocuments({ nationality, country_of_residence: residence, visa_type: visa, trip_purpose: purpose, residence_type: companion ? "gcc-accompany" : "gcc-resident" }, { previewDrafts: true });
   const rules = flattenDocumentRules(all ? DOCUMENT_REQUIREMENT_RULES : preview);
   return <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5" aria-labelledby="document-rules-title">
     <h2 id="document-rules-title" className="text-xl font-bold">Document requirements — publication preview</h2>
@@ -21,6 +22,7 @@ export function DocumentRulesPreview() {
       <label className="grid gap-2 text-sm">Trip purpose<select aria-label="Trip purpose" value={purpose} onChange={event => setPurpose(tripPurposeSchema.parse(event.target.value))} className="rounded-xl border p-2">
         <option value="tourism">Tourism</option><option value="visiting_family">Visiting family</option><option value="transit">Transit</option></select></label>
     </div>
+    <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={companion} onChange={event => setCompanion(event.target.checked)} />GCC Resident Accompanying</label>
     <p className="mt-4 text-sm" aria-live="polite">{preview.filter(rule => rule.status === "approved").length} approved customer requirements · {preview.filter(rule => rule.status === "draft" && !rule.placeholder).length} draft requirements · {preview.filter(rule => rule.placeholder).length} wording placeholders</p>
     <label className="my-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={all} onChange={event => setAll(event.target.checked)} />Show all rule rows</label>
     <div className="overflow-x-auto"><table className="w-full text-start text-sm">

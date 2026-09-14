@@ -73,6 +73,8 @@ export default function DynamicApplicationStart() {
   };
   const [applicationType, setApplicationType] = useState<"single" | "family">(visaParam === "family" ? "family" : "single");
   const [residenceType, setResidenceType] = useState<"non-gcc" | "gcc-resident" | "gcc-accompany">(prefill.residenceType);
+  const [sponsorName, setSponsorName] = useState("");
+  const [sponsorRelation, setSponsorRelation] = useState("");
   const [nationality, setNationality] = useState(prefill.nationality);
   const [country, setCountry] = useState(prefill.country);
   const [purpose, setPurpose] = useState<TripPurpose>(prefill.purpose);
@@ -87,8 +89,8 @@ export default function DynamicApplicationStart() {
 
   const travellerCount = applicationType === "single" ? 1 : applicantCount;
   const applicants = useMemo(
-    () => Array.from({ length: travellerCount }, (_, index) => ({ fullName: `Applicant ${index + 1}`, gccResidenceCountry: country, ...(applicationType === "single" ? { nationality, tripPurpose: /transit|96hours/i.test(visaType) ? "transit" as const : purpose } : {}) })),
-    [travellerCount, country, applicationType, nationality, purpose, visaType],
+    () => Array.from({ length: travellerCount }, (_, index) => ({ fullName: `Applicant ${index + 1}`, gccResidenceCountry: country, ...(residenceType === "gcc-accompany" ? { sponsorName: sponsorName.trim(), sponsorRelation: sponsorRelation.trim() } : {}), ...(applicationType === "single" ? { nationality, tripPurpose: /transit|96hours/i.test(visaType) ? "transit" as const : purpose } : {}) })),
+    [travellerCount, country, applicationType, nationality, purpose, visaType, residenceType, sponsorName, sponsorRelation],
   );
 
   // Live, authoritative server-side quote — the customer sees the exact
@@ -102,15 +104,17 @@ export default function DynamicApplicationStart() {
     onSuccess: ({ referenceNumber }) => navigate(`/apply/${encodeURIComponent(referenceNumber)}/interview`, { replace: true }),
   });
 
-  const stepValid = Boolean(country && (applicationType === "family" || nationality) && validStartContact(email, phone) && Number.isInteger(travellerCount) && travellerCount >= 1 && travellerCount <= 10 && visaType && processingType);
+  const stepValid = Boolean((residenceType !== "gcc-accompany" || (sponsorName.trim() && sponsorRelation.trim())) && country && (applicationType === "family" || nationality) && validStartContact(email, phone) && Number.isInteger(travellerCount) && travellerCount >= 1 && travellerCount <= 10 && visaType && processingType);
 
   const documentRules = requiredDocuments({ nationality: applicationType === "single" ? nationality : undefined,
-    country_of_residence: country, visa_type: visaType, trip_purpose: /transit|96hours/i.test(visaType) ? "transit" : purpose });
+    country_of_residence: country, residence_type: residenceType, visa_type: visaType, trip_purpose: /transit|96hours/i.test(visaType) ? "transit" : purpose });
   const ar = i18n.language.startsWith("ar");
   const countryCatalog = trpc.dynamicInterview.nationalityCatalog.useQuery({});
   const allowedResidence = countryCatalog.data?.nationalities.filter(item => residenceType === "non-gcc"
     ? !GCC_COUNTRIES.some(code => code === item.code) : GCC_COUNTRIES.some(code => code === item.code)).map(item => item.code);
   const feedback = useValidationFeedback({
+    sponsorName: residenceType === "gcc-accompany" && !sponsorName.trim() ? (ar ? "أدخل اسم الكفيل كما في هويته أو جوازه." : "Enter the sponsor’s full name as printed in their ID or passport.") : undefined,
+    sponsorRelation: residenceType === "gcc-accompany" && !sponsorRelation.trim() ? (ar ? "أدخل صلة الكفيل بالمسافر." : "Enter the sponsor’s relationship to the applicant.") : undefined,
     nationality: applicationType === "single" && !nationality ? t("validation.choose", { field: t("simple.fields.NATIONALITY") }) : undefined,
     residence: !country ? t("validation.choose", { field: t("simple.fields.RESIDENCE_COUNTRY") }) : undefined,
     email: !email.trim() ? t("validation.emailRequired") : !validStartEmail(email) ? t("validation.emailInvalid") : undefined,
@@ -172,6 +176,14 @@ export default function DynamicApplicationStart() {
             <div className="grid gap-3 sm:grid-cols-3">{(["non-gcc", "gcc-resident", "gcc-accompany"] as const).map(type => <SelectCard key={type}
               selected={residenceType === type} onClick={() => { setResidenceType(type); if ((residenceType === "non-gcc") !== (type === "non-gcc")) setCountry(""); }}
               title={type === "non-gcc" ? (ar ? "مقيم خارج دول الخليج" : "Non-GCC Resident") : type === "gcc-resident" ? (ar ? "مقيم في دول الخليج" : "GCC Resident") : (ar ? "مرافق مقيم خليجي" : "GCC Resident Accompanying")} />)}</div>
+            {residenceType === "gcc-accompany" && <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium">{ar ? "اسم الكفيل الكامل (كما في هويته أو جوازه)" : "Sponsor's full name (as in their ID or passport)"} *
+                <input {...feedback.fieldProps("sponsorName")} value={sponsorName} onChange={event => setSponsorName(event.target.value)} maxLength={255} required
+                  className="mt-2 w-full rounded-xl border p-3 aria-[invalid=true]:border-red-700" />{feedback.errorFor("sponsorName")}</label>
+              <label className="text-sm font-medium">{ar ? "صلة القرابة بالمسافر" : "Relationship to the applicant"} *
+                <input {...feedback.fieldProps("sponsorRelation")} value={sponsorRelation} onChange={event => setSponsorRelation(event.target.value)} maxLength={50} required
+                  className="mt-2 w-full rounded-xl border p-3 aria-[invalid=true]:border-red-700" />{feedback.errorFor("sponsorRelation")}</label>
+            </div>}
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               {applicationType === "single" && <div><p className="mb-2 text-sm font-medium">{t("simple.fields.NATIONALITY")} *</p>
                 <NationalitySelect {...feedback.fieldProps("nationality")} compact value={nationality} onChange={setNationality} />{feedback.errorFor("nationality")}</div>}
@@ -185,7 +197,7 @@ export default function DynamicApplicationStart() {
             </div>
             {country && (applicationType === "family" || nationality) && <section className="mt-5 rounded-xl border border-[#C9A04C] p-4" aria-live="polite">
               <h2 className="font-bold">{applicationType === "single" ? (ar ? `مستنداتك: ${documentRules.length} ملفات` : `Your documents: ${documentRules.length} files`) : (ar ? "مستندات الإقامة" : "Residence documents")}</h2>
-              <ul className="mt-2 list-inside list-disc text-sm">{documentRules.filter(rule => applicationType === "single" || rule.applies_when.country_of_residence || rule.applies_when.residence_region).map(rule => <li key={rule.key}>{ar ? rule.label_ar : rule.label_en}</li>)}</ul>
+              <ul className="mt-2 list-inside list-disc text-sm">{documentRules.filter(rule => applicationType === "single" || rule.applies_when.country_of_residence || rule.applies_when.residence_region || rule.applies_when.residence_type).map(rule => <li key={rule.key}>{ar ? rule.label_ar : rule.label_en}</li>)}</ul>
               {applicationType === "family" && <p className="mt-2 text-sm">{ar ? "قد تُطلب مستندات إضافية حسب جنسية كل مسافر." : "Additional documents may apply based on nationality."}</p>}
             </section>}
 

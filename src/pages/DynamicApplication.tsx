@@ -1,4 +1,5 @@
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
+import { ApplicationSupplements } from "@/components/customer/ApplicationSupplements";
 import { useCallback, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -100,7 +101,7 @@ export default function DynamicApplication() {
     try {
     const applicant = state.partySetup?.applicants.find(item => item.applicantId === applicantId);
     if (!applicant) throw new Error("Applicant unavailable");
-    const previousCodes = ownerRequiredDocumentCodes(applicant.nationality, applicant.residenceCountry, state.applicationContext.visaType, applicant.tripPurpose);
+    const previousCodes = ownerRequiredDocumentCodes(applicant.nationality, applicant.residenceCountry, state.applicationContext.visaType, applicant.tripPurpose, state.applicationContext.residenceType);
     await updateApplicationMutation.mutateAsync({ referenceNumber, applicantIndex: applicant.applicantIndex,
       passportNumber: submission.passportNumber, passportExpiry: submission.passportExpiry, profession: submission.profession });
     if (applicant.fullName !== submission.profile.fullName || applicant.nationality !== submission.profile.nationality || applicant.residenceCountry !== submission.profile.residenceCountry || applicant.tripPurpose !== submission.profile.tripPurpose) {
@@ -122,7 +123,7 @@ export default function DynamicApplication() {
     if (!ownMissing) {
       await completeFormMutation.mutateAsync({ referenceNumber, applicantId, submissionId: crypto.randomUUID() });
       await refreshState();
-      const updatedCodes = ownerRequiredDocumentCodes(submission.profile.nationality, submission.profile.residenceCountry, state.applicationContext.visaType, submission.profile.tripPurpose);
+      const updatedCodes = ownerRequiredDocumentCodes(submission.profile.nationality, submission.profile.residenceCountry, state.applicationContext.visaType, submission.profile.tripPurpose, state.applicationContext.residenceType);
       setNewDocumentCodes(current => ({ ...current, [applicantId]: updatedCodes.filter(code => !previousCodes.includes(code)) }));
       setActiveTravellerId(applicantId);
       setPhase(4);
@@ -173,7 +174,7 @@ export default function DynamicApplication() {
 
   const ownerRequirements = state.partySetup?.requirementReadiness.filter(item => {
     const traveller = state.partySetup?.applicants.find(a => a.applicantId === item.applicantId);
-    return ownerRequiredDocumentCodes(traveller?.nationality, traveller?.residenceCountry, state.applicationContext.visaType, traveller?.tripPurpose).includes(item.requirementCode);
+    return ownerRequiredDocumentCodes(traveller?.nationality, traveller?.residenceCountry, state.applicationContext.visaType, traveller?.tripPurpose, state.applicationContext.residenceType).includes(item.requirementCode);
   }) ?? [];
   const activeRequirements = ownerRequirements.filter(item => item.applicantId === activeId);
   const activeApplicants = state.partySetup
@@ -192,10 +193,10 @@ export default function DynamicApplication() {
       />
       {currentStep !== 5 && activeProfile && <TravellerContext key={`${activeId}:${contextOpen}`} applicant={activeProfile} reference={referenceNumber} editing={contextOpen}
         onEdit={() => setEditingContext(true)} onCancel={() => setEditingContext(false)} onSave={async profile => {
-          const previous = ownerRequiredDocumentCodes(activeProfile.nationality, activeProfile.residenceCountry, state.applicationContext.visaType, activeProfile.tripPurpose);
+          const previous = ownerRequiredDocumentCodes(activeProfile.nationality, activeProfile.residenceCountry, state.applicationContext.visaType, activeProfile.tripPurpose, state.applicationContext.residenceType);
           await editContextMutation.mutateAsync({ referenceNumber, applicantId: activeId, expectedVersion: activeProfile.profileVersion, ...profile, idempotencyKey: crypto.randomUUID() });
           await refreshState();
-          const next = ownerRequiredDocumentCodes(profile.nationality, profile.residenceCountry, state.applicationContext.visaType, profile.tripPurpose);
+          const next = ownerRequiredDocumentCodes(profile.nationality, profile.residenceCountry, state.applicationContext.visaType, profile.tripPurpose, state.applicationContext.residenceType);
           setNewDocumentCodes(current => ({ ...current, [activeId]: next.filter(code => !previous.includes(code)) }));
           setEditingContext(false); setPhase(3);
         }} />}
@@ -264,6 +265,7 @@ export default function DynamicApplication() {
       {state.partySetup && <div hidden={currentStep === 5}><InterviewRequirementDocuments applicants={activeApplicants} requirements={activeRequirements}
         newlyRequiredCodes={newDocumentCodes[activeId]} busy={docsBusy} error={docsError} onUpload={uploadHandler} /></div>}
 
+      {state.partySetup && <ApplicationSupplements applicationId={state.partySetup.applicationId} ar={i18n.language.startsWith("ar")} companion={state.applicationContext.residenceType === "gcc-accompany"} onSaved={refreshState} />}
       {/* Review when interview is complete — minimal, customer-friendly */}
       {currentStep === 5 && <section>
         <div className="rounded-3xl bg-gradient-to-br from-[#0A1628] to-[#16283f] p-8 text-center text-white shadow-sm">

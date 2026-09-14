@@ -116,7 +116,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     const questions: readonly QuestionCatalogDefinition[] = catalog.questions; const requirements: readonly RequirementCatalogDefinition[] = catalog.requirements;
     const interview = buildPersistentDynamicInterview({ applicationId: application.applicationId,
       routeCode: application.routeCode, applicantIds: application.applicantIds, questions, requirements, rules, events, evaluatedAt: now,
-      customerForm: ownerForm, documentProfiles: application.applicants });
+      customerForm: ownerForm, residenceType: application.residenceType, documentProfiles: application.applicants });
     const applicantId = interview.currentQuestions[0]?.applicantId ?? null;
     const unifiedEnabled = isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
     const partyBundle = unifiedEnabled ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
@@ -158,7 +158,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
             applicantIds: document.applicantIds })) : [],
         requirementReadiness: ownerForm ? application.applicants.flatMap(applicant => projectOwnerDocuments(requiredDocuments({
           nationality: applicant.nationality, country_of_residence: applicant.residenceCountry,
-          visa_type: application.routeCode, trip_purpose: applicant.tripPurpose }), documentEvidence, applicant.applicantId)) : partyBundle ? application.applicantIds.flatMap((currentApplicantId) => {
+          visa_type: application.routeCode, residence_type: application.residenceType, trip_purpose: applicant.tripPurpose }), documentEvidence, applicant.applicantId)) : partyBundle ? application.applicantIds.flatMap((currentApplicantId) => {
           const evaluation = partyBundle.snapshots.current(application.applicationId, currentApplicantId);
           if (!evaluation) return [];
           return partyBundle.family.requirements(application.applicationId, currentApplicantId, evaluation.evaluationId)
@@ -178,7 +178,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     const evaluations = evaluateCompletedInterviewApplicants({ applicationId: runtime.application.applicationId,
       routeCode: runtime.application.routeCode, applicantIds: runtime.application.applicantIds, questions: runtime.questions,
       requirements: runtime.requirements,
-      rules: runtime.rules, events, evaluatedAt, customerForm: runtime.ownerForm, documentProfiles: runtime.application.applicants });
+      rules: runtime.rules, events, evaluatedAt, customerForm: runtime.ownerForm, residenceType: runtime.application.residenceType, documentProfiles: runtime.application.applicants });
     if (!evaluations) return;
     if (!deps.persistCompletedEvaluations) throw new Error("INTERVIEW_EVALUATION_PERSISTENCE_UNAVAILABLE");
     await deps.persistCompletedEvaluations({ applicationId: runtime.application.applicationId, catalogVersion: runtime.catalogVersion,
@@ -250,7 +250,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       const evaluations = evaluateCompletedInterviewApplicants({ applicationId: runtime.application.applicationId,
         routeCode: runtime.application.routeCode, applicantIds: input.applicantId === undefined ? runtime.application.applicantIds : [input.applicantId], questions: runtime.questions,
         requirements: runtime.requirements, rules: runtime.rules, events: runtime.events, evaluatedAt,
-        customerForm: runtime.ownerForm, documentProfiles: runtime.application.applicants });
+        customerForm: runtime.ownerForm, residenceType: runtime.application.residenceType, documentProfiles: runtime.application.applicants });
       if (!evaluations) throw new TRPCError({ code: "CONFLICT", message: "Complete the applicant fields first" });
       const unchanged = evaluations.every(({ applicantId, result }) => {
         const previous = runtime.partyBundle?.snapshots.current(runtime.application.applicationId, applicantId);

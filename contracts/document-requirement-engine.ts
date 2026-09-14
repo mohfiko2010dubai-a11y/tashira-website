@@ -4,7 +4,7 @@ import data from "./document-requirement-rules.json";
 export const tripPurposeSchema = z.enum(["tourism", "visiting_family", "transit"]);
 export type TripPurpose = z.infer<typeof tripPurposeSchema>;
 const conditions = z.object({ nationality: z.array(z.string().length(2)).optional(), country_of_residence: z.array(z.string().length(2)).optional(),
-  visa_type: z.array(z.string()).optional(), visa_category: z.array(z.enum(["visit", "transit"])).optional(),
+  residence_type: z.array(z.string()).optional(), visa_type: z.array(z.string()).optional(), visa_category: z.array(z.enum(["visit", "transit"])).optional(),
   trip_purpose: z.array(tripPurposeSchema).optional(), residence_region: z.enum(["gcc", "non_gcc"]).optional() }).strict();
 export type DocumentRequirementRule = { key: string; code: string; label_en: string; label_ar: string; hint_en: string; hint_ar: string;
   document_type: string; status: "approved" | "draft"; placeholder?: boolean; applies_when: z.infer<typeof conditions>;
@@ -18,7 +18,7 @@ export const documentRuleSchema: z.ZodType<DocumentRequirementRule> = z.lazy(() 
 }).strict().refine(rule => !rule.placeholder || rule.status === "draft", "Resolve placeholder wording before approval")
   .refine(rule => !(rule.any_of && rule.all_of), "Use either any_of or all_of"));
 export const DOCUMENT_REQUIREMENT_RULES = z.array(documentRuleSchema).parse(data);
-export type DocumentRequirementContext = { nationality?: string | null; country_of_residence?: string | null; visa_type: string; trip_purpose?: TripPurpose | null };
+export type DocumentRequirementContext = { nationality?: string | null; country_of_residence?: string | null; visa_type: string; residence_type?: string | null; trip_purpose?: TripPurpose | null };
 export const GCC_COUNTRIES = ["SA", "KW", "BH", "QA", "OM", "AE"] as const;
 export const flattenDocumentRules = (rules: readonly DocumentRequirementRule[]): DocumentRequirementRule[] => rules.flatMap(rule => [rule, ...flattenDocumentRules(rule.any_of ?? rule.all_of ?? [])]);
 export type RuleDiagnostic = { key: string; reason: "draft" | "unmatched_condition" | "duplicate_key"; conditions?: string[] };
@@ -34,6 +34,7 @@ export function evaluateDocumentRequirements(context: DocumentRequirementContext
     const when = rule.applies_when; const missed: string[] = [];
     if (when.nationality && !when.nationality.includes(nationality ?? "")) missed.push("nationality");
     if (when.country_of_residence && !when.country_of_residence.includes(residence ?? "")) missed.push("country_of_residence");
+    if (when.residence_type && !when.residence_type.includes(context.residence_type ?? "")) missed.push("residence_type");
     if (when.visa_type && !when.visa_type.includes(context.visa_type)) missed.push("visa_type");
     if (when.visa_category && !when.visa_category.includes(category)) missed.push("visa_category");
     if (when.trip_purpose && !when.trip_purpose.includes(context.trip_purpose ?? (category === "transit" ? "transit" : "tourism"))) missed.push("trip_purpose");

@@ -46,12 +46,12 @@ describe("Approved nationality and residence document union: owner acceptance", 
     }
     expect(requirementSatisfied(proof, new Set(["KSA_RESIDENCE_PROOF"]))).toBe(false);
   });
-  it("8: Qatar and Oman each add their own single residence slot, Bahrain its report", () => {
-    for (const [country, key] of [["QA", "qat_residence_card"], ["OM", "omn_residence_card"], ["BH", "bhr_permit_report"]]) {
-      expect(keys("EG", country)).toEqual(["passport_page", "personal_photo", key]);
+  it("8: Qatar and Oman require both card faces; Bahrain requires its report", () => {
+    for (const [country, key] of [["QA", "qat_residence"], ["OM", "omn_residence"]]) {
+      expect(keys("EG", country)).toEqual(["passport_page", "personal_photo", `${key}_front`, `${key}_back`]);
     }
-    expect(rule("omn_residence_card").label_en).toMatch(/Resident Card/);
-    expect(rule("omn_residence_card").label_ar).toContain("بطاقة مقيم");
+    expect(rule("omn_residence_front").label_en).toMatch(/Resident Card/);
+    expect(rule("omn_residence_front").label_ar).toContain("بطاقة مقيم");
   });
   it("9: a pair without special rules has a nonempty base set", () => {
     expect(keys("EG", "AE")).toEqual(["passport_page", "personal_photo"]);

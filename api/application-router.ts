@@ -73,12 +73,15 @@ export const applicationRouter = createRouter({
         profession: z.string().optional(),
         gccResidenceNumber: z.string().optional(),
         gccResidenceCountry: z.string().optional(),
-        sponsorName: z.string().optional(),
-        sponsorRelation: z.string().optional(),
+        sponsorName: z.string().trim().max(255).optional(),
+        sponsorRelation: z.string().trim().max(50).optional(),
       })),
     }).strict())
     .mutation(async ({ input, ctx }) => {
       try {
+        if (input.residenceType === "gcc-accompany" && input.applicants.some(applicant => !applicant.sponsorName || !applicant.sponsorRelation)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Enter the sponsor's full name and relationship for each accompanying applicant." });
+        }
         const created = await withApplicationCreation(ctx, input.requestKey, ["FORM", "LEGACY"], input, async (connection, referenceNumber) => {
         const db = drizzle(connection);
         const quote = await quoteApplicationPrice({
@@ -183,7 +186,7 @@ export const applicationRouter = createRouter({
       const purposes = runtimeFlagEnvironment() === "STAGING" ? await loadTripPurposes(defaultOperationsSqlClient(), application.id) : new Map();
       return { ...application, documentRuleDiagnostics: application.applicants.map(applicant => {
         const result = evaluateDocumentRequirements({ nationality: applicant.nationality, country_of_residence: applicant.gccResidenceCountry,
-          visa_type: application.visaType, trip_purpose: purposes.get(applicant.id) });
+          visa_type: application.visaType, residence_type: application.residenceType, trip_purpose: purposes.get(applicant.id) });
         return { applicantId: applicant.id, label: applicant.fullName, suppressed: result.suppressed, unmatched: result.unmatched };
       }) };
 

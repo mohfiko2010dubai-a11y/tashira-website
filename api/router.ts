@@ -1,4 +1,5 @@
 import { authRouter } from "./auth-router";
+import { applicationSupplementsRouter } from "./application-supplements-router";
 import { applicationRouter } from "./application-router";
 import { paymentRouter } from "./payment-router";
 import { chatRouter } from "./chat-router";
@@ -50,6 +51,7 @@ export const appRouter = createRouter({
   staff: staffRouter,
   storage: storageRouter,
   document: documentRouter,
+  applicationSupplements: applicationSupplementsRouter,
   timeline: timelineRouter,
   business: businessRouter,
   retention: retentionRouter,

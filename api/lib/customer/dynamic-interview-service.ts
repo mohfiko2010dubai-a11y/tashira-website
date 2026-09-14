@@ -42,7 +42,7 @@ function customerMessage(state: InterviewEligibilityState): string {
 type PersistentInterviewInput = { applicationId: number; routeCode: string; applicantIds: readonly number[];
   questions: readonly QuestionCatalogDefinition[]; requirements?: readonly RequirementCatalogDefinition[]; rules: readonly EligibilityRule[];
   events: readonly InterviewAnswerEvent[]; evaluatedAt: Date; customerForm?: boolean;
-  documentProfiles?: readonly { applicantId: number; nationality: string | null; residenceCountry: string | null; tripPurpose?: TripPurpose }[] };
+  residenceType?: string; documentProfiles?: readonly { applicantId: number; nationality: string | null; residenceCountry: string | null; tripPurpose?: TripPurpose }[] };
 
 function prepare(input: PersistentInterviewInput) {
   const latest = currentEvents(input.events);
@@ -87,6 +87,7 @@ function evaluatePreparedApplicant(input: PersistentInterviewInput, prepared: Re
     attributes.nationality = saved?.nationality ?? String(attributes.nationality ?? "");
     attributes.residenceCountry = saved?.residenceCountry ?? String(attributes.residenceCountry ?? attributes.gccCountry ?? "");
     if (saved?.tripPurpose) attributes.tripPurpose = saved.tripPurpose;
+    attributes.residenceType = input.residenceType ?? "";
     const owner = applyOwnerDocumentRequirements(result, profile, input.evaluatedAt);
     return { profile, result: owner };
   }

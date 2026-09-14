@@ -85,11 +85,11 @@ export class MysqlCustomerInterviewWriteRepository {
       if (!applications[0]) throw new Error("CUSTOMER_APPLICATION_NOT_FOUND");
       const existing = await replay(connection, { ...input, commandSha256 }); if (existing) return existing;
       await assertCheckoutEditable(connection, input.applicationId);
-      const [applicants] = await connection.execute<RowDataPacket[]>("SELECT applicant_index AS applicantIndex FROM applicants WHERE application_id=? ORDER BY applicant_index FOR UPDATE", [input.applicationId]);
+      const [applicants] = await connection.execute<RowDataPacket[]>("SELECT applicant_index AS applicantIndex,sponsor_name AS sponsorName,sponsor_relation AS sponsorRelation FROM applicants WHERE application_id=? ORDER BY applicant_index FOR UPDATE", [input.applicationId]);
       const applicantIndex = applicants.length ? Math.max(...applicants.map((row) => Number(row.applicantIndex))) + 1 : 0;
       const [insert] = await connection.execute<ResultSetHeader>(`INSERT INTO applicants
-        (application_id,applicant_index,full_name,nationality,gcc_residence_country,profile_version) VALUES (?,?,?,?,?,1)`,
-      [input.applicationId, applicantIndex, input.profile.fullName, input.profile.nationality, input.profile.residenceCountry]);
+        (application_id,applicant_index,full_name,nationality,gcc_residence_country,sponsor_name,sponsor_relation,profile_version) VALUES (?,?,?,?,?,?,?,1)`,
+      [input.applicationId, applicantIndex, input.profile.fullName, input.profile.nationality, input.profile.residenceCountry, applicants[0]?.sponsorName ?? null, applicants[0]?.sponsorRelation ?? null]);
       const applicantId = Number(insert.insertId); const eventId = randomUUID();
       await connection.execute(`INSERT INTO customer_interview_profile_events
         (id,application_id,applicant_id,profile_version,event_type,profile_json,reason,actor_reference,command_sha256,idempotency_key,occurred_at)
@@ -358,14 +358,14 @@ export class MysqlCustomerInterviewWriteRepository {
       } };
       const evidence = input.ownerDocuments ? await loadOwnerDocumentEvidence(sql, input.applicationId) : [];
       const [profiles] = input.ownerDocuments ? await connection.execute<RowDataPacket[]>(`SELECT a.nationality,
-        a.gcc_residence_country AS residenceCountry,app.visa_type AS visaType,
+        a.gcc_residence_country AS residenceCountry,app.visa_type AS visaType,app.residence_type AS residenceType,
         (SELECT JSON_UNQUOTE(JSON_EXTRACT(e.profile_json,'$.tripPurpose')) FROM customer_interview_profile_events e
           WHERE e.application_id=a.application_id AND e.applicant_id=a.id ORDER BY e.profile_version DESC LIMIT 1) AS tripPurpose
         FROM applicants a JOIN applications app ON app.id=a.application_id WHERE a.id=? AND a.application_id=?`,
       [input.applicantId, input.applicationId]) : [[]];
       const profile = profiles[0];
       const rules = profile ? requiredDocuments({ nationality: String(profile.nationality ?? ""),
-        country_of_residence: String(profile.residenceCountry ?? ""), visa_type: String(profile.visaType),
+        residence_type: String(profile.residenceType ?? ""), country_of_residence: String(profile.residenceCountry ?? ""), visa_type: String(profile.visaType),
         trip_purpose: tripPurposeSchema.safeParse(profile.tripPurpose).data }) : [];
       const rule = rules.find(item => item.code === input.requirementCode);
       if (input.ownerDocuments && !rule) throw new Error("CUSTOMER_REQUIREMENT_NO_LONGER_APPLIES");

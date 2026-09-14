@@ -24,7 +24,7 @@ export function withOwnerDocumentCatalog(catalog: VersionedRequirementCatalog): 
 export function applyOwnerDocumentRequirements(result: EligibilityEvaluationResult, profile: EligibilityProfile, evaluatedAt: Date): EligibilityEvaluationResult {
   void evaluatedAt;
   const rules = requiredDocuments({ nationality: String(profile.attributes.nationality ?? ""),
-    country_of_residence: String(profile.attributes.residenceCountry ?? ""), visa_type: profile.routeCode,
+    residence_type: String(profile.attributes.residenceType ?? ""), country_of_residence: String(profile.attributes.residenceCountry ?? ""), visa_type: profile.routeCode,
     trip_purpose: tripPurposeSchema.safeParse(profile.attributes.tripPurpose).data });
   const requiredCodes = rules.map(rule => rule.code);
   return { ...result, requiredDocuments: requiredCodes, conditionalDocuments: [],

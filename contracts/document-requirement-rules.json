@@ -65,10 +65,10 @@
   {
     "key": "personal_photo",
     "code": "PERSONAL_PHOTO",
-    "label_en": "Recent personal photo",
-    "label_ar": "صورة شخصية حديثة",
-    "hint_en": "Use a recent photo with a white background.",
-    "hint_ar": "ارفع صورة حديثة بخلفية بيضاء.",
+    "label_en": "Recent personal photo — white background, without glasses",
+    "label_ar": "صورة شخصية حديثة — خلفية بيضاء، بدون نظارة",
+    "hint_en": "White background, without glasses.",
+    "hint_ar": "خلفية بيضاء، بدون نظارة.",
     "document_type": "PERSONAL_PHOTO",
     "applies_when": {
       "visa_category": [
@@ -304,10 +304,10 @@
     "placeholder": false
   },
   {
-    "key": "qat_residence_card",
-    "code": "QA_RESIDENCE_CARD",
-    "label_en": "Qatari residence card",
-    "label_ar": "بطاقة الإقامة القطرية",
+    "key": "qat_residence_front",
+    "code": "QAT_RESIDENCE_FRONT",
+    "label_en": "Qatari residence card — front",
+    "label_ar": "بطاقة الإقامة القطرية — الوجه الأمامي",
     "hint_en": "Upload a clear, complete copy of this document.",
     "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
     "document_type": "GCC_RESIDENCE",
@@ -320,10 +320,26 @@
     "placeholder": false
   },
   {
-    "key": "omn_residence_card",
-    "code": "OMN_ID_CARD",
-    "label_en": "Oman Resident Card / بطاقة مقيم",
-    "label_ar": "بطاقة الإقامة العمانية — بطاقة مقيم / Resident Card",
+    "key": "qat_residence_back",
+    "code": "QAT_RESIDENCE_BACK",
+    "label_en": "Qatari residence card — back",
+    "label_ar": "بطاقة الإقامة القطرية — الوجه الخلفي",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "QA"
+      ]
+    },
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "omn_residence_front",
+    "code": "OMN_RESIDENCE_FRONT",
+    "label_en": "Omani ID / Resident Card (بطاقة مقيم) — front",
+    "label_ar": "بطاقة الهوية العمانية / بطاقة مقيم (Resident Card) — الوجه الأمامي",
     "hint_en": "Upload a clear, complete copy of this document.",
     "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
     "document_type": "GCC_RESIDENCE",
@@ -334,5 +350,36 @@
     },
     "status": "approved",
     "placeholder": false
+  },
+  {
+    "key": "omn_residence_back",
+    "code": "OMN_RESIDENCE_BACK",
+    "label_en": "Omani ID / Resident Card (بطاقة مقيم) — back",
+    "label_ar": "بطاقة الهوية العمانية / بطاقة مقيم (Resident Card) — الوجه الخلفي",
+    "hint_en": "Upload a clear, complete copy of this document.",
+    "hint_ar": "ارفع نسخة واضحة وكاملة من هذا المستند.",
+    "document_type": "GCC_RESIDENCE",
+    "applies_when": {
+      "country_of_residence": [
+        "OM"
+      ]
+    },
+    "status": "approved",
+    "placeholder": false
+  },
+  {
+    "key": "sponsor_id",
+    "code": "SPONSOR_ID",
+    "label_en": "A copy of the sponsor's ID or passport",
+    "label_ar": "صورة هوية أو جواز الكفيل",
+    "hint_en": "Upload a clear copy matching the sponsor name you entered.",
+    "hint_ar": "ارفع نسخة واضحة مطابقة لاسم الكفيل الذي أدخلته.",
+    "document_type": "SPONSOR_ID",
+    "status": "approved",
+    "applies_when": {
+      "residence_type": [
+        "gcc-accompany"
+      ]
+    }
   }
 ]

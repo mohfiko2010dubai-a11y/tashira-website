@@ -9,7 +9,7 @@ describe("document requirement union and publication", () => {
     expect(requiredDocuments(context, { previewDrafts: true }).find(rule => rule.placeholder)).toBeUndefined();
   });
   it("uses Oman rather than Saudi residence rules", () => {
-    expect(keys("OM")).toContain("omn_residence_card");
+    expect(keys("OM")).toContain("omn_residence_front");
     expect(keys("OM").some(key => key.startsWith("ksa_"))).toBe(false);
   });
   it("returns the applicable base set for a nationality/residence pair with no special rule", () => {

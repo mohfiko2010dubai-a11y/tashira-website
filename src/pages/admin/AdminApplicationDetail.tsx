@@ -1,4 +1,5 @@
 import Logo from '@/components/shared/Logo';
+import { ApplicationSupplementReview } from "@/components/admin/ApplicationSupplementReview";
 import { ApplicationDocumentDiagnostics } from "@/components/admin/ApplicationDocumentDiagnostics";
 import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
@@ -142,6 +143,7 @@ export default function AdminApplicationDetail() {
       <ApplicationDocumentDiagnostics applicants={app.documentRuleDiagnostics} />
 
       <div className="max-w-6xl mx-auto px-4 py-6">
+        <ApplicationSupplementReview applicationId={app.id} />
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-white rounded-lg border border-gray-100 p-1 overflow-x-auto">
           {TABS.map((tab) => {
