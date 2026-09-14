@@ -66,3 +66,6 @@
 
 /* Working surfaces keep legacy chat/loading decorations still; real upload CSS is separate. */
 body:has([data-application-layout]) :is(.animate-bounce,.animate-pulse,.animate-spin,.animate-ping) { animation:none!important; }
+
+/* Both retains forwards and also applies each initial keyframe during its stagger. Cancellation restores the visible base SVG. */
+.brand-play :is(.brand-arc,.brand-bar,.brand-stem,.brand-star,.brand-dot,.brand-wordmark) { animation-fill-mode:both; }
