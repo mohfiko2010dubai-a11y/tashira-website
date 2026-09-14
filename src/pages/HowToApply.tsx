@@ -1,37 +1,14 @@
-import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDown } from 'lucide-react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-gsap.registerPlugin(ScrollTrigger);
 
 export default function HowToApply() {
   const { t } = useTranslation('howToApply');
-  const stepsRef = useRef<HTMLDivElement>(null);
 
   const _steps = t('steps', { returnObjects: true });
   const steps = Array.isArray(_steps) ? _steps : [];
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      if (stepsRef.current) {
-        const cards = stepsRef.current.querySelectorAll('.step-card');
-        gsap.from(cards, {
-          opacity: 0,
-          y: 30,
-          stagger: 0.2,
-          duration: 0.6,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: stepsRef.current,
-            start: 'top 80%',
-          },
-        });
-      }
-    });
-    return () => ctx.revert();
-  }, []);
+
 
   return (
     <>
@@ -47,7 +24,7 @@ export default function HowToApply() {
 
       {/* Steps */}
       <div className="max-w-2xl mx-auto px-4 py-16">
-        <div ref={stepsRef} className="space-y-0">
+        <div className="space-y-0">
           {steps.map((step, idx) => (
             <div key={idx}>
               <div className="step-card relative bg-white rounded-xl p-8 shadow-sm border-s-4 border-[#C9A04C]">
