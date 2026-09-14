@@ -1,0 +1,62 @@
+{
+  "revision": "64f38910558ba0f37a53fab94d2f26c041580054",
+  "cases": [
+    {
+      "referenceNumber": "TSH-74E832CD37BF48D9B577D100D3C204FB",
+      "nationality": "EG",
+      "country": "QA",
+      "companion": false,
+      "codes": [
+        "PASSPORT",
+        "PERSONAL_PHOTO",
+        "QAT_RESIDENCE_FRONT",
+        "QAT_RESIDENCE_BACK"
+      ]
+    },
+    {
+      "referenceNumber": "TSH-C99A1DC970714270A134156BFA289A6D",
+      "nationality": "EG",
+      "country": "OM",
+      "companion": false,
+      "codes": [
+        "PASSPORT",
+        "PERSONAL_PHOTO",
+        "OMN_RESIDENCE_FRONT",
+        "OMN_RESIDENCE_BACK"
+      ]
+    },
+    {
+      "referenceNumber": "TSH-1194B8E74E7E40CA9CEB0AD4E2F3BB9F",
+      "nationality": "IQ",
+      "country": "QA",
+      "companion": true,
+      "codes": [
+        "PASSPORT",
+        "PERSONAL_PHOTO",
+        "HOME_NATIONAL_ID",
+        "QAT_RESIDENCE_FRONT",
+        "QAT_RESIDENCE_BACK",
+        "SPONSOR_ID"
+      ]
+    },
+    {
+      "referenceNumber": "TSH-91664D62147141A2ADC45EF20403D324",
+      "nationality": "IQ",
+      "country": "QA",
+      "companion": true,
+      "codes": [
+        "PASSPORT",
+        "PERSONAL_PHOTO",
+        "HOME_NATIONAL_ID",
+        "QAT_RESIDENCE_FRONT",
+        "QAT_RESIDENCE_BACK",
+        "SPONSOR_ID"
+      ]
+    }
+  ],
+  "stepOneConditionalFields": true,
+  "optionalLimitAndReplay": true,
+  "optionalsDoNotChangeReadiness": true,
+  "foreignAccessDenied": true,
+  "notesRestored": true
+}
