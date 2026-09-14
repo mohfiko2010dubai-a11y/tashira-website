@@ -1,11 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { marketingClaims } from "@contracts/marketing-claims";
-import { useRef, useEffect } from 'react';
 import { Shield, Clock, FileCheck, Headphones, Globe, ChevronRight } from 'lucide-react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   { icon: Shield, key: 'license' },
@@ -15,42 +11,14 @@ const features = [
 ] as const;
 
 export default function WhyChooseTashira() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const leftRef = useRef<HTMLDivElement>(null);
-  const cardsRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      if (leftRef.current) {
-        gsap.from(leftRef.current, {
-          opacity: 0,
-          x: -40,
-          duration: 0.8,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: sectionRef.current, start: 'top 75%' },
-        });
-      }
-      if (cardsRef.current) {
-        const cards = cardsRef.current.querySelectorAll('.feature-item');
-        gsap.from(cards, {
-          opacity: 0,
-          y: 30,
-          stagger: 0.1,
-          duration: 0.5,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: cardsRef.current, start: 'top 80%' },
-        });
-      }
-    });
-    return () => ctx.revert();
-  }, []);
 
   const { i18n } = useTranslation();
   const isAr = i18n.language.startsWith("ar");
   const copy = marketingClaims(i18n.language);
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden">
+    <section className="relative overflow-hidden">
       <div className="relative bg-[#1A2332]">
         {/* Background image overlay */}
         <div
@@ -67,7 +35,7 @@ export default function WhyChooseTashira() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
 
             {/* LEFT: Title + Description + CTA */}
-            <div ref={leftRef} className="lg:col-span-5">
+            <div className="lg:col-span-5">
               {/* Label */}
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-px bg-[#C9A04C]" />
@@ -101,7 +69,7 @@ export default function WhyChooseTashira() {
             </div>
 
             {/* RIGHT: Feature list */}
-            <div ref={cardsRef} className="lg:col-span-7">
+            <div className="lg:col-span-7">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {features.map((feature, idx) => (
                   <div

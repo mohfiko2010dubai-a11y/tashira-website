@@ -197,7 +197,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
       <button
         type="submit"
         disabled={!stripe || loading}
-        className={`w-full py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+        className={`w-full py-4 rounded-lg font-semibold flex items-center justify-center gap-2  ${
           policiesAccepted
             ? 'bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white hover:shadow-lg'
             : 'bg-gray-200 text-gray-500'
@@ -205,7 +205,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
       >
         {loading ? (
           <>
-            <Loader2 size={20} className="animate-spin" />
+            <Loader2 size={20} className="" />
             Processing...
           </>
         ) : (
@@ -255,7 +255,7 @@ export default function PaymentPage() {
   if (isLoading || (!!app && (readiness.isLoading || price.isLoading))) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 size={32} className="text-[#C9A04C] animate-spin" />
+        <Loader2 size={32} className="text-[#C9A04C] " />
       </div>
     );
   }
@@ -273,7 +273,7 @@ export default function PaymentPage() {
           <p className="text-gray-400 text-xs mb-4">Ref: {referenceNumber}</p>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-2 bg-[#C9A04C] text-white rounded-lg hover:bg-[#DDBB7A] transition-colors"
+            className="px-6 py-2 bg-[#C9A04C] text-white rounded-lg hover:bg-[#DDBB7A] "
           >
             Go Home
           </button>
@@ -418,7 +418,7 @@ export default function PaymentPage() {
                 <button
                   type="button"
                   onClick={continueApplication}
-                  className="mt-5 w-full rounded-lg bg-amber-800 px-4 py-3 font-semibold text-white transition-colors hover:bg-amber-900"
+                  className="mt-5 w-full rounded-lg bg-amber-800 px-4 py-3 font-semibold text-white  hover:bg-amber-900"
                 >
                   Complete Application
                 </button>

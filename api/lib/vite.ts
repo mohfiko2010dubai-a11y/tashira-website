@@ -76,6 +76,6 @@ export function serveStaticFiles(app: App) {
     if (c.req.path.startsWith("/api/")) return c.json({ error: "Not Found" }, 404);
     c.header("Cache-Control", "private, no-store");
     c.header("X-Robots-Tag", "noindex, nofollow");
-    return c.html(notFoundHtml(languageRoute(c.req.path).language), 404);
+    return c.html(notFoundHtml(languageRoute(c.req.path).language, fs.readFileSync(path.join(distPath, "index.html"), "utf8")), 404);
   });
 }

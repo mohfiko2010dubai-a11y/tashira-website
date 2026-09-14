@@ -29,4 +29,4 @@ export function documentUploadError(message: string, ar: boolean): string {
   return "لم يكتمل الرفع. تحقق من اتصالك بالإنترنت وأعد المحاولة.";
 }
 
-export type DocumentUploadProgress = { phase: "preparing" | "uploading" | "processing" | "saving"; percent?: number };
+export type DocumentUploadProgress = { phase: "preparing" | "uploading" | "processing" | "saving" | "accepted" | "failed"; percent?: number };

@@ -39,7 +39,7 @@ export async function renderSsrResponse(options: SsrResponseOptions): Promise<Re
   } catch (error) {
     if (error instanceof SsrPageNotFound) {
       headers.set("X-Robots-Tag", "noindex, nofollow");
-      return new Response(notFoundHtml(options.language), { status: 404, headers });
+      return new Response(notFoundHtml(options.language, options.shellHtml), { status: 404, headers });
     }
     const event: SsrFailureEvent = {
       event: "ssr_fallback",

@@ -1,9 +1,10 @@
+import BrandLoad from "./BrandLoad";
 import Logo from '@/components/shared/Logo';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Phone, Mail, MapPin, ShieldCheck, FileCheck } from 'lucide-react';
 
-export default function Footer() {
+export default function Footer({ brandLoad = false }: { brandLoad?: boolean }) {
   const { t } = useTranslation('common');
 
   return (
@@ -41,7 +42,7 @@ export default function Footer() {
           {/* Company Info */}
           <div>
             <div className="mb-4">
-              <Logo theme="dark" size={26} /><p className="mt-2 text-xs text-gray-400" dir="ltr">2541485.01</p>
+              {brandLoad ? <BrandLoad /> : <Logo theme="dark" size={26} />}<p className="mt-2 text-xs text-gray-400" dir="ltr">2541485.01</p>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed mb-5">
               {t('footer.description')}

@@ -1,3 +1,4 @@
+import { motionCommit } from "@/lib/motion";
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
 import { ApplicationSupplements } from "@/components/customer/ApplicationSupplements";
 import { useCallback, useMemo, useState } from "react";
@@ -34,7 +35,8 @@ export default function DynamicApplication() {
   const { t, i18n } = useTranslation("wizard");
   const { referenceNumber = "" } = useParams();
   const query = trpc.dynamicInterview.current.useQuery({ referenceNumber }, { enabled: referenceNumber.length >= 3, retry: false });
-  const [phase, setPhase] = useState<3 | 4 | 5 | null>(null);
+  const [phase, updatePhase] = useState<3 | 4 | 5 | null>(null);
+  const setPhase = (next: 3 | 4 | 5) => { if (next === phase) return; motionCommit(() => updatePhase(next), next < (phase ?? 3)); };
   const [activeTravellerId, setActiveTravellerId] = useState<number | null>(null);
   const [editingContext, setEditingContext] = useState(false);
   const prepareUploadMutation = trpc.dynamicInterview.prepareDocumentUploads.useMutation();
@@ -265,7 +267,7 @@ export default function DynamicApplication() {
       {state.partySetup && <div hidden={currentStep === 5}><InterviewRequirementDocuments applicants={activeApplicants} requirements={activeRequirements}
         newlyRequiredCodes={newDocumentCodes[activeId]} busy={docsBusy} error={docsError} onUpload={uploadHandler} /></div>}
 
-      {state.partySetup && <ApplicationSupplements applicationId={state.partySetup.applicationId} ar={i18n.language.startsWith("ar")} companion={state.applicationContext.residenceType === "gcc-accompany"} onSaved={refreshState} />}
+      {state.partySetup && <div hidden={currentStep === 5}><ApplicationSupplements applicationId={state.partySetup.applicationId} ar={i18n.language.startsWith("ar")} companion={state.applicationContext.residenceType === "gcc-accompany"} onSaved={refreshState} /></div>}
       {/* Review when interview is complete — minimal, customer-friendly */}
       {currentStep === 5 && <section>
         <div className="rounded-3xl bg-gradient-to-br from-[#0A1628] to-[#16283f] p-8 text-center text-white shadow-sm">

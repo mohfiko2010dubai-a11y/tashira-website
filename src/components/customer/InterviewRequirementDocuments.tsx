@@ -1,3 +1,4 @@
+import { UploadProgress } from "./UploadProgress";
 import Logo from '@/components/shared/Logo';
 import { documentCardCopy, documentGroupHeading } from "./document-card-copy";
 import { DocumentChoiceUpload } from "./DocumentChoiceUpload";
@@ -18,6 +19,7 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [replacing, setReplacing] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<Record<string, File | undefined>>({});
+  const [fileNames, setFileNames] = useState<Record<string, string>>({});
   const [selectedRequirements, setSelectedRequirements] = useState<Record<string, PartyRequirementReadiness>>({});
   const [uploading, setUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
@@ -25,18 +27,21 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
   const upload = async (requirement: PartyRequirementReadiness, file: File) => {
     const key = `${requirement.applicantId}:${requirement.requirementCode}`;
     setSelected(current => ({ ...current, [key]: file }));
+    setFileNames(current => ({ ...current, [key]: file.name }));
     setSelectedRequirements(current => ({ ...current, [key]: requirement }));
     setUploadErrors(current => ({ ...current, [key]: "" }));
-    const fail = (message: string) => setUploadErrors(current => ({ ...current, [key]: documentUploadError(message, ar) }));
+    const fail = (message: string) => { setUploadErrors(current => ({ ...current, [key]: documentUploadError(message, ar) })); setProgress(current => ({ ...current, [key]: { phase: "failed" } })); };
     if (file.size === 0 || file.size > MAX_DOCUMENT_FILE_SIZE) { fail(DOCUMENT_SIZE_GUIDANCE); return; }
     if (!DOCUMENT_MIME_TYPES.has(documentMimeType(file.type, file.name))) { fail(UNSUPPORTED_DOCUMENT_GUIDANCE); return; }
+    setProgress(current => ({ ...current, [key]: { phase: "preparing" } }));
     setUploading(true);
     try {
       await onUpload(requirement, file, update => setProgress(current => ({ ...current, [key]: update })));
+      setProgress(current => ({ ...current, [key]: { phase: "accepted" } }));
       setSelected(current => ({ ...current, [key]: undefined }));
       setReplacing(current => ({ ...current, [key]: false }));
     } catch (cause) { fail(cause instanceof Error ? cause.message : ""); }
-    finally { setUploading(false); setProgress(current => ({ ...current, [key]: undefined })); }
+    finally { setUploading(false); }
   };
   if (!requirements.length) return null;
   const total = requirements.length;
@@ -59,12 +64,8 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
           <input type="file" aria-label={label} accept={DOCUMENT_INPUT_ACCEPT} disabled={busy || uploading} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             onChange={event => { const file = event.target.files?.[0]; if (file) void upload(requirement, file); event.target.value = ""; }} />
         </label>)}
-      {selected[key] && uploadErrors[key] && <button type="button" disabled={busy || uploading} className="mt-2 min-h-11 rounded-lg border px-3 text-sm font-semibold"
-        onClick={() => { const file = selected[key]; if (file) void upload(selectedRequirements[key] ?? requirement, file); }}>{ar ? "إعادة محاولة الرفع" : "Retry upload"}</button>}
-      {progress[key] && <div className="mt-2" role="status" aria-live="polite"><p className="text-xs">{progress[key]?.phase === "uploading" ? (ar ? `جارٍ الرفع ${progress[key]?.percent ?? ""}%` : `Uploading ${progress[key]?.percent ?? ""}%`)
-        : progress[key]?.phase === "processing" ? (ar ? "جارٍ معالجة الصورة…" : "Processing photo…") : (ar ? "جارٍ حفظ المستند…" : "Saving document…")}</p>
-        <progress className="w-full" aria-label={ar ? "تقدم رفع الملف" : "File upload progress"} max={100} value={progress[key]?.phase === "uploading" ? progress[key]?.percent : undefined} /></div>}
-      {uploadErrors[key] && <p role="alert" className="mt-2 rounded-lg border border-red-300 bg-red-50 p-2 text-sm text-red-700">{ar ? "فشل الرفع: " : "Upload failed: "}{uploadErrors[key]}</p>}
+      {progress[key] && <UploadProgress progress={progress[key]!} name={fileNames[key] ?? label} ar={ar} error={uploadErrors[key]} disabled={busy || uploading}
+        retry={() => { const file = selected[key]; if (file) void upload(selectedRequirements[key] ?? requirement, file); }} />}
     </div>;
   };
   return <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7" aria-labelledby="requirement-documents-heading">

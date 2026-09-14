@@ -1,3 +1,4 @@
+import { UploadProgress } from "./UploadProgress";
 import { useState } from "react";
 import { trpc } from "@/providers/trpc-client";
 import { documentUploadClient } from "@/lib/document-upload-client";
@@ -22,6 +23,7 @@ export function ApplicationSupplements({ applicationId, ar, companion, onSaved }
   const [relation, setRelation] = useState<string | null>(null);
   const [editingSponsor, setEditingSponsor] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState("");
   const [documentId, setDocumentId] = useState<number | null>(null);
   const [progress, setProgress] = useState<DocumentUploadProgress | null>(null);
   const [busy, setBusy] = useState(false);
@@ -29,7 +31,7 @@ export function ApplicationSupplements({ applicationId, ar, companion, onSaved }
   const sponsor = query.data?.sponsors[0];
   const upload = async () => {
     if (!file || busy) return;
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setFileName(file.name);
     try {
       let id = documentId;
       if (!id) {
@@ -42,8 +44,8 @@ export function ApplicationSupplements({ applicationId, ar, companion, onSaved }
         id = saved.id; setDocumentId(id);
       }
       await link.mutateAsync({ applicationId, documentId: id });
-      await query.refetch(); setFile(null); setDocumentId(null); setProgress(null);
-    } catch (cause) { setError(documentUploadError(cause instanceof Error ? cause.message : "", ar)); }
+      await query.refetch(); setFile(null); setDocumentId(null); setProgress({ phase: "accepted" });
+    } catch (cause) { setProgress({ phase: "failed" }); setError(documentUploadError(cause instanceof Error ? cause.message : "", ar)); }
     finally { setBusy(false); }
   };
   return <section className="mt-5 space-y-5 rounded-2xl border bg-white p-5">
@@ -61,11 +63,10 @@ export function ApplicationSupplements({ applicationId, ar, companion, onSaved }
       <p className="mt-2 text-sm">{ar ? "حتى 6 ملفات. PDF، JPG، PNG، HEIC أو HEIF؛ حتى 20 ميجابايت للملف. لا تمنع المتابعة." : "Up to 6 files. PDF, JPG, PNG, HEIC or HEIF; up to 20 MB each. These never block continuation."}</p>
       <ul className="my-3 space-y-1">{query.data?.files.map(item => <li key={item.id}>✓ {item.name}</li>)}</ul>
       {(query.data?.files.length ?? 0) < MAX_SUPPORTING_DOCUMENTS && <>
-        <input type="file" className="max-w-full" aria-label={ar ? "مستند إضافي اختياري" : "Optional supporting file"} accept={DOCUMENT_INPUT_ACCEPT} disabled={busy || !query.data} onChange={event => { setFile(event.target.files?.[0] ?? null); setDocumentId(null); setError(""); }} />
-        {file && <button type="button" disabled={busy} onClick={() => void upload()} className="mt-3 rounded-xl border p-3">{error ? (ar ? "إعادة المحاولة" : "Retry") : (ar ? "رفع" : "Upload")}</button>}
+        <input type="file" className="max-w-full" aria-label={ar ? "مستند إضافي اختياري" : "Optional supporting file"} accept={DOCUMENT_INPUT_ACCEPT} disabled={busy || !query.data} onChange={event => { setFile(event.target.files?.[0] ?? null); setDocumentId(null); setError(""); setProgress(null); }} />
+        {file && progress?.phase !== "accepted" && !error && <button type="button" disabled={busy} onClick={() => void upload()} className="mt-3 rounded-xl border p-3">{error ? (ar ? "إعادة المحاولة" : "Retry") : (ar ? "رفع" : "Upload")}</button>}
       </>}
-      {busy && <p role="status">{ar ? "جارٍ الرفع والحفظ" : "Uploading and saving"} {progress?.percent !== undefined ? `${progress.percent}%` : "…"}</p>}
-      {error && <p role="alert" className="text-red-700">{error}</p>}
+      {progress && <UploadProgress progress={progress} name={fileName} ar={ar} error={error} disabled={busy} retry={() => void upload()} />}
     </div>
     <form className="grid gap-3" onSubmit={event => { event.preventDefault(); void saveNotes.mutateAsync({ applicationId, notes: notes ?? query.data?.notes ?? "" }).then(() => query.refetch()).catch(() => undefined); }}>
       <label className="font-bold">{ar ? "ملاحظات إضافية (اختياري)" : "Additional notes (optional)"}

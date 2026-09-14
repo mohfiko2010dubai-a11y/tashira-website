@@ -1,6 +1,7 @@
+import MarketingLayout from "./components/shared/MarketingLayout";
 import PageHead from "./components/PageHead";
 import { useSyncExternalStore } from "react";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Route, Routes, Outlet, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { fixedMetadata } from "@contracts/ssr-pages";
@@ -32,12 +33,11 @@ export default function PublicApp() {
   const meta = fixedMetadata(location.pathname, i18n.language);
   return <HelmetProvider><div className={`min-h-screen bg-white ${i18n.language.startsWith("ar") ? "font-tajawal" : "font-inter"}`}>
     <Header />
-    <main className={/^\/(apply|guides|news|about|editorial-policy|sources-and-verification|uae-visa)(\/|$)/.test(location.pathname) ? "site-header-clearance" : undefined}><Routes>
+    <main data-motion-screen className={/^\/(apply|guides|news|about|editorial-policy|sources-and-verification|uae-visa)(\/|$)/.test(location.pathname) ? "site-header-clearance" : undefined}><Routes>
+      <Route element={<MarketingLayout />}>
       <Route path="/" element={<Home />} />
       <Route path="/visa-prices" element={<Pricing />} />
       <Route path="/how-to-apply" element={<HowToApply />} />
-      <Route path="/apply" element={<DynamicApplicationStart />} />
-      <Route path="/track" element={<Track />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/visa-pre-check" element={<CustomerPrecheck />} />
       <Route path="/guides" element={<ContentIndexPage type="GUIDE" />} />
@@ -49,9 +49,13 @@ export default function PublicApp() {
       <Route path="/editorial-policy" element={<StaticInfoPage page="editorial" />} />
       <Route path="/sources-and-verification" element={<StaticInfoPage page="sources" />} />
       {(["terms", "privacy", "refund", "cookies"] as const).map(page => <Route key={page} path={`/${page}`} element={<Legal page={page} />} />)}
+      </Route>
+      <Route element={<><Outlet /><Footer /></>}>
+      <Route path="/apply" element={<DynamicApplicationStart />} />
+      <Route path="/track" element={<Track />} />
+      </Route>
     </Routes></main>
     {meta && <PageHead title={meta.title} description={meta.description} canonicalPath={meta.canonicalPath} robots={["/apply", "/track"].includes(location.pathname) ? "noindex" : undefined} />}
-    <Footer />
     {mounted && <><ScrollToTop /><ChatBot key={location.search.includes("resume=1") ? "resume" : "default"} /></>}
   </div></HelmetProvider>;
 }

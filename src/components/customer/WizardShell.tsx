@@ -31,7 +31,7 @@ export default function WizardShell({ currentStep, children, compactContent = fa
         <div className="max-w-6xl mx-auto px-4 pt-5 pb-3">
           <div className="relative h-1.5 rounded-full bg-gray-200">
             <div
-              className="absolute inset-y-0 start-0 rounded-full bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] transition-all duration-500"
+              className="absolute inset-y-0 start-0 rounded-full bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A]"
               style={{ width: `${progress}%` }}
             />
           </div>
