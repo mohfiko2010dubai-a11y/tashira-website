@@ -1,3 +1,7 @@
+# Payment price revisions verified on staging — 2026-09-14
+
+Staging 105e5c519e2c04afbc4b8c919a333c29c7420ff6: family third traveller reprices 370 to 555 USD; product and Express mutation reprice; stale displayed quote rejected with 409; payment-page amount equals Stripe TEST cents and saved intent reused. Migration 046 backed up and verified; old issued-intent prices and append-only guards preserved. Check/lint/build and 1039 tests pass, 26 gated skips. Payment items 3–6 still block launch; no test orders/files deleted or flagged. See staging/PAYMENT_REMEDIATION_DELTA.md.
+
 # Payment remediation authorized — first privacy fix deployed — 2026-09-14
 
 Owner approved ordered fixes in attachment c3c1bd41-2cdb-4be4-8507-1c7e72125835. Staging fc9485abf65f5bec359b1175dc7044031744b092 removes demonstrated SQL/email response/runtime-log leakage; duplicate probe repeated successfully and two staging runtime logs sanitized without changing audit DB rows or document files. Shared infrastructure logs remain outside this purge. Initial disk-full deployment recovered by removing only four obsolete build dependency caches; guard redeploy passed. Price revision/transaction work is in progress in tmp/next3-check, not deployed. Other payment blockers remain; no launch. Test cleanup superseded: no deletion, no pattern-only flagging; owner must review each proposed is_test record. See staging/PAYMENT_REMEDIATION_DELTA.md.

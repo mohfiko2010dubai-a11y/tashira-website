@@ -1,0 +1,23 @@
+{
+  "identity": {
+    "db": "tashira_staging",
+    "user": "tashira_staging_app"
+  },
+  "logs": [
+    {
+      "file": "/var/www/tashira-staging/logs/app-out.log",
+      "bytes": 303326,
+      "emailMatches": 0,
+      "sqlMatches": 0,
+      "syntheticMarker": false
+    },
+    {
+      "file": "/var/www/tashira-staging/logs/app-error.log",
+      "bytes": 410655,
+      "emailMatches": 2,
+      "sqlMatches": 12,
+      "syntheticMarker": true
+    }
+  ]
+}
+

@@ -1,0 +1,35 @@
+{
+  "checks": [
+    {
+      "change": "initial",
+      "amount": 185
+    },
+    {
+      "change": {
+        "visaType": "90days-single"
+      },
+      "amount": 550,
+      "displayEqualsQuote": true
+    },
+    {
+      "change": {
+        "processingType": "express"
+      },
+      "amount": 580,
+      "displayEqualsQuote": true
+    }
+  ],
+  "reference": "TSH-PRICE-1789361860057",
+  "staleQuoteDenied": true,
+  "savedIntentReused": true,
+  "intentId": "pi_3UFRxaQuJW86CmXv1gfVYc2J",
+  "finalAmount": 580,
+  "serverStoredAmount": 580,
+  "paymentPageShowsQuote": true,
+  "familyReference": "TSH-MU0RV6AZ-19BED7",
+  "family": {
+    "before": 370,
+    "after": 555,
+    "count": 3
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "identity": {
+    "db": "tashira_staging",
+    "user": "tashira_staging_app"
+  },
+  "logs": [
+    {
+      "file": "/var/www/tashira-staging/logs/app-out.log",
+      "beforeBytes": 303684,
+      "afterBytes": 229310,
+      "beforeSha256": "48e237ced79cc5f191d591aaf9f0d77f0d6eb313e9e611e2465178ccb07941c7",
+      "treatment": "Central allowlist retained structured audit metadata; free text and payloads redacted"
+    },
+    {
+      "file": "/var/www/tashira-staging/logs/app-error.log",
+      "beforeBytes": 411013,
+      "afterBytes": 260134,
+      "beforeSha256": "7a20e2ce9119cdae1ab3ca238c67afd00f1df1c7b8e6aedaf645cef3f0b6557b",
+      "treatment": "Central allowlist retained structured audit metadata; free text and payloads redacted"
+    }
+  ],
+  "databaseRowsModified": 0,
+  "documentFilesModified": 0
+}
+
