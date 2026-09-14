@@ -201,6 +201,12 @@ export const applicationTimelineEvents = mysqlTable("application_timeline_events
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const policyConsentInvalidations = mysqlTable("policy_consent_invalidations", {
+  eventId: varchar("event_id", { length: 36 }).primaryKey().references(() => applicationTimelineEvents.id, { onDelete: "restrict" }),
+  reason: mysqlEnum("reason", ["LEGACY_AUTOMATIC", "UNVERIFIED_SOURCE"]).notNull(),
+  flaggedAt: timestamp("flagged_at").defaultNow().notNull(),
+});
+
 export const pricingRules = mysqlTable("pricing_rules", {
   id: serial("id").primaryKey(),
   serviceCode: varchar("service_code", { length: 80 }).notNull(),

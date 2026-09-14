@@ -1,3 +1,7 @@
+# Payment event integrity verified — 2026-09-14
+
+Staging e5390827bfe8b1b9c153b42acdc851c8fa5c265f preserves paid state against late failure events and atomically claims webhook attempts. Real Stripe TEST payment, signed concurrent delivery, failed-retry race and crashed-worker recovery passed; one payment confirmation. Full gates: 1047 tests pass, 26 gated skips. Migrations 047/048 backed up. Consent migration 049 applied with immutable invalidation flags; consent code is local and awaiting deployment. Item 6 and remaining audit delta remain launch blockers. No production/test-order deletion or test flagging.
+
 # Payment price revisions verified on staging — 2026-09-14
 
 Staging 105e5c519e2c04afbc4b8c919a333c29c7420ff6: family third traveller reprices 370 to 555 USD; product and Express mutation reprice; stale displayed quote rejected with 409; payment-page amount equals Stripe TEST cents and saved intent reused. Migration 046 backed up and verified; old issued-intent prices and append-only guards preserved. Check/lint/build and 1039 tests pass, 26 gated skips. Payment items 3–6 still block launch; no test orders/files deleted or flagged. See staging/PAYMENT_REMEDIATION_DELTA.md.

@@ -12,8 +12,8 @@ import { auditLog } from "./lib/audit-log";
 import { assertApplicantBelongsToApplication, assertApplicationIdAccess, assertApplicationReferenceAccess } from "./lib/application-access";
 import { getCanonicalApplicationByReference } from "./lib/application-projection";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
-import { documentUploadEvent, hasTimelineEvent, hasTimelinePolicyAcceptance, recordTimelineEvent } from "./lib/application-timeline";
-import { ACCEPTED_POLICY_TYPES, TERMS_POLICY_EFFECTIVE_DATE, TERMS_POLICY_VERSION } from "@contracts/constants";
+import { documentUploadEvent, hasTimelineEvent, recordTimelineEvent } from "./lib/application-timeline";
+import { TERMS_POLICY_VERSION } from "@contracts/constants";
 import { quoteApplicationPrice, ensureInitialPriceSnapshot } from "./lib/pricing-engine";
 import { assertCompleteApplicantSequence, assertRequiredApplicantDocuments } from "./lib/wizard-applicants";
 import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
@@ -378,14 +378,6 @@ export const wizardRouter = createRouter({
             actorType: "CUSTOMER",
             resultingState: "documents_pending",
             summary: "Application submitted",
-        });
-        if (!await hasTimelinePolicyAcceptance(updated.id, input.policyVersion)) await recordTimelineEvent({
-            applicationId: updated.id,
-            eventName: "POLICY_ACCEPTED",
-            eventSource: "CHATBOT_WIZARD",
-            actorType: "CUSTOMER",
-            policyVersion: input.policyVersion,
-            summary: `${ACCEPTED_POLICY_TYPES.join(", ")} accepted; effective ${TERMS_POLICY_EFFECTIVE_DATE}`,
         });
 
         return {

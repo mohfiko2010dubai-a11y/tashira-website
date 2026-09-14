@@ -2,7 +2,8 @@ import { loadTripPurposes } from "./customer/trip-purpose";
 import { requiredDocuments } from "../../contracts/document-requirement-engine";
 import { loadOwnerDocumentEvidence, projectOwnerDocuments } from "./customer/owner-document-evidence";
 import { and, eq, ne } from "drizzle-orm";
-import { applicants, currentApplicationPriceSnapshots as applicationPriceSnapshots, applications, applicationTimelineEvents, documents } from "../../db/schema";
+import { applicants, currentApplicationPriceSnapshots as applicationPriceSnapshots, applications, documents } from "../../db/schema";
+import { hasTimelinePolicyAcceptance } from "./application-timeline";
 import { TERMS_POLICY_VERSION } from "../../contracts/constants";
 import { getDb } from "../queries/connection";
 import { validPassportExpiry } from "../../contracts/traveller-details";
@@ -113,9 +114,8 @@ export async function getApplicationReadiness(applicationId: number, context?: T
   const documentList = await db.select().from(documents).where(and(eq(documents.applicationId, applicationId), ne(documents.uploadStatus, "replaced")));
   const [snapshot] = await db.select({ id: applicationPriceSnapshots.id }).from(applicationPriceSnapshots)
     .where(eq(applicationPriceSnapshots.applicationId, applicationId)).limit(1);
-  const [policy] = await db.select({ policyVersion: applicationTimelineEvents.policyVersion }).from(applicationTimelineEvents)
-    .where(and(eq(applicationTimelineEvents.applicationId, applicationId), eq(applicationTimelineEvents.eventName, "POLICY_ACCEPTED"), eq(applicationTimelineEvents.policyVersion, TERMS_POLICY_VERSION))).limit(1);
-  const legacy = evaluateApplicationReadiness({ application, applicants: applicantList, documents: documentList, hasPriceSnapshot: Boolean(snapshot), acceptedPolicyVersion: policy?.policyVersion ?? undefined });
+  const policyAccepted = await hasTimelinePolicyAcceptance(applicationId, TERMS_POLICY_VERSION);
+  const legacy = evaluateApplicationReadiness({ application, applicants: applicantList, documents: documentList, hasPriceSnapshot: Boolean(snapshot), acceptedPolicyVersion: policyAccepted ? TERMS_POLICY_VERSION : undefined });
   // The owner-reviewed wizard is staging-only. Legacy and production checkout retain their existing gate.
   if (runtimeFlagEnvironment() !== "STAGING") return legacy;
   const { defaultOperationsSqlClient } = await import("./operations/mysql-query-client");

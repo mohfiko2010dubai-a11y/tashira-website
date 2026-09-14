@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
-import { and, asc, count, eq } from "drizzle-orm";
-import { applicationTimelineEvents } from "@db/schema";
+import { and, asc, count, eq, isNull } from "drizzle-orm";
+import { applicationTimelineEvents, policyConsentInvalidations } from "@db/schema";
 import { getDb } from "../queries/connection";
+import { EXPLICIT_POLICY_SOURCE, policyConsentValidity } from "./policy-consent";
 
 export const TIMELINE_EVENT_NAMES = [
   "APPLICATION_CREATED", "APPLICANT_ADDED", "APPLICANT_UPDATED", "APPLICATION_SUBMITTED", "POLICY_ACCEPTED",
@@ -58,9 +59,15 @@ export async function recordTimelineEvent(input: {
 }
 
 export async function listTimelineEvents(applicationId: number) {
-  return getDb().select().from(applicationTimelineEvents)
+  const rows = await getDb().select({ event: applicationTimelineEvents, invalidation: policyConsentInvalidations }).from(applicationTimelineEvents)
+    .leftJoin(policyConsentInvalidations, eq(policyConsentInvalidations.eventId, applicationTimelineEvents.id))
     .where(eq(applicationTimelineEvents.applicationId, applicationId))
     .orderBy(asc(applicationTimelineEvents.createdAt), asc(applicationTimelineEvents.id));
+  return rows.map(({ event, invalidation }) => ({ ...event,
+    consentValidity: policyConsentValidity(event, Boolean(invalidation)),
+    consentInvalidationReason: invalidation?.reason ?? null,
+    consentInvalidatedAt: invalidation?.flaggedAt ?? null,
+  }));
 }
 
 export async function nextPaymentAttempt(applicationId: number) {
@@ -83,10 +90,14 @@ export async function hasTimelineEvent(applicationId: number, eventName: Timelin
 
 export async function hasTimelinePolicyAcceptance(applicationId: number, policyVersion: string) {
   const [result] = await getDb().select({ value: count() }).from(applicationTimelineEvents)
+    .leftJoin(policyConsentInvalidations, eq(policyConsentInvalidations.eventId, applicationTimelineEvents.id))
     .where(and(
       eq(applicationTimelineEvents.applicationId, applicationId),
       eq(applicationTimelineEvents.eventName, "POLICY_ACCEPTED"),
       eq(applicationTimelineEvents.policyVersion, policyVersion),
+      eq(applicationTimelineEvents.eventSource, EXPLICIT_POLICY_SOURCE),
+      eq(applicationTimelineEvents.actorType, "CUSTOMER"),
+      isNull(policyConsentInvalidations.eventId),
     ));
   return Number(result?.value || 0) > 0;
 }

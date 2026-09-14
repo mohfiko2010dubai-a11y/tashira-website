@@ -67,6 +67,7 @@ export default function ApplicationTimeline({ referenceNumber, admin = false }: 
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{eventLabel(event.eventName)}</p>
+                  {event.consentValidity === "INVALID" && <p role="note" className="mt-1 text-xs font-semibold text-red-700">Not valid consent — this historical record is not evidence of customer acceptance.</p>}
                   {event.summary && <p className="mt-1 text-xs text-gray-500">{event.summary}</p>}
                 </div>
                 <time className="text-xs text-gray-400">{new Date(event.createdAt).toLocaleString()}</time>

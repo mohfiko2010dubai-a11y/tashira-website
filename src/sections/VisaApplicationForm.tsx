@@ -239,6 +239,7 @@ export default function VisaApplicationForm() {
     }
   };
 
+  const acceptPolicies = trpc.payment.acceptPolicies.useMutation();
   const submitApplication = trpc.application.create.useMutation({
     onSuccess: async (data) => {
       trackFunnelEventOnce('application_submitted', data.referenceNumber, {
@@ -254,6 +255,8 @@ export default function VisaApplicationForm() {
         return;
       }
       try {
+        if (termsAccepted) await acceptPolicies.mutateAsync({ referenceNumber: data.referenceNumber,
+          accepted: true, policyVersion: TERMS_POLICY_VERSION });
         const readiness = await utils.payment.readiness.fetch({ referenceNumber: data.referenceNumber });
         const decision = checkoutPreflightDecision(readiness.status);
         setReadinessIssues(decision.showCompletionPanel ? readiness : null);
