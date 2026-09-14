@@ -61,7 +61,7 @@ export function ApplicationSupplements({ applicationId, ar, companion, onSaved }
       <p className="mt-2 text-sm">{ar ? "حتى 6 ملفات. PDF، JPG، PNG، HEIC أو HEIF؛ حتى 20 ميجابايت للملف. لا تمنع المتابعة." : "Up to 6 files. PDF, JPG, PNG, HEIC or HEIF; up to 20 MB each. These never block continuation."}</p>
       <ul className="my-3 space-y-1">{query.data?.files.map(item => <li key={item.id}>✓ {item.name}</li>)}</ul>
       {(query.data?.files.length ?? 0) < MAX_SUPPORTING_DOCUMENTS && <>
-        <input type="file" aria-label={ar ? "مستند إضافي اختياري" : "Optional supporting file"} accept={DOCUMENT_INPUT_ACCEPT} disabled={busy || !query.data} onChange={event => { setFile(event.target.files?.[0] ?? null); setDocumentId(null); setError(""); }} />
+        <input type="file" className="max-w-full" aria-label={ar ? "مستند إضافي اختياري" : "Optional supporting file"} accept={DOCUMENT_INPUT_ACCEPT} disabled={busy || !query.data} onChange={event => { setFile(event.target.files?.[0] ?? null); setDocumentId(null); setError(""); }} />
         {file && <button type="button" disabled={busy} onClick={() => void upload()} className="mt-3 rounded-xl border p-3">{error ? (ar ? "إعادة المحاولة" : "Retry") : (ar ? "رفع" : "Upload")}</button>}
       </>}
       {busy && <p role="status">{ar ? "جارٍ الرفع والحفظ" : "Uploading and saving"} {progress?.percent !== undefined ? `${progress.percent}%` : "…"}</p>}

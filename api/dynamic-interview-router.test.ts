@@ -79,6 +79,19 @@ describe("authenticated Dynamic Interview API", () => {
     await expect(createDynamicInterviewRouter(current).createCaller(context()).prepareDocumentUploads(input)).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     expect(current.append).not.toHaveBeenCalled();
   });
+  it("preserves companion requirements when preparing upload instances", async () => {
+    const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
+    current.loadCatalog = async () => ({ catalogVersion: "test", requirements: [requirement], questions: [question,
+      { ...question, definitionId: "22222222-1111-4111-8111-111111111111", code: "GCC_RESIDENT", answerType: "BOOLEAN" },
+      { ...question, definitionId: "33333333-1111-4111-8111-111111111111", code: "GCC_COUNTRY" }] });
+    const load = current.loadApplication;
+    current.loadApplication = async value => { const app = await load(value); return app ? { ...app, baseType: "single", residenceType: "gcc-accompany", applicants: app.applicants.map(applicant => ({ ...applicant, nationality: "IQ", residenceCountry: "QA" })) } : null; };
+    const caller = createDynamicInterviewRouter(current).createCaller(context([reference]));
+    await caller.prepareDocumentUploads({ referenceNumber: reference, applicantId: 21, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" });
+    expect(current.persistCompletedEvaluations).toHaveBeenCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ result: expect.objectContaining({
+      requiredDocuments: ["PASSPORT", "PERSONAL_PHOTO", "HOME_NATIONAL_ID", "QAT_RESIDENCE_FRONT", "QAT_RESIDENCE_BACK", "SPONSOR_ID"],
+    }) })] }));
+  });
   it("edits only saved context, preserves the name and uses optimistic concurrency", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
     current.loadCatalog = async () => ({ catalogVersion: "test", requirements: [requirement], questions: [question,

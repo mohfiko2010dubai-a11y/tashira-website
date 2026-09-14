@@ -7,6 +7,9 @@ import { applicants, applications, applicationSupplements, applicationSupporting
 import { MAX_ADDITIONAL_NOTES_LENGTH, mayAddSupportingDocument } from "../contracts/application-supplements";
 import { assertApplicationIdAccess } from "./lib/application-access";
 import { recordTimelineEvent } from "./lib/application-timeline";
+import { defaultOperationsPool } from "./lib/operations/mysql-query-client";
+import { assertCheckoutEditable } from "./lib/checkout-quote";
+import type { RowDataPacket } from "mysql2/promise";
 
 const owned = z.object({ applicationId: z.number().int().positive() });
 export const applicationSupplementsRouter = createRouter({
@@ -29,11 +32,16 @@ export const applicationSupplementsRouter = createRouter({
   }),
   saveSponsor: applicationAccessQuery.input(owned.extend({ name: z.string().trim().min(1).max(255), relation: z.string().trim().min(1).max(50) })).mutation(async ({ input, ctx }) => {
     await assertApplicationIdAccess(ctx, input.applicationId);
-    await getDb().transaction(async tx => {
-      const [app] = await tx.select().from(applications).where(eq(applications.id, input.applicationId)).for("update");
-      if (app?.residenceType !== "gcc-accompany") throw new TRPCError({ code: "BAD_REQUEST", message: "Sponsor details apply only to GCC accompanying applications." });
-      await tx.update(applicants).set({ sponsorName: input.name, sponsorRelation: input.relation }).where(eq(applicants.applicationId, input.applicationId));
-    });
+    const connection = await defaultOperationsPool().getConnection();
+    try {
+      await connection.beginTransaction();
+      const [apps] = await connection.execute<RowDataPacket[]>("SELECT residence_type FROM applications WHERE id=? FOR UPDATE", [input.applicationId]);
+      if (apps[0]?.residence_type !== "gcc-accompany") throw new TRPCError({ code: "BAD_REQUEST", message: "Sponsor details apply only to GCC accompanying applications." });
+      if (!ctx.isAdmin && !ctx.staffId && ctx.user?.role !== "admin") await assertCheckoutEditable(connection, input.applicationId);
+      await connection.execute("UPDATE applicants SET sponsor_name=?,sponsor_relation=? WHERE application_id=?", [input.name, input.relation, input.applicationId]);
+      await connection.commit();
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
     await recordTimelineEvent({ applicationId: input.applicationId, eventName: "APPLICANT_UPDATED", eventSource: "APPLICATION_SUPPLEMENTS", actorType: ctx.isAdmin ? "ADMIN" : ctx.staffId ? "STAFF" : "CUSTOMER", summary: "Sponsor details updated" });
     return { saved: true };
   }),

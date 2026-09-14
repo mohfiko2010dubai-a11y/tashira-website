@@ -209,7 +209,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       if (!applicant.nationality || !applicant.residenceCountry) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose nationality and country of residence to see your documents." });
       const evaluatedAt = deps.now();
       const profile = { routeCode: runtime.application.routeCode, attributes: { nationality: applicant.nationality,
-        residenceCountry: applicant.residenceCountry, tripPurpose: applicant.tripPurpose ?? "tourism" } };
+        residenceCountry: applicant.residenceCountry, residenceType: runtime.application.residenceType ?? "", tripPurpose: applicant.tripPurpose ?? "tourism" } };
       const result = applyOwnerDocumentRequirements(evaluateEligibility({ profile, rules: [], evaluatedAt }), profile, evaluatedAt);
       const previous = runtime.partyBundle?.snapshots.current(runtime.application.applicationId, applicant.applicantId);
       if (previous && JSON.stringify([...previous.requiredDocuments].sort()) === JSON.stringify([...result.requiredDocuments].sort())
