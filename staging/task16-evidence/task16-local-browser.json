@@ -1,0 +1,30 @@
+[
+  {
+    "lang": "en",
+    "ambient": 1,
+    "headerStatic": true,
+    "brandSessionFlag": "1"
+  },
+  {
+    "lang": "ar",
+    "ambient": 1,
+    "headerStatic": true,
+    "brandSessionFlag": "1"
+  },
+  {
+    "url": "/ar/apply",
+    "ambient": 0
+  },
+  {
+    "url": "/en/admin/login",
+    "ambient": 0
+  },
+  {
+    "url": "/en/staff/login",
+    "ambient": 0
+  },
+  {
+    "reducedMotionEmulationRunning": 0,
+    "realOsTest": false
+  }
+]

@@ -1,6 +1,6 @@
 # TASK15 — documents and optional fields
 
-Staging code: d79a8bc57b5e2a9f50869e7d1c39283661885498. Items 1–4 are implemented and verified. Items 5–6 (Express refund guarantee and working-hours copy) remain pending owner confirmation of the window, TASHIRA schedule, relevant authority and closure days. No guarantee wording, refund behaviour or production settings were changed.
+Staging code: d79a8bc57b5e2a9f50869e7d1c39283661885498. Items 1–4 are implemented and verified. The owner approved 24 continuous clock hours for item 5 on 2026-09-14, measured from document completion and including nights, weekends and holidays. Implementation of the guarantee remains outstanding. Item 6 still lacks TASHIRA schedule and authority closure details; these are not dependencies of the continuous Express clock. No guarantee wording, refund behaviour or production settings were changed.
 
 ## Implemented
 
@@ -26,6 +26,6 @@ Migration 053_application_supplements.sql adds two tables only. Verified databas
 
 Synthetic fixtures are listed in the evidence JSON. Four single-applicant fixtures were created (one repeated after a test locator failed), plus one family fixture. The seventh optional test metadata record is unlinked; six links are retained. No test rows or files were deleted or silently marked is_test. No production change, live payment or customer notification was requested.
 
-## Remaining owner input — Express
+## Owner decision — Express, 2026-09-14
 
-Confirm 6 working hours, 12 clock hours or 24 clock hours; supply TASHIRA's workday start/end and working days in GST (UTC+4), and identify the relevant authority and closed days. The existing refund router currently distinguishes VISA_SERVICE and SECURITY_DEPOSIT; the requested independent EXPRESS_FEE refund component, durable completion/submission timestamps, breach flag, and Terms/Refund wording are NOT delivered in this phase. They remain part of TASK15, not waived or declared complete.
+Owner reply: «24 ساعة متصلة». The deadline is document-completion timestamp plus exactly 86,400 elapsed seconds; no overnight, weekend or holiday pause. The guarantee covers submission by TASHIRA, not visa issuance. A missed deadline requires a full refund of the Express fee component. TASHIRA working hours and relevant authority closure days remain unknown for other working-time copy, but do not block implementation of this approved continuous deadline. The existing refund router currently distinguishes VISA_SERVICE and SECURITY_DEPOSIT; the requested independent EXPRESS_FEE refund component, durable completion/submission timestamps, breach flag, and Terms/Refund wording are NOT delivered in this phase. They remain part of TASK15, not waived or declared complete.

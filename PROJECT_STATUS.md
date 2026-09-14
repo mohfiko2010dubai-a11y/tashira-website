@@ -1,3 +1,11 @@
+# TASK16 local candidate; explicit source-transfer approval required — 2026-09-14
+
+Code 3976592aa5264b288a9c221a0f9c369e2fcf5466 implements revised layout-scoped motion and honest upload feedback. Frozen-source check/lint/test/build passed (1094 tests, 26 existing skips); client gzip is 42,773 bytes smaller. Local layout/reduced-motion emulation and brand cancellation/session checks pass. TASK16 is not deployed: automatic permission review rejected incremental source-bundle transfer to the documented staging host twice. Explicit owner authorization for source transfer is required. Staging upload/LCP/CLS and real-device/OS criteria remain unverified. Fifteen unrelated files preserved; no production, payment or customer-data changes. See staging/TASK16_MOTION_REVIEW.md. TASK15 Express guarantee remains unfinished.
+
+# Express window approved — 2026-09-14
+
+Owner selected 24 continuous clock hours from completion of documents, including nights, weekends and holidays (86,400 elapsed seconds). This decision clears the Express-window approval gate. Independent fee refund, durable document/submission timestamps, admin breach flag and policy copy remain implementation work, not deployed. Other workday/authority-closure details remain unknown and do not change or pause the Express clock. Staging remains d79a8bc57b5e2a9f50869e7d1c39283661885498; production untouched.
+
 # TASK15 document changes verified on staging; Express decision pending — 2026-09-14
 
 Staging d79a8bc57b5e2a9f50869e7d1c39283661885498: Qatar/Oman paired faces, no-glasses photo instruction, companion sponsor data/evidence, optional max-six supporting files and persisted admin-visible notes. Full gates: 1090 passed, 26 existing gated skips. Real synthetic uploads reach READY for payment; no payment created. Concurrent optional cap, cross-customer denial, notes recovery, family inheritance and admin/mobile verified. Migration 053 backed up; 15 unrelated files preserved. Express refund/timestamps/breach flag and schedule copy remain undelivered pending owner window and hours/authority confirmation. No production or test classification/deletion. See staging/TASK15_DOCUMENTS_AND_EXPRESS.md.

@@ -1,0 +1,13 @@
+{
+  "before": {
+    "arc": 1,
+    "star": "0"
+  },
+  "after": {
+    "arc": 0,
+    "star": "1",
+    "bar": "none"
+  },
+  "reloadDoesNotReplay": true,
+  "headerStatic": true
+}
