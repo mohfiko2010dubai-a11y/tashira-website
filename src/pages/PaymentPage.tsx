@@ -1,4 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { usePaymentRecovery } from '@/hooks/usePaymentRecovery';
+import { resumeCardPayment } from '@/lib/resume-card-payment';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trpc } from '@/providers/trpc-client';
@@ -45,6 +47,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
   const [error, setError] = useState('');
   const [payerName, setPayerName] = useState(applicantName);
   const [payerRelationship, setPayerRelationship] = useState<ThirdPartyPayerRelationship | ''>('');
@@ -66,7 +69,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || submitting.current) return;
     // Policies gate: payment cannot proceed without ticking the box above.
     if (!policiesAccepted) {
       setError(t('policies.required'));
@@ -83,6 +86,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
     }
     const selectedPayerRelationship = payerRelationshipForCheckout(payerName, applicantName, payerRelationship);
 
+    submitting.current = true;
     setLoading(true);
     setError('');
     paymentTimeline.paymentStarted();
@@ -108,15 +112,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
         throw new Error('Failed to initialize payment');
       }
 
-      // Confirm card payment
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement)!,
-          billing_details: {
-            name: payerName.trim(),
-          },
-        },
-      });
+      const { error: stripeError, paymentIntent } = await resumeCardPayment(stripe, { ...result, clientSecret }, elements.getElement(CardElement)!, payerName);
 
       if (stripeError) {
         paymentTimeline.paymentFailed(safeStripeFailureCategory(stripeError.code));
@@ -141,11 +137,13 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
         await utils.application.getByReference.invalidate({ referenceNumber });
         onConfirmed();
       }
+      await utils.payment.status.invalidate({ referenceNumber });
     } catch (err: unknown) {
       paymentTimeline.paymentFailed("unknown");
       setError(safeCheckoutErrorMessage(err));
       await utils.payment.quote.invalidate({ referenceNumber });
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -232,8 +230,9 @@ export default function PaymentPage() {
   // Get application details
   const { data: app, isLoading, error } = trpc.application.getByReference.useQuery(
     { referenceNumber: referenceNumber! },
-    { enabled: !!referenceNumber }
+    { enabled: !!referenceNumber, staleTime: 0, refetchOnMount: 'always' }
   );
+  const recovery = usePaymentRecovery(referenceNumber || '', !!app && app.paymentStatus !== 'paid');
   const readiness = trpc.payment.readiness.useQuery(
     { referenceNumber: referenceNumber! },
     { enabled: !!referenceNumber && !!app },
@@ -297,7 +296,7 @@ export default function PaymentPage() {
     navigate(`/apply/${encodeURIComponent(referenceNumber!)}/interview`);
   };
 
-  const viewState = paymentViewState({ paymentStatus: app.paymentStatus, browserConfirmed: confirmed, confirmationPending: false });
+  const viewState = paymentViewState({ paymentStatus: app.paymentStatus, browserConfirmed: confirmed || recovery.recovered, confirmationPending: recovery.pending });
   if (viewState === 'confirmed') {
     return (
       <PaymentSuccessExperience
@@ -310,6 +309,15 @@ export default function PaymentPage() {
       />
     );
   }
+
+  if (viewState === 'confirming' || recovery.error) return (
+    <WizardShell currentStep={3}>
+      <div role="status" aria-live="polite" className="rounded-xl border p-6 space-y-4">
+        <p>{recovery.error ? 'We could not verify your payment yet. Check its status before trying to pay again.' : 'Checking your existing payment. Please wait for confirmation.'}</p>
+        <button type="button" onClick={recovery.retry} className="rounded-lg border px-4 py-2">Check payment status</button>
+      </div>
+    </WizardShell>
+  );
 
   return (
     <WizardShell currentStep={3}>

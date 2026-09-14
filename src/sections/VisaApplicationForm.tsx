@@ -1,7 +1,9 @@
 import { processingCopy } from "@contracts/processing-copy";
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useApplicationCreation } from '@/hooks/useApplicationCreation';
+import { CreationResumeNotice } from '@/components/customer/CreationResumeNotice';
 import { UploadCloud, X, CheckCircle, User, Users, Globe, Building2, Crown, UsersRound, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { allCountries, allCountriesAr } from '@/data/countries';
 import { trpc } from '@/providers/trpc-client';
@@ -88,6 +90,8 @@ const emptyApplicant = (id: number): ApplicantData => ({
 });
 
 export default function VisaApplicationForm() {
+  const creation = useApplicationCreation("LEGACY");
+  const navigate = useNavigate();
   const { i18n } = useTranslation('home');
   const isAr = i18n.language === 'ar';
   const [dragOver, setDragOver] = useState<string | null>(null);
@@ -242,6 +246,7 @@ export default function VisaApplicationForm() {
   const acceptPolicies = trpc.payment.acceptPolicies.useMutation();
   const submitApplication = trpc.application.create.useMutation({
     onSuccess: async (data) => {
+      creation.markCreated(data.referenceNumber);
       trackFunnelEventOnce('application_submitted', data.referenceNumber, {
         applicant_count: applicants.length,
         application_type: baseType || 'single',
@@ -281,17 +286,19 @@ export default function VisaApplicationForm() {
   const allScreeningYes = true; // screening questions removed, form always visible
   const calculateTotal = () => priceQuote.data?.totalPrice ?? 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!termsAccepted || !allScreeningYes || !priceQuote.data) return;
     setLoading(true);
     setCompletionError('');
     setReadinessIssues(null);
     setShowPaymentModal(false);
-    const ref = `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
+    let request: Awaited<ReturnType<typeof creation.getRequest>>;
+    try { request = await creation.getRequest(); } catch { setLoading(false); setCompletionError('Unable to prepare your application. Please try again.'); return; }
+    if (request.referenceNumber) { setLoading(false); navigate(`/pay/${encodeURIComponent(request.referenceNumber)}`); return; }
     
     submitApplication.mutate({
-      referenceNumber: ref,
+      requestKey: request.requestKey,
       baseType: baseType!,
       residenceType: residenceType!,
       visaType,
@@ -378,6 +385,9 @@ export default function VisaApplicationForm() {
       <FormDecorations />
 
       <form onSubmit={handleSubmit} className="relative z-10 max-w-5xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <CreationResumeNotice referenceNumber={creation.request?.referenceNumber} ar={isAr} pending={creation.isPending}
+          onResume={() => navigate(`/pay/${encodeURIComponent(creation.request!.referenceNumber!)}`)}
+          onStartNew={() => { void creation.getRequest(true).catch(() => undefined); }} />
         <div className="p-6 sm:p-8 lg:p-10">
 
           {/* ===== STEP 1: SINGLE OR FAMILY ===== */}

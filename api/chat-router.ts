@@ -2,10 +2,10 @@ import { PROCESSING_COPY } from "../contracts/processing-copy";
 import { z } from "zod";
 import { adminQuery, chatQuery, createRouter, publicQuery, uploadQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { chatMessages, applications } from "@db/schema";
+import { chatMessages } from "@db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { storageUpload } from "./lib/local-storage";
-import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
+import { publicAppOrigin } from "./lib/public-app-url";
 
 // AI Chatbot using Kimi API
 const KIMI_API_KEY = process.env.VITE_KIMI_API_KEY || "";
@@ -158,27 +158,6 @@ function extractProcessingType(text: string): string | null {
   return null;
 }
 
-function generateReferenceNumber(): string {
-  return "TSH-" + Math.floor(100000 + Math.random() * 900000);
-}
-
-// Send WhatsApp notification
-async function sendWhatsAppNotification(message: string) {
-  try {
-    await fetch("https://api.callmebot.com/whatsapp.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        phone: "971589896644",
-        text: message,
-        apikey: process.env.WHATSAPP_API_KEY || "",
-      }).toString(),
-    });
-  } catch (err) {
-    console.error("[WhatsApp] Notification failed:", err);
-  }
-}
-
 export const chatRouter = createRouter({
   // Send message and get response
   sendMessage: chatQuery
@@ -315,58 +294,13 @@ export const chatRouter = createRouter({
             session.visitorPhone = phone;
             session.step = 7;
             
-            // Create application in database
-            try {
-              const processingType = session.processingType?.toLowerCase() === "express" ? "express" : "regular";
-              const quote = await quoteApplicationPrice({
-                serviceCode: session.visaType || "",
-                processingType,
-                applicantCount: 1,
-              });
-              if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
-              
-              // Generate reference number
-              const referenceNumber = generateReferenceNumber();
-              session.referenceNumber = referenceNumber;
-              
-              const [created] = await db.insert(applications).values({
-                referenceNumber,
-                baseType: "single",
-                residenceType: "non-gcc",
-                visaType: session.visaType || "30 Days",
-                processingType,
-                contactEmail: session.visitorEmail || "",
-                contactPhone: session.visitorPhone || "",
-                totalAmountAed: quote.totalInBaseCurrency.toFixed(2),
-                totalAmountUsd: quote.totalPrice.toFixed(2),
-                exchangeRate: quote.exchangeRateToBase.toFixed(4),
-                status: "documents_pending",
-                paymentStatus: "pending",
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              }).$returningId();
-              await saveApplicationPriceSnapshot(created.id, quote);
-              session.totalAmount = quote.totalPrice;
-            } catch (err) {
-              console.error("[Chat] Failed to create application:", err);
-            }
-            
-            // Generate payment link
-            const refNum = session.referenceNumber || 'unknown';
-            const paymentLink = 'https://tashiraev.com/pay/' + refNum;
-            
+            // The secure wizard is the only order-creation/payment journey.
+            const applicationLink = `${publicAppOrigin()}/${lang === 'ar' ? 'ar' : 'en'}/apply`;
             reply = lang === 'ar'
-              ? `✅ تمام! طلبك اتسجل.\n\n📋 رقم الطلب: ${session.referenceNumber}\n💰 المبلغ: $${session.totalAmount}\n\nادفع من هنا:\n${paymentLink}\n\nلو عندك أي سؤال، فريقنا جاهز يساعدك على واتساب +971 58 989 6644`
-              : `✅ Done! Your application has been registered.\n\n📋 Reference: ${session.referenceNumber}\n💰 Amount: $${session.totalAmount}\n\nPay here:\n${paymentLink}\n\nIf you have any questions, our team is ready to help on WhatsApp +971 58 989 6644`;
-            
-            // Reset for next conversation
+              ? `أكمل طلبك وارفع المستندات في النموذج الآمن: ${applicationLink}`
+              : `Complete your application and upload documents in the secure form: ${applicationLink}`;
             session.step = 0;
             session.documents = [];
-            
-            // Send WhatsApp notification
-            await sendWhatsAppNotification(
-              `🚨 New Chat Application!\nRef: ${session.referenceNumber}\nName: ${session.visitorName}\nVisa: ${session.visaType}\nAmount: $${session.totalAmount}\nPay: ${paymentLink}`
-            );
           } else {
             reply = lang === 'ar'
               ? "❌ رقم التلفون غير صالح. اكتب الرقم مع كود الدولة (مثلاً: +971501234567)"

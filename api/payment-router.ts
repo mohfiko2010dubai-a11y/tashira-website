@@ -17,8 +17,22 @@ import { recordPayerAuthorization } from "./lib/payer-authorization";
 import { validatePayerAuthorization } from "./lib/payer-authorization-core";
 import { PAYER_AUTHORIZATION_VERSION, PAYER_RELATIONSHIPS } from "@contracts/payer-authorization";
 import { assertDisplayedQuote, refreshCheckoutQuote, withCheckoutLock } from "./lib/checkout-quote";
+import { assertSafeIntentRetry, checkoutPaymentAttempt, reserveCheckoutPayment } from "./lib/checkout-payment-attempt";
 
 export const paymentRouter = createRouter({
+  status: applicationAccessQuery.input(z.object({ referenceNumber: z.string() })).query(async ({ input, ctx }) => {
+    assertApplicationReferenceAccess(ctx, input.referenceNumber);
+    const [app] = await getDb().select().from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+    if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found. Reopen your saved application." });
+    if (app.paymentStatus === "paid") return { status: "paid", paymentIntentId: app.stripePaymentIntentId };
+    if (!app.stripePaymentIntentId) return { status: "not_started", paymentIntentId: null };
+    const intent = await retrieveStripeTestIntent(app.stripePaymentIntentId);
+    const quote = await getApplicationPriceSnapshot(app.id);
+    if (intent.metadata.referenceNumber !== app.referenceNumber || intent.currency !== "usd" || intent.amount !== Math.round(Number(quote.totalPrice) * 100)) {
+      throw new TRPCError({ code: "CONFLICT", message: "Your saved payment needs verification. Contact support before trying again." });
+    }
+    return { status: intent.status, paymentIntentId: intent.id };
+  }),
   quote: applicationAccessQuery.input(z.object({ referenceNumber: z.string() })).query(async ({ input, ctx }) => {
     assertApplicationReferenceAccess(ctx, input.referenceNumber);
     const [app] = await getDb().select({ id: applications.id, paymentStatus: applications.paymentStatus }).from(applications)
@@ -86,6 +100,11 @@ export const paymentRouter = createRouter({
           leadApplicantName: leadApplicant.fullName,
         });
 
+        await withCheckoutLock(app.id, async connection => {
+          const currentQuote = await refreshCheckoutQuote(connection, app.id);
+          assertDisplayedQuote(currentQuote, input.displayedQuoteId);
+          await reserveCheckoutPayment(connection, app.id, currentQuote.id, app.stripePaymentIntentId);
+        });
         const issued = await withCheckoutLock(app.id, async connection => {
           const db = drizzle(connection);
           const [locked] = await db.select().from(applications).where(eq(applications.id, app.id)).limit(1);
@@ -97,9 +116,13 @@ export const paymentRouter = createRouter({
           const serverAmountUsd = priceSnapshot.totalPrice;
           if (!Number.isFinite(serverAmountUsd) || serverAmountUsd <= 0) throw new Error("Application amount is invalid");
           const amountCents = Math.round(serverAmountUsd * 100);
-          const paymentIntent = locked.stripePaymentIntentId
-            ? await retrieveStripeTestIntent(locked.stripePaymentIntentId)
-            : await createStripeTestIntent({ amountCents, referenceNumber: app.referenceNumber, idempotencyKey: `tashira-application-${app.id}` });
+          const attempt = await checkoutPaymentAttempt(connection, app.id);
+          if (!attempt || attempt.quoteId !== currentQuote.id) throw new Error("Payment reservation is unavailable");
+          const savedIntentId = locked.stripePaymentIntentId || attempt.intentId;
+          assertSafeIntentRetry({ ...attempt, intentId: savedIntentId });
+          const paymentIntent = savedIntentId
+            ? await retrieveStripeTestIntent(savedIntentId)
+            : await createStripeTestIntent({ amountCents, referenceNumber: app.referenceNumber, idempotencyKey: attempt.key });
           if (paymentIntent.amount !== amountCents || paymentIntent.currency !== "usd" || paymentIntent.metadata?.referenceNumber !== app.referenceNumber) {
             throw new TRPCError({ code: "CONFLICT", message: "The saved payment does not match this application. Contact support before trying again." });
           }
@@ -114,7 +137,8 @@ export const paymentRouter = createRouter({
           }
           await db.update(applications).set({ stripePaymentIntentId: paymentIntent.id, stripeAmountUsd: serverAmountUsd.toFixed(2) })
             .where(eq(applications.id, app.id));
-          return { paymentId, paymentIntentId: paymentIntent.id, clientSecret: paymentIntent.client_secret };
+          await connection.execute("UPDATE checkout_payment_attempts SET stripe_payment_intent_id=? WHERE application_id=?", [paymentIntent.id, app.id]);
+          return { paymentId, paymentIntentId: paymentIntent.id, clientSecret: paymentIntent.client_secret, status: paymentIntent.status };
         });
         await recordPayerAuthorization({ applicationId: app.id, paymentId: issued.paymentId, payerName: input.payerName,
           payerRelationship: input.payerRelationship, authorizationAccepted: input.payerAuthorizationAccepted,
@@ -123,7 +147,7 @@ export const paymentRouter = createRouter({
           eventSource: "PAYMENT_API", actorType: "SYSTEM", actorReference: issued.paymentIntentId,
           resultingState: "pending", summary: "Stripe PaymentIntent created" });
         auditLog("payment.intent_create", "success", "customer");
-        return { clientSecret: issued.clientSecret };
+        return { clientSecret: issued.clientSecret, paymentIntentId: issued.paymentIntentId, status: issued.status };
       } catch (err: unknown) {
         auditLog("payment.intent_create", "failure", "customer");
         if (err instanceof TRPCError) throw err;

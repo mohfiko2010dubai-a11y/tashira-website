@@ -89,15 +89,16 @@ export async function quoteApplicationPrice(input: {
   };
 }
 
-export async function saveApplicationPriceSnapshot(applicationId: number, quote: PriceQuote) {
-  const existing = await getApplicationPriceSnapshotIfPresent(applicationId);
+export async function saveApplicationPriceSnapshot(applicationId: number, quote: PriceQuote,
+  db: Pick<ReturnType<typeof getDb>, "select" | "insert"> = getDb()) {
+  const existing = await getApplicationPriceSnapshotIfPresent(applicationId, db);
   if (existing) {
     if (!priceSnapshotMatchesQuote(existing, quote)) throw new Error("Existing application price snapshot does not match the current server quote");
     return existing.id;
   }
   const id = randomUUID();
   try {
-    await getDb().insert(applicationPriceSnapshots).values({
+    await db.insert(applicationPriceSnapshots).values({
       id,
       applicationId,
       pricingRuleId: quote.pricingRuleId,
@@ -116,15 +117,15 @@ export async function saveApplicationPriceSnapshot(applicationId: number, quote:
     });
   } catch (error: unknown) {
     if (mysqlErrorCode(error) !== "ER_DUP_ENTRY") throw error;
-    const racedSnapshot = await getApplicationPriceSnapshotIfPresent(applicationId);
+    const racedSnapshot = await getApplicationPriceSnapshotIfPresent(applicationId, db);
     if (!racedSnapshot || !priceSnapshotMatchesQuote(racedSnapshot, quote)) throw error;
     return racedSnapshot.id;
   }
   return id;
 }
 
-async function getApplicationPriceSnapshotIfPresent(applicationId: number) {
-  const [snapshot] = await getDb().select().from(applicationPriceSnapshots)
+async function getApplicationPriceSnapshotIfPresent(applicationId: number, db: Pick<ReturnType<typeof getDb>, "select"> = getDb()) {
+  const [snapshot] = await db.select().from(applicationPriceSnapshots)
     .where(eq(applicationPriceSnapshots.applicationId, applicationId)).limit(1);
   return snapshot;
 }

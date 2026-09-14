@@ -19,6 +19,7 @@ import { assertCompleteApplicantSequence, assertRequiredApplicantDocuments } fro
 import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
 import { drizzle } from "drizzle-orm/mysql2";
 import { assertCheckoutEditable, refreshCheckoutQuote, withCheckoutLock } from "./lib/checkout-quote";
+import { withApplicationCreation } from "./lib/application-creation";
 
 type ResidenceType = "non-gcc" | "gcc-resident" | "non-gcc-accompany" | "gcc-accompany";
 type ProcessingType = "regular" | "express";
@@ -119,7 +120,7 @@ export const wizardRouter = createRouter({
   // Start a new submitted application (called on first step)
   startApplication: applicationSubmissionQuery
     .input(z.object({
-      referenceNumber: z.string(),
+      requestKey: z.string().uuid(),
       whoTraveling: z.string().optional(),
       residenceStatus: z.string().optional(),
       visaType: z.string().optional(),
@@ -136,13 +137,13 @@ export const wizardRouter = createRouter({
       applicantCount: z.number().int().min(1).max(20).default(1),
       totalAmount: z.number().min(0).default(0),
       chatSessionId: z.string().optional(),
-    }))
+    }).strict())
     .mutation(async ({ input, ctx }) => {
-      console.log("[Wizard] Starting application:", input.referenceNumber);
       try {
-        const db = getDb();
+        const created = await withApplicationCreation(ctx, input.requestKey, ["CHAT"], input, async (connection, referenceNumber) => {
+        const db = drizzle(connection);
         await db.insert(applications).values({
-          referenceNumber: input.referenceNumber,
+          referenceNumber,
           baseType: (input.applicantCount ?? 1) > 1 ? "family" : "single",
           residenceType: input.residenceStatus ? mapResidenceType(input.residenceStatus) : "non-gcc",
           visaType: input.visaType || "",
@@ -160,11 +161,11 @@ export const wizardRouter = createRouter({
 
         const [inserted] = await db.select({ id: applications.id })
           .from(applications)
-          .where(eq(applications.referenceNumber, input.referenceNumber))
+          .where(eq(applications.referenceNumber, referenceNumber))
           .limit(1);
 
         const applicant = inserted
-          ? await persistApplicant(inserted.id, 0, input)
+          ? await persistApplicant(inserted.id, 0, input, db)
           : undefined;
         if (inserted) {
           await recordTimelineEvent({
@@ -174,7 +175,7 @@ export const wizardRouter = createRouter({
             actorType: "CUSTOMER",
             sessionReference: input.chatSessionId,
             summary: "Application created in chatbot wizard",
-          });
+          }, db);
           if (applicant?.created) await recordTimelineEvent({
             applicationId: inserted.id,
             eventName: "APPLICANT_ADDED",
@@ -182,18 +183,21 @@ export const wizardRouter = createRouter({
             actorType: "CUSTOMER",
             actorReference: `applicant:${applicant.id}`,
             summary: "Primary applicant added",
-          });
+          }, db);
         }
-
-        ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
+        if (!inserted) throw new Error("Application creation failed");
+        return { applicationId: inserted.id, applicantIds: applicant ? [applicant.id] : [] };
+        });
+        ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, created.referenceNumber));
         return {
           success: true,
-          referenceNumber: input.referenceNumber,
-          applicationId: inserted?.id,
-          applicantId: applicant?.id,
+          referenceNumber: created.referenceNumber,
+          applicationId: created.applicationId,
+          applicantId: created.applicantIds[0],
           applicantIndex: 0,
         };
       } catch (error: unknown) {
+        if (error instanceof TRPCError) throw error;
         const message = getErrorMessage(error);
         console.error("[Wizard] Failed to start application:", message);
         throw new Error(`Failed to start application: ${message}`);

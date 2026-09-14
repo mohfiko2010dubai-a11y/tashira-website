@@ -86,7 +86,7 @@ export const applicants = mysqlTable("applicants", {
 export const payments = mysqlTable("payments", {
   id: serial("id").primaryKey(),
   applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
-  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 100 }).notNull(),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id", { length: 100 }).notNull().unique("payment_stripe_intent_unique"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 10 }).notNull(),
   status: mysqlEnum("status", ["pending", "succeeded", "failed"]).default("pending").notNull(),

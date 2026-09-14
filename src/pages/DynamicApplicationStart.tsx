@@ -11,6 +11,8 @@ import { validStartContact, validStartEmail, validStartPhone } from "@/lib/wizar
 import { useValidationFeedback } from "@/components/customer/useValidationFeedback";
 import { trpc } from "@/providers/trpc-client";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
+import { useApplicationCreation } from "@/hooks/useApplicationCreation";
+import { CreationResumeNotice } from "@/components/customer/CreationResumeNotice";
 
 const visaRoutes = [
   ["14days-single", "14 Days Visa"], ["14days-multiple", "14 Days Multiple Entry"],
@@ -23,10 +25,6 @@ const processingOptions = [
   { key: "regular" as const, icon: Clock3, titleKey: "regular", descKey: "regularDesc" },
   { key: "express" as const, icon: Zap, titleKey: "express", descKey: "expressDesc" },
 ];
-
-function createReference(): string {
-  return `TSH-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-}
 
 function SelectCard({ selected, onClick, title, desc, disabled = false, icon: Icon }: {
   selected: boolean; disabled?: boolean; onClick: () => void; title: string; desc?: string; icon?: typeof Home;
@@ -64,6 +62,7 @@ function SectionTitle({ children }: { children: string }) {
 
 export default function DynamicApplicationStart() {
   const navigate = useNavigate();
+  const creation = useApplicationCreation("FORM");
   const { t, i18n } = useTranslation("wizard");
   const [searchParams] = useSearchParams();
   const prefill = precheckPrefill(searchParams);
@@ -121,12 +120,15 @@ export default function DynamicApplicationStart() {
     processingType: !processingType ? t("validation.choose", { field: t("step1.processing") }) : undefined,
   });
 
-  const submit = (form: HTMLFormElement) => {
+  const submit = async (form: HTMLFormElement) => {
     if (!feedback.validate(form)) return;
     if (!stepValid || !validStartContact(email, phone)) return;
-    if (create.isPending || !quote.data) return;
+    if (create.isPending || creation.isPending || !quote.data) return;
+    let request: Awaited<ReturnType<typeof creation.getRequest>>;
+    try { request = await creation.getRequest(); } catch { return; }
+    if (request.referenceNumber) { navigate(`/apply/${encodeURIComponent(request.referenceNumber)}/interview`); return; }
     create.mutate({
-      referenceNumber: createReference(),
+      requestKey: request.requestKey,
       baseType: applicationType,
       residenceType,
       visaType,
@@ -146,6 +148,9 @@ export default function DynamicApplicationStart() {
         {(
           <>
             <StepHeader step={1} title={t("step1.title")} subtitle={t("step1.subtitle")} />
+            <CreationResumeNotice referenceNumber={creation.request?.referenceNumber} ar={ar} pending={creation.isPending}
+              onResume={() => navigate(`/apply/${encodeURIComponent(creation.request!.referenceNumber!)}/interview`)}
+              onStartNew={() => { void creation.getRequest(true).catch(() => undefined); }} />
             <SectionTitle>{t("step1.whoTravelling")}</SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2">
               <SelectCard icon={UserRound} selected={applicationType === "single"} onClick={() => setApplicationType("single")}
@@ -249,14 +254,14 @@ export default function DynamicApplicationStart() {
             </div>
             {prices.failed && <div role="alert" className="mt-3 text-sm text-red-700"><p>{t("step1.quoteError")}</p><button type="button" onClick={prices.retry} className="underline">{t("step1.retryPrice")}</button></div>}
 
-            {create.error && (
+            {(create.error || creation.error) && (
               <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{t("step1.startError")}</p>
             )}
 
             <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
               <p className="text-sm text-gray-500">{t("flow.startBeforeSave")}</p>
               <p aria-live="polite" aria-atomic="true" className="text-sm text-red-700">{feedback.count > 0 ? t("validation.summary", { count: feedback.count }) : ""}</p>
-              <button type="submit" onMouseDown={event => event.preventDefault()} disabled={create.isPending || !quote.data}
+              <button type="submit" onMouseDown={event => event.preventDefault()} disabled={create.isPending || creation.isPending || !quote.data}
                 className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                 {t("step1.continue")}
               </button>

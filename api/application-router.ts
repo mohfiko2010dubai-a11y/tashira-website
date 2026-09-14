@@ -3,6 +3,8 @@ import { evaluateDocumentRequirements, tripPurposeSchema } from "../contracts/do
 import { loadTripPurposes } from "./lib/customer/trip-purpose";
 import { defaultOperationsSqlClient, defaultOperationsPool } from "./lib/operations/mysql-query-client";
 import { z } from "zod";
+import { drizzle } from "drizzle-orm/mysql2";
+import { prepareApplicationCreation, withApplicationCreation } from "./lib/application-creation";
 import { adminQuery, applicationAccessQuery, applicationSubmissionQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
@@ -45,9 +47,11 @@ async function enableDynamicJourneyForStaging(referenceNumber: string): Promise<
 }
 
 export const applicationRouter = createRouter({
+  prepareCreation: applicationSubmissionQuery.input(z.object({ flow: z.enum(["FORM", "CHAT", "LEGACY"]), startNew: z.boolean().default(false) }).strict())
+    .mutation(({ input, ctx }) => prepareApplicationCreation(ctx, input.flow, input.startNew)),
   create: applicationSubmissionQuery
     .input(z.object({
-      referenceNumber: z.string().min(1),
+      requestKey: z.string().uuid(),
       baseType: z.enum(["single", "family"]),
       residenceType: z.enum(["non-gcc", "gcc-resident", "non-gcc-accompany", "gcc-accompany"]),
       visaType: z.string(),
@@ -71,10 +75,11 @@ export const applicationRouter = createRouter({
         sponsorName: z.string().optional(),
         sponsorRelation: z.string().optional(),
       })),
-    }))
+    }).strict())
     .mutation(async ({ input, ctx }) => {
       try {
-        const db = getDb();
+        const created = await withApplicationCreation(ctx, input.requestKey, ["FORM", "LEGACY"], input, async (connection, referenceNumber) => {
+        const db = drizzle(connection);
         const quote = await quoteApplicationPrice({
           serviceCode: input.visaType,
           processingType: input.processingType,
@@ -82,7 +87,7 @@ export const applicationRouter = createRouter({
         });
         if (quote.currency !== "USD") throw new Error("Stripe checkout currently requires a USD pricing rule");
         const values: typeof applications.$inferInsert = {
-          referenceNumber: input.referenceNumber,
+          referenceNumber,
           baseType: input.baseType,
           residenceType: input.residenceType,
           visaType: input.visaType,
@@ -98,14 +103,14 @@ export const applicationRouter = createRouter({
         const [app] = await db.insert(applications).values(values).$returningId();
 
         const appId = app.id;
-        await saveApplicationPriceSnapshot(appId, quote);
+        await saveApplicationPriceSnapshot(appId, quote, db);
         await recordTimelineEvent({
           applicationId: appId,
           eventName: "APPLICATION_CREATED",
           eventSource: "APPLICATION_API",
           actorType: "CUSTOMER",
           summary: "Application created",
-        });
+        }, db);
         const applicantIds: number[] = [];
         for (let i = 0; i < input.applicants.length; i++) {
           const a = input.applicants[i];
@@ -125,12 +130,6 @@ export const applicationRouter = createRouter({
             sponsorRelation: a.sponsorRelation || null,
           }).$returningId();
           applicantIds.push(createdApplicant.id);
-          if (a.tripPurpose && input.journeyMode === "DYNAMIC" && runtimeFlagEnvironment() === "STAGING") {
-            await new MysqlCustomerInterviewWriteRepository(defaultOperationsPool()).editApplicant({ applicationId: appId,
-              applicantId: createdApplicant.id, expectedVersion: 1, profile: { fullName: a.fullName, nationality: a.nationality || null,
-                residenceCountry: a.gccResidenceCountry || null, tripPurpose: a.tripPurpose }, reason: "Initial document selections",
-              actorReference: `customer:${input.referenceNumber}`, idempotencyKey: `initial-purpose:${createdApplicant.id}`, occurredAt: new Date() });
-          }
           await recordTimelineEvent({
             applicationId: appId,
             eventName: "APPLICANT_ADDED",
@@ -138,7 +137,7 @@ export const applicationRouter = createRouter({
             actorType: "CUSTOMER",
             actorReference: `applicant:${i}`,
             summary: `Applicant ${i + 1} added`,
-          });
+          }, db);
         }
         if (input.journeyMode === "LEGACY") {
           await recordTimelineEvent({
@@ -148,14 +147,26 @@ export const applicationRouter = createRouter({
             actorType: "CUSTOMER",
             resultingState: "submitted",
             summary: "Application submitted",
-          });
+          }, db);
+        }
+        return { applicationId: appId, applicantIds };
+        });
+        for (const [index, a] of input.applicants.entries()) {
+          if (a.tripPurpose && input.journeyMode === "DYNAMIC" && runtimeFlagEnvironment() === "STAGING") {
+            const applicantId = created.applicantIds[index];
+            await new MysqlCustomerInterviewWriteRepository(defaultOperationsPool()).editApplicant({ applicationId: created.applicationId,
+              applicantId, expectedVersion: 1, profile: { fullName: a.fullName, nationality: a.nationality || null,
+                residenceCountry: a.gccResidenceCountry || null, tripPurpose: a.tripPurpose }, reason: "Initial document selections",
+              actorReference: `customer:${created.referenceNumber}`, idempotencyKey: `initial-purpose:${applicantId}`, occurredAt: new Date() });
+          }
         }
         const dynamicJourneyEnabled = input.journeyMode === "DYNAMIC"
-          ? await enableDynamicJourneyForStaging(input.referenceNumber)
+          ? await enableDynamicJourneyForStaging(created.referenceNumber)
           : false;
-        ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, input.referenceNumber));
-        return { id: appId, referenceNumber: input.referenceNumber, applicantIds, dynamicJourneyEnabled };
+        ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, created.referenceNumber));
+        return { id: created.applicationId, referenceNumber: created.referenceNumber, applicantIds: created.applicantIds, dynamicJourneyEnabled };
       } catch (err: unknown) {
+        if (err instanceof TRPCError) throw err;
         const message = getErrorMessage(err);
         console.error('[API ERROR]', message);
         throw new Error(`Database error: ${message}`);

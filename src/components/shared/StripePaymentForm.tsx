@@ -11,6 +11,8 @@ import { trackFunnelEventOnce, trackVerifiedPaymentConversion } from '@/lib/goog
 import { PaymentSuccessExperience } from './PaymentSuccessExperience';
 import { validatedStripePublishableKey } from '@/lib/stripe-client-config';
 import { PayerAuthorizationFields } from './PayerAuthorizationFields';
+import { usePaymentRecovery } from '@/hooks/usePaymentRecovery';
+import { resumeCardPayment } from '@/lib/resume-card-payment';
 import {
   PAYER_AUTHORIZATION_VERSION,
   isThirdPartyPayer,
@@ -58,6 +60,9 @@ function PaymentFormInner({
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
+  const recoveredOnce = useRef(false);
+  const recovery = usePaymentRecovery(referenceNumber);
   const [error, setError] = useState('');
   const [payerName, setPayerName] = useState(applicantData.customerName);
   const [payerRelationship, setPayerRelationship] = useState<ThirdPartyPayerRelationship | ''>('');
@@ -70,6 +75,12 @@ function PaymentFormInner({
   const readiness = trpc.payment.readiness.useQuery({ referenceNumber });
   const price = trpc.payment.quote.useQuery({ referenceNumber }, { staleTime: 0 });
   const amount = price.data?.amount ?? 0;
+  useEffect(() => {
+    if (recovery.recovered && !recoveredOnce.current) {
+      recoveredOnce.current = true;
+      onSuccess(`INV-${referenceNumber}`);
+    }
+  }, [onSuccess, recovery.recovered, referenceNumber]);
 
   useEffect(() => {
     if (stripe && elements) paymentElementLoaded();
@@ -83,7 +94,7 @@ function PaymentFormInner({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements || readiness.data?.status !== 'READY' || readiness.data.paymentStatus === 'paid') return;
+    if (!stripe || !elements || submitting.current || recovery.pending || recovery.error || readiness.data?.status !== 'READY' || readiness.data.paymentStatus === 'paid') return;
     if (!price.data) { setError('The current price is unavailable. Refresh the page before paying.'); return; }
     const thirdParty = isThirdPartyPayer(payerName, applicantData.customerName);
     if (!payerAuthorizationAccepted) {
@@ -96,6 +107,7 @@ function PaymentFormInner({
     }
     const selectedPayerRelationship = payerRelationshipForCheckout(payerName, applicantData.customerName, payerRelationship);
 
+    submitting.current = true;
     setLoading(true);
     setError('');
     paymentTimeline.paymentStarted();
@@ -115,15 +127,7 @@ function PaymentFormInner({
 
       if (!intentResult.clientSecret) throw new Error('Failed to create payment intent');
 
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        intentResult.clientSecret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement)!,
-            billing_details: { name: payerName.trim() },
-          },
-        }
-      );
+      const { error: stripeError, paymentIntent } = await resumeCardPayment(stripe, intentResult, elements.getElement(CardElement)!, payerName);
 
       if (stripeError) {
         paymentTimeline.paymentFailed(safeStripeFailureCategory(stripeError.code));
@@ -145,15 +149,23 @@ function PaymentFormInner({
         });
         onSuccess(`INV-${referenceNumber}`);
       }
+      await recovery.refresh();
     } catch (err: unknown) {
       if (!failureRecorded) paymentTimeline.paymentFailed('unknown');
       setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
       await price.refetch();
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
 
+  if (recovery.pending || recovery.error || recovery.recovered) return (
+    <div role="status" aria-live="polite" className="space-y-4 p-4">
+      <p>{recovery.error ? 'We could not verify your payment yet. Check its status before trying to pay again.' : 'Checking your existing payment. Please wait for confirmation.'}</p>
+      <button type="button" onClick={recovery.retry} className="rounded-lg border px-4 py-2">Check payment status</button>
+    </div>
+  );
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">

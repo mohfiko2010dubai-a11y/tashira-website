@@ -1,6 +1,7 @@
 import { PROCESSING_COPY } from "@contracts/processing-copy";
 import React, { useState, useRef, useEffect } from 'react';
 import { trpc } from '@/providers/trpc-client';
+import { useApplicationCreation } from '@/hooks/useApplicationCreation';
 import { MessageCircle, X, Send, Bot, User, Paperclip, Lock, ChevronLeft } from 'lucide-react';
 import { TERMS_POLICY_VERSION } from '@contracts/constants';
 import {
@@ -119,13 +120,10 @@ function validateRequired(val: string): boolean {
   return val.trim().length >= 2;
 }
 
-function generateReferenceNumber(): string {
-  return `TSH-${Math.floor(100000 + Math.random() * 900000)}`;
-}
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ChatBot() {
+  const creation = useApplicationCreation("CHAT");
   const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get('resume') === '1');
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -159,7 +157,7 @@ export default function ChatBot() {
 
   const wizardRef = useRef(wizard);
   const resumeAppliedRef = useRef(false);
-  const [resumeMetadata] = useState(() => parseChatbotResumeMetadata(localStorage.getItem(CHATBOT_RESUME_KEY)));
+  const [resumeMetadata, setResumeMetadata] = useState(() => parseChatbotResumeMetadata(localStorage.getItem(CHATBOT_RESUME_KEY)));
 
   // Keep wizardRef in sync with wizard state
   useEffect(() => {
@@ -413,7 +411,7 @@ export default function ChatBot() {
    * The snapshot is always read from wizardRef.current at dispatch time, so
    * rapid interactions never act on a stale render closure.
    */
-  const processInput = (msg: string, snapshot: Wizard) => {
+  const processInput = async (msg: string, snapshot: Wizard) => {
     const w = snapshot;
 
     switch (w.step) {
@@ -536,7 +534,16 @@ ${PROCESSING_COPY.en.express}`);
             );
             break;
           }
-          const refNum = generateReferenceNumber();
+          let request: Awaited<ReturnType<typeof creation.getRequest>>;
+          try { request = await creation.getRequest(); }
+          catch { addBotMessage('Unable to prepare your saved application. Please try again.'); setLoading(false); break; }
+          if (request.referenceNumber) {
+            resumeAppliedRef.current = false;
+            setResumeMetadata({ referenceNumber: request.referenceNumber, applicantCount: w.applicantCount });
+            addBotMessage('Resuming your existing application instead of creating another one.');
+            setLoading(false);
+            break;
+          }
           const serviceCode = getChatbotVisaServiceCode(w.visaType);
           if (!serviceCode) {
             addBotMessage('Unable to identify the selected visa product. Please restart the application.');
@@ -546,7 +553,7 @@ ${PROCESSING_COPY.en.express}`);
           // Start application in DB
           startMutation.mutate(
             {
-              referenceNumber: refNum,
+              requestKey: request.requestKey,
               whoTraveling: w.whoTraveling,
               applicantCount: w.applicantCount,
               residenceStatus: w.residenceStatus,
@@ -557,6 +564,8 @@ ${PROCESSING_COPY.en.express}`);
             },
             {
               onSuccess: (result) => {
+                const refNum = result.referenceNumber;
+                creation.markCreated(refNum);
                 const appId = result.applicationId;
                 localStorage.setItem(CHATBOT_RESUME_KEY, JSON.stringify({
                   referenceNumber: refNum,
@@ -724,7 +733,8 @@ ${PROCESSING_COPY.en.express}`);
             setLoading(false);
             break;
           }
-          const refNum = w.referenceNumber || generateReferenceNumber();
+          const refNum = w.referenceNumber;
+          if (!refNum) { addBotMessage('Reopen your saved application before continuing to payment.'); setLoading(false); break; }
           const payLink = `${window.location.origin}${buildChatbotPaymentPath(refNum)}`;
           const serviceCode = getChatbotVisaServiceCode(w.visaType);
           if (!serviceCode) {

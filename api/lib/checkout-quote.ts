@@ -48,6 +48,11 @@ export async function refreshCheckoutQuote(connection: PoolConnection, applicati
   if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found. Reopen your saved application." });
   const current = await latestCheckoutQuote(connection, applicationId);
   if ((app.payment_status === "paid" || app.stripe_payment_intent_id) && current) return current;
+  const [reserved] = await connection.execute<RowDataPacket[]>("SELECT quote_id FROM checkout_payment_attempts WHERE application_id=?", [applicationId]);
+  if (reserved[0]) {
+    if (!current || current.id !== reserved[0].quote_id) throw new Error("Reserved checkout quote is unavailable");
+    return current;
+  }
   const [applicants] = await connection.execute<RowDataPacket[]>("SELECT id FROM applicants WHERE application_id=? ORDER BY id", [applicationId]);
   const processingType = String(app.processing_type);
   if (processingType !== "regular" && processingType !== "express") throw new Error("Invalid stored processing type");
@@ -69,6 +74,7 @@ export async function refreshCheckoutQuote(connection: PoolConnection, applicati
 export async function assertCheckoutEditable(connection: PoolConnection, applicationId: number) {
   const [rows] = await connection.execute<RowDataPacket[]>("SELECT payment_status,stripe_payment_intent_id FROM applications WHERE id=? FOR UPDATE", [applicationId]);
   if (!rows[0]) throw new Error("Application not found");
-  if (rows[0].payment_status === "paid" || rows[0].stripe_payment_intent_id) throw new TRPCError({ code: "CONFLICT",
+  const [reserved] = await connection.execute<RowDataPacket[]>("SELECT quote_id FROM checkout_payment_attempts WHERE application_id=?", [applicationId]);
+  if (rows[0].payment_status === "paid" || rows[0].stripe_payment_intent_id || reserved.length > 0) throw new TRPCError({ code: "CONFLICT",
     message: "Payment has already started. Reopen the payment page to check its status before changing travellers or visa options." });
 }

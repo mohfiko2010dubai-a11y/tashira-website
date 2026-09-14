@@ -15,14 +15,16 @@ describe("checkout quote mutation regression", () => {
   let members: number[];
   let revisions: Array<Record<string, unknown>>;
   let displayedTotal: string;
+  let reservedQuote: string | null;
   let connection: PoolConnection;
   beforeEach(() => {
     app = { visa_type: "30days-single", processing_type: "regular", payment_status: "pending", stripe_payment_intent_id: null };
-    members = [1, 2]; revisions = []; displayedTotal = "0";
+    members = [1, 2]; revisions = []; displayedTotal = "0"; reservedQuote = null;
     connection = { execute: vi.fn(async (query: string, values: unknown[] = []) => {
       if (query.startsWith("SELECT visa_type") || query.startsWith("SELECT payment_status")) return [[app], []];
       if (query.startsWith("SELECT id,revision")) return [revisions.slice(-1), []];
       if (query.startsWith("SELECT id FROM applicants")) return [members.map(id => ({ id })), []];
+      if (query.startsWith("SELECT quote_id")) return [reservedQuote ? [{ quote_id: reservedQuote }] : [], []];
       if (query.startsWith("INSERT INTO checkout_quote_revisions")) {
         const payload = JSON.parse(String(values[4])) as Record<string, unknown>;
         // MySQL JSON storage may reorder object keys; this must not create a fresh quote every read.
@@ -67,6 +69,12 @@ describe("checkout quote mutation regression", () => {
     await expect(assertCheckoutEditable(connection, 7)).rejects.toThrow("Payment has already started");
     app.stripe_payment_intent_id = null; app.payment_status = "paid";
     await expect(assertCheckoutEditable(connection, 7)).rejects.toThrow("Payment has already started");
+  });
+  it("freezes the quote before an uncertain Stripe request, even without a saved intent", async () => {
+    const quote = await refreshCheckoutQuote(connection, 7);
+    reservedQuote = quote.id;
+    await expect(assertCheckoutEditable(connection, 7)).rejects.toThrow("Payment has already started");
+    expect((await refreshCheckoutQuote(connection, 7)).id).toBe(quote.id);
   });
   it("treats member identity, not only quantity, as part of the customer-visible quote", () => {
     const context = { visaType: "30days-single", processingType: "regular", applicantIds: [1, 2] };
