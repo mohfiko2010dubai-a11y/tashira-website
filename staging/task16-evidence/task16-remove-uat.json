@@ -1,0 +1,23 @@
+{
+  "rows": [
+    {
+      "route": "/ar/",
+      "status": 200,
+      "introAbsent": true,
+      "headerAndFooterLogoPresent": true
+    },
+    {
+      "route": "/en/",
+      "status": 200,
+      "introAbsent": true,
+      "headerAndFooterLogoPresent": true
+    },
+    {
+      "route": "/ar/visa-prices",
+      "status": 200,
+      "introAbsent": true,
+      "headerAndFooterLogoPresent": true
+    }
+  ],
+  "pageErrors": []
+}
