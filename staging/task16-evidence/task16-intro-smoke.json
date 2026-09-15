@@ -1,0 +1,34 @@
+[
+  {
+    "route": "/en/",
+    "status": 200,
+    "introCount": 1,
+    "reducedMotionRunning": 0
+  },
+  {
+    "route": "/ar/visa-prices",
+    "status": 200,
+    "introCount": 1,
+    "reducedMotionRunning": 0
+  },
+  {
+    "route": "/ar/apply",
+    "status": 200,
+    "introCount": 0,
+    "reducedMotionRunning": 0
+  },
+  {
+    "route": "/en/admin/login",
+    "status": 200,
+    "introCount": 0,
+    "reducedMotionRunning": 0
+  },
+  {
+    "route": "/en/",
+    "ssrFinalLogo": true
+  },
+  {
+    "route": "/ar/",
+    "ssrFinalLogo": true
+  }
+]

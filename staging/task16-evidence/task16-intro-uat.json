@@ -1,0 +1,65 @@
+{
+  "origin": "https://staging.tashiraev.com",
+  "results": [
+    {
+      "name": "desktop",
+      "width": 1280,
+      "height": 900,
+      "box": {
+        "x": 574,
+        "y": 113.765625,
+        "width": 132,
+        "height": 169.703125
+      },
+      "frames": [
+        {
+          "delay": 50,
+          "offset": "1px",
+          "star": "0"
+        },
+        {
+          "delay": 500,
+          "offset": "0.0980861px",
+          "star": "0"
+        },
+        {
+          "delay": 1700,
+          "offset": "0px",
+          "star": "1"
+        }
+      ],
+      "reloadStatic": true,
+      "pageErrors": []
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844,
+      "box": {
+        "x": 129,
+        "y": 88,
+        "width": 132,
+        "height": 169.703125
+      },
+      "frames": [
+        {
+          "delay": 50,
+          "offset": "0.87904px",
+          "star": "0"
+        },
+        {
+          "delay": 500,
+          "offset": "0.0577763px",
+          "star": "0"
+        },
+        {
+          "delay": 1700,
+          "offset": "0px",
+          "star": "1"
+        }
+      ],
+      "reloadStatic": true,
+      "pageErrors": []
+    }
+  ]
+}

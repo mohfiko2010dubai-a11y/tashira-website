@@ -56,3 +56,13 @@ TASK15's separately approved 24-continuous-hour Express guarantee remains unfini
 ## Visibility correction - 2026-09-14
 
 Owner reported no visible motion. The old open tab still had the pre-TASK16 triplicated gallery; a fresh tab loaded the new implementation. Separately, brand playback was consumed while the footer was below the viewport. Commit 3d8ae0be27dd352d13d64a7d06e9bb3e1af0338e defers playback/session marking until IntersectionObserver reports the footer mark visible, after paint. No duration/opacity/geometry change. Full local and guarded gates passed, health 200. Local and deployed browser verification prove pending state off-screen, playback on visibility, static header, and no replay on reload. A real staging capture is retained in tmp/task16-visible-brand.webm. Hardware/performance and explicit route-direction checks remain open.
+
+## Owner-approved first-screen placement - 2026-09-15
+
+Owner rejected the small footer treatment and explicitly approved a large, nonblocking first-screen mark outside the header. Deployed 3647b0743e9ec53f137cad50a4bd2c4def9d90b2: reference-width 132px mark above homepage title; other marketing pages have a navy introduction; footer/header static. Normal-flow reserved dimensions preserve content access; no overlay or loading gate. All original motion timings retained.
+
+Full local gates passed with two Vitest workers after an initial run hit worker start/termination timeouts. 1094 pass, 26 existing skips. Guard gates passed too. SSH output disconnected during build; subsequent read-only checks found the exact deployed revision, deployment audit PASS (2026-09-15T05:38:45Z), PM2 online, local health and public page 200. Initial browser navigation timeouts cleared on retry; actual staging desktop/mobile visual UAT passed.
+
+Desktop mark: x574/y113.77, 132x169.70 within 1280x900. Mobile: x129/y88, 132x169.70 within 390x844. Intermediate stroke offsets are nonzero at 50/500ms, zero at 1700ms; star ends opacity1. Header/footer static, no horizontal overflow, no page errors, no repeat after reload. Screenshots visually inspected; actual recordings in tmp/task16-intro-desktop.webm and tmp/task16-intro-mobile.webm. EN homepage and AR prices smoke, SSR final markup, reduced-motion zero animations and apply/admin exclusions pass. Physical Android, real OS setting, LCP/CLS regression certification and transition-direction UAT remain open; do not claim them passed.
+
+Two obsolete dependency caches (ca15cff0, cf1e0fec) removed only after exact revision/path and active-runtime checks; source/locks/backups retained. Fifteen unrelated dirty files unchanged. No production, payment or document mutation.
