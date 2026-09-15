@@ -1,0 +1,43 @@
+{
+  "checks": [
+    "Shared purpose persisted; no generated names",
+    "Free navigation before either traveller is complete; step remains 2",
+    "Save & Continue advances to traveller 2 with zero traveller-1 uploads",
+    "Payment blocked until required files arrive",
+    "Save & Continue advances to traveller 2 without completing traveller-1 uploads",
+    "Moves at 5 of 6 uploads, returns with saved data",
+    "All 14 required uploads accepted, including choose-one residence proof, then review enables payment",
+    "Arabic private SSR title and noindex",
+    "Payment page displays USD370 for two regular 30-day visas"
+  ],
+  "referenceNumber": "TSH-C12F6556EB0C43779731E47F6DB79A1C",
+  "applicationId": 205,
+  "requirements": [
+    {
+      "applicantId": 259,
+      "nationality": "EG",
+      "codes": [
+        "PASSPORT",
+        "PERSONAL_PHOTO",
+        "KSA_IQAMA_FRONT",
+        "KSA_IQAMA_BACK",
+        "KSA_RESIDENCE_PROOF",
+        "SA_ABSHER_REPORT"
+      ]
+    },
+    {
+      "applicantId": 260,
+      "nationality": "PK",
+      "codes": [
+        "PASSPORT",
+        "PK_PASSPORT_PAGE_2",
+        "PERSONAL_PHOTO",
+        "HOME_NATIONAL_ID",
+        "KSA_IQAMA_FRONT",
+        "KSA_IQAMA_BACK",
+        "KSA_RESIDENCE_PROOF",
+        "SA_ABSHER_REPORT"
+      ]
+    }
+  ]
+}

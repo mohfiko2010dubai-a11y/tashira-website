@@ -1,0 +1,20 @@
+[
+  {
+    "lang": "en",
+    "status": 200,
+    "serverTitle": true,
+    "noindex": true,
+    "hydratedTitle": "Traveller details & documents | TASHIRA",
+    "hintVisible": true,
+    "mobileOverflow": false
+  },
+  {
+    "lang": "ar",
+    "status": 200,
+    "serverTitle": true,
+    "noindex": true,
+    "hydratedTitle": "بيانات المسافرين والمستندات | TASHIRA",
+    "hintVisible": true,
+    "mobileOverflow": false
+  }
+]

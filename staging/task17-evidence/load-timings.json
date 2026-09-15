@@ -1,0 +1,134 @@
+[
+  {
+    "language": "en",
+    "status": 200,
+    "serverTiming": "ssr;dur=477.3",
+    "readyPriceMs": 2902,
+    "ttfbMs": 827,
+    "domContentLoadedMs": 1907,
+    "publicRequests": [
+      {
+        "path": "/api/trpc/dynamicInterview.nationalityCatalog",
+        "elapsedMs": 128
+      },
+      {
+        "path": "/api/trpc/application.prepareCreation",
+        "elapsedMs": 138.29999995231628
+      },
+      {
+        "path": "/api/trpc/wizard.quoteApplication,wizard.quoteApplication",
+        "elapsedMs": 154.89999997615814
+      }
+    ]
+  },
+  {
+    "language": "ar",
+    "status": 200,
+    "serverTiming": "ssr;dur=520.9",
+    "readyPriceMs": 3056,
+    "ttfbMs": 894.2999999523163,
+    "domContentLoadedMs": 2039.8999999761581,
+    "publicRequests": [
+      {
+        "path": "/api/trpc/dynamicInterview.nationalityCatalog",
+        "elapsedMs": 135.69999998807907
+      },
+      {
+        "path": "/api/trpc/application.prepareCreation",
+        "elapsedMs": 139
+      },
+      {
+        "path": "/api/trpc/wizard.quoteApplication,wizard.quoteApplication",
+        "elapsedMs": 134.69999998807907
+      }
+    ]
+  },
+  {
+    "language": "en",
+    "status": 200,
+    "serverTiming": "ssr;dur=426.2",
+    "readyPriceMs": 3062,
+    "ttfbMs": 793,
+    "domContentLoadedMs": 1983,
+    "publicRequests": [
+      {
+        "path": "/api/trpc/dynamicInterview.nationalityCatalog",
+        "elapsedMs": 134.0999999642372
+      },
+      {
+        "path": "/api/trpc/application.prepareCreation",
+        "elapsedMs": 150.80000001192093
+      },
+      {
+        "path": "/api/trpc/wizard.quoteApplication,wizard.quoteApplication",
+        "elapsedMs": 130.69999998807907
+      }
+    ]
+  },
+  {
+    "language": "ar",
+    "status": 200,
+    "serverTiming": "ssr;dur=443.8",
+    "readyPriceMs": 3132,
+    "ttfbMs": 844.5,
+    "domContentLoadedMs": 1976.699999988079,
+    "publicRequests": [
+      {
+        "path": "/api/trpc/dynamicInterview.nationalityCatalog",
+        "elapsedMs": 135.80000001192093
+      },
+      {
+        "path": "/api/trpc/application.prepareCreation",
+        "elapsedMs": 144.60000002384186
+      },
+      {
+        "path": "/api/trpc/wizard.quoteApplication,wizard.quoteApplication",
+        "elapsedMs": 135.5
+      }
+    ]
+  },
+  {
+    "language": "en",
+    "status": 200,
+    "serverTiming": "ssr;dur=460.7",
+    "readyPriceMs": 3057,
+    "ttfbMs": 850.6999999880791,
+    "domContentLoadedMs": 2124.5,
+    "publicRequests": [
+      {
+        "path": "/api/trpc/dynamicInterview.nationalityCatalog",
+        "elapsedMs": 139.60000002384186
+      },
+      {
+        "path": "/api/trpc/application.prepareCreation",
+        "elapsedMs": 147.5
+      },
+      {
+        "path": "/api/trpc/wizard.quoteApplication,wizard.quoteApplication",
+        "elapsedMs": 141.69999998807907
+      }
+    ]
+  },
+  {
+    "language": "ar",
+    "status": 200,
+    "serverTiming": "ssr;dur=442.2",
+    "readyPriceMs": 2992,
+    "ttfbMs": 812.1000000238419,
+    "domContentLoadedMs": 2036.6000000238419,
+    "publicRequests": [
+      {
+        "path": "/api/trpc/dynamicInterview.nationalityCatalog",
+        "elapsedMs": 132.5
+      },
+      {
+        "path": "/api/trpc/application.prepareCreation",
+        "elapsedMs": 129.69999998807907
+      },
+      {
+        "path": "/api/trpc/wizard.quoteApplication,wizard.quoteApplication",
+        "elapsedMs": 137.9000000357628
+      }
+    ]
+  }
+]

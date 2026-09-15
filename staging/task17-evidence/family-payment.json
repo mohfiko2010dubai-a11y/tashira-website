@@ -1,0 +1,9 @@
+{
+  "referenceNumber": "TSH-C12F6556EB0C43779731E47F6DB79A1C",
+  "successVisible": true,
+  "successAfterRefresh": true,
+  "status": {
+    "status": "paid",
+    "paymentIntentId": "pi_3UG3OpQuJW86CmXv1ZdimHWr"
+  }
+}
