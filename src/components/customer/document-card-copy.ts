@@ -1,7 +1,6 @@
 import { OWNER_DOCUMENTS } from "../../../contracts/owner-document-requirements";
 
 const cardCopy: Record<string, { en: string; ar: string; hintEn: string; hintAr: string }> = {
-  PERSONAL_PHOTO: { en: "Recent personal photo — white background, without glasses", ar: "صورة شخصية حديثة — خلفية بيضاء، بدون نظارة", hintEn: "White background, without glasses", hintAr: "خلفية بيضاء، بدون نظارة" },
   HOME_NATIONAL_ID: { en: "National ID card", ar: "بطاقة الهوية الوطنية", hintEn: "Issued by your home country", hintAr: "الصادرة من بلدك" },
   KSA_RESIDENCE_PROOF: { en: "Proof of residence", ar: "إثبات الإقامة", hintEn: "From Muqeem OR Absher — either one", hintAr: "من مقيم أو أبشر — أي واحد منهما" },
   SA_ABSHER_REPORT: { en: "Absher residence report", ar: "تقرير الإقامة من أبشر", hintEn: "A separate file from the proof above", hintAr: "ملف منفصل غير الإثبات السابق" },

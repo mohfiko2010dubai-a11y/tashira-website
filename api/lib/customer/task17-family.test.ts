@@ -1,3 +1,4 @@
+import { documentCardCopy } from "../../../src/components/customer/document-card-copy";
 import { describe, expect, it } from "vitest";
 import { requiredDocuments } from "../../../contracts/document-requirement-engine";
 import { applicantName } from "../../../contracts/applicant-name";
@@ -32,6 +33,14 @@ describe("TASK17 family document and identity boundaries", () => {
     expect(html).toContain('content="noindex, nofollow"');
     expect(html).not.toContain('rel="canonical"');
     expect(html).not.toContain('hreflang');
+  });
+  it("does not mark a public metadata fallback as a private page", () => {
+    const html = renderPageTemplate('<html><head><!--PAGE_METADATA--></head><body><div id="root"></div></body></html>', null);
+    expect(html).not.toContain('name="robots"');
+  });
+  it("uses the shared photo hint instead of repeating its label", () => {
+    expect(documentCardCopy({ key: "PERSONAL_PHOTO" }, "EG", false).hint).toBe("Keep your whole face visible. Do not use image filters.");
+    expect(documentCardCopy({ key: "PERSONAL_PHOTO" }, "EG", true).hint).toBe("يجب أن يظهر الوجه كاملًا. لا تستخدم فلاتر الصور.");
   });
   it("spells out the Arabic currency without a reordered US$ suffix", () => {
     expect(customerMoney(185, "ar")).toBe("185.00 دولار");
