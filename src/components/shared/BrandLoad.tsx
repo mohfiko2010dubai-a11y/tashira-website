@@ -18,7 +18,7 @@ export default function BrandLoad() {
     };
     const afterPaint = () => {
       if (!element) return;
-      // Do not consume the session animation while the footer is off screen.
+      // Consume the session only when the public introduction is visible.
       visibility = new IntersectionObserver(entries => {
         if (entries.some(entry => entry.isIntersecting)) {
           visibility?.disconnect();
@@ -34,5 +34,5 @@ export default function BrandLoad() {
     }
     return () => { clearTimeout(timer); observer?.disconnect(); visibility?.disconnect(); element?.classList.remove('brand-play'); };
   }, []);
-  return <span ref={host}><Logo theme="dark" size={26} /></span>;
+  return <span ref={host} className="brand-intro"><Logo theme="dark" size={26} className="brand-intro-logo" /></span>;
 }

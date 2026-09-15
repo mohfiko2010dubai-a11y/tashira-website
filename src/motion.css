@@ -1,5 +1,19 @@
 :root { --dur-micro:120ms; --dur-ui:200ms; --dur-brand:900ms; --ease:cubic-bezier(.22,.61,.36,1); --dir:1; }
 :root[dir="rtl"] { --dir:-1; }
+/* Owner-approved first-screen introduction: reference mark width 132px, never an overlay. */
+.brand-intro { display:flex; justify-content:center; margin-block-end:24px; }
+.brand-intro-logo { flex-direction:column; padding:0!important; gap:14px!important; font-size:23px!important; }
+.brand-intro-logo > svg { width:132px; height:169.715px; }
+.brand-intro-logo > .brand-wordmark { text-align:center; }
+.hero-with-brand { padding-block-start:112px; }
+.marketing-layout .marketing-content > .marketing-brand-intro { background:#0A1628; padding:104px 16px 24px; }
+@media (max-width:639px) {
+  .hero-with-brand { padding-block-start:88px; padding-block-end:24px; }
+  .hero-with-brand > .brand-intro { margin-block-end:20px; }
+  .hero-with-brand > h1 { font-size:30px; }
+  .hero-with-brand > p { margin-block:16px 0; }
+  .hero-with-brand > div { margin-block-start:24px; }
+}
 .upload-feedback { min-height:112px; margin-block-start:8px; font-size:12px; }
 .upload-feedback-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .upload-filename { overflow-wrap:anywhere; flex:1; }
