@@ -6,9 +6,9 @@ import type { PageMetadata } from "../../contracts/ssr-pages";
 import { languagePath, type SiteLanguage } from "../../contracts/language-routes";
 
 const escape = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-export function renderPageTemplate(template: string, meta: PageMetadata | null, rendered?: { html: string; state: unknown }, language: SiteLanguage = meta?.language ?? "en"): string {
+export function renderPageTemplate(template: string, meta: PageMetadata | null, rendered?: { html: string; state: unknown }, language: SiteLanguage = meta?.language ?? "en", privateTitle = "TASHIRA"): string {
   const backdrop = meta?.layout === "marketing" ? renderToStaticMarkup(createElement(MarketingBackdrop)) : "";
-  const head = meta ? `<title>${escape(meta.title)}</title><meta name="description" content="${escape(meta.description)}"/><link rel="canonical" href="https://www.tashiraev.com${escape(meta.canonicalPath)}"/>` : "<title>TASHIRA</title>";
+  const head = meta ? `<title>${escape(meta.title)}</title><meta name="description" content="${escape(meta.description)}"/><link rel="canonical" href="https://www.tashiraev.com${escape(meta.canonicalPath)}"/>` : `<title>${escape(privateTitle)}</title><meta name="robots" content="noindex, nofollow"/>`;
   const social = meta ? Object.entries(socialMetadata(meta, process.env.PUBLIC_APP_URL)).map(([key, value]) => `<meta ${key.startsWith("twitter:") ? "name" : "property"}="${key}" content="${escape(value)}"/>`).join("") : "";
   const state = rendered ? `<script id="__SSR_DATA" type="application/json">${JSON.stringify(rendered.state).replaceAll("<", "\\u003c")}</script>` : "";
   const alternates = meta ? (["en", "ar", "x-default"] as const).map(lang => `<link rel="alternate" hreflang="${lang}" href="https://www.tashiraev.com${escape(languagePath(meta.canonicalPath, lang === "ar" ? "ar" : "en"))}"/>`).join("") : "";

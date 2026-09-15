@@ -1,3 +1,4 @@
+import { customerMoney } from "@contracts/customer-money";
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { usePaymentRecovery } from '@/hooks/usePaymentRecovery';
 import { resumeCardPayment } from '@/lib/resume-card-payment';
@@ -222,7 +223,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
 export default function PaymentPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation('wizard');
+  const { t, i18n } = useTranslation('wizard');
   const [confirmed, setConfirmed] = useState(false);
   const [policiesAccepted, setPoliciesAccepted] = useState(false);
   const acceptPolicies = trpc.payment.acceptPolicies.useMutation();
@@ -352,7 +353,7 @@ export default function PaymentPage() {
             {priceSnapshotMissing ? (
               <span className="text-sm font-medium text-red-500">Unavailable</span>
             ) : (
-              <span className="text-2xl font-bold text-[#C9A04C]">${amount}</span>
+              <span className="text-2xl font-bold text-[#C9A04C]">{customerMoney(amount, i18n.language)}</span>
             )}
           </div>
         </div>

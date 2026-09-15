@@ -6,8 +6,8 @@ import type { PartyApplicant } from "./InterviewPartySetup";
 import NationalitySelect from "./NationalitySelect";
 import { useValidationFeedback } from "./useValidationFeedback";
 
-export function TravellerContext({ applicant, reference, editing, onEdit, onCancel, onSave }: {
-  applicant: PartyApplicant; reference: string; editing: boolean; onEdit: () => void; onCancel: () => void;
+export function TravellerContext({ applicant, reference, editing, nationalityOnly = false, onEdit, onCancel, onSave }: {
+  applicant: PartyApplicant; reference: string; editing: boolean; nationalityOnly?: boolean; onEdit: () => void; onCancel: () => void;
   onSave: (context: { nationality: string; residenceCountry: string; tripPurpose: TripPurpose }) => Promise<void>;
 }) {
   const { t, i18n } = useTranslation("wizard"); const ar = i18n.language.startsWith("ar");
@@ -33,11 +33,11 @@ export function TravellerContext({ applicant, reference, editing, onEdit, onCanc
     catch { setError(ar ? "تعذر حفظ الاختيارات. حاول مرة أخرى." : "Your choices could not be saved. Try again."); } finally { setBusy(false); }
   }}>
     <div><NationalitySelect {...feedback.fieldProps("nationality")} compact label={t("simple.fields.NATIONALITY")} value={nationality} onChange={setNationality} />{feedback.errorFor("nationality")}</div>
-    <div><NationalitySelect {...feedback.fieldProps("residence")} compact purpose="residence" label={t("simple.fields.RESIDENCE_COUNTRY")} value={residenceCountry} onChange={setResidenceCountry} />{feedback.errorFor("residence")}</div>
+    {!nationalityOnly && <><div><NationalitySelect {...feedback.fieldProps("residence")} compact purpose="residence" label={t("simple.fields.RESIDENCE_COUNTRY")} value={residenceCountry} onChange={setResidenceCountry} />{feedback.errorFor("residence")}</div>
     <p className="text-xs text-slate-500">{t("simple.residenceHint")}</p>
     <label className="grid gap-2 text-sm">{t("simple.tripPurpose")}<select className="min-h-11 rounded-xl border px-3" value={tripPurpose} onChange={event => setTripPurpose(tripPurposeSchema.parse(event.target.value))}>
       {tripPurposeSchema.options.map(value => <option key={value} value={value}>{purposeLabel(value)}</option>)}
-    </select></label>
+    </select></label></>}
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     <p aria-live="polite" aria-atomic="true" className="text-sm text-red-700">{feedback.count > 0 ? t("validation.summary", { count: feedback.count }) : ""}</p>
     <div className="flex gap-3"><button disabled={busy} className="min-h-11 rounded-xl bg-[#0a1628] px-5 text-white">{ar ? "حفظ ومتابعة" : "Save & continue"}</button>

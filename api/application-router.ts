@@ -1,4 +1,5 @@
 import { MysqlCustomerInterviewWriteRepository } from "./lib/customer/mysql-customer-interview-write-repository";
+import { applicantName } from "../contracts/applicant-name";
 import { evaluateDocumentRequirements, tripPurposeSchema } from "../contracts/document-requirement-engine";
 import { loadTripPurposes } from "./lib/customer/trip-purpose";
 import { defaultOperationsSqlClient, defaultOperationsPool } from "./lib/operations/mysql-query-client";
@@ -63,7 +64,7 @@ export const applicationRouter = createRouter({
       journeyMode: z.enum(["LEGACY", "DYNAMIC"]).default("LEGACY"),
       policyVersion: z.literal(TERMS_POLICY_VERSION),
       applicants: z.array(z.object({
-        fullName: z.string(),
+        fullName: z.string().transform(applicantName),
         nationality: z.string().optional(),
         tripPurpose: tripPurposeSchema.optional(),
         passportNumber: z.string().optional(),
@@ -236,7 +237,7 @@ export const applicationRouter = createRouter({
         } catch {
           // supplierId column may not exist yet
         }
-        return { ...app, applicants: applicantList, supplier };
+        return { ...app, applicants: applicantList.map(item => ({ ...item, fullName: applicantName(item.fullName) })), supplier };
       }));
 
       return result;

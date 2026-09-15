@@ -1,3 +1,4 @@
+import { customerMoney } from "../../contracts/customer-money";
 import { precheckPrefill } from "@/lib/precheck-documents";
 import NationalitySelect from "@/components/customer/NationalitySelect";
 import { GCC_COUNTRIES, requiredDocuments, tripPurposeSchema, type TripPurpose } from "@contracts/document-requirement-engine";
@@ -89,7 +90,7 @@ export default function DynamicApplicationStart() {
 
   const travellerCount = applicationType === "single" ? 1 : applicantCount;
   const applicants = useMemo(
-    () => Array.from({ length: travellerCount }, (_, index) => ({ fullName: `Applicant ${index + 1}`, gccResidenceCountry: country, ...(residenceType === "gcc-accompany" ? { sponsorName: sponsorName.trim(), sponsorRelation: sponsorRelation.trim() } : {}), ...(applicationType === "single" ? { nationality, tripPurpose: /transit|96hours/i.test(visaType) ? "transit" as const : purpose } : {}) })),
+    () => Array.from({ length: travellerCount }, () => ({ fullName: "", gccResidenceCountry: country, ...(residenceType === "gcc-accompany" ? { sponsorName: sponsorName.trim(), sponsorRelation: sponsorRelation.trim() } : {}), tripPurpose: /transit|96hours/i.test(visaType) ? "transit" as const : purpose, ...(applicationType === "single" ? { nationality } : {}) })),
     [travellerCount, country, applicationType, nationality, purpose, visaType, residenceType, sponsorName, sponsorRelation],
   );
 
@@ -97,7 +98,7 @@ export default function DynamicApplicationStart() {
   // price (same pricing engine the payment uses) before starting.
   const prices = useProcessingQuotes(visaType, travellerCount);
   const quote = { data: prices[processingType], isPending: prices.loading };
-  const money = (amount: number) => new Intl.NumberFormat(i18n.language, { style: "currency", currency: prices.regular?.currency ?? "USD", maximumFractionDigits: 2 }).format(amount);
+  const money = (amount: number) => customerMoney(amount, i18n.language, prices.regular?.currency ?? "USD");
 
 
   const create = trpc.application.create.useMutation({
@@ -190,7 +191,7 @@ export default function DynamicApplicationStart() {
               <div><p className="mb-2 text-sm font-medium">{t("simple.fields.RESIDENCE_COUNTRY")} *</p>
                 <NationalitySelect {...feedback.fieldProps("residence", "start-residence-help")} compact purpose="residence" value={country} onChange={setCountry} allowedCodes={allowedResidence ?? []} />
                 <p id="start-residence-help" className="mt-2 text-xs text-slate-500">{t("simple.residenceHint")}</p>{feedback.errorFor("residence")}</div>
-              {applicationType === "single" && !/transit|96hours/i.test(visaType) && <label className="grid gap-2 text-sm font-medium">{t("simple.tripPurpose")}
+              {!/transit|96hours/i.test(visaType) && <label className="grid gap-2 text-sm font-medium">{t("simple.tripPurpose")}
                 <select className="min-h-11 rounded-xl border p-3" value={purpose} onChange={event => setPurpose(tripPurposeSchema.parse(event.target.value))}>
                   <option value="tourism">{t("simple.purposeTourism")}</option><option value="visiting_family">{t("simple.purposeFamily")}</option><option value="transit">{t("simple.purposeTransit")}</option>
                 </select></label>}

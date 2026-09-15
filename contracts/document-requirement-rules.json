@@ -67,8 +67,8 @@
     "code": "PERSONAL_PHOTO",
     "label_en": "Recent personal photo — white background, without glasses",
     "label_ar": "صورة شخصية حديثة — خلفية بيضاء، بدون نظارة",
-    "hint_en": "White background, without glasses.",
-    "hint_ar": "خلفية بيضاء، بدون نظارة.",
+    "hint_en": "Keep your whole face visible. Do not use image filters.",
+    "hint_ar": "يجب أن يظهر الوجه كاملًا. لا تستخدم فلاتر الصور.",
     "document_type": "PERSONAL_PHOTO",
     "applies_when": {
       "visa_category": [

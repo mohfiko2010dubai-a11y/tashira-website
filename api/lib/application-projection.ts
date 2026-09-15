@@ -1,3 +1,4 @@
+import { applicantName } from "../../contracts/applicant-name";
 import { eq } from "drizzle-orm";
 import { applications, applicants, suppliers } from "@db/schema";
 import { getDb } from "../queries/connection";
@@ -27,5 +28,5 @@ export async function getCanonicalApplicationByReference(referenceNumber: string
   } catch {
     // supplierId column may not exist yet
   }
-  return { ...app, applicants: applicantList, supplier };
+  return { ...app, applicants: applicantList.map(item => ({ ...item, fullName: applicantName(item.fullName) })), supplier };
 }

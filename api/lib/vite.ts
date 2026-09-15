@@ -4,6 +4,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import fs from "node:fs";
 import path from "node:path";
 import { fixedMetadata, isPublicPage } from "../../contracts/ssr-pages";
+import { interviewTitle } from "../../contracts/private-page-title";
 import { renderPageTemplate, notFoundHtml } from "./ssr-html";
 import { renderSsrResponse, SsrPageNotFound } from "./ssr-response";
 import { renderInWorker, type RenderTiming } from "./ssr-worker";
@@ -68,7 +69,7 @@ export function serveStaticFiles(app: App) {
     }
     if (/^\/(apply\/|pay\/|applications\/|deposit\/|recover$|login$|dashboard$|admin(?:\/|$)|staff(?:\/|$))/.test(pathname)) {
       c.header("X-Robots-Tag", "noindex, nofollow");
-      return c.html(renderPageTemplate(fs.readFileSync(path.join(distPath, "index.html"), "utf8"), null, undefined, route.language));
+      return c.html(renderPageTemplate(fs.readFileSync(path.join(distPath, "index.html"), "utf8"), null, undefined, route.language, /^\/apply\/[^/]+\/interview\/?$/.test(pathname) ? interviewTitle(route.language) : "TASHIRA"));
     }
     return serveStatic({ root: distPath })(c, next);
   });

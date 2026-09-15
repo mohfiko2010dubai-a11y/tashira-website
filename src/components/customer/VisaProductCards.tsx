@@ -1,3 +1,4 @@
+import { customerMoney } from "@contracts/customer-money";
 import { processingCopy } from "@contracts/processing-copy";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -40,7 +41,7 @@ function VisaCard({
   const [speed, setSpeed] = useState<"regular" | "express">("regular");
 
   const hasExpress = product.expressPrice !== null;
-  const currentPrice = speed === "express" && hasExpress ? product.expressPrice : product.regularPrice;
+  const currentPrice = speed === "express" ? product.expressPrice ?? product.regularPrice : product.regularPrice;
   const currentTime = processingCopy(isAr ? "ar" : "en")[speed === "express" && hasExpress ? "express" : "regular"];
   const expressDelta = hasExpress ? Math.round((product.expressPrice! - product.regularPrice) * 100) / 100 : 0;
 
@@ -90,7 +91,7 @@ function VisaCard({
 
         <div className="flex items-baseline gap-1 mt-3">
           <span className={`font-extrabold text-[#C9A04C] ${compact ? "text-3xl" : "text-4xl"}`}>
-            ${currentPrice}
+            {customerMoney(currentPrice, isAr ? "ar" : "en", product.currency)}
           </span>
           <span className="text-sm text-gray-400">/ {t("perPerson")}</span>
         </div>
@@ -111,7 +112,7 @@ function VisaCard({
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                {t(`speed.${s}`)}{s === "express" ? ` +${new Intl.NumberFormat(isAr ? "ar" : "en", { style: "currency", currency: product.currency, maximumFractionDigits: 2 }).format(expressDelta)}` : ""}
+                {t(`speed.${s}`)}{s === "express" ? ` +${customerMoney(expressDelta, isAr ? "ar" : "en", product.currency)}` : ""}
               </button>
             ))}
           </div>

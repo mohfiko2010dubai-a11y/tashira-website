@@ -1,3 +1,4 @@
+import { applicantName } from "../contracts/applicant-name";
 import { loadOwnerDocumentEvidence, projectOwnerDocuments, DISTINCT_DOCUMENT_MESSAGE, type OwnerDocumentEvidence } from "./lib/customer/owner-document-evidence";
 import { requiredDocuments, tripPurposeSchema, type TripPurpose } from "../contracts/document-requirement-engine";
 import { loadTripPurposes } from "./lib/customer/trip-purpose";
@@ -477,7 +478,7 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
       contactEmail: String(Reflect.get(row, "contactEmail") ?? ""), baseType: String(Reflect.get(row, "baseType")), residenceType: String(Reflect.get(row, "residenceType")),
       arrivalDate: Reflect.get(row, "arrivalDate") == null ? null : String(Reflect.get(row, "arrivalDate")),
       applicantIds, applicants: applicantRows.map((applicant) => ({ applicantId: Number(Reflect.get(applicant, "id")),
-        applicantIndex: Number(Reflect.get(applicant, "applicantIndex")), fullName: String(Reflect.get(applicant, "fullName") ?? ""),
+        applicantIndex: Number(Reflect.get(applicant, "applicantIndex")), fullName: applicantName(String(Reflect.get(applicant, "fullName") ?? "")),
         nationality: Reflect.get(applicant, "nationality") === null ? null : String(Reflect.get(applicant, "nationality")),
         residenceCountry: Reflect.get(applicant, "residenceCountry") === null ? null : String(Reflect.get(applicant, "residenceCountry")),
         passportNumber: Reflect.get(applicant, "passportNumber") == null ? null : String(Reflect.get(applicant, "passportNumber")),
@@ -486,8 +487,8 @@ export const dynamicInterviewRouter = createDynamicInterviewRouter({
         tripPurpose: tripPurposes.get(Number(Reflect.get(applicant, "id"))),
         profileVersion: Number(Reflect.get(applicant, "profileVersion")) })),
       applicantLabels: Object.fromEntries(applicantRows.map((applicant) => { const id = Number(Reflect.get(applicant, "id"));
-        const fullName = String(Reflect.get(applicant, "fullName") ?? "").trim(); const index = Number(Reflect.get(applicant, "applicantIndex"));
-        return [id, fullName || `Applicant ${index + 1}`]; })) };
+        const fullName = applicantName(String(Reflect.get(applicant, "fullName") ?? "")); const index = Number(Reflect.get(applicant, "applicantIndex"));
+        return [id, fullName || `Traveller ${index + 1}`]; })) };
   },
   loadCatalog: (at) => catalogProvider().active(at),
   loadRules: (routeCode) => ruleProvider().activeForRoute(routeCode), loadEvents: (applicationId) => answerProvider().all(applicationId),

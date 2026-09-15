@@ -1,3 +1,4 @@
+import { applicantName } from "../../contracts/applicant-name";
 import { loadTripPurposes } from "./customer/trip-purpose";
 import { requiredDocuments } from "../../contracts/document-requirement-engine";
 import { loadOwnerDocumentEvidence, projectOwnerDocuments } from "./customer/owner-document-evidence";
@@ -84,7 +85,7 @@ export function evaluateApplicationReadiness(input: {
       if (application.residenceType === "non-gcc-accompany" || application.residenceType === "gcc-accompany") {
         fields.push(["sponsorName", "Sponsor name"], ["sponsorRelation", "Sponsor relationship"]);
       }
-      for (const [key, label] of fields) if (!present(applicant[key])) missing.push({ code: `applicant.${String(key)}`, label });
+      for (const [key, label] of fields) if (!present(key === "fullName" ? applicantName(applicant.fullName) : applicant[key])) missing.push({ code: `applicant.${String(key)}`, label });
 
       const owned = input.documents.filter((document) => document.applicationId === application.id
         && document.applicantId === applicant.id && document.uploadStatus === "uploaded");
@@ -143,7 +144,7 @@ export function evaluateInterviewReadiness(input: { legacy: ApplicationReadiness
   const results = input.applicants.map(applicant => {
     const missing: MissingItem[] = [];
     for (const [key, label] of [["fullName", "Full name"], ["nationality", "Nationality"], ["passportNumber", "Passport number"], ["profession", "Profession"], ["gccResidenceCountry", "Country of residence"]] as const) {
-      if (!present(applicant[key])) missing.push({ code: `applicant.${key}`, label });
+      if (!present(key === "fullName" ? applicantName(applicant.fullName) : applicant[key])) missing.push({ code: `applicant.${key}`, label });
     }
     if (!validPassportExpiry(applicant.passportExpiry ?? "", input.application.arrivalDate)) missing.push({ code: "applicant.passportExpiry", label: "Passport valid for at least six months" });
     if (input.application.residenceType === "gcc-accompany") {
@@ -160,7 +161,7 @@ export function evaluateInterviewReadiness(input: { legacy: ApplicationReadiness
         missing.push({ code: `document.${code}`, label: code.replaceAll("_", " ") });
       }
     }
-    return { applicantId: applicant.id, applicantIndex: applicant.applicantIndex, label: applicant.fullName ?? `Applicant ${applicant.applicantIndex + 1}`, missing };
+    return { applicantId: applicant.id, applicantIndex: applicant.applicantIndex, label: applicantName(applicant.fullName) || `Traveller ${applicant.applicantIndex + 1}`, missing };
   });
   const ready = applicationMissing.length === 0 && results.length > 0 && results.every(item => !item.missing.length);
   return { status: ready ? "READY" : "INCOMPLETE", message: ready ? "Application is ready for payment" : "Complete the listed requirements before payment.", applicationMissing, applicants: results };

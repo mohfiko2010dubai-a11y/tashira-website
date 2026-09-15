@@ -1,3 +1,5 @@
+import { applicantName } from "../../contracts/applicant-name";
+
 export type InvoiceApplicantIdentity = {
   applicantIndex: number;
   fullName: string;
@@ -22,7 +24,7 @@ export function canonicalInvoiceCustomerIdentity(
 ): CanonicalInvoiceCustomerIdentity {
   const leadApplicant = [...applicantIdentities].sort((left, right) => left.applicantIndex - right.applicantIndex)[0];
   const identity = {
-    fullName: normalized(leadApplicant?.fullName),
+    fullName: applicantName(normalized(leadApplicant?.fullName)),
     nationality: normalized(leadApplicant?.nationality),
     passportNumber: normalized(leadApplicant?.passportNumber),
     passportExpiry: normalized(leadApplicant?.passportExpiry),

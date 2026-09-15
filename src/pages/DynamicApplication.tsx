@@ -1,7 +1,8 @@
+import { interviewTitle } from "../../contracts/private-page-title";
 import { motionCommit } from "@/lib/motion";
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
 import { ApplicationSupplements } from "@/components/customer/ApplicationSupplements";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TravellerContext } from "@/components/customer/TravellerContext";
@@ -33,6 +34,7 @@ const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) =
 
 export default function DynamicApplication() {
   const { t, i18n } = useTranslation("wizard");
+  useEffect(() => { document.title = interviewTitle(i18n.language); }, [i18n.language]);
   const { referenceNumber = "" } = useParams();
   const query = trpc.dynamicInterview.current.useQuery({ referenceNumber }, { enabled: referenceNumber.length >= 3, retry: false });
   const [phase, updatePhase] = useState<3 | 4 | 5 | null>(null);
@@ -42,7 +44,7 @@ export default function DynamicApplication() {
   const prepareUploadMutation = trpc.dynamicInterview.prepareDocumentUploads.useMutation();
   const editContextMutation = trpc.dynamicInterview.editDocumentContext.useMutation();
   const [formSaving, setFormSaving] = useState(false);
-  const [documentAttempt, setDocumentAttempt] = useState(0);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   const [reviewAttempt, setReviewAttempt] = useState(0);
   const [validationCounts, setValidationCounts] = useState<Record<number, number>>({});
   const onValidationCount = useCallback((applicantId: number, count: number) => {
@@ -80,8 +82,7 @@ export default function DynamicApplication() {
   }, [query.data, t]);
 
   // The pager follows the traveller who owns the current question by default
-  // (activeTravellerId is reset to null after each saved answer), and honours
-  // a manual tab pick until the next answer is submitted.
+  // and honours an explicit manual selection until the customer navigates again.
   if (query.isLoading) return <main className="mx-auto min-h-[60vh] max-w-3xl px-5 py-12" aria-live="polite">Loading your application…</main>;
   if (query.error) return <main className="mx-auto min-h-[60vh] max-w-3xl px-5 py-12"><section className="rounded-2xl border border-amber-200 bg-amber-50 p-6"><h1 className="text-xl font-semibold text-slate-900">Application interview unavailable</h1><p className="mt-2 text-slate-700">Use the secure link sent for this application, or contact TASHIRA support.</p></section></main>;
   const refreshState = async () => {
@@ -92,13 +93,14 @@ export default function DynamicApplication() {
   if (!state) return null;
 
   const currentQuestionTravellerId = question?.applicantId ?? null;
-  const activeId = activeTravellerId ?? travellers[0]?.applicantId ?? -1;
+  const activeId = activeTravellerId ?? currentQuestionTravellerId ?? travellers[0]?.applicantId ?? -1;
   const activeIndex = Math.max(0, travellers.findIndex((tr) => tr.applicantId === activeId));
   const activeProfile = state.partySetup?.applicants.find(item => item.applicantId === activeId);
   const contextOpen = editingContext || Boolean(activeProfile && (!activeProfile.nationality || !activeProfile.residenceCountry));
 
 
   const saveApplicantForm = async (applicantId: number, submission: ApplicantFormSubmission, continueAfter: boolean) => {
+    setMissingFields([]);
     setFormSaving(true);
     try {
     const applicant = state.partySetup?.applicants.find(item => item.applicantId === applicantId);
@@ -115,7 +117,7 @@ export default function DynamicApplication() {
     let latest: NonNullable<typeof query.data> = refreshed;
     for (const field of submission.answers) {
       // Recheck relevance after each save: conditional fields may disappear or become required.
-      if (!latest.formQuestions?.some(item => item.code === field.code && item.applicantId === field.applicantId)) continue;
+      if (![...(latest.formQuestions ?? []), ...latest.currentQuestions].some(item => item.code === field.code && item.applicantId === field.applicantId)) continue;
       const previous: FormAnswer | undefined = latest.knownAnswers.find(item => item.code === field.code && item.applicantId === field.applicantId);
       if (previous?.answer === field.answer) continue;
       const input = { referenceNumber, applicantId: field.applicantId, questionCode: field.code, answer: field.answer, changeReason: "CUSTOMER_FORM_SAVE" };
@@ -132,20 +134,18 @@ export default function DynamicApplication() {
     } else { setActiveTravellerId(applicantId); setPhase(3); }
     await refreshState();
     if (!continueAfter) return;
-    const latestState = (await query.refetch()).data;
-    const latestRequirements = latestState?.partySetup?.requirementReadiness.filter(item => item.applicantId === applicantId) ?? [];
-    if (!ownMissing && latestRequirements.length && latestRequirements.every(item => ["UPLOADED", "VALIDATED", "WAIVED"].includes(item.state))) {
+    if (!ownMissing) {
       if (activeIndex < travellers.length - 1) goToTraveller(activeIndex + 1); else setPhase(5);
     } else {
-      setDocumentAttempt(value => value + 1);
-      requestAnimationFrame(() => document.getElementById("continue-documents-status")?.scrollIntoView({ block: "center" }));
+      setMissingFields(latest.currentQuestions.filter(item => item.applicantId === applicantId || item.applicantId === null).map(item => t(`simple.fields.${item.code}`, { defaultValue: item.label })));
+      requestAnimationFrame(() => { const target = document.getElementById("continue-documents-status"); target?.scrollIntoView({ block: "center" }); target?.focus({ preventScroll: true }); });
     }
     } finally { setFormSaving(false); }
   };
 
   const goToTraveller = (index: number) => {
     const target = travellers[index];
-    if (target) { setActiveTravellerId(target.applicantId); setPhase(3); }
+    if (target) { setEditingContext(false); setMissingFields([]); setActiveTravellerId(target.applicantId); setPhase(3); }
   };
 
   const uploadHandler = async (requirement: PartyRequirementReadiness, file: File, onProgress: (progress: DocumentUploadProgress) => void) => {
@@ -186,14 +186,14 @@ export default function DynamicApplication() {
 
   const currentStep = phase ?? 3;
   const canOpenCheckout = canVisitCheckout(readiness.data);
-  return <WizardShell compactContent currentStep={contextOpen ? 1 : currentStep === 5 ? 3 : 2}>
+  return <WizardShell compactContent currentStep={currentStep === 5 ? 3 : 2}>
     <div className="mx-auto w-full max-w-[680px]">
       <StepHeader
-        step={contextOpen ? 1 : currentStep === 5 ? 3 : 2}
-        title={t(contextOpen ? "steps.visa" : currentStep === 5 ? "steps.review" : "steps.data")}
+        step={currentStep === 5 ? 3 : 2}
+        title={t(currentStep === 5 ? "steps.review" : "steps.data")}
         subtitle={t(currentStep === 5 ? "flow.subtitle" : "flow.matchedDocuments")}
       />
-      {currentStep !== 5 && activeProfile && <TravellerContext key={`${activeId}:${contextOpen}`} applicant={activeProfile} reference={referenceNumber} editing={contextOpen}
+      {currentStep !== 5 && activeProfile && <TravellerContext key={`${activeId}:${contextOpen}`} applicant={activeProfile} reference={referenceNumber} editing={contextOpen} nationalityOnly={!editingContext && Boolean(activeProfile.residenceCountry && activeProfile.tripPurpose)}
         onEdit={() => setEditingContext(true)} onCancel={() => setEditingContext(false)} onSave={async profile => {
           const previous = ownerRequiredDocumentCodes(activeProfile.nationality, activeProfile.residenceCountry, state.applicationContext.visaType, activeProfile.tripPurpose, state.applicationContext.residenceType);
           await editContextMutation.mutateAsync({ referenceNumber, applicantId: activeId, expectedVersion: activeProfile.profileVersion, ...profile, idempotencyKey: crypto.randomUUID() });
@@ -202,7 +202,6 @@ export default function DynamicApplication() {
           setNewDocumentCodes(current => ({ ...current, [activeId]: next.filter(code => !previous.includes(code)) }));
           setEditingContext(false); setPhase(3);
         }} />}
-      <div hidden={contextOpen}>
 
       {/* Traveller pager — one traveller per page */}
       {currentStep !== 5 && travellers.length > 1 && (
@@ -210,13 +209,14 @@ export default function DynamicApplication() {
           {travellers.map((traveller, i) => {
             const isActive = traveller.applicantId === activeId;
             const isCurrent = traveller.applicantId === currentQuestionTravellerId;
-            const fields = (state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === traveller.applicantId);
+            const fields = Array.from(new Map([...(state.formQuestions ?? []), ...state.currentQuestions].map(field => [`${field.applicantId}:${field.code}`, field])).values()).filter(field => field.applicantId === traveller.applicantId);
             const isDone = fields.length > 0 && fields.every(field => state.knownAnswers.some(answer => answer.applicantId === field.applicantId && answer.code === field.code));
             return (
               <button
                 key={traveller.applicantId}
                 type="button"
-                disabled={formSaving || docsBusy || i > activeIndex}
+                disabled={formSaving || docsBusy}
+                aria-describedby={formSaving || docsBusy ? "traveller-busy" : undefined}
                 onClick={() => goToTraveller(i)}
                 className={`rounded-full border px-4 py-2 text-xs font-bold transition-colors ${
                   isActive
@@ -236,6 +236,8 @@ export default function DynamicApplication() {
         </nav>
       )}
 
+      {(formSaving || docsBusy) && <p id="traveller-busy" role="status" className="mb-3 text-sm">{i18n.language.startsWith("ar") ? "انتظر اكتمال الحفظ أو الرفع قبل تغيير المسافر." : "Wait for saving or uploading to finish before changing traveller."}</p>}
+      <div hidden={contextOpen}>
       {/* Manage party (add travellers, family links, shared tickets) */}
       {state.partySetup && travellers.length > 1 && <details id="party-setup" className="mb-5 rounded-xl border border-slate-200 p-4"><summary className="cursor-pointer text-sm font-semibold">{t("simple.family")}</summary><InterviewPartySetup setup={state.partySetup}
         hideTravelGroups relationshipsOnly
@@ -260,7 +262,7 @@ export default function DynamicApplication() {
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
         <ApplicantDataForm applicant={applicant} onValidationCount={onValidationCount} formId={`traveller-form-${applicant.applicantId}`} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
-          questions={(state.formQuestions ?? state.currentQuestions).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
+          questions={Array.from(new Map([...(state.formQuestions ?? []), ...state.currentQuestions].map(field => [`${field.applicantId}:${field.code}`, field])).values()).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
           saved={state.knownAnswers} onSave={(submission, continueAfter) => saveApplicantForm(applicant.applicantId, submission, continueAfter)} />
       </div>)}
 
@@ -337,7 +339,7 @@ export default function DynamicApplication() {
       <div className="mt-6 space-y-3">
         {currentStep !== 5 && <>
           <p id="continue-documents-status" role="status" aria-live="polite" aria-atomic="true" tabIndex={-1} className="text-sm text-slate-600">
-            {documentAttempt > 0 && <span key={documentAttempt}>{t(!activeRequirements.length ? "validation.reviewUnavailable" : remainingDocuments > 0 ? "simple.documentsRemaining" : "simple.savedContinue", { count: remainingDocuments })}</span>}
+            {missingFields.length > 0 ? (i18n.language.startsWith("ar") ? `أكمل الحقول التالية ثم احفظ مجددًا: ${missingFields.join("، ")}` : `Complete these fields, then save again: ${missingFields.join(", ")}`) : remainingDocuments > 0 ? (i18n.language.startsWith("ar") ? `متبقي ${remainingDocuments} مستندات لهذا المسافر. يمكنك الانتقال الآن ورفعها قبل الدفع.` : `${remainingDocuments} documents remaining for this traveller. You can continue now and upload them before payment.`) : ""}
           </p>
           <p id="traveller-validation-status" aria-live="polite" aria-atomic="true" className="text-sm text-red-700">
             {validationCounts[activeId] > 0 ? t("validation.summary", { count: validationCounts[activeId] }) : ""}

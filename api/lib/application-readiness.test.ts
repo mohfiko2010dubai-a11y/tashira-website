@@ -11,7 +11,7 @@ const application = {
   contactEmail: "synthetic@example.test", contactPhone: "+971500000000", arrivalDate: "2026-09-01",
 };
 const completeApplicant = (id: number, applicantIndex: number, applicationId = 1) => ({
-  id, applicationId, applicantIndex, fullName: `Applicant ${applicantIndex + 1}`, nationality: "Testland",
+  id, applicationId, applicantIndex, fullName: "Synthetic Traveller", nationality: "Testland",
   passportNumber: `TEST${id}`, passportType: "ordinary", travelingFrom: "Testland", passportExpiry: "2030-01-01",
   profession: "Tester", gccResidenceNumber: null, gccResidenceCountry: null, sponsorName: null, sponsorRelation: null,
 });
@@ -24,6 +24,12 @@ describe("owner wizard checkout uses applicant-scoped persisted requirements", (
     legacy: evaluate({ applicants: [applicant], documents: [], application: { ...application, arrivalDate: "" } }),
     application: { ...application, arrivalDate: "" }, applicants: [applicant], evidence: [evidence], relationshipsComplete: true, ...overrides });
   it("accepts one passport page for Egypt without fields removed from the owner form", () => expect(run().status).toBe("READY"));
+  it("rejects a generated placeholder even when all documents are uploaded", () => {
+    const result = run({ applicants: [{ ...applicant, fullName: "Applicant 2" }] });
+    expect(result.status).toBe("INCOMPLETE");
+    expect(result.applicants[0].missing).toContainEqual({ code: "applicant.fullName", label: "Full name" });
+    expect(result.applicants[0].label).toBe("Traveller 1");
+  });
   it("optional files and notes do not enter the required evidence set", () => {
     for (const count of [0, 1, 6]) {
       const optional = Array.from({ length: count }, (_, index) => ({ code: `OPTIONAL_${index}`, state: "MISSING" }));

@@ -48,7 +48,7 @@ function parseProfile(value: unknown): CustomerApplicantProfile {
   const fullName = Reflect.get(parsed, "fullName");
   const nationality = Reflect.get(parsed, "nationality");
   const residenceCountry = Reflect.get(parsed, "residenceCountry");
-  if (typeof fullName !== "string" || !fullName.trim()
+  if (typeof fullName !== "string"
     || (nationality !== null && typeof nationality !== "string")
     || (residenceCountry !== null && typeof residenceCountry !== "string")) throw new Error("CUSTOMER_PROFILE_EVIDENCE_INVALID");
   const tripPurpose = tripPurposeSchema.safeParse(Reflect.get(parsed, "tripPurpose")).data;
