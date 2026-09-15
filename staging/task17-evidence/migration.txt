@@ -1,0 +1,7 @@
+MIGRATION=PASS
+DATABASE=tashira_staging
+NAME=054_uniform_express_fee.sql
+SHA256=34709b59b780cf783976e18af6e0ed8fab986c247a78e4ada6728f3ac2998a1a
+BACKUP=/var/backups/tashira-staging/20260915T200043Z-pre-054_uniform_express_fee
+
+Temporary migration delivery removed; guarded backup and migration ledger retained.

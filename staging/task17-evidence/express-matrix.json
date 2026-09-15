@@ -1,0 +1,2 @@
+{"cases":48,"expressCases":24,"uniformExpressFeeUsd":30,"productSpeedPairs":16,"travellerCounts":[1,2,10],"displayEqualsStripePayload":true,"extraTaxAtCheckout":false,"vatRegistered":"no","vatRate":"0.0000","networkPaymentCalls":0,"method":"Actual staging pricing engine and display helper; intercepted Stripe HTTP payload, no additional charges"}
+

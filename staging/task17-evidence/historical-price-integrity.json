@@ -1,0 +1,15 @@
+{
+  "unchanged": true,
+  "tables": [
+    {
+      "table": "application_price_snapshots",
+      "count": 178,
+      "sha256": "8599d05088900da59ae1072cd634aea5a86dbcf9b55f7208b235478dde2c7d8a"
+    },
+    {
+      "table": "checkout_quote_revisions",
+      "count": 64,
+      "sha256": "e44d8e90c56e25f515b8a04735ac0c8449dcd6bffca8b00d61606ac12d84409e"
+    }
+  ]
+}

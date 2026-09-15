@@ -1,0 +1,12 @@
+[
+  {
+    "language": "en",
+    "expressDelta": "Express +$30.00",
+    "selectedPriceUsd": 200
+  },
+  {
+    "language": "ar",
+    "expressDelta": "سريع +‏30.00 US$",
+    "selectedPriceUsd": 200
+  }
+]
