@@ -1,5 +1,4 @@
 import { marketingClaims } from "@contracts/marketing-claims";
-import BrandLoad from '@/components/shared/BrandLoad';
 import { processingCopy } from "@contracts/processing-copy";
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -26,8 +25,7 @@ export default function RHero() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A1628]/85 via-[#0A1628]/70 to-[#0A1628]/90" />
 
-      <div className="hero-with-brand relative z-10 max-w-5xl mx-auto px-4 text-center pb-16">
-        <BrandLoad />
+      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center pt-28 pb-16">
         <p className="inline-flex items-center gap-2 text-[#DDBB7A] tracking-[0.25em] text-sm font-semibold mb-6">
           <img src="https://flagcdn.com/w40/ae.png" alt="UAE" className="w-5 h-auto rounded-sm" />
           {isAr ? 'بوابة التأشيرة الإلكترونية الإماراتية' : 'UAE E-VISA PORTAL'}
