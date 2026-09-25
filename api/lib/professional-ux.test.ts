@@ -7,7 +7,7 @@ describe("professional customer UX invariants", () => {
       readFile(new URL("../../src/components/shared/ChatBot.tsx", import.meta.url), "utf8"),
       readFile(new URL("../wizard-router.ts", import.meta.url), "utf8"),
     ]);
-    expect(source).toContain("assistantApplicationPath(language, reference)");
+    expect(source).toContain("assistantApplicationPath(language, reference,");
     expect(source).toContain("useProcessingQuotes(visa, count)");
     expect(source).toContain("assistantDocuments(");
     expect(source).not.toContain("startApplication.useMutation");

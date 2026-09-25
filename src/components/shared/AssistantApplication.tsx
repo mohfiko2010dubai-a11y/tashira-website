@@ -46,5 +46,5 @@ export default function AssistantApplication({ initialPath }: { initialPath: str
     return () => clearTimeout(timer);
   }, [i18n]);
   useEffect(() => () => { const root = applicationRoot.current; applicationRoot.current = null; if (root) queueMicrotask(() => root.unmount()); }, []);
-  return <div ref={container} data-assistant-application className="relative isolate [transform:translateZ(0)] [--site-header-height:0px]" />;
+  return <div ref={container} data-assistant-application className="relative isolate [transform:translateZ(0)] [--site-header-height:0px] [&_[data-application-layout]_aside]:hidden" />;
 }

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { assistantApplicationPath, assistantDocuments, ASSISTANT_GUIDANCE } from "../../contracts/assistant-guidance";
 import { requiredDocuments } from "../../contracts/document-requirement-engine";
 
+import { precheckPrefill } from "../../src/lib/precheck-documents";
+
 describe("assistant uses the current application rules", () => {
   it.each([
     ["EG", "EG", "non-gcc", 3], ["EG", "SA", "gcc-resident", 6],
@@ -26,6 +28,14 @@ describe("assistant uses the current application rules", () => {
     const rules = assistantDocuments({ nationality: "EG", country_of_residence: "SA", residence_type: "gcc-resident", visa_type: "30days-single" });
     expect(rules.find(rule => rule.code === "KSA_RESIDENCE_PROOF")?.any_of).toHaveLength(2);
     expect(rules.map(rule => rule.code)).toContain("SA_ABSHER_REPORT");
+  });
+  it("preserves the selected companion context and family size when opening the canonical form", () => {
+    const path = assistantApplicationPath("ar", undefined, { nationality: "IQ", country_of_residence: "QA", residence_type: "gcc-accompany", visa_type: "14days-single", trip_purpose: "visiting_family", applicantCount: 2 });
+    const params = new URLSearchParams(path.split("?")[1]);
+    expect(params.get("application")).toBe("family");
+    expect(params.get("count")).toBe("2");
+    expect(params.get("visa")).toBe("14days-single");
+    expect(precheckPrefill(params)).toEqual({ nationality: "IQ", country: "QA", residenceType: "gcc-accompany", purpose: "visiting_family" });
   });
   it("resumes through the owned form and rejects malformed stored references", () => {
     expect(assistantApplicationPath("ar", "TSH-TEST-123")).toBe("/ar/apply/TSH-TEST-123/interview");

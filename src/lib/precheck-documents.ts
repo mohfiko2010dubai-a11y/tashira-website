@@ -18,6 +18,6 @@ export function precheckPrefill(params: URLSearchParams) {
   const code = (key: string) => /^[A-Z]{2}$/.test(params.get(key) ?? "") ? params.get(key)! : "";
   const country = code("residence");
   return { nationality: code("nationality"), country,
-    residenceType: GCC_COUNTRIES.some(item => item === country) ? "gcc-resident" as const : "non-gcc" as const,
+    residenceType: GCC_COUNTRIES.some(item => item === country) ? params.get("residence_type") === "gcc-accompany" ? "gcc-accompany" as const : "gcc-resident" as const : "non-gcc" as const,
     purpose: tripPurposeSchema.safeParse(params.get("purpose")).data ?? "tourism" as const };
 }

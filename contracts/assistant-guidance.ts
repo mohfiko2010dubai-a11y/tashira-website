@@ -5,10 +5,14 @@ import { languagePath, type SiteLanguage } from "./language-routes";
 /** Guidance delegates requirements to the same approved rules used by the form. */
 export const assistantDocuments = (context: DocumentRequirementContext) => requiredDocuments(context);
 export const assistantReference = (value: string | null | undefined) => value && /^TSH-[A-Z0-9-]+$/i.test(value) ? value : undefined;
-export function assistantApplicationPath(language: SiteLanguage, reference?: string) {
+export function assistantApplicationPath(language: SiteLanguage, reference?: string, selection?: DocumentRequirementContext & { applicantCount: number }) {
   const safeReference = assistantReference(reference);
-  return languagePath(safeReference
-    ? `/apply/${encodeURIComponent(safeReference)}/interview` : "/apply", language);
+  if (safeReference) return languagePath(`/apply/${encodeURIComponent(safeReference)}/interview`, language);
+  if (!selection) return languagePath("/apply", language);
+  const count = Number.isInteger(selection.applicantCount) && selection.applicantCount >= 1 && selection.applicantCount <= 10 ? selection.applicantCount : 1;
+  const query = new URLSearchParams({ visa: selection.visa_type, nationality: selection.nationality ?? "", residence: selection.country_of_residence ?? "",
+    residence_type: selection.residence_type ?? "non-gcc", purpose: selection.trip_purpose ?? "tourism", application: count > 1 ? "family" : "single", count: String(count) });
+  return `${languagePath("/apply", language)}?${query}`;
 }
 export const ASSISTANT_GUIDANCE = {
   en: {

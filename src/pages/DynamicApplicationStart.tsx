@@ -68,14 +68,15 @@ export default function DynamicApplicationStart() {
     "14-days": "14days-single", "30-days": "30days-single", "60-days": "60days-single",
     "multiple-entry": "30days-multiple", "transit": "96hours-transit",
   };
-  const [applicationType, setApplicationType] = useState<"single" | "family">(visaParam === "family" ? "family" : "single");
+  const [applicationType, setApplicationType] = useState<"single" | "family">((visaParam === "family" || searchParams.get("application") === "family") ? "family" : "single");
   const [residenceType, setResidenceType] = useState<"non-gcc" | "gcc-resident" | "gcc-accompany">(prefill.residenceType);
   const [sponsorName, setSponsorName] = useState("");
   const [sponsorRelation, setSponsorRelation] = useState("");
   const [nationality, setNationality] = useState(prefill.nationality);
   const [country, setCountry] = useState(prefill.country);
   const [purpose, setPurpose] = useState<TripPurpose>(prefill.purpose);
-  const [applicantCount, setApplicantCount] = useState(2);
+  const countParam = Number(searchParams.get("count"));
+  const [applicantCount, setApplicantCount] = useState(Number.isInteger(countParam) && countParam >= 2 && countParam <= 10 ? countParam : 2);
   const knownVisaId = visaRoutes.find(([v]) => v === visaParam)?.[0];
   const [visaType, setVisaType] = useState<string>(knownVisaId ?? visaPrefill[visaParam] ?? visaRoutes[2][0]);
   const processingParam = searchParams.get("processing") ?? "";
