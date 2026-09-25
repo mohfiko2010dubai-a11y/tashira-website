@@ -39,13 +39,14 @@ describe('launch legal policy bundle', () => {
   it('requires one explicit acceptance control with all three policy links', () => {
     const root = process.cwd();
     const form = fs.readFileSync(path.join(root, 'src/sections/VisaApplicationForm.tsx'), 'utf8');
-    const chatbot = fs.readFileSync(path.join(root, 'src/components/shared/ChatBot.tsx'), 'utf8');
-    for (const source of [form, chatbot]) {
+    const checkout = fs.readFileSync(path.join(root, 'src/components/customer/PolicyAcceptance.tsx'), 'utf8');
+    const payment = fs.readFileSync(path.join(root, 'src/pages/PaymentPage.tsx'), 'utf8');
+    for (const source of [form, checkout]) {
       expect(source).toContain('/terms');
       expect(source).toContain('/privacy');
       expect(source).toContain('/refund');
     }
-    expect(chatbot).toContain('disabled={!wizard.acceptedTerms}');
-    expect(chatbot).toContain('if (!w.acceptedTerms)');
+    expect(checkout).toContain('type="checkbox"');
+    expect(payment).toContain('if (!policiesAccepted)');
   });
 });

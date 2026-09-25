@@ -2,15 +2,15 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 describe("professional customer UX invariants", () => {
-  it("keeps chatbot review edits on owned applicants and server pricing", async () => {
+  it("delegates assistant applications to the secure form and preserves owned edits", async () => {
     const [source, router] = await Promise.all([
       readFile(new URL("../../src/components/shared/ChatBot.tsx", import.meta.url), "utf8"),
       readFile(new URL("../wizard-router.ts", import.meta.url), "utf8"),
     ]);
-    expect(source).toContain("applicantIndex: index");
-    expect(source).toContain("quoteMutation.mutateAsync");
-    expect(source).toContain("step: 'review'");
-    expect(source).toContain("previousStep[wizard.step]");
+    expect(source).toContain("assistantApplicationPath(language, reference)");
+    expect(source).toContain("useProcessingQuotes(visa, count)");
+    expect(source).toContain("assistantDocuments(");
+    expect(source).not.toContain("startApplication.useMutation");
     expect(source).not.toContain("Math.round(wizard.totalAmount");
     expect(router).toContain("replaceDocument: applicationUploadQuery");
     expect(router).toContain('application.paymentStatus !== "pending"');

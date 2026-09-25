@@ -1,8 +1,9 @@
+import { ApplicationDomScope } from "@/components/customer/ApplicationDomScope";
 import { interviewTitle } from "../../contracts/private-page-title";
 import { motionCommit } from "@/lib/motion";
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
 import { ApplicationSupplements } from "@/components/customer/ApplicationSupplements";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TravellerContext } from "@/components/customer/TravellerContext";
@@ -33,6 +34,7 @@ const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) =
 });
 
 export default function DynamicApplication() {
+  const domScope = useContext(ApplicationDomScope);
   const { t, i18n } = useTranslation("wizard");
   useEffect(() => { document.title = interviewTitle(i18n.language); }, [i18n.language]);
   const { referenceNumber = "" } = useParams();
@@ -138,7 +140,7 @@ export default function DynamicApplication() {
       if (activeIndex < travellers.length - 1) goToTraveller(activeIndex + 1); else setPhase(5);
     } else {
       setMissingFields(latest.currentQuestions.filter(item => item.applicantId === applicantId || item.applicantId === null).map(item => t(`simple.fields.${item.code}`, { defaultValue: item.label })));
-      requestAnimationFrame(() => { const target = document.getElementById("continue-documents-status"); target?.scrollIntoView({ block: "center" }); target?.focus({ preventScroll: true }); });
+      requestAnimationFrame(() => { const target = (domScope ?? document).querySelector<HTMLElement>("#continue-documents-status"); target?.scrollIntoView({ block: "center" }); target?.focus({ preventScroll: true }); });
     }
     } finally { setFormSaving(false); }
   };
@@ -323,9 +325,9 @@ export default function DynamicApplication() {
           {canOpenCheckout && <Link to={`/pay/${encodeURIComponent(referenceNumber)}`} className="rounded-xl bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] px-8 py-3 font-bold text-white shadow-md shadow-[#C9A04C]/30">{t("step2.continueToPay")}</Link>}
           {!canOpenCheckout && <button type="button" className="rounded-xl bg-[#C9A04C] px-8 py-3 font-bold" aria-describedby="review-validation" onClick={() => {
             setReviewAttempt(value => value + 1);
-            const blockers = document.getElementById("payment-blockers");
+            const blockers = (domScope ?? document).querySelector<HTMLElement>("#payment-blockers");
             requestAnimationFrame(() => {
-              const target = blockers ?? document.getElementById("review-validation");
+              const target = blockers ?? (domScope ?? document).querySelector<HTMLElement>("#review-validation");
               target?.scrollIntoView({ block: "center", behavior: "smooth" });
               target?.focus({ preventScroll: true });
             });

@@ -1,3 +1,4 @@
+import { VISA_ROUTES as visaRoutes } from "@contracts/visa-options";
 import { customerMoney } from "../../contracts/customer-money";
 import { precheckPrefill } from "@/lib/precheck-documents";
 import NationalitySelect from "@/components/customer/NationalitySelect";
@@ -15,12 +16,7 @@ import { TERMS_POLICY_VERSION } from "@contracts/constants";
 import { useApplicationCreation } from "@/hooks/useApplicationCreation";
 import { CreationResumeNotice } from "@/components/customer/CreationResumeNotice";
 
-const visaRoutes = [
-  ["14days-single", "14 Days Visa"], ["14days-multiple", "14 Days Multiple Entry"],
-  ["30days-single", "30 Days Visa"], ["30days-multiple", "30 Days Multiple Entry"],
-  ["60days-single", "60 Days Visa"], ["60days-multiple", "60 Days Multiple Entry"],
-  ["90days-single", "90 Days Visa"], ["96hours-transit", "96 Hours Transit"],
-] as const;
+
 
 const processingOptions = [
   { key: "regular" as const, icon: Clock3, titleKey: "regular", descKey: "regularDesc" },
