@@ -36,7 +36,7 @@ const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) =
 export default function DynamicApplication() {
   const domScope = useContext(ApplicationDomScope);
   const { t, i18n } = useTranslation("wizard");
-  useEffect(() => { document.title = interviewTitle(i18n.language); }, [i18n.language]);
+  useEffect(() => { if (!domScope) document.title = interviewTitle(i18n.language); }, [domScope, i18n.language]);
   const { referenceNumber = "" } = useParams();
   const query = trpc.dynamicInterview.current.useQuery({ referenceNumber }, { enabled: referenceNumber.length >= 3, retry: false });
   const [phase, updatePhase] = useState<3 | 4 | 5 | null>(null);
