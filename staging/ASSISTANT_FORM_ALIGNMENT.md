@@ -23,3 +23,13 @@ The final selection-preservation follow-up is `8f2bf9f204fce72dcc7a65283540d30a8
 ## Scope and operational notes
 
 Only isolated staging is authorized and used. This change does not clear the separate launch/payment/admin backlog or implement the unfinished Express refund guarantee. All 15 unrelated worktree files are unchanged. Four reproducible inactive dependency caches (fc9485a, e994566, 3d8ae0b, 3647b07) were removed after checking their revisions, paths and active-runtime exclusion; source, lockfiles, application data and backups remain intact.
+
+## Owner-requested follow-up review — 25 September 2026
+
+Reviewed the deployed implementation rather than treating the prior test result as completion. Found and fixed two integration defects: Save & view application fell through to a link back to the initial interview instead of the status destination; and the embedded interview overwrote the host page title. Commit 019017d6538f377bb33137a268ceb8314aa814f6 displays the canonical status portal inside the assistant with return navigation, preserves the actual destination for other full-page links, and scopes the interview title to standalone use.
+
+The server audit confirms guarded deployment PASS at 2026-09-25T12:26:20Z. Local TypeScript/lint/test passed (1111 passed, 26 existing gated skips), followed by production build PASS; immutable staging guard repeated all four gates on the final revision. The SSH output stream stalled during build output, so completion was independently confirmed from the server audit/current revision. The initial local build launcher referenced a missing npm executable; running the exact build stages directly succeeded without changing build checks.
+
+Fresh deployed browser checks: all eight visa Express deltas USD30; deliberately aborted price requests show a visible retry action and recover; saved status opens inside the assistant and returns to the application; all three previously uploaded synthetic files persist; host page title is preserved; the final revision opens Stripe checkout at USD185 inside chat; a fresh browser holding only the saved reference cannot see the profile. No charge was created. One first price-matrix run timed out; its repeat completed all eight choices. Policy acceptance is server-acknowledged asynchronously, so the browser test waits for checked state after clicking instead of assuming synchronous acknowledgement.
+
+This is verification of the assistant changes, not an assertion that every possible device/network combination is error-free or that all separate launch blockers are closed. No real-customer messages, production operations or order deletions.
