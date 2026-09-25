@@ -1,0 +1,32 @@
+[
+  {
+    "language": "en",
+    "egyptNonGcc": 3,
+    "egyptSaudi": 6,
+    "pakistanSaudi": 8,
+    "iraqQatarCompanion": 6,
+    "expressPerTraveller": 30,
+    "two14DayExpress": 400,
+    "noPageErrors": true,
+    "noMobileOverflow": true,
+    "canonicalFormInsideChat": true,
+    "keepsDraftOnCloseAndGuidance": true,
+    "preservedVisaAndFamilyCount": true,
+    "preservedCompanion": true
+  },
+  {
+    "language": "ar",
+    "egyptNonGcc": 3,
+    "egyptSaudi": 6,
+    "pakistanSaudi": 8,
+    "iraqQatarCompanion": 6,
+    "expressPerTraveller": 30,
+    "two14DayExpress": 400,
+    "noPageErrors": true,
+    "noMobileOverflow": true,
+    "canonicalFormInsideChat": true,
+    "keepsDraftOnCloseAndGuidance": true,
+    "preservedVisaAndFamilyCount": true,
+    "preservedCompanion": true
+  }
+]
