@@ -17,6 +17,7 @@ import Legal from "@/pages/Legal";
 import Contact from "@/pages/Contact";
 import DynamicApplicationStart from "@/pages/DynamicApplicationStart";
 import CustomerPrecheck from "@/pages/CustomerPrecheck";
+import DocumentChecklist from "@/pages/DocumentChecklist";
 import StaticInfoPage from "@/pages/content/StaticInfoPage";
 import ContentIndexPage from "@/pages/content/ContentIndexPage";
 import CmsContentPageWrapper from "@/pages/content/CmsContentPageWrapper";
@@ -30,7 +31,7 @@ export default function PublicApp() {
   const location = useLocation();
   const { i18n } = useTranslation();
   const mounted = useSyncExternalStore(subscribeToClient, clientSnapshot, serverSnapshot);
-  const meta = fixedMetadata(location.pathname, i18n.language);
+  const meta = fixedMetadata(location.pathname, i18n.language, location.search);
   return <HelmetProvider><div className={`min-h-screen bg-white ${i18n.language.startsWith("ar") ? "font-tajawal" : "font-inter"}`}>
     <Header />
     <main data-motion-screen className={/^\/(apply|guides|news|about|editorial-policy|sources-and-verification|uae-visa)(\/|$)/.test(location.pathname) ? "site-header-clearance" : undefined}><Routes>
@@ -40,6 +41,7 @@ export default function PublicApp() {
       <Route path="/how-to-apply" element={<HowToApply />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/visa-pre-check" element={<CustomerPrecheck />} />
+      <Route path="/documents" element={<DocumentChecklist />} />
       <Route path="/guides" element={<ContentIndexPage type="GUIDE" />} />
       <Route path="/news" element={<ContentIndexPage type="NEWS" />} />
       <Route path="/guides/:slug" element={<CmsContentPageWrapper type="GUIDE" />} />

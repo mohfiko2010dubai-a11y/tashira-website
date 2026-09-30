@@ -39,11 +39,11 @@ async function render(job: Job) {
       return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers });
     }, { stage: "data" }),
   })] });
-  let meta: PageMetadata | null = fixedMetadata(path, language);
+  let meta: PageMetadata | null = fixedMetadata(path, language, url.search);
   try {
     const dataStarted = performance.now();
     const work: Promise<unknown>[] = [];
-    if (path === "/" || path === "/visa-prices") work.push(queries.fetchQuery({
+    if (path === "/" || path === "/visa-prices" || path === "/documents") work.push(queries.fetchQuery({
       queryKey: getQueryKey(trpc.catalog.listActiveProducts, undefined, "query"),
       queryFn: () => measure("catalog.listActiveProducts", () => client.catalog.listActiveProducts.query()),
     }));

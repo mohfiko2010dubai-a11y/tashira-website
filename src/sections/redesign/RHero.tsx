@@ -32,11 +32,11 @@ export default function RHero() {
         </p>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
-          {processingCopy(i18n.language).headline}
+          {isAr ? "تأشيرة الإمارات لمقيمي الخليج" : "UAE visas for GCC residents"}
         </h1>
 
         <p className="mt-6 text-lg text-gray-300 max-w-2xl mx-auto">
-          {processingCopy(i18n.language).regular}
+          {processingCopy(i18n.language).headline}
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">

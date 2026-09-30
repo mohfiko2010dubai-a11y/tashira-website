@@ -1,9 +1,12 @@
 import { expressPriceDelta } from "@contracts/price-delta";
+import { visaStayDuration, VISA_DURATION_EXPLANATION } from "@contracts/visa-duration";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { customerMoney } from "@contracts/customer-money";
 import { processingCopy } from "@contracts/processing-copy";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Clock, Calendar, Repeat, Check, Zap, Loader2 } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
 
@@ -126,6 +129,10 @@ function VisaCard({
           </li>
           <li className="flex items-center gap-2">
             <Calendar size={15} className="text-[#C9A04C] shrink-0" />
+            <span>{isAr ? "مدة الإقامة" : "Stay duration"}: {visaStayDuration(product.id, isAr)}</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <Calendar size={15} className="text-[#C9A04C] shrink-0" />
             <span>
               {t("validityLabel")}: {validity}
             </span>
@@ -202,6 +209,25 @@ export default function VisaProductCards({ compact }: { compact?: boolean }) {
 
   return (
     <div>
+      <p className="mb-6 text-sm text-gray-600">{VISA_DURATION_EXPLANATION[isAr ? "ar" : "en"]}</p>
+      {!compact && <>
+        <Card className="mb-6 border-[#C9A04C]/40"><CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <Badge className="bg-[#C9A04C] text-white">{isAr ? "للمقيمين في دول الخليج" : "For GCC residents"}</Badge>
+          <Link to="/apply?residence=gcc" className="font-semibold underline">{isAr ? "ابدأ طلب المقيم الخليجي" : "Start your GCC-resident application"}</Link>
+        </CardContent></Card>
+        <div className="mb-8 overflow-x-auto rounded-xl border border-gray-200">
+          <table className="w-full text-start text-sm">
+            <caption className="p-4 text-start font-semibold">{isAr ? "قارن خيارات التأشيرة" : "Compare visa options"}</caption>
+            <thead className="bg-gray-50"><tr>{(isAr ? ["نوع التأشيرة", "مدة الإقامة", "الصلاحية للدخول", "مرات الدخول", "العادي", "السريع"] : ["Visa type", "Stay", "Entry validity", "Entries", "Regular", "Express"]).map(label => <th scope="col" key={label} className="p-3 text-start">{label}</th>)}</tr></thead>
+            <tbody>{productsQuery.data?.map(product => <tr key={product.id} className="border-t border-gray-100">
+              <th scope="row" className="p-3 text-start font-medium">{isAr ? product.nameAr : product.nameEn}</th>
+              <td className="p-3">{visaStayDuration(product.id, isAr)}</td><td className="p-3">{isAr ? product.validityAr : product.validityEn}</td>
+              <td className="p-3">{t(`entryType.${product.entryType}`)}</td><td className="p-3 whitespace-nowrap">{customerMoney(product.regularPrice, isAr ? "ar" : "en", product.currency)}</td>
+              <td className="p-3 whitespace-nowrap">{product.expressPrice === null ? "—" : customerMoney(product.expressPrice, isAr ? "ar" : "en", product.currency)}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </>}
       {/* Entry type tabs */}
       <div className="flex justify-center mb-10" role="tablist" aria-label={t("processingLabel")}>
         <div className="flex bg-gray-100 rounded-full p-1">

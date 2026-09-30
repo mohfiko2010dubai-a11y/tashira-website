@@ -1,3 +1,5 @@
+import OptionalFlightNotice from "./OptionalFlightNotice";
+import { customerFileCount } from "@contracts/customer-count";
 import Logo from '@/components/shared/Logo';
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -11,7 +13,7 @@ export default function CustomerPrecheckResult({ context }: { context: DocumentR
   const result = context ? precheckDocuments(context) : null;
   return <section className="rounded-2xl border border-[#e8e0d2] bg-white p-5 shadow-sm sm:p-6" aria-live="polite">
     <Logo variant="mark-only" watermark={!result} size={26} />
-    <h2 className="text-2xl font-bold text-[#0A1628]">{result ? ar ? `مستنداتك: ${result.rules.length.toLocaleString("ar")} ملفات` : `Your documents: ${result.rules.length} files` : ar ? "قائمة مستنداتك" : "Your document checklist"}</h2>
+    <h2 className="text-2xl font-bold text-[#0A1628]">{result ? ar ? `مستنداتك: ${customerFileCount(result.rules.length, true)}` : `Your documents: ${customerFileCount(result.rules.length, false)}` : ar ? "قائمة مستنداتك" : "Your document checklist"}</h2>
     {context && result ? <>
       {result.groups.map(group => <section key={group.key} data-document-group={group.key} className="mt-6">
         <h3 className="border-b border-[#e8e0d2] pb-2 text-sm font-bold text-[#9b7425]">{documentGroupHeading(group.key, context.country_of_residence, ar)}</h3>
@@ -23,11 +25,7 @@ export default function CustomerPrecheckResult({ context }: { context: DocumentR
           </li>;
         })}</ul>
       </section>)}
-      {!/transit|96hours/i.test(context.visa_type) && <aside className="mt-6 rounded-xl border border-dashed border-[#d9cdb5] bg-[#faf7ef] p-4" data-optional-after-payment>
-        <h3 className="text-sm font-bold text-slate-600">{ar ? "بعد الدفع، اختياري" : "After payment, optional"}</h3>
-        <p className="mt-2 font-semibold">{ar ? "حجز الطيران" : "Flight booking"}</p>
-        <p className="mt-1 text-sm text-slate-600">{ar ? "غير محسوب ضمن الملفات المطلوبة، ولا يمنع المتابعة. لا ينطبق على القادمين برًا." : "Not counted in your required files and does not block continuing. Not applicable if arriving overland."}</p>
-      </aside>}
+      {!/transit|96hours/i.test(context.visa_type) && <OptionalFlightNotice ar={ar} />}
       <Link to={`/apply?${precheckApplicationSearch(context)}`} className="mt-6 block rounded-xl bg-[#0A1628] px-4 py-4 text-center font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A04C]">{ar ? "ابدأ طلبك — مستنداتك محدّدة بالفعل" : "Start your application — these documents are already matched to you"}</Link>
     </> : <>
       <p className="mt-3 text-sm text-slate-600">{ar ? "أجب عن الأسئلة لترى قائمتك المحدّدة — عادةً من ٦ إلى ٩ ملفات." : "Answer the questions to see your exact list — usually 6 to 9 files."}</p>

@@ -53,7 +53,7 @@ describe("InterviewRequirementDocuments", () => {
     expect(childStart).toBeGreaterThan(fatherStart);
     expect(html.slice(fatherStart, childStart)).toContain("Passport main data page");
     expect(html.slice(fatherStart, childStart)).not.toContain("Recent personal photo");
-    expect(html.slice(childStart)).toContain("1 files");
+    expect(html.slice(childStart)).toContain("1 file");
     expect(html.slice(childStart)).toContain('aria-expanded="false"');
     expect(html.match(/type="file"/g)).toHaveLength(1);
   });

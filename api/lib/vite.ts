@@ -22,6 +22,10 @@ export function serveStaticFiles(app: App) {
   app.use("*", async (c, next) => {
     if (/^\/(api|storage|invoices)\//.test(c.req.path)) return next();
     c.header("Cache-Control", getFrontendCacheControl(c.req.path));
+    if (process.env.PUBLIC_APP_URL?.replace(/\/$/, "") === "https://staging.tashiraev.com") {
+      if (c.req.path === "/robots.txt") return c.text("User-agent: *\nDisallow: /\n");
+      if (c.req.path === "/sitemap.xml") return c.text("Not Found", 404);
+    }
     const route = languageRoute(c.req.path);
     const pathname = route.pathname;
     if (pathname === "/recover") c.header("Referrer-Policy", "no-referrer");
@@ -34,7 +38,7 @@ export function serveStaticFiles(app: App) {
     const privatePage = pathname === "/apply" || pathname === "/track" || /[?&](?:ref|token|referenceNumber)=/.test(requestUrl.search);
     if (isPublicPage(pathname) && (c.req.method === "GET" || c.req.method === "HEAD")) {
       const template = fs.readFileSync(path.join(distPath, "index.html"), "utf8");
-      const meta = fixedMetadata(pathname, route.language);
+      const meta = fixedMetadata(pathname, route.language, requestUrl.search);
       let fault: string | undefined;
       const wanted = requestUrl.searchParams.get("__ssr_test");
       if (process.env.PUBLIC_APP_URL?.replace(/\/$/, "") === "https://staging.tashiraev.com" &&

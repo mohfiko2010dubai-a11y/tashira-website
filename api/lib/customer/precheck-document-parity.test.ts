@@ -5,6 +5,11 @@ import { precheckApplicationSearch, precheckDocuments, precheckPrefill } from ".
 import { documentCardGroups } from "../../../src/components/customer/document-card-groups";
 
 describe("precheck and wizard document parity", () => {
+  it("carries companion status and family-visit purpose through to the real form", () => {
+    const context = { nationality: "IQ", country_of_residence: "QA", residence_type: "gcc-accompany", visa_type: "30days-single", trip_purpose: "visiting_family" as const };
+    expect(precheckDocuments(context).rules.some(rule => rule.key === "sponsor_id")).toBe(true);
+    expect(precheckPrefill(new URLSearchParams(precheckApplicationSearch(context)))).toEqual({ nationality: "IQ", country: "QA", residenceType: "gcc-accompany", purpose: "visiting_family" });
+  });
   for (const [nationality, country, visa, purpose] of [
     ["PK", "SA", "30days-single", "tourism"], ["PK", "OM", "30days-single", "tourism"],
     ["IN", "KW", "30days-single", "visiting_family"], ["EG", "EG", "96hours-transit", "transit"],
@@ -24,6 +29,9 @@ describe("precheck and wizard document parity", () => {
     expect(result.rules.map(rule => rule.key)).toEqual(["passport_page", "pk_passport_page_2", "personal_photo", "home_national_id", "ksa_iqama_front", "ksa_iqama_back", "ksa_residence_proof", "ksa_absher_report"]);
     expect(result.groups.flatMap(group => group.cards)).toHaveLength(6);
     expect(result.groups.flatMap(group => group.cards.flatMap(card => card.files))).toHaveLength(8);
+  });
+  it("presets GCC residence from the pricing entry without inventing a country", () => {
+    expect(precheckPrefill(new URLSearchParams("residence=gcc"))).toMatchObject({ country: "", residenceType: "gcc-resident" });
   });
   it("does not accept free text or arbitrary trip purposes as route prefills", () => {
     expect(precheckPrefill(new URLSearchParams("nationality=Egyptian&residence=Saudi Arabia&purpose=other")))

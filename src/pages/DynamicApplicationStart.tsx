@@ -1,8 +1,11 @@
+import { customerFileCount } from "@contracts/customer-count";
 import { VISA_ROUTES as visaRoutes } from "@contracts/visa-options";
 import { customerMoney } from "../../contracts/customer-money";
 import { precheckPrefill } from "@/lib/precheck-documents";
 import NationalitySelect from "@/components/customer/NationalitySelect";
-import { GCC_COUNTRIES, requiredDocuments, tripPurposeSchema, type TripPurpose } from "@contracts/document-requirement-engine";
+import { GCC_COUNTRIES, requiredDocuments, type TripPurpose } from "@contracts/document-requirement-engine";
+import TripPurposeSelect from "@/components/customer/TripPurposeSelect";
+import ResidenceTypeSelect from "@/components/customer/ResidenceTypeSelect";
 import { useProcessingQuotes } from "@/hooks/useProcessingQuotes";
 import { useMemo, useState } from "react";
 import {useNavigate, useSearchParams} from "react-router-dom";
@@ -174,9 +177,7 @@ export default function DynamicApplicationStart() {
             )}
 
             <SectionTitle>{ar ? "نوع الإقامة" : "Residence type"}</SectionTitle>
-            <div className="grid gap-3 sm:grid-cols-3">{(["non-gcc", "gcc-resident", "gcc-accompany"] as const).map(type => <SelectCard key={type}
-              selected={residenceType === type} onClick={() => { setResidenceType(type); if ((residenceType === "non-gcc") !== (type === "non-gcc")) setCountry(""); }}
-              title={type === "non-gcc" ? (ar ? "مقيم خارج دول الخليج" : "Non-GCC Resident") : type === "gcc-resident" ? (ar ? "مقيم في دول الخليج" : "GCC Resident") : (ar ? "مرافق مقيم خليجي" : "GCC Resident Accompanying")} />)}</div>
+            <ResidenceTypeSelect value={residenceType} onChange={type => { setResidenceType(type); if ((residenceType === "non-gcc") !== (type === "non-gcc")) setCountry(""); }} />
             {residenceType === "gcc-accompany" && <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="text-sm font-medium">{ar ? "اسم الكفيل الكامل (كما في هويته أو جوازه)" : "Sponsor's full name (as in their ID or passport)"} *
                 <input {...feedback.fieldProps("sponsorName")} value={sponsorName} onChange={event => setSponsorName(event.target.value)} maxLength={255} required
@@ -191,13 +192,10 @@ export default function DynamicApplicationStart() {
               <div><p className="mb-2 text-sm font-medium">{t("simple.fields.RESIDENCE_COUNTRY")} *</p>
                 <NationalitySelect {...feedback.fieldProps("residence", "start-residence-help")} compact purpose="residence" value={country} onChange={setCountry} allowedCodes={allowedResidence ?? []} />
                 <p id="start-residence-help" className="mt-2 text-xs text-slate-500">{t("simple.residenceHint")}</p>{feedback.errorFor("residence")}</div>
-              {!/transit|96hours/i.test(visaType) && <label className="grid gap-2 text-sm font-medium">{t("simple.tripPurpose")}
-                <select className="min-h-11 rounded-xl border p-3" value={purpose} onChange={event => setPurpose(tripPurposeSchema.parse(event.target.value))}>
-                  <option value="tourism">{t("simple.purposeTourism")}</option><option value="visiting_family">{t("simple.purposeFamily")}</option><option value="transit">{t("simple.purposeTransit")}</option>
-                </select></label>}
+              <TripPurposeSelect value={purpose} onChange={setPurpose} visaType={visaType} />
             </div>
             {country && (applicationType === "family" || nationality) && <section className="mt-5 rounded-xl border border-[#C9A04C] p-4" aria-live="polite">
-              <h2 className="font-bold">{applicationType === "single" ? (ar ? `مستنداتك: ${documentRules.length} ملفات` : `Your documents: ${documentRules.length} files`) : (ar ? "مستندات الإقامة" : "Residence documents")}</h2>
+              <h2 className="font-bold">{applicationType === "single" ? (ar ? `مستنداتك: ${customerFileCount(documentRules.length, true)}` : `Your documents: ${customerFileCount(documentRules.length, false)}`) : (ar ? "مستندات الإقامة" : "Residence documents")}</h2>
               <ul className="mt-2 list-inside list-disc text-sm">{documentRules.filter(rule => applicationType === "single" || rule.applies_when.country_of_residence || rule.applies_when.residence_region || rule.applies_when.residence_type).map(rule => <li key={rule.key}>{ar ? rule.label_ar : rule.label_en}</li>)}</ul>
               {applicationType === "family" && <p className="mt-2 text-sm">{ar ? "قد تُطلب مستندات إضافية حسب جنسية كل مسافر." : "Additional documents may apply based on nationality."}</p>}
             </section>}

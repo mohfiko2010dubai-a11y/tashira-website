@@ -19,7 +19,7 @@ describe("CustomerPrecheckResult", () => {
     expect(html).toContain("Your documents: 8 files");
     expect(html).toContain("After payment, optional");
     expect(html).toContain("It is not a visa approval or a guarantee");
-    expect(html).toContain("nationality=PK&amp;residence=SA&amp;purpose=tourism");
+    expect(html).toContain("nationality=PK&amp;residence=SA&amp;residence_type=&amp;purpose=tourism");
     expect(attributes(html, "data-document-code")).not.toContain("RETURN_TICKET");
   });
   it("renders a meaningful empty state without a misleading result or CTA", () => {

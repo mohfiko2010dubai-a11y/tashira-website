@@ -1,7 +1,11 @@
 import { trpc } from "@/providers/trpc-client";
 import { useTranslation } from "react-i18next";
 import { useRef, useState } from "react";
-import type { DocumentRequirementContext } from "@contracts/document-requirement-engine";
+import { useNavigate } from "react-router-dom";
+import { documentResultSearch } from "@contracts/document-result-route";
+import { GCC_COUNTRIES, type DocumentRequirementContext, type TripPurpose } from "@contracts/document-requirement-engine";
+import TripPurposeSelect from "@/components/customer/TripPurposeSelect";
+import ResidenceTypeSelect, { type ResidenceType } from "@/components/customer/ResidenceTypeSelect";
 import CustomerPrecheckResult from "@/components/customer/CustomerPrecheckResult";
 import NationalitySelect from "@/components/customer/NationalitySelect";
 import { useValidationFeedback } from "@/components/customer/useValidationFeedback";
@@ -12,12 +16,18 @@ const routes = [
 ] as const;
 
 export default function CustomerPrecheck() {
+  const navigate = useNavigate();
   const { i18n, t } = useTranslation("pricing");
   const copy = (en: string, ar: string) => i18n.language.startsWith("ar") ? ar : en;
   const catalog = trpc.catalog.listActiveProducts.useQuery();
   const [routeCode, setRouteCode] = useState<string>(routes[0][0]);
   const [nationality, setNationality] = useState("");
   const [residenceCountry, setResidenceCountry] = useState("");
+  const [residenceType, setResidenceType] = useState<ResidenceType>("non-gcc");
+  const [purpose, setPurpose] = useState<TripPurpose>("tourism");
+  const countries = trpc.dynamicInterview.nationalityCatalog.useQuery({});
+  const allowedResidence = countries.data?.nationalities.filter(item => residenceType === "non-gcc"
+    ? !GCC_COUNTRIES.some(code => code === item.code) : GCC_COUNTRIES.some(code => code === item.code)).map(item => item.code);
   const [context, setContext] = useState<DocumentRequirementContext | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const feedback = useValidationFeedback({
@@ -35,17 +45,21 @@ export default function CustomerPrecheck() {
         <form noValidate className="mt-7 space-y-5 rounded-2xl border bg-white p-5 shadow-sm sm:p-6" onSubmit={event => {
           event.preventDefault();
           if (!feedback.validate(event.currentTarget)) return;
-          setContext({ nationality, country_of_residence: residenceCountry, visa_type: routeCode, trip_purpose: /transit|96hours/i.test(routeCode) ? "transit" : "tourism" });
+          const result = { nationality, country_of_residence: residenceCountry, residence_type: residenceType, visa_type: routeCode, trip_purpose: /transit|96hours/i.test(routeCode) ? "transit" as const : purpose };
+          setContext(result);
+          navigate("/documents?" + documentResultSearch(result));
           requestAnimationFrame(() => { resultRef.current?.scrollIntoView({ block: "start", behavior: "instant" }); resultRef.current?.focus({ preventScroll: true }); });
         }}>
           <div><p className="mb-2 text-sm font-medium">{copy("Nationality", "الجنسية")}</p>
             <NationalitySelect {...feedback.fieldProps("nationality")} compact value={nationality} onChange={code => { setNationality(code); changed(); }} />{feedback.errorFor("nationality")}</div>
+          <div><p className="mb-2 text-sm font-medium">{copy("Residence type", "نوع الإقامة")}</p>
+            <ResidenceTypeSelect value={residenceType} onChange={type => { setResidenceType(type); if ((residenceType === "non-gcc") !== (type === "non-gcc")) setResidenceCountry(""); changed(); }} /></div>
           <div><p className="mb-2 text-sm font-medium">{copy("Country of residence", "بلد الإقامة")}</p>
-            <NationalitySelect {...feedback.fieldProps("residence", "precheck-residence-help")} compact purpose="residence" value={residenceCountry} onChange={code => { setResidenceCountry(code); changed(); }} />
+            <NationalitySelect {...feedback.fieldProps("residence", "precheck-residence-help")} compact purpose="residence" value={residenceCountry} allowedCodes={allowedResidence ?? []} onChange={code => { setResidenceCountry(code); changed(); }} />
             <p id="precheck-residence-help" className="mt-2 text-xs text-slate-500">{copy("The country you currently live in — not your country of citizenship.", "البلد الذي تقيم فيه حاليًا — وليس بلد جنسيتك.")}</p>{feedback.errorFor("residence")}</div>
           <label className="block text-sm font-medium">{copy("Visa service", "خدمة التأشيرة")}<select {...feedback.fieldProps("visa")} value={routeCode} onChange={event => { setRouteCode(event.target.value); changed(); }} className="mt-2 min-h-11 w-full rounded-xl border px-3 py-2">{routes.filter(([value]) => catalog.data?.some(product => product.id === value)).map(([value, label]) => <option key={value} value={value}>{i18n.language.startsWith("ar") ? t(`visaTypes.${value.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}`) : label}</option>)}</select>{feedback.errorFor("visa")}</label>
-          <p className="text-sm text-slate-600">{copy("Trip purpose:", "غرض الرحلة:")} {/transit|96hours/i.test(routeCode) ? copy("Transit", "عبور") : copy("Tourism", "سياحة")}</p>
-          <p aria-live="polite" className="text-sm text-red-700">{feedback.count > 0 && copy(`${feedback.count} fields need attention. Choose the missing countries above.`, `${feedback.count} حقول تحتاج مراجعة. اختر الدول الناقصة أعلاه.`)}</p>
+          <TripPurposeSelect value={purpose} onChange={value => { setPurpose(value); changed(); }} visaType={routeCode} />
+          <p aria-live="polite" className="text-sm text-red-700">{feedback.count > 0 && t("wizard:validation.summary", { count: feedback.count })}</p>
           <button type="submit" className="w-full rounded-xl bg-[#0A1628] px-5 py-3 font-semibold text-white">{copy("Check requirements", "تحقّق من المتطلبات")}</button>
         </form>
       </section>

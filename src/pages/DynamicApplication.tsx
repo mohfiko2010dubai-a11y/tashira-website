@@ -2,6 +2,8 @@ import { ApplicationDomScope } from "@/components/customer/ApplicationDomScope";
 import { interviewTitle } from "../../contracts/private-page-title";
 import { motionCommit } from "@/lib/motion";
 import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requirements";
+import OptionalFlightNotice from "@/components/customer/OptionalFlightNotice";
+import { customerFileCount } from "@contracts/customer-count";
 import { ApplicationSupplements } from "@/components/customer/ApplicationSupplements";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -268,9 +270,11 @@ export default function DynamicApplication() {
           saved={state.knownAnswers} onSave={(submission, continueAfter) => saveApplicantForm(applicant.applicantId, submission, continueAfter)} />
       </div>)}
 
+      {currentStep !== 5 && !/transit|96hours/i.test(state.applicationContext.visaType) && <OptionalFlightNotice ar={i18n.language.startsWith("ar")} />}
       {state.partySetup && <div hidden={currentStep === 5}><InterviewRequirementDocuments applicants={activeApplicants} requirements={activeRequirements}
         newlyRequiredCodes={newDocumentCodes[activeId]} busy={docsBusy} error={docsError} onUpload={uploadHandler} /></div>}
 
+      {currentStep !== 5 && !/transit|96hours/i.test(state.applicationContext.visaType) && <OptionalFlightNotice ar={i18n.language.startsWith("ar")} />}
       {state.partySetup && <div hidden={currentStep === 5}><ApplicationSupplements applicationId={state.partySetup.applicationId} ar={i18n.language.startsWith("ar")} companion={state.applicationContext.residenceType === "gcc-accompany"} onSaved={refreshState} /></div>}
       {/* Review when interview is complete — minimal, customer-friendly */}
       {currentStep === 5 && <section>
@@ -341,7 +345,7 @@ export default function DynamicApplication() {
       <div className="mt-6 space-y-3">
         {currentStep !== 5 && <>
           <p id="continue-documents-status" role="status" aria-live="polite" aria-atomic="true" tabIndex={-1} className="text-sm text-slate-600">
-            {missingFields.length > 0 ? (i18n.language.startsWith("ar") ? `أكمل الحقول التالية ثم احفظ مجددًا: ${missingFields.join("، ")}` : `Complete these fields, then save again: ${missingFields.join(", ")}`) : remainingDocuments > 0 ? (i18n.language.startsWith("ar") ? `متبقي ${remainingDocuments} مستندات لهذا المسافر. يمكنك الانتقال الآن ورفعها قبل الدفع.` : `${remainingDocuments} documents remaining for this traveller. You can continue now and upload them before payment.`) : ""}
+            {missingFields.length > 0 ? (i18n.language.startsWith("ar") ? `أكمل الحقول التالية ثم احفظ مجددًا: ${missingFields.join("، ")}` : `Complete these fields, then save again: ${missingFields.join(", ")}`) : remainingDocuments > 0 ? (i18n.language.startsWith("ar") ? `المتبقي لهذا المسافر: ${customerFileCount(remainingDocuments, true)}. يمكنك الانتقال الآن ورفعها قبل الدفع.` : `${remainingDocuments} documents remaining for this traveller. You can continue now and upload them before payment.`) : ""}
           </p>
           <p id="traveller-validation-status" aria-live="polite" aria-atomic="true" className="text-sm text-red-700">
             {validationCounts[activeId] > 0 ? t("validation.summary", { count: validationCounts[activeId] }) : ""}

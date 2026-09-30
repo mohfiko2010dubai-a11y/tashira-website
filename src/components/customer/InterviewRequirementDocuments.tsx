@@ -1,3 +1,4 @@
+import { customerFileCount } from "@contracts/customer-count";
 import { UploadProgress } from "./UploadProgress";
 import Logo from '@/components/shared/Logo';
 import { documentCardCopy, documentGroupHeading } from "./document-card-copy";
@@ -75,7 +76,7 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
         <div className="h-full rounded-full bg-[#c9a04c] transition-[width] duration-200 motion-reduce:transition-none" style={{ width: `${done / total * 100}%` }} /></div>
       <span className="shrink-0 text-sm text-slate-600">{ar ? `${number(done)} من ${number(total)} مرفوعة` : `${done} of ${total} uploaded`}</span>
     </div>
-    {done === 0 && <p className="mt-3 text-sm text-slate-500">{ar ? `${number(total)} ملفات، نحو خمس دقائق. تقدر توقف وتكمل في أي وقت.` : `${total === 8 ? "Eight" : total} files, about five minutes. You can stop and come back any time.`}</p>}
+    {done === 0 && <p className="mt-3 text-sm text-slate-500">{ar ? `${customerFileCount(total, true)}، نحو خمس دقائق. تقدر توقف وتكمل في أي وقت.` : `${total === 8 ? "Eight" : total} files, about five minutes. You can stop and come back any time.`}</p>}
     <p className="mt-2 text-xs text-slate-500">{ar ? "PDF، JPG، PNG، HEIC أو HEIF — حتى 20 ميجابايت للملف." : "PDF, JPG, PNG, HEIC or HEIF — up to 20 MB per file."}</p>
     {error && !Object.values(uploadErrors).some(Boolean) && <p role="alert" className="mt-4 text-red-700">{documentUploadError("", ar)}</p>}
     {applicants.map(applicant => {
@@ -86,7 +87,7 @@ export function InterviewRequirementDocuments({ applicants, requirements, busy, 
         const heading = documentGroupHeading(group.key, applicant.residenceCountry, ar);
         return <section key={key} data-applicant-id={applicant.applicantId} className="mt-7" aria-label={heading}>
           <div className="mb-3 flex items-center gap-3"><h3 className="text-sm font-bold text-[#9b7425]">{heading}</h3><div className="h-px flex-1 bg-[#e8e0d2]" />
-            {complete && <button type="button" aria-expanded={Boolean(open)} className="flex min-h-11 items-center gap-2 text-xs text-emerald-800" onClick={() => setExpanded(current => ({ ...current, [key]: !current[key] }))}><Check size={16} />{ar ? `${number(files.length)} ملفات · ${open ? "إخفاء" : "عرض"}` : `${files.length} files · ${open ? "Hide" : "Show"}`}</button>}</div>
+            {complete && <button type="button" aria-expanded={Boolean(open)} className="flex min-h-11 items-center gap-2 text-xs text-emerald-800" onClick={() => setExpanded(current => ({ ...current, [key]: !current[key] }))}><Check size={16} />{ar ? `${customerFileCount(files.length, true)} · ${open ? "إخفاء" : "عرض"}` : `${customerFileCount(files.length, false)} · ${open ? "Hide" : "Show"}`}</button>}</div>
           {open && <div className="grid gap-3">{group.cards.map(card => {
             const definition = OWNER_DOCUMENTS.find(item => item.code === card.key); const complete = card.files.every(documentComplete);
             const { label, hint } = documentCardCopy(card, applicant.nationality, ar);

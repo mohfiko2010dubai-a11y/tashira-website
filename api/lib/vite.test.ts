@@ -25,6 +25,14 @@ describe("frontend cache policy", () => {
 
 describe("SSR HTTP boundaries", () => {
   function app() { const app = new Hono<{ Bindings: HttpBindings }>(); serveStaticFiles(app); return app; }
+  it("blocks staging crawlers and exposes no sitemap", async () => {
+    vi.stubEnv("PUBLIC_APP_URL", "https://staging.tashiraev.com");
+    const robots = await app().request("/robots.txt");
+    expect(robots.status).toBe(200);
+    expect(await robots.text()).toBe("User-agent: *\nDisallow: /\n");
+    expect((await app().request("/sitemap.xml")).status).toBe(404);
+    expect(mocks.render).not.toHaveBeenCalled();
+  });
   it("redirects the root by Accept-Language without caching that choice", async () => {
     const response = await app().request('/', { headers: { 'Accept-Language': 'ar-AE,en;q=0.8' } });
     expect(response.status).toBe(302);

@@ -17,7 +17,7 @@ Commit ffc5c793d9f373c3860be0502d6664356ec853b9. TypeScript and focused lint pas
 
 ## Outstanding work, not cleared for launch
 
-A5: approved 48-hour regular / 24-hour Express copy and real independently refundable component, durable completion/submission timestamps, breach flag and refund path. Do not publish an unsupported guarantee.
+A5: b978e790 deployed after all gates (1140 passed / 26 existing gated skips). Approved copy, frozen Express component, immutable completion/submission clock, admin breach flag and governed refund reservation implemented. Fourteen synthetic uploads, reload, admin Payments and EN/AR legal SSR verified. Rollback database test verifies full-fee reservation and idempotency. Actual Stripe TEST partial-refund execution remains unverified.
 A6: shared purpose component including pre-check. A7 proof is above.
 B3: private title already exists; final metadata confirmation. B4/B5: pre-check companion and shareable SSR results. B6–B9: duration/validity, audience H1, GCC entry and comparison table. B9a: official verification of remaining products, test-order marking, deployed UAT. B10–B13: optional flight item, duplicate copy and Arabic counters/currency. B14: robots still Allow and sitemap still 200; one X-Robots-Tag observed, so two fixes remain. B15: final isolation verification.
 Owner decisions: configurable nationality restrictions and customer-safe government-fee-amount regression checks remain implementation work. VAT unchanged.
