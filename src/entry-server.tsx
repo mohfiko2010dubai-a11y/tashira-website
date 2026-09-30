@@ -16,8 +16,9 @@ import { articleMetadata, fixedMetadata, type PageMetadata } from "@contracts/ss
 import { withSsrDeadline } from "../api/lib/ssr-deadline";
 import { languagePath, languageRoute } from "@contracts/language-routes";
 
-type Job = { url: string; apiOrigin: string; fault?: string };
+type Job = { url: string; apiOrigin: string; fault?: string; startedAt: number };
 async function render(job: Job) {
+  const workerStartupMs = Math.max(0, Date.now() - job.startedAt);
   const url = new URL(job.url, "https://www.tashiraev.com");
   const route = languageRoute(url.pathname);
   const path = route.pathname;
@@ -80,7 +81,7 @@ async function render(job: Job) {
     const reactMs = performance.now() - reactStarted;
     const serializeStarted = performance.now();
     const state = superjson.serialize(dehydrate(queries));
-    return { html, meta, state, timing: { dataCalls, dataWallMs, reactMs, serializationMs: performance.now() - serializeStarted } };
+    return { html, meta, state, timing: { dataCalls, dataWallMs, reactMs, serializationMs: performance.now() - serializeStarted, workerStartupMs } };
   } catch (error) {
     if (!meta && error instanceof TRPCClientError && error.data?.code === "NOT_FOUND") return { notFound: true };
     throw error;

@@ -14,9 +14,9 @@ const enumValues = new Set(["success", "failure", "anonymous", "admin", "staff",
   "ER_LOCK_WAIT_TIMEOUT", "ECONNREFUSED", "ETIMEDOUT", "INTERNAL_SERVER_ERROR", "BAD_REQUEST",
   "FORBIDDEN", "UNAUTHORIZED", "NOT_FOUND", "CONFLICT", "PRECONDITION_FAILED", "TOO_MANY_REQUESTS"]);
 const enumKeys = new Set(["outcome", "actor", "reason", "language", "mode", "category", "code"]);
-const metricKeys = new Set(["elapsedMs", "dataWallMs", "reactMs", "serializationMs", "otherMs", "catalogMs", "cmsMs", "status"]);
+const metricKeys = new Set(["elapsedMs", "dataWallMs", "reactMs", "serializationMs", "otherMs", "catalogMs", "cmsMs", "cmsGuidesMs", "cmsNewsMs", "articleMs", "workerStartupMs", "status"]);
 const routes = new Set(["/", "/visa-prices", "/how-to-apply", "/guides", "/news", "/about", "/editorial-policy",
-  "/apply", "/track", "/terms", "/privacy", "/refund", "/cookies", "/contact", "/visa-pre-check", "/:section/:slug"]);
+  "/apply", "/track", "/terms", "/privacy", "/refund", "/cookies", "/contact", "/visa-pre-check", "/documents", "/:section/:slug"]);
 
 export function sanitizeLog(value: unknown): Record<string, string | number> {
   if (typeof value === "string") {

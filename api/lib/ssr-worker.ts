@@ -3,7 +3,7 @@ import path from "node:path";
 import type { PageMetadata } from "../../contracts/ssr-pages";
 import { SsrDeadlineError } from "./ssr-deadline";
 
-export type RenderTiming = { dataCalls: { name: string; elapsedMs: number }[]; dataWallMs: number; reactMs: number; serializationMs: number };
+export type RenderTiming = { dataCalls: { name: string; elapsedMs: number }[]; dataWallMs: number; reactMs: number; serializationMs: number; workerStartupMs?: number };
 export type RenderResult = { html: string; meta: PageMetadata | null; state: unknown; notFound?: false; timing?: RenderTiming } | { notFound: true };
 let activeWorkers = 0;
 
@@ -14,7 +14,7 @@ export function renderInWorker(job: { url: string; apiOrigin: string; fault?: st
   activeWorkers++;
   return new Promise((resolve, reject) => {
     let worker: Worker;
-    try { worker = new Worker(path.resolve("dist/server/entry-server.js"), { workerData: job }); }
+    try { worker = new Worker(path.resolve("dist/server/entry-server.js"), { workerData: { ...job, startedAt: Date.now() } }); }
     catch (error) { activeWorkers--; reject(error); return; }
     let settled = false;
     const finish = (callback: () => void) => {

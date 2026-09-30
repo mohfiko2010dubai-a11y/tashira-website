@@ -68,7 +68,13 @@ export function serveStaticFiles(app: App) {
       });
       const elapsedMs = performance.now() - started;
       response.headers.set("Server-Timing", `ssr;dur=${elapsedMs.toFixed(1)}`);
-      console.info(JSON.stringify({ event: "ssr_render", timestamp: new Date().toISOString(), route: meta ? pathname : "/:section/:slug", language: route.language, elapsedMs: Math.round(elapsedMs), mode: response.headers.get("X-Tashira-SSR"), ...(timing ? { ...timing, otherMs: elapsedMs - timing.dataWallMs - timing.reactMs - timing.serializationMs } : {}) }));
+      console.info(JSON.stringify({ event: "ssr_render", timestamp: new Date().toISOString(), route: meta ? pathname : "/:section/:slug", language: route.language, elapsedMs: Math.round(elapsedMs), mode: response.headers.get("X-Tashira-SSR"), ...(timing ? {
+        ...timing, otherMs: elapsedMs - timing.dataWallMs - timing.reactMs - timing.serializationMs,
+        catalogMs: timing.dataCalls.find(call => call.name === "catalog.listActiveProducts")?.elapsedMs,
+        cmsGuidesMs: timing.dataCalls.find(call => call.name === "content.publicList.GUIDE")?.elapsedMs,
+        cmsNewsMs: timing.dataCalls.find(call => call.name === "content.publicList.NEWS")?.elapsedMs,
+        articleMs: timing.dataCalls.find(call => call.name === "content.publicBySlug")?.elapsedMs,
+      } : {}) }));
       return response;
     }
     if (/^\/(apply\/|pay\/|applications\/|deposit\/|recover$|login$|dashboard$|admin(?:\/|$)|staff(?:\/|$))/.test(pathname)) {

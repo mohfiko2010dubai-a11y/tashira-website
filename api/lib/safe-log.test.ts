@@ -26,6 +26,14 @@ describe("central privacy boundary", () => {
     expect(sanitizeLog(JSON.stringify({ type: "security_audit", event: "staff.login", actor: "staff", outcome: "success" })))
       .toEqual({ type: "security_audit", event: "staff.login", actor: "staff", outcome: "success" });
   });
+  it("retains timestamped per-layer SSR numbers through the actual console wrapper without request data", () => {
+    const sink = vi.fn();const target = { log: sink, info: sink, warn: sink, error: sink, debug: sink, trace: sink, dir: sink, table: sink };
+    installSafeConsole(target);
+    target.info(JSON.stringify({ event: "ssr_render", route: "/documents", timestamp: "2026-09-30T08:00:00.000Z", workerStartupMs: 300, catalogMs: 25, cmsGuidesMs: 30, cmsNewsMs: 29, articleMs: 14, query: "passport=private" }));
+    const output = JSON.parse(sink.mock.calls[0][0]);
+    expect(output.entries[0]).toEqual({ event: "ssr_render", route: "/documents", timestamp: "2026-09-30T08:00:00.000Z", workerStartupMs: 300, catalogMs: 25, cmsGuidesMs: 30, cmsNewsMs: 29, articleMs: 14 });
+    expect(JSON.stringify(output)).not.toContain("passport");
+  });
   it("never exposes an internal query exception and gives a traceable correlation id", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     try {
