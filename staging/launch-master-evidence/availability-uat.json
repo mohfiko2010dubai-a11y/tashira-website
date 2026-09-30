@@ -1,0 +1,14 @@
+{
+  "checks": [
+    "Public config readable; anonymous write forbidden",
+    "en: notice before application/payment with contact link",
+    "ar: notice before application/payment with contact link",
+    "Restricted second family member blocks readiness and direct intent API; no Stripe intent created",
+    "Saved family interview displays Arabic restriction",
+    "Restored Pakistani traveller removes restriction",
+    "Admin UI configuration update and stale-version rejection",
+    "Approved four-code config restored"
+  ],
+  "errors": [],
+  "pass": true
+}

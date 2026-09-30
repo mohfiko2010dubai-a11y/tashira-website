@@ -1,0 +1,39 @@
+{
+  "checks": [
+    "Shared purpose persisted; no generated names",
+    "Free navigation before either traveller is complete; step remains 2",
+    "Save & Continue advances to traveller 2 without completing traveller-1 uploads",
+    "Payment blocked until required files arrive",
+    "Reload preserves both applicants and permits traveller 2"
+  ],
+  "referenceNumber": "TSH-8E3BE61318E04C81B58DBE538CDC983C",
+  "applicationId": 211,
+  "requirements": [
+    {
+      "applicantId": 268,
+      "nationality": "EG",
+      "codes": [
+        "PASSPORT",
+        "PERSONAL_PHOTO",
+        "KSA_IQAMA_FRONT",
+        "KSA_IQAMA_BACK",
+        "KSA_RESIDENCE_PROOF",
+        "SA_ABSHER_REPORT"
+      ]
+    },
+    {
+      "applicantId": 269,
+      "nationality": "PK",
+      "codes": [
+        "PASSPORT",
+        "PK_PASSPORT_PAGE_2",
+        "PERSONAL_PHOTO",
+        "HOME_NATIONAL_ID",
+        "KSA_IQAMA_FRONT",
+        "KSA_IQAMA_BACK",
+        "KSA_RESIDENCE_PROOF",
+        "SA_ABSHER_REPORT"
+      ]
+    }
+  ]
+}

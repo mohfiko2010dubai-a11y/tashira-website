@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "en: SSR checklist eight files/six cards, metadata/alternates and clipboard share URL",
+    "en: companion/family-visit handoff",
+    "en: unknown nationality empty state",
+    "en: seven-row price comparison and GCC preset",
+    "en: approved hero H1",
+    "ar: SSR checklist eight files/six cards, metadata/alternates and clipboard share URL",
+    "ar: companion/family-visit handoff",
+    "ar: unknown nationality empty state",
+    "ar: seven-row price comparison and GCC preset",
+    "ar: approved hero H1",
+    "Staging Disallow /, sitemap 404, single X-Robots-Tag",
+    "Arabic pricing mobile has no page overflow"
+  ],
+  "errors": [],
+  "pass": true
+}

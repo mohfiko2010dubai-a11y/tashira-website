@@ -1,0 +1,9 @@
+{
+  "testPayment": 430,
+  "fullExpressRefund": 60,
+  "baseFeeExcluded": 370,
+  "proactiveAdminFlag": true,
+  "repeatClaimSameCase": true,
+  "status": "PENDING_APPROVAL",
+  "requiresOwnerReauthentication": true
+}

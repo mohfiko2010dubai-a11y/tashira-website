@@ -1,3 +1,7 @@
+# Launch Master deployed review — 2026-09-30
+
+Staging source 148e0817e210e01832b9468e088e27ed8c31904b; check/lint/build pass; 1170 tests pass, 26 existing gated skips. Public/companion/document sharing, catalog availability, Arabic counters and configurable nationality payment gates verified. Production unchanged. NOT launch-cleared: actual $60 Stripe TEST Express refund awaits owner admin reauthentication; both 14-day products need supplier evidence; full-day SSR measurement pending (63 dated samples / 1.31 hours). See staging/LAUNCH_MASTER_2026-09-30.md and sanitized evidence. Fifteen unrelated worktree files preserved.
+
 # Launch Master Express guarantee verified on staging — 2026-09-30
 
 Staging b978e790 deployed through all four gates: 1140 passed / 26 existing gated skips. Fourteen synthetic family uploads establish the immutable completion clock only when both travellers are complete. Admin Payments shows completion/deadline; exact EN/AR 48/24-hour guarantee is server-rendered. A rollback-only database test proves full Express fee reservation, repeat-claim idempotency and first submission time retention; actual Stripe refund execution remains to be exercised separately. The remaining Launch Master items are not cleared. No production change.

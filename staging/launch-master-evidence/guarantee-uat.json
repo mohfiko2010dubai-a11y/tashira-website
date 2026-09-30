@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "en/terms: exact approved guarantee in server HTML",
+    "en/refund: exact approved guarantee in server HTML",
+    "ar/terms: exact approved guarantee in server HTML",
+    "ar/refund: exact approved guarantee in server HTML",
+    "Fourteen required files accepted; clock stayed empty until both travellers complete, then regular 48-hour deadline persisted",
+    "Reload does not reset completion time",
+    "Admin order Payments tab shows durable completion time and pending authority submission"
+  ],
+  "pageErrors": []
+}

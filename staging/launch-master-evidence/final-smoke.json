@@ -1,0 +1,46 @@
+{
+  "routes": [
+    {
+      "path": "/ar/apply",
+      "status": 200,
+      "robotsHeaders": 1,
+      "title": "قدّم على تأشيرة الإمارات أونلاين | تشيرة"
+    },
+    {
+      "path": "/en/apply",
+      "status": 200,
+      "robotsHeaders": 1,
+      "title": "Apply for a UAE Visa Online | TASHIRA"
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200,
+      "robotsHeaders": 1
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 404,
+      "robotsHeaders": 1
+    },
+    {
+      "path": "/ar/",
+      "status": 200,
+      "robotsHeaders": 1,
+      "title": "تأشيرة الإمارات أونلاين لمقيمي الخليج | تشيرة"
+    },
+    {
+      "path": "/en/visa-prices",
+      "status": 200,
+      "robotsHeaders": 1,
+      "title": "UAE Visa Fees by Type and Duration | TASHIRA"
+    },
+    {
+      "path": "/ar/documents?nat=PK&res=SA&type=30d&purpose=tourism&companion=0",
+      "status": 200,
+      "robotsHeaders": 1,
+      "title": "هل تحتاج تأشيرة لدخول الإمارات؟ تحقّق في دقيقة | تشيرة"
+    }
+  ],
+  "preservedFiles": 15,
+  "pass": true
+}

@@ -1,0 +1,14 @@
+{
+  "verified": [
+    "30days-single",
+    "60days-single",
+    "30days-multiple",
+    "60days-multiple",
+    "96hours-transit"
+  ],
+  "unverified": [
+    "14days-single",
+    "14days-multiple"
+  ],
+  "pricesUnchanged": true
+}

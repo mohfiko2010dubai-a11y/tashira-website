@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "Public catalog contains seven products and no 90-day product",
+    "en/: no 90-day option",
+    "en/visa-prices: no 90-day option",
+    "en/visa-pre-check: no 90-day option",
+    "en/apply: no 90-day option",
+    "en: withdrawn deep link shows neutral unavailable message",
+    "ar/: no 90-day option",
+    "ar/visa-prices: no 90-day option",
+    "ar/visa-pre-check: no 90-day option",
+    "ar/apply: no 90-day option",
+    "ar: withdrawn deep link shows neutral unavailable message",
+    "Server rejects regular and Express quotes for withdrawn product",
+    "Admin retains inactive product, enabled Activate control, and verification reminder",
+    "Owner Activate works; product restored to inactive and public catalog back to seven"
+  ],
+  "errors": []
+}
