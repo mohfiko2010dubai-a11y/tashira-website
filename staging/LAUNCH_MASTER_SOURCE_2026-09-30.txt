@@ -1,0 +1,552 @@
+LAUNCH MASTER — everything outstanding, in the order it should be done.
+
+This supersedes and consolidates TASK 17, TASK 19 and TASK 20. Where an item
+came from one of those, the reference is kept so you can find the detail.
+TASK 15 and TASK 16 are unchanged: 15 is verified shipped (see below), 16 is
+deliberately after launch.
+
+Work top to bottom. Section A blocks launch. Section B should be done before
+launch and each item is small. Section C is measurement. Section D is after.
+
+===============================================================
+ALREADY VERIFIED WORKING — do not re-open these
+===============================================================
+
+I tested these live on staging on 15 and 30 September. They are correct:
+
+  - The document engine, all three residence cases:
+      Egypt / resident in Egypt              3 documents
+      Egypt / resident in Saudi Arabia       6 documents
+      Iraq / resident in Qatar / companion   6 documents
+      Pakistan / resident in Saudi Arabia    8 documents (pre-check)
+  - TASK 15 in full: Qatar and Oman as paired front+back; "without glasses" in
+    both languages; the companion case with sponsor name, relationship and the
+    sponsor document, echoed on step 2 as "Sponsor: <name> · <relation> ·
+    Edit"; optional additional documents and notes excluded from the count.
+  - TASK 13: no flight ticket among required documents.
+  - Saudi any_of (Muqeem OR Absher) renders as a real choose-one group.
+  - Iraq passport is a single upload; Pakistan gets the second page.
+  - Refresh duplicates nothing, on any case. Applicant details survive.
+  - Returning to /apply shows the saved-application banner with a blank form,
+    and "Start another application" clears everything including the sponsor
+    fields. No data leaks between applications.
+  - The TASHIRA Assistant quotes no prices, carries "This is document
+    guidance, not visa approval" on every panel, says approval is the
+    authority's decision, and tells people not to send passport scans or card
+    details in chat. Its "Start application in chat" renders the real wizard,
+    so chat and form already share one engine.
+
+===============================================================
+SECTION A — BLOCKS LAUNCH
+===============================================================
+
+A1. FAMILY/GROUP CANNOT REACH TRAVELLER 2.  (TASK 17 §A)
+
+    The single worst defect in the product. A two-traveller application stops
+    permanently at traveller 1.
+
+    Reproduce: Family/group, 2 travellers, GCC Resident, Saudi Arabia →
+    answer traveller 1's nationality → fill applicant details → Save &
+    Continue → "Save & Continue to next traveller →".
+
+    Nothing happens. No error, no toast, no scroll to a missing field, nothing
+    in the console. The Traveller 2 tab is `disabled`. A reload does not help.
+
+    Meanwhile the server is asking for traveller 2:
+      nextAction: "ANSWER_QUESTIONS"
+      currentQuestions: [{ code: "NATIONALITY", applicantId: 256 }]
+    and wizard.updateApplication, dynamicInterview.completeForm and
+    dynamicInterview.current all return 200. The click is handled and accepted;
+    the UI simply never advances to the question the server is asking.
+
+    THE INTENDED BEHAVIOUR IS SETTLED — the Assistant's own family panel says
+    "You can move freely between travellers and return to missing files before
+    payment." So free movement is the design. The disabled tab is a defect,
+    not a gate. Build it that way: travellers are navigable in any order and
+    completeness is enforced once, at payment.
+
+    And separately from the navigation: the primary CTA must never be a silent
+    no-op. If something is missing it names it, scrolls to it and marks it. A
+    customer who has just typed their passport number, presses the only
+    forward button on the page and sees nothing happen does not think "I must
+    upload six files first" — they think the site is broken, and they leave.
+
+A2. THE ASSISTANT PROMISES WHAT A1 PREVENTS.  (TASK 20 §1)
+
+    That same sentence is currently false. Fix A1, or remove the sentence
+    until A1 ships. Do not launch with both.
+
+    A product that states in writing that it does something it does not do is
+    worse than a UI that fails, because it is read at the moment the customer
+    is deciding whether to trust us with their passport.
+
+A3. THE HOMEPAGE BREAKS THE 24-HOUR RULE.  (TASK 20 §2)
+
+    Trust strip: "Reply within 15 minutes during working hours".
+
+    The company operates 24 hours and no "working hours" language appears
+    anywhere — that has been a standing rule since the start of this project.
+    This breaks it on the highest-traffic page, and it undermines the 24-hour
+    claim made elsewhere: a visitor who reads both concludes one is marketing.
+
+      en: "Apply any time — the application is open 24 hours"
+      ar: «قدّم في أي وقت — الطلب متاح ٢٤ ساعة»
+
+    Then grep the whole site, both languages, for "working hours", "business
+    hours", "office hours", «ساعات العمل», «خارج الدوام» and remove every one.
+
+A4. THE EXPRESS DELTA IS DISPLAYED WRONG IN THE WIZARD — CORRECTED DIAGNOSIS.
+    (revises TASK 17 §E)
+
+    I previously reported this as a pricing inconsistency needing an owner
+    decision. It is not. I read the whole catalog and every product carries
+    exactly the same $30 difference:
+
+      14days-single    170 / 200      30days-single    185 / 215
+      60days-single    295 / 325      90days-single    550 / 580
+      14days-multiple  265 / 295      30days-multiple  285 / 315
+      60days-multiple  385 / 415      96hours-transit  145 / 175
+
+    Eight products, one delta, no exceptions.
+
+    The pricing page renders "Express +$30.00" correctly. The APPLY WIZARD
+    renders "Express +$25.00" for the 14-day product. The data is consistent;
+    the wizard's delta computation is wrong.
+
+    Find where the wizard derives the express difference. Do not hardcode $30
+    — derive it from expressPrice minus regularPrice per product, so it stays
+    correct if a product is ever priced differently.
+
+    This matters more than a $5 label because express is now a refundable
+    amount: whatever the customer was shown at checkout is what we owe back.
+    Add a test asserting the displayed delta equals expressPrice −
+    regularPrice for every product in the catalog.
+
+A5. THE EXPRESS WINDOW — DECIDED.  (owner delegated this decision)
+
+    Implement:
+
+      REGULAR  "We submit your application within 48 hours of your documents
+                being complete. Issuing time is decided by the authority."
+               «نقدّم طلبك خلال 48 ساعة من اكتمال مستنداتك. تحدد الجهة المختصة
+                موعد إصدار التأشيرة.»
+
+      EXPRESS  "Priority handling — we submit within 24 hours of your
+                documents being complete, or we refund the express fee in
+                full. Issuing time is decided by the authority."
+               «معالجة ذات أولوية — نقدّم طلبك خلال 24 ساعة من اكتمال
+                مستنداتك، وإلا رددنا رسم الاستعجال كاملًا. تحدد الجهة المختصة
+                موعد إصدار التأشيرة.»
+
+    Both windows are ROUND THE CLOCK. No "working hours" qualifier, no
+    timezone caveat, no weekend exception — the company operates 24 hours and
+    A3 exists to remove exactly that language. A window that needs a
+    definition is a window that will be argued about.
+
+    WHY THESE NUMBERS, since the previous copy said 6 hours:
+
+    The dangerous promise was never express. Express is opt-in and a minority
+    of orders. REGULAR at 24 hours applied to every single order, unguarded,
+    and that is the promise that was carrying the operational risk. Loosening
+    the universal promise and keeping a tight one only where we have been paid
+    to be fast is how the pressure comes off without losing the selling point.
+
+    24 hours is chosen for express because it is what one person can hit by
+    checking twice a day with a full margin of error: the real worst case at
+    two checks a day is about 12 hours, so the guarantee carries 100% buffer.
+    A 12-hour promise would have had none, and every slip is now an automatic
+    refund.
+
+    Even at these numbers we are ahead: gccev guarantees 24 hours at $50,
+    GOVR guarantees 36 hours at $50 and admits it may reach 48 over a weekend.
+    We match the fastest of them, at $30, and neither of them offers a refund
+    guarantee prominently. Our regular at 48 hours still beats GOVR's regular
+    of "1 to 3 working days", which is up to five calendar days across a
+    weekend.
+
+    REVISIT AFTER 50 ORDERS, using the completion and submission timestamps
+    that TASK 15 §5 requires. If the real median is comfortably under 12
+    hours, tighten express then. A promise you improve later is a marketing
+    event; a promise you retreat from is damage. Start conservative.
+
+A6. TRIP PURPOSE IS MISSING IN TWO PLACES.  (TASK 17 §C + TASK 19 §2b)
+
+    Single applicant is asked. Family/group is not asked at all and is filed
+    as "tourism" — I confirmed tripPurpose "tourism" on traveller 1 and null
+    on traveller 2. The pre-check does not ask either; it displays a fixed
+    «غرض الرحلة: سياحة».
+
+    Trip purpose is one of the four dimensions of the rules tuple. A family
+    travelling to visit relatives is being given the tourism checklist, and so
+    is everyone who uses the pre-check.
+
+    Ask it once, in one shared component, used by the form in both modes and
+    by the pre-check, and carry it to every applicant in the party.
+
+A7. TRAVELLER 2 GETS DOCUMENTS BEFORE THEIR NATIONALITY IS KNOWN.
+    (TASK 17 §D)
+
+    Right after step 1, traveller 2 exists as
+      { applicantId: 256, fullName: "Applicant 2", nationality: null,
+        residenceCountry: "SA", tripPurpose: null }
+    with a complete Saudi requirement set already attached.
+
+    Inheriting residence is correct. Two things must be true and are not yet
+    proven:
+
+      a. Requirements recompute when traveller 2's nationality is answered.
+         If traveller 2 is Pakistani, the second passport page must appear.
+         Add a test: family of two, Egypt + Pakistan, both resident in Saudi
+         Arabia, asserting the two travellers receive DIFFERENT lists.
+      b. "Applicant 2" is a placeholder and must never reach an invoice, an
+         email, the admin list, or a submission. Display "Traveller 2" and
+         keep the stored name empty.
+
+===============================================================
+SECTION B — BEFORE LAUNCH, EACH ONE SMALL
+===============================================================
+
+B1. The stepper regresses to "Step 1 of 3 — Visa Selection" during the
+    per-traveller nationality sub-step on /apply/<ref>/interview, then
+    corrects itself. A progress indicator that goes backwards makes people
+    think they lost their place. It is step 2.  (TASK 17 §B)
+
+B2. A disabled traveller tab must say why it is disabled. If A1 is done
+    properly there may be no disabled tabs left — in which case this is moot,
+    which is the better outcome.  (TASK 17)
+
+B3. /apply/<ref>/interview has no title after a reload — it falls back to
+    "TASHIRA". Add it to the metadata module in both languages. It should not
+    be indexed, but customers keep this tab open for days and find it by its
+    title.  (TASK 17 §F)
+
+B4. The pre-check has no companion option. The case we built in TASK 15 cannot
+    be pre-checked. Add the same three-way residence-type control the form
+    has, and return sponsor_id when companion is selected.  (TASK 19 §2a)
+
+B5. The pre-check result has no URL — submitting does not change the address
+    bar, so there is nothing to copy or send. Build a server-rendered
+    shareable result:
+
+      /{lang}/documents?nat=PK&res=SA&type=30d&purpose=tourism&companion=0
+
+    with copy-link and send-on-WhatsApp buttons, reciprocal hreflang and a
+    canonical, an empty state for unknown parameters, and NO personal data in
+    the URL ever — nationality and residence only. Links get forwarded.
+
+    This is what lets the WhatsApp agent stop typing document lists from
+    memory and send one link instead. It is the difference between one source
+    of truth and two.  (TASK 19 §1)
+
+B6. Separate "Stay duration" from "Validity" on every price card and in the
+    pricing table. We show validity and entry type; the stay period is only
+    implied by the product name.
+
+    This is the most misunderstood thing about a UAE visit visa and the
+    question support answers most often — people believe a 30-day visa expires
+    in 30 days, book accordingly and arrive angry. Two labelled rows plus one
+    explanatory line removes a support burden before there is support staff to
+    carry it.
+
+      en: "Stay: how long you may remain in the UAE from the date you enter.
+           Validity: the period within which you must enter."
+      ar: «مدة الإقامة: المدة المسموح لك بالبقاء داخل الإمارات من تاريخ
+           الدخول. الصلاحية: المدة التي يجب أن تدخل خلالها.»
+    (TASK 20 §4a)
+
+B7. The homepage H1 does not name the audience while the page title does:
+
+      <title>  UAE Visa Application Online for GCC Residents | TASHIRA
+      <h1>     Your UAE visa application, handled with care
+
+    "Handled with care" survives as the subheading. Suggested H1:
+      en: "UAE visas for GCC residents"
+      ar: «تأشيرة الإمارات لمقيمي الخليج»
+    Hero photo and layout unchanged — this is a text change.  (TASK 20 §3)
+
+B8. APPROVED BY THE OWNER — implement.
+    Give the GCC-resident case a badged entry point in the price list, using
+    the existing card and badge components, deep-linking into the wizard with
+    residence type preset (/en/apply?residence=gcc). We have the better GCC
+    product and it is invisible — it exists only as a control inside step 1.
+    (TASK 20 §4c)
+
+B9. Add a comparison table above the price cards: Visa type · Stay · Entries ·
+    Regular · Express, as a real <table>. Keep the cards. The per-card toggle
+    is a nicer interaction but it hides the comparison — to see what Express
+    costs across the range you must toggle six cards one at a time, and that
+    is how an upsell goes unchosen. Building this will also make A4
+    impossible to miss.  (TASK 20 §4b)
+
+B9a. WITHDRAW THE 90-DAY VISA — THIS IS NOW A CORRECTNESS ITEM, NOT A PRICING
+     ONE. Treat it with Section A priority; it is placed here only because it
+     touches the same pages as B6 and B9.
+
+     Product id `90days-single`, currently 550 / 580.
+
+     WHY IT CHANGED: the owner reports that this service appears to have been
+     discontinued by the UAE immigration and passports authority. That is a
+     different problem from the one I originally raised.
+
+     I flagged this product three times as a pricing outlier — its step is
+     +$255 where every other step in our catalog is +$110, and neither
+     competitor sells it. I read that as a mispricing. The likelier
+     explanation is that it is a stale product carrying a legacy price,
+     because nothing repriced it after it stopped being issuable.
+
+     That reframes the risk entirely. A mispriced product loses a sale. A
+     product that cannot be issued takes a customer's money for something we
+     cannot deliver — a refund, a complaint, and the one kind of failure this
+     business cannot afford in its first month.
+
+     DEACTIVATE IN THE CATALOG — server-side, not a frontend change.
+
+     The owner has noted that everything currently in the system is test data,
+     which is true: nothing has been published and there are no real orders
+     anywhere. So this is not about protecting existing records. Two other
+     reasons decide it:
+
+       1. HIDING IT IN THE FRONTEND IS NOT REMOVING IT. A product that is only
+          missing from the UI is still quoted and still purchasable by anyone
+          with a deep link, and still reachable through the API. That is how
+          an order arrives for a product we decided to stop selling, and the
+          price on it would be the one we just called wrong.
+
+       2. `isActive: false` is a switch the owner can flip himself from admin.
+          A hard delete means the next time he wants to pause or reinstate a
+          product — seasonally, or once he knows the real cost of this one —
+          it is a developer job again. Build the path he will reuse.
+
+     DO NOT DELETE THE TEST ORDERS attached to it. A back office with no data
+     in it cannot be tested: the admin list, the finance screen, the reports
+     and the pagination all need rows to exercise. Keep them and mark them
+     `is_test` as previously agreed.
+
+     Remove it from every surface that enumerates products:
+       [ ] /visa-prices cards, both languages
+       [ ] the comparison table being built in B9
+       [ ] the homepage "Popular Visa Types" section, both languages
+           (it appears there today)
+       [ ] the visa-type selector in the apply wizard
+       [ ] the "visa service" dropdown in /visa-pre-check, both languages
+           (it appears there today)
+       [ ] the Assistant, if it enumerates products anywhere
+       [ ] any structured data, feed or OG copy that lists products
+
+     It must not appear in guides, news or how-to-apply — I checked and it
+     does not, but confirm after the change.
+
+     SAY NOTHING ABOUT WHY. The product simply stops existing on the site.
+
+     Do NOT add a notice saying the authority cancelled this visa, and do not
+     let the Assistant or any template say it. We have held one line through
+     this entire project — we speak for our own work and never for the
+     authority — and that line applies to a withdrawal exactly as it applies
+     to an approval. We have not verified this with the authority ourselves,
+     and publishing a claim about a government decision that turns out to be
+     wrong is far more damaging than saying nothing.
+
+     If a customer asks, the answer is about us, not about them:
+       en: "We are not offering this visa at the moment."
+       ar: «هذه التأشيرة غير متاحة لدينا حاليًا.»
+
+     AND THE PART THAT MATTERS MORE THAN THIS ONE PRODUCT:
+
+     If one product went stale without the site noticing, the other seven need
+     checking before launch. Verify against what the authority currently
+     issues, and report each one:
+
+       96hours-transit · 14days-single · 14days-multiple · 30days-single ·
+       30days-multiple · 60days-single · 60days-multiple
+
+     Start with `14days-multiple` ($265). It is the other product in our
+     catalog that neither competitor lists, which is the same signal that was
+     true of the 90-day. That is not proof of anything — but it is the next
+     one I would check.
+
+     Then build the thing that stops this recurring: a `last_verified_at` date
+     on each product, shown in admin, with a reminder when it goes older than
+     90 days. We already publish an editorial policy and a sources-and-
+     verification page; this is the mechanism those pages describe, and right
+     now it does not exist. A catalog nobody re-checks drifts silently, and
+     the first person to discover the drift is a paying customer.
+
+     A deep link carrying the removed product id must fall back to the
+     selector with a neutral message, not 404 and not silently pick a
+     different visa. Someone may have bookmarked or been sent one.
+
+     In admin the product stays visible as inactive, with a working toggle to
+     bring it back.
+
+B10. Flight booking appears in the pre-check as "بعد الدفع، اختياري" and not
+     at all in the form. That pre-check wording is correct and is what the
+     owner asked for — do not remove it. Show the same optional, clearly
+     marked item in the form's document section so the customer actually meets
+     what they were told about.  (TASK 19 §6)
+
+B11. The photo and passport requirements print their own name twice — title,
+     help text, then the same sentence again as the item name. Render once.
+     (TASK 17 §H, TASK 19 §5a)
+
+B12. Arabic validation reads «1 حقول تحتاج مراجعة». Arabic does not pluralise
+     that way. Use proper Arabic plural rules (zero/one/two/few/many) and
+     check every counter on the site.  (TASK 19 §5b)
+
+B13. Arabic price renders as «‏185.00 US$». The currency should lead or be
+     spelled out. It looks like a formatting accident on the one number the
+     customer reads most carefully.  (TASK 17 §I)
+
+B14. Staging serves production's robots.txt — "Allow: /" pointing at
+     https://tashiraev.com/sitemap.xml — and /sitemap.xml returns 200 on
+     staging. Staging should serve "Disallow: /" and 404 its sitemap. Also,
+     the x-robots-tag header emits "noindex" twice, which means it is being
+     composed in two places; leave one.
+
+B15. CONFIRM STAGING IS NOT TOUCHING PRODUCTION. Answer each explicitly in
+     your reply, and say so if any is shared — that changes what we do next:
+
+       [ ] staging has its own database (name both targets)
+       [ ] staging uses Stripe TEST keys
+       [ ] staging sends no email to real addresses (there are orders on
+           staging carrying the owner's real address)
+       [ ] session cookies are scoped to staging.tashiraev.com, not to
+           .tashiraev.com (print the Set-Cookie attributes)
+       [ ] staging file storage is separate from production
+
+===============================================================
+SECTION C — MEASURE, THEN DECIDE
+===============================================================
+
+C1. One navigation to /en/apply did not become interactive within 50 seconds;
+    later loads were normal. A separate sample showed
+    `server-timing: ssr;dur=1256.0` against the 648ms p95 reported at the end
+    of Phase 1.
+
+    Do not start optimising. Report what the logs actually say over a full
+    day: is this cold start on the SSR worker, and how often does it happen.
+    If it is cold start, it hits first-time visitors — the worst possible
+    audience for it — and then it becomes a launch blocker.
+
+===============================================================
+SECTION D — AFTER LAUNCH, IN THIS ORDER
+===============================================================
+
+D1. A staff checklist panel in /admin: nationality, residence, trip purpose,
+    companion → the exact list in both languages, a copy button producing
+    WhatsApp-ready text, and the B5 link. The text must come from the engine,
+    not a template file, so a rule change tomorrow changes the copied message
+    with it. This is what the agent uses at 2am; without it they use memory,
+    and memory is what this whole system exists to remove.  (TASK 19 §3)
+
+D2. A page per residence country, generated from the engine — Saudi, Kuwait,
+    Qatar, Bahrain, Oman, and the GCC companion. One build serves search, the
+    WhatsApp link and ad landing pages. No competitor can copy it quickly
+    because it is not content, it is system output.
+
+D3. TASK 16 — the motion system. Deliberately after launch.
+
+D4. TASK 14 — /verify page, licence QR, social icons off by default.
+
+D5. TASK 9 — remaining logo surfaces. The header mark is done; audit the rest
+    against that checklist.
+
+D6. TASK 10 — UTM capture and attribution.
+
+===============================================================
+DECISIONS THE OWNER STILL OWES — nothing below can be guessed
+===============================================================
+
+1. THE EXPRESS WINDOW — CLOSED. Decided and specified in A5: regular 48
+   hours, express 24 hours guaranteed, both round the clock.
+
+2. THE EXPRESS FEE — CLOSED, AND IT WAS NOT A PRICING QUESTION. The catalog is
+   consistent at $30; the wizard displays it wrong. See A4.
+
+3. A RESPONSE-TIME PROMISE — CLOSED: NONE IS PUBLISHED.
+
+   No reply-time claim appears anywhere on the site, in the Assistant, or in
+   the WhatsApp profile. The only published time commitment in the entire
+   business is the express window in A5, and it is the one with a refund
+   behind it.
+
+   That is the whole point: one timed promise, guaranteed, is worth more than
+   several vague ones. GOVR promises "within 1 business day" and it is
+   forgettable; gccev claims 24/7 support while its own terms say 9–6, which
+   is worse than saying nothing.
+
+   The homepage says the application is open 24 hours (A3). The WhatsApp
+   auto-reply confirms receipt and points to the application; it commits to no
+   time. Any internal response-time target the owner keeps stays internal.
+
+4. LICENCE ACTIVITIES — CLOSED. The owner has confirmed the licence carries
+   tourism and government-services activities — the same basis the
+   competitors operate on, not a travel-agency licence.
+
+   This unblocks the /verify page in D4, and it changes its priority: the
+   licensed-activities list is now publishable, and it is the strongest
+   verifiable trust element this business has, because most of what it
+   competes against on price is unlicensed. Move D4 to the front of Section D.
+
+   NOTE: this is also why B9a matters. The 90-day product is the one place
+   where our own pricing does not follow our own logic, and it sits in the
+   same list as the licence number and the guarantee. Trust signals are read
+   together.
+
+5. RESTRICTED NATIONALITIES — APPROVED, IMPLEMENT.
+
+   Starting list: Iran, South Sudan, Uganda, Democratic Republic of the Congo.
+
+   Shown BEFORE payment, worded as "Applications are not currently available
+   for nationals of…" / «التقديم غير متاح حاليًا لمواطني…» — not "banned".
+   Checkout is blocked for those nationalities, with a "contact us" route
+   instead of a dead end. Blocking before payment prevents a full refund and
+   an angry customer, which costs more than the lost order.
+
+   Store this as configuration the owner can edit, not as code. NOTE FOR THE
+   RECORD: this list is taken from a competitor's published notice and has not
+   been independently verified; it changes over time. It is a starting point
+   and the owner should confirm it against his own source.
+
+6. VAT — DECIDED, NO CHANGE. The switch stays off, the company is not
+   registered, and nothing about VAT appears on the site. The threshold
+   monitor stays as built and alerts at AED 300,000 of trailing revenue, ahead
+   of the AED 375,000 mandatory threshold. Do not build anything further here.
+
+7. FEE ITEMISATION — DECIDED: NO. The price stays a single total described as
+   "Government fees included" / «شامل الرسوم الحكومية», and we do not split it.
+
+   THE STANDING RULE THAT COMES WITH THAT DECISION, and it is a hard one:
+
+     NO SPECIFIC GOVERNMENT-FEE AMOUNT IS PUBLISHED ANYWHERE. Not on a page,
+     not in the price cards, not in the terms, not in the refund policy, not
+     in the Assistant, not in the invoice or proforma, not in any email
+     template, and not in an admin-facing field that can print onto a customer
+     document.
+
+   I checked the live build for this: the phrase appears only as a category —
+   "Government fees included" on the price cards, and «الرسوم الحكومية أو رسوم
+   الموردين المتكبدة فعلياً» in the Arabic refund policy. No figure appears
+   anywhere. That is the correct state and it must be preserved.
+
+   Two consequences to implement:
+
+     a. Add a check to the build or the review checklist: any new copy, invoice
+        field or template that would print a government-fee amount is rejected.
+        This is easy to reintroduce by accident the first time someone builds
+        a "fee breakdown" into an invoice.
+     b. The Arabic refund policy says non-refundable deductions include
+        government or supplier fees "actually incurred" (المتكبدة فعلياً). That
+        wording is good and must not change — it commits to no number and
+        permits no deduction beyond what was really paid. Keep the Finance
+        records per order accurate enough to support it if a refund is ever
+        disputed.
+
+===============================================================
+WHAT IS EXPLICITLY NOT IN SCOPE
+===============================================================
+
+No redesign. The hero, header, footer, palette and type scale do not change —
+our site already reads better than both competitors and the work above is
+additive. No mobile app. No second chat widget; the Assistant is the one. No
+rotating hero headlines. No dual-language hero. Nothing that implies TASHIRA
+is a government body.

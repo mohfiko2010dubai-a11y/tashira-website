@@ -1,3 +1,11 @@
+# Launch Master group 1 verified - 2026-09-30
+
+Staging ffc5c793 deployed with all four gates passing; EN/AR public surfaces omit 90-day, both quote speeds reject it, admin activation roundtrip restored inactive. Four historic 90-day orders retained and marked test. Database/storage isolation and Stripe TEST verified; staging mail forced disabled; cookie host-only. Robots and sitemap still require correction. Express guarantee group 2 is local implementation under verification, not deployed. Full Launch Master remains incomplete.
+
+# Launch Master in progress — 2026-09-30
+
+Owner master replaces TASK17/19/20; D deferred. Fresh A1/A2/A7 family UAT passes on 019017d (free tabs and save-to-traveller-2 before files, reload, EG6/PK8, payment incomplete without files). Candidate ffc5c79 adds server product activation/verification controls, deactivates 90-day through additive staging migration 055, active catalog selectors, shared derived Express delta, approved 24-hour application copy, disabled external staging mail, dated SSR logging. Local checks pass: 1124 tests / 26 gated skips. Guarded deployment running; no completed-launch claim. A5 guarantee/refund infrastructure, remaining B items, nationality restrictions and full-day timing still outstanding. See staging/LAUNCH_MASTER_2026-09-30.md.
+
 # Assistant follow-up review — 2026-09-25
 
 Owner requested a fresh review before completion. Two integration defects fixed in staging 019017d6538f377bb33137a268ceb8314aa814f6: saved status navigation now renders the canonical portal inside chat with a return path; embedded interview no longer overwrites the host title. Guarded deployment PASS independently confirmed in server audit at 12:26:20Z after SSH log streaming stalled. All four gates pass, 1111 tests / 26 existing gated skips. Deployed UAT verifies all eight USD30 Express deltas, failed-price retry, saved status/back, three persisted files, final Stripe checkout USD185 without charge, and no profile access from reference-only foreign session. No production change; separate launch blockers remain. See staging/ASSISTANT_FORM_ALIGNMENT.md.
