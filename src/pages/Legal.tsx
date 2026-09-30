@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { validatedLegalHtml } from '@/lib/legal-html';
 import { languagePath } from '@contracts/language-routes';
+import { processingCopy } from '@contracts/processing-copy';
 
 interface LegalProps {
   page: 'terms' | 'privacy' | 'refund' | 'cookies';
@@ -41,6 +42,10 @@ export default function Legal({ page }: LegalProps) {
             </p>
           </div>
         )}
+        {(page === 'terms' || page === 'refund') && <section className="prose prose-lg mt-6 max-w-none legal-content">
+          <h2>{i18n.language.startsWith('ar') ? 'ضمان إرسال الطلب — ساري من 30 سبتمبر 2026' : 'Submission guarantee — effective 30 September 2026'}</h2>
+          <p>{processingCopy(i18n.language).regular}</p><p>{processingCopy(i18n.language).express}</p>
+        </section>}
       </div>
     </div>
     </>

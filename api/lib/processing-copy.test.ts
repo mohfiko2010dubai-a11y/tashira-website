@@ -5,8 +5,8 @@ import { PROCESSING_COPY, processingCopy } from "../../contracts/processing-copy
 
 describe("Owner-approved processing copy", () => {
   it("keeps the exact handling statements and Arabic fallback together", () => {
-    expect(PROCESSING_COPY.en.regular).toBe("We submit your application within 24 hours of your documents being complete. Issuing time is decided by the authority.");
-    expect(PROCESSING_COPY.en.express).toBe("Priority handling — we submit within 6 hours of your documents being complete. Issuing time is decided by the authority.");
+    expect(PROCESSING_COPY.en.regular).toBe("We submit your application within 48 hours of your documents being complete. Issuing time is decided by the authority.");
+    expect(PROCESSING_COPY.en.express).toBe("Priority handling — we submit within 24 hours of your documents being complete, or we refund the express fee in full. Issuing time is decided by the authority.");
     expect(processingCopy("ar-AE")).toBe(PROCESSING_COPY.ar);
     expect(processingCopy("fr")).toBe(PROCESSING_COPY.en);
   });

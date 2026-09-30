@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { createExpressGuaranteeRefund, processingGuarantees } from "./lib/express-guarantee-refund";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -47,6 +48,10 @@ function actorReference(ctx: { user?: { id: number } }) {
 }
 
 export const refundRouter = createRouter({
+  processingGuarantees: adminQuery.input(z.object({ applicationId: z.number().int().positive().optional() }).optional())
+    .query(({ input }) => processingGuarantees(input?.applicationId)),
+  claimExpressGuarantee: adminQuery.input(z.object({ applicationId: z.number().int().positive() }).strict())
+    .mutation(({ input, ctx }) => createExpressGuaranteeRefund(input.applicationId, actorReference(ctx))),
   eligibleSources: adminQuery.input(z.object({ applicationId: z.number().int().positive() }))
     .query(async ({ input }) => {
       const db = getDb();
@@ -119,7 +124,7 @@ export const refundRouter = createRouter({
     items: z.array(itemInput).min(1).max(2),
   })).mutation(async ({ input, ctx }) => getDb().transaction(async (tx) => {
     const [application] = await tx.select({ id: applications.id }).from(applications)
-      .where(eq(applications.id, input.applicationId)).limit(1);
+      .where(eq(applications.id, input.applicationId)).limit(1).for("update");
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
 
     const refundCaseId = crypto.randomUUID();

@@ -14,6 +14,7 @@ import DocumentManager from "@/components/shared/DocumentManager";
 import type { ApplicationWithLegacyAmount } from "@/types/trpc";
 import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
 import { RefundManager } from "@/components/admin/RefundManager";
+import { ProcessingGuarantee } from "@/components/admin/ProcessingGuarantee";
 import { SecurityDepositManager } from "@/components/admin/SecurityDepositManager";
 
 const statusColors: Record<string, string> = {
@@ -405,6 +406,7 @@ export default function AdminApplicationDetail() {
                 )}
               </div>
               <SecurityDepositManager applicationId={app.id} />
+              <ProcessingGuarantee applicationId={app.id} />
               <RefundManager applicationId={app.id} />
             </div>
           )}

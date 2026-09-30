@@ -1,4 +1,5 @@
 import Logo from '@/components/shared/Logo';
+import { ProcessingGuarantee } from '@/components/admin/ProcessingGuarantee';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -136,6 +137,7 @@ export default function AdminApplications() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+        <ProcessingGuarantee />
         {/* Analytics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <div className="bg-white rounded-lg p-4 border border-gray-100">

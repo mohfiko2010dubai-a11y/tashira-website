@@ -26,6 +26,8 @@ import { TRPCError } from "@trpc/server";
 import { runtimeFlagEnvironment } from "./lib/operations/mysql-access-provider";
 import { staffApplicationListCondition } from "./lib/staff-application-scope";
 import { financialApplicationScope } from "./lib/financial-application-scope";
+import { withCheckoutLock } from "./lib/checkout-quote";
+import { recordAuthoritySubmission } from "./lib/processing-guarantee";
 
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
@@ -258,7 +260,10 @@ export const applicationRouter = createRouter({
         auditLog("application.status_change", "failure", "admin");
         throw new TRPCError({ code: "CONFLICT", message: "Verified payment is required before operational processing" });
       }
-      await db.update(applications).set({ status: input.status }).where(eq(applications.id, input.id));
+      await withCheckoutLock(input.id, async connection => {
+        await connection.execute("UPDATE applications SET status=? WHERE id=?", [input.status, input.id]);
+        if (input.status === "visa_processing") await recordAuthoritySubmission(connection, input.id, "admin-session");
+      });
       const eventByStatus: Partial<Record<typeof input.status, TimelineEventName>> = {
         under_review: "PROCESSING_STARTED",
         visa_processing: "GOVERNMENT_PROCESSING",

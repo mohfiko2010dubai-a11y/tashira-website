@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { recordAuthoritySubmission } from "../processing-guarantee";
 import type { Pool, PoolConnection } from "mysql2/promise";
 import { z } from "zod";
 import type { OperationsWriteExecutor } from "../../operations-write-router";
@@ -409,6 +410,7 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
     if (action === "STATUS_TRANSITION") {
       const changed = await affected(connection, "UPDATE applications SET status=? WHERE id=? AND status=?", [after.status, input.applicationId, before.status]);
       if (changed !== 1) throw new OperationsWriteError("CONCURRENCY_CONFLICT");
+      if (after.status === "visa_processing") await recordAuthoritySubmission(connection, input.applicationId, event.actorId);
     }
     if (action === "DOCUMENT_REVIEW") {
       const documentId = numberField(event.details, "documentId");

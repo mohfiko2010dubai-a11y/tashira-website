@@ -1,4 +1,5 @@
 import { assertProductAvailable } from "./product-availability";
+import { PROCESSING_GUARANTEE_VERSION, refundableExpressFee } from "../../contracts/processing-guarantee";
 import { randomUUID } from "crypto";
 import { and, desc, eq, isNull, lte, or, gt } from "drizzle-orm";
 import { applicationPriceSnapshots, currentApplicationPriceSnapshots, businessSettingsVersions, pricingRules } from "@db/schema";
@@ -19,6 +20,9 @@ export type PriceQuote = {
   exchangeRateToBase: number;
   baseCurrency: string;
   totalInBaseCurrency: number;
+  /** Absent on historical quotes; never infer an old customer's paid component. */
+  expressFeeTotal?: number;
+  processingGuaranteeVersion?: string;
 };
 
 function mysqlErrorCode(error: unknown): string | undefined {
@@ -74,7 +78,17 @@ export async function quoteApplicationPrice(input: {
   const exchangeRate = rule.currency === settings.baseCurrency ? 1 : Number(settings.usdToBaseRate);
   if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) throw new Error("Configured exchange rate is invalid");
   const totalPrice = money(unitPrice * input.applicantCount);
+  let expressFeeTotal = 0;
+  if (input.processingType === "express") {
+    const [regular] = await getDb().select().from(pricingRules).where(and(
+      eq(pricingRules.serviceCode, input.serviceCode), eq(pricingRules.processingType, "regular"),
+      lte(pricingRules.effectiveAt, at), or(isNull(pricingRules.expiresAt), gt(pricingRules.expiresAt, at)),
+    )).orderBy(desc(pricingRules.version)).limit(1);
+    if (!regular || regular.currency !== rule.currency) throw new Error("Matching regular price is required for the Express guarantee");
+    expressFeeTotal = refundableExpressFee(Number(regular.promotionalPrice ?? regular.sellingPrice), unitPrice, input.applicantCount);
+  }
   return {
+    expressFeeTotal, processingGuaranteeVersion: PROCESSING_GUARANTEE_VERSION,
     pricingRuleId: rule.id,
     pricingVersion: rule.version,
     applicantCount: input.applicantCount,

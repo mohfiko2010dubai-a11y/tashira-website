@@ -9,6 +9,7 @@ import { validateSubmissionPolicyThresholds, type OperationalSubmissionPolicy } 
 import type { SubmissionScheduleSnapshot, SubmissionTimingRule } from "../travel/submission-scheduler";
 import { recalculateForTravelDateChange } from "../travel/travel-date-recalculation";
 import { assertCheckoutEditable, refreshCheckoutQuote } from "../checkout-quote";
+import { recordDocumentCompletion } from "../processing-guarantee";
 
 export type CustomerApplicantProfile = {
   fullName: string;
@@ -121,6 +122,7 @@ export class MysqlCustomerInterviewWriteRepository {
         (id,application_id,applicant_id,profile_version,event_type,profile_json,reason,actor_reference,command_sha256,idempotency_key,occurred_at)
         VALUES (?,?,?,?, 'UPDATED',?,?,?,?,?,?)`, [randomUUID(), input.applicationId, input.applicantId, nextVersion, JSON.stringify(input.profile),
         input.reason, input.actorReference, commandSha256, input.idempotencyKey, input.occurredAt]);
+      await recordDocumentCompletion(connection, input.applicationId);
       return { applicantId: input.applicantId, applicantIndex: Number(row.applicantIndex), profileVersion: nextVersion,
         profile: structuredClone(input.profile), replayed: false };
     });
@@ -394,6 +396,7 @@ export class MysqlCustomerInterviewWriteRepository {
         VALUES (?,?,'LINK_REQUIREMENT_DOCUMENT',?,NULL,?,?,?,?,?)`, [randomUUID(), input.applicationId, requirementInstanceId,
         commandSha256, JSON.stringify({ applicantId: input.applicantId, requirementCode: input.requirementCode,
           documentId: input.documentId, documentKey: leaf?.key, linkedCode, evidenceSha256 }), input.idempotencyKey, input.actorReference, input.occurredAt]);
+      if (input.ownerDocuments) await recordDocumentCompletion(connection, input.applicationId);
       return { requirementInstanceId, documentId: input.documentId, replayed: false };
     });
   }

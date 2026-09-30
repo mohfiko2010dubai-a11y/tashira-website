@@ -7,8 +7,8 @@ import arLegal from '../../src/i18n/locales/ar/legal-v2.json';
 
 describe('launch legal policy bundle', () => {
   it('publishes complete English and Arabic policy content under an immutable version', () => {
-    expect(TERMS_POLICY_VERSION).toBe('legal-bundle-2026-08-19-v2');
-    expect(TERMS_POLICY_EFFECTIVE_DATE).toBe('2026-08-19');
+    expect(TERMS_POLICY_VERSION).toBe('legal-bundle-2026-09-30-v3');
+    expect(TERMS_POLICY_EFFECTIVE_DATE).toBe('2026-09-30');
     expect(ACCEPTED_POLICY_TYPES).toEqual(['TERMS', 'PRIVACY', 'REFUND_CANCELLATION']);
     for (const policy of [enLegal, arLegal]) {
       expect(policy.terms.content.length).toBeGreaterThan(2_000);
