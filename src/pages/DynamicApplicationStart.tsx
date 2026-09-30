@@ -1,3 +1,4 @@
+import NationalityAvailabilityNotice from "@/components/customer/NationalityAvailabilityNotice";
 import { customerFileCount } from "@contracts/customer-count";
 import { VISA_ROUTES as visaRoutes } from "@contracts/visa-options";
 import { customerMoney } from "../../contracts/customer-money";
@@ -192,7 +193,8 @@ export default function DynamicApplicationStart() {
               <div><p className="mb-2 text-sm font-medium">{t("simple.fields.RESIDENCE_COUNTRY")} *</p>
                 <NationalitySelect {...feedback.fieldProps("residence", "start-residence-help")} compact purpose="residence" value={country} onChange={setCountry} allowedCodes={allowedResidence ?? []} />
                 <p id="start-residence-help" className="mt-2 text-xs text-slate-500">{t("simple.residenceHint")}</p>{feedback.errorFor("residence")}</div>
-              <TripPurposeSelect value={purpose} onChange={setPurpose} visaType={visaType} />
+              <NationalityAvailabilityNotice nationalities={[nationality]} />
+          <TripPurposeSelect value={purpose} onChange={setPurpose} visaType={visaType} />
             </div>
             {country && (applicationType === "family" || nationality) && <section className="mt-5 rounded-xl border border-[#C9A04C] p-4" aria-live="polite">
               <h2 className="font-bold">{applicationType === "single" ? (ar ? `مستنداتك: ${customerFileCount(documentRules.length, true)}` : `Your documents: ${customerFileCount(documentRules.length, false)}`) : (ar ? "مستندات الإقامة" : "Residence documents")}</h2>

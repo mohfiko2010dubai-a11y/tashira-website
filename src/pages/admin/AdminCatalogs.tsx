@@ -1,3 +1,4 @@
+import NationalityAvailabilitySettings from "@/components/admin/NationalityAvailabilitySettings";
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import AdminTopNav from '@/components/admin/AdminTopNav';
@@ -168,7 +169,7 @@ export default function AdminCatalogs() {
         )}
         {section === 'documents' && <CatalogDocuments />}
         {section === 'pricing' && <CatalogPricing />}
-        {section === 'visa-products' && <CatalogVisaProducts />}
+        {section === 'visa-products' && <><NationalityAvailabilitySettings /><CatalogVisaProducts /></>}
       </main>
     </div>
   );

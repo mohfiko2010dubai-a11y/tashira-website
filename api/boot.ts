@@ -443,6 +443,10 @@ app.get("/api/health", (c) => c.json({ status: "ok", time: new Date().toISOStrin
 
 // ===== Dynamic XML sitemap (published CMS content + core static routes) =====
 app.get("/sitemap.xml", async (c) => {
+  if (process.env.PUBLIC_APP_URL?.replace(/\/$/, "") === "https://staging.tashiraev.com") {
+    c.header("Cache-Control", "private, no-store");
+    return c.text("Not Found", 404);
+  }
   const base = publicAppOrigin().replace(/\/$/, "");
   const staticPaths = ["/", "/visa-prices", "/how-to-apply", "/apply", "/visa-pre-check", "/contact", "/terms", "/privacy", "/refund", "/cookies"];
   let contentRows: { slug: string; language: string; updatedAt: Date }[] = [];

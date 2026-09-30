@@ -1,4 +1,6 @@
 import { applicantName } from "../../contracts/applicant-name";
+import { nationalityAvailability } from "./nationality-availability";
+import { nationalityUnavailableCopy, unavailableNationalities } from "../../contracts/nationality-availability";
 import { loadTripPurposes } from "./customer/trip-purpose";
 import { requiredDocuments } from "../../contracts/document-requirement-engine";
 import { loadOwnerDocumentEvidence, projectOwnerDocuments } from "./customer/owner-document-evidence";
@@ -117,6 +119,12 @@ export async function getApplicationReadiness(applicationId: number, context?: T
     .where(eq(applicationPriceSnapshots.applicationId, applicationId)).limit(1);
   const policyAccepted = await hasTimelinePolicyAcceptance(applicationId, TERMS_POLICY_VERSION);
   const legacy = evaluateApplicationReadiness({ application, applicants: applicantList, documents: documentList, hasPriceSnapshot: Boolean(snapshot), acceptedPolicyVersion: policyAccepted ? TERMS_POLICY_VERSION : undefined });
+  const availability = await nationalityAvailability();
+  const blocked = unavailableNationalities(availability.codes, applicantList.map(applicant => applicant.nationality));
+  if (blocked.length) {
+    legacy.applicationMissing.push({ code: "application.nationality_unavailable", label: nationalityUnavailableCopy(blocked, false) + " / " + nationalityUnavailableCopy(blocked, true) });
+    legacy.status = "INCOMPLETE";
+  }
   // The owner-reviewed wizard is staging-only. Legacy and production checkout retain their existing gate.
   if (runtimeFlagEnvironment() !== "STAGING") return legacy;
   const { defaultOperationsSqlClient } = await import("./operations/mysql-query-client");

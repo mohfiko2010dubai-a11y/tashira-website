@@ -1,4 +1,5 @@
 import { assertProductAvailable } from "./lib/product-availability";
+import { assertNationalityCheckoutAvailable } from "./lib/nationality-availability";
 import { z } from "zod";
 import { applicationAccessQuery, createRouter, paymentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
@@ -103,11 +104,13 @@ export const paymentRouter = createRouter({
         });
 
         await withCheckoutLock(app.id, async connection => {
+          await assertNationalityCheckoutAvailable(connection, app.id);
           const currentQuote = await refreshCheckoutQuote(connection, app.id);
           assertDisplayedQuote(currentQuote, input.displayedQuoteId);
           await reserveCheckoutPayment(connection, app.id, currentQuote.id, app.stripePaymentIntentId);
         });
         const issued = await withCheckoutLock(app.id, async connection => {
+          await assertNationalityCheckoutAvailable(connection, app.id);
           const db = drizzle(connection);
           const [locked] = await db.select().from(applications).where(eq(applications.id, app.id)).limit(1);
           if (locked.paymentStatus === "paid") throw new TRPCError({ code: "CONFLICT", message: "Application is already paid. Refresh to see your confirmation." });

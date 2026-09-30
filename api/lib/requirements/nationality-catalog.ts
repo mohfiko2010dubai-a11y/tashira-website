@@ -82,6 +82,8 @@ export const NATIONALITY_CATALOG: readonly NationalityEntry[] = [
   entry("KE", "Kenya", "كينيا", "AFRICA"),
   entry("ET", "Ethiopia", "إثيوبيا", "AFRICA"),
   entry("UG", "Uganda", "أوغندا", "AFRICA"),
+  entry("SS", "South Sudan", "جنوب السودان", "AFRICA"),
+  entry("CD", "Democratic Republic of the Congo", "جمهورية الكونغو الديمقراطية", "AFRICA"),
   entry("TZ", "Tanzania", "تنزانيا", "AFRICA"),
   entry("ZA", "South Africa", "جنوب أفريقيا", "AFRICA"),
   entry("SN", "Senegal", "السنغال", "AFRICA"),

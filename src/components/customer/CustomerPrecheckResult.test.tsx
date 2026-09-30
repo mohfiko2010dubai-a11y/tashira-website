@@ -5,6 +5,7 @@ import CustomerPrecheckResult from "./CustomerPrecheckResult";
 import { InterviewRequirementDocuments } from "./InterviewRequirementDocuments";
 import { requiredDocuments } from "@contracts/document-requirement-engine";
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "en" } }) }));
+vi.mock("./NationalityAvailabilityNotice", () => ({ default: () => null }));
 
 describe("CustomerPrecheckResult", () => {
   it("renders the same eight slots and six grouped cards as the wizard, with optional flight outside the count", () => {

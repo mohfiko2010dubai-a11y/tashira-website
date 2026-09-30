@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { customerMoney } from "@contracts/customer-money";
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { usePaymentRecovery } from '@/hooks/usePaymentRecovery';
@@ -416,6 +417,7 @@ export default function PaymentPage() {
                     </div>
                   ))}
                 </div>
+                {readiness.data.applicationMissing.some(item => item.code === "application.nationality_unavailable") && <Link to="/contact" className="mt-3 inline-block min-h-11 py-2 font-semibold underline">{i18n.language.startsWith("ar") ? "تواصل معنا" : "Contact us"}</Link>}
                 <button
                   type="button"
                   onClick={continueApplication}

@@ -1,3 +1,4 @@
+import NationalityAvailabilityNotice from "@/components/customer/NationalityAvailabilityNotice";
 import OptionalFlightNotice from "./OptionalFlightNotice";
 import { customerFileCount } from "@contracts/customer-count";
 import Logo from '@/components/shared/Logo';
@@ -15,6 +16,7 @@ export default function CustomerPrecheckResult({ context }: { context: DocumentR
     <Logo variant="mark-only" watermark={!result} size={26} />
     <h2 className="text-2xl font-bold text-[#0A1628]">{result ? ar ? `مستنداتك: ${customerFileCount(result.rules.length, true)}` : `Your documents: ${customerFileCount(result.rules.length, false)}` : ar ? "قائمة مستنداتك" : "Your document checklist"}</h2>
     {context && result ? <>
+      <NationalityAvailabilityNotice nationalities={[context.nationality]} />
       {result.groups.map(group => <section key={group.key} data-document-group={group.key} className="mt-6">
         <h3 className="border-b border-[#e8e0d2] pb-2 text-sm font-bold text-[#9b7425]">{documentGroupHeading(group.key, context.country_of_residence, ar)}</h3>
         <ul className="mt-3 grid gap-3">{group.cards.map(card => {

@@ -1,3 +1,4 @@
+import NationalityAvailabilityNotice from "@/components/customer/NationalityAvailabilityNotice";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc-client";
@@ -33,6 +34,7 @@ export function TravellerContext({ applicant, reference, editing, nationalityOnl
     catch { setError(ar ? "تعذر حفظ الاختيارات. حاول مرة أخرى." : "Your choices could not be saved. Try again."); } finally { setBusy(false); }
   }}>
     <div><NationalitySelect {...feedback.fieldProps("nationality")} compact label={t("simple.fields.NATIONALITY")} value={nationality} onChange={setNationality} />{feedback.errorFor("nationality")}</div>
+    <NationalityAvailabilityNotice nationalities={[nationality]} />
     {!nationalityOnly && <><div><NationalitySelect {...feedback.fieldProps("residence")} compact purpose="residence" label={t("simple.fields.RESIDENCE_COUNTRY")} value={residenceCountry} onChange={setResidenceCountry} />{feedback.errorFor("residence")}</div>
     <p className="text-xs text-slate-500">{t("simple.residenceHint")}</p>
     <label className="grid gap-2 text-sm">{t("simple.tripPurpose")}<select className="min-h-11 rounded-xl border px-3" value={tripPurpose} onChange={event => setTripPurpose(tripPurposeSchema.parse(event.target.value))}>
