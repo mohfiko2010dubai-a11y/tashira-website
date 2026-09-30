@@ -1,3 +1,4 @@
+import { assertProductAvailable } from "./lib/product-availability";
 import { z } from "zod";
 import { applicationAccessQuery, createRouter, paymentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
@@ -78,6 +79,7 @@ export const paymentRouter = createRouter({
         if (app.paymentStatus === "paid") {
           throw new TRPCError({ code: "CONFLICT", message: "Application is already paid" });
         }
+        await assertProductAvailable(app.visaType);
         const readiness = await getApplicationReadiness(app.id, ctx);
         if (readiness.status !== "READY") {
           auditLog("payment.readiness_rejected", "failure", "customer");

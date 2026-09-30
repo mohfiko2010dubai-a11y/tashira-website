@@ -1,3 +1,4 @@
+import { expressPriceDelta } from "@contracts/price-delta";
 import { useEffect, useState } from "react";
 import { trpc } from "@/providers/trpc-client";
 
@@ -27,6 +28,6 @@ export function useProcessingQuotes(visaType: string, applicantCount: number) {
   const current = pair?.key === key ? pair : null;
   return { regular: current?.regular, express: current?.express, failed: failedKey === key,
     loading: !current && failedKey !== key, retry: () => setAttempt(value => value + 1),
-    unitDelta: current ? Math.round((current.express.unitPrice - current.regular.unitPrice) * 100) / 100 : undefined,
-    totalDelta: current ? Math.round((current.express.totalPrice - current.regular.totalPrice) * 100) / 100 : undefined };
+    unitDelta: current ? expressPriceDelta(current.regular.unitPrice, current.express.unitPrice) : undefined,
+    totalDelta: current ? expressPriceDelta(current.regular.totalPrice, current.express.totalPrice) : undefined };
 }

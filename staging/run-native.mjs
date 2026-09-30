@@ -45,4 +45,7 @@ if (!process.env.STRIPE_WEBHOOK_SECRET.startsWith("whsec_")) {
   throw new Error("Staging requires a Stripe webhook signing secret");
 }
 
+// Launch Master B15: staging must never deliver mail to real recipients.
+process.env.EMAIL_MODE = "disabled";
+process.env.STAGING_EMAIL_MODE = "disabled";
 await import("../dist/boot.js");

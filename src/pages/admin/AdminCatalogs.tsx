@@ -98,8 +98,27 @@ function CatalogPricing() {
   );
 }
 
+function ProductAvailabilityControl({ product, onSaved }: { product: { serviceCode: string; isActive: boolean; lastVerifiedAt: string | null; verificationSource: string | null; version: number; verificationDue: boolean }; onSaved: () => void }) {
+  const [source, setSource] = useState("");
+  const utils = trpc.useUtils();
+  const update = trpc.catalog.updateProduct.useMutation({ onSuccess: () => { onSaved(); void utils.catalog.listActiveProducts.invalidate(); } });
+  return <div className="mt-3 space-y-2 text-sm">
+    <p className="font-semibold">{product.isActive ? "Active" : "Inactive"}</p>
+    <button type="button" disabled={update.isPending} className="min-h-11 rounded-lg border px-3" onClick={() => update.mutate({ serviceCode: product.serviceCode, expectedVersion: product.version, isActive: !product.isActive })}>{product.isActive ? "Deactivate" : "Activate"}</button>
+    <p>Last verified: {product.lastVerifiedAt ? new Date(product.lastVerifiedAt).toLocaleDateString() : "Not verified"}</p>
+    {product.verificationDue && <p role="status" className="text-amber-800">Verification required — no evidence recorded or older than 90 days.</p>}
+    {product.verificationSource && <a className="block underline" href={product.verificationSource} target="_blank" rel="noopener noreferrer">Verification source</a>}
+    <form onSubmit={event => { event.preventDefault(); update.mutate({ serviceCode: product.serviceCode, expectedVersion: product.version, isActive: product.isActive, verificationSource: source }); }}>
+      <label className="block">Official verification source<input type="url" required value={source} onChange={event => setSource(event.target.value)} className="my-2 w-full rounded border p-2" /></label>
+      <button disabled={update.isPending} className="min-h-11 rounded border px-3">Record verification today</button>
+    </form>
+    {update.error && <p role="alert" className="text-red-700">{update.error.message}</p>}
+  </div>;
+}
+
 function CatalogVisaProducts() {
   const query = trpc.business.pricingHistory.useQuery();
+  const availability = trpc.catalog.adminProducts.useQuery();
   const products = useMemo(() => {
     const rows = (query.data ?? []) as PricingRow[];
     const latest = new Map<string, PricingRow[]>();
@@ -112,9 +131,11 @@ function CatalogVisaProducts() {
   }, [query.data]);
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {availability.isError && <p role="alert">Product availability could not load. Refresh and try again.</p>}
       {products.map((p) => (
         <article key={p.serviceCode} className="rounded-2xl border border-gray-200 bg-white p-5">
           <p className="font-mono text-sm font-bold text-[#0A1628]">{p.serviceCode}</p>
+          {availability.data?.find(row => row.serviceCode === p.serviceCode) && <ProductAvailabilityControl key={availability.data.find(row => row.serviceCode === p.serviceCode)!.version} product={availability.data.find(row => row.serviceCode === p.serviceCode)!} onSaved={() => { void availability.refetch(); }} />}
           <ul className="mt-3 space-y-1 text-sm text-gray-600">
             {p.variants.map((v) => (
               <li key={v.processingType} className="flex justify-between"><span className="capitalize">{v.processingType}</span><strong>{String(v.sellingPrice)} {v.currency}</strong></li>

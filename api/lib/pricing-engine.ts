@@ -1,3 +1,4 @@
+import { assertProductAvailable } from "./product-availability";
 import { randomUUID } from "crypto";
 import { and, desc, eq, isNull, lte, or, gt } from "drizzle-orm";
 import { applicationPriceSnapshots, currentApplicationPriceSnapshots, businessSettingsVersions, pricingRules } from "@db/schema";
@@ -51,6 +52,7 @@ export async function quoteApplicationPrice(input: {
   if (!Number.isInteger(input.applicantCount) || input.applicantCount < 1 || input.applicantCount > 10) {
     throw new Error("Applicant count is outside the supported range");
   }
+  await assertProductAvailable(input.serviceCode);
   const at = input.at ?? new Date();
   const [rule, settings] = await Promise.all([
     getDb().select().from(pricingRules).where(and(

@@ -48,7 +48,7 @@ export async function renderSsrResponse(options: SsrResponseOptions): Promise<Re
       elapsedMs: Math.round(performance.now() - started),
     };
     // Do not log raw exceptions, query strings, cookies or rendered customer data.
-    const log = options.logFailure ?? ((entry: SsrFailureEvent) => console.error(JSON.stringify(entry)));
+    const log = options.logFailure ?? ((entry: SsrFailureEvent) => console.error(JSON.stringify({ ...entry, timestamp: new Date().toISOString() })));
     try { log(event); } catch { console.error("SSR fallback logging failed"); }
     headers.set("X-Tashira-SSR", "fallback");
     return new Response(options.shellHtml, { status: 200, headers });

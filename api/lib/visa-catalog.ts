@@ -1,3 +1,4 @@
+import { productAvailability } from "./product-availability";
 import { PROCESSING_COPY } from "../../contracts/processing-copy";
 import { getDb } from "../queries/connection";
 import { pricingRules } from "@db/schema";
@@ -151,6 +152,7 @@ export type ActiveProduct = CatalogProduct & {
 };
 
 export async function getActiveCatalogProducts(at?: Date): Promise<ActiveProduct[]> {
+  const availability = await productAvailability();
   const now = at ?? new Date();
   const db = getDb();
   const activeRules = await db
@@ -174,6 +176,7 @@ export async function getActiveCatalogProducts(at?: Date): Promise<ActiveProduct
 
   const products: ActiveProduct[] = [];
   for (const product of CATALOG) {
+    if (!availability.some(row => row.serviceCode === product.id && row.isActive)) continue;
     const regularRule = latestRuleByKey.get(`${product.id}:regular`);
     const expressRule = latestRuleByKey.get(`${product.id}:express`);
     const regularPrice = regularRule ? Number(regularRule.promotionalPrice ?? regularRule.sellingPrice) : null;

@@ -62,6 +62,7 @@ export default function DynamicApplicationStart() {
   const creation = useApplicationCreation("FORM");
   const { t, i18n } = useTranslation("wizard");
   const [searchParams] = useSearchParams();
+  const catalog = trpc.catalog.listActiveProducts.useQuery();
   const prefill = precheckPrefill(searchParams);
   const visaParam = searchParams.get("visa") ?? "";
   const visaPrefill: Record<string, string> = {
@@ -79,6 +80,7 @@ export default function DynamicApplicationStart() {
   const [applicantCount, setApplicantCount] = useState(Number.isInteger(countParam) && countParam >= 2 && countParam <= 10 ? countParam : 2);
   const knownVisaId = visaRoutes.find(([v]) => v === visaParam)?.[0];
   const [visaType, setVisaType] = useState<string>(knownVisaId ?? visaPrefill[visaParam] ?? visaRoutes[2][0]);
+  const unavailableVisa = Boolean(catalog.data && !catalog.data.some(product => product.id === visaType));
   const processingParam = searchParams.get("processing") ?? "";
   const [processingType, setProcessingType] = useState<"regular" | "express">(processingParam === "express" ? "express" : "regular");
   const [email, setEmail] = useState("");
@@ -102,7 +104,7 @@ export default function DynamicApplicationStart() {
     onSuccess: ({ referenceNumber }) => navigate(`/apply/${encodeURIComponent(referenceNumber)}/interview`, { replace: true }),
   });
 
-  const stepValid = Boolean((residenceType !== "gcc-accompany" || (sponsorName.trim() && sponsorRelation.trim())) && country && (applicationType === "family" || nationality) && validStartContact(email, phone) && Number.isInteger(travellerCount) && travellerCount >= 1 && travellerCount <= 10 && visaType && processingType);
+  const stepValid = Boolean((residenceType !== "gcc-accompany" || (sponsorName.trim() && sponsorRelation.trim())) && country && (applicationType === "family" || nationality) && validStartContact(email, phone) && Number.isInteger(travellerCount) && travellerCount >= 1 && travellerCount <= 10 && visaType && !unavailableVisa && processingType);
 
   const documentRules = requiredDocuments({ nationality: applicationType === "single" ? nationality : undefined,
     country_of_residence: country, residence_type: residenceType, visa_type: visaType, trip_purpose: /transit|96hours/i.test(visaType) ? "transit" : purpose });
@@ -118,7 +120,7 @@ export default function DynamicApplicationStart() {
     email: !email.trim() ? t("validation.emailRequired") : !validStartEmail(email) ? t("validation.emailInvalid") : undefined,
     phone: !validStartPhone(phone) ? t("validation.phone") : undefined,
     applicantCount: !Number.isInteger(travellerCount) || travellerCount < 1 || travellerCount > 10 ? t("validation.count") : undefined,
-    visaType: !visaType ? t("validation.choose", { field: t("step1.visaType") }) : undefined,
+    visaType: (!visaType || unavailableVisa) ? t("validation.choose", { field: t("step1.visaType") }) : undefined,
     processingType: !processingType ? t("validation.choose", { field: t("step1.processing") }) : undefined,
   });
 
@@ -153,6 +155,7 @@ export default function DynamicApplicationStart() {
             <CreationResumeNotice referenceNumber={creation.request?.referenceNumber} ar={ar} pending={creation.isPending}
               onResume={() => navigate(`/apply/${encodeURIComponent(creation.request!.referenceNumber!)}/interview`)}
               onStartNew={() => { void creation.getRequest(true).catch(() => undefined); }} />
+            {unavailableVisa && <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4">{i18n.language.startsWith("ar") ? "هذه التأشيرة غير متاحة لدينا حاليًا. اختر نوعًا آخر من القائمة أو تواصل معنا." : "We are not offering this visa at the moment. Choose another visa from the selector or contact us."}</p>}
             <SectionTitle>{t("step1.whoTravelling")}</SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2">
               <SelectCard icon={UserRound} selected={applicationType === "single"} onClick={() => setApplicationType("single")}
@@ -201,7 +204,7 @@ export default function DynamicApplicationStart() {
 
             <SectionTitle>{t("step1.visaType")}</SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {visaRoutes.map(([value, label]) => (
+              {visaRoutes.filter(([value]) => catalog.data?.some(product => product.id === value)).map(([value, label]) => (
                 <SelectCard key={value} icon={Plane} selected={visaType === value} onClick={() => setVisaType(value)} title={i18n.language.startsWith("ar") ? t(`pricing:visaTypes.${value.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}`) : label} />
               ))}
             </div>

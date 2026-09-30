@@ -1,3 +1,4 @@
+import { trpc } from "@/providers/trpc-client";
 import { useTranslation } from "react-i18next";
 import { useRef, useState } from "react";
 import type { DocumentRequirementContext } from "@contracts/document-requirement-engine";
@@ -13,12 +14,14 @@ const routes = [
 export default function CustomerPrecheck() {
   const { i18n, t } = useTranslation("pricing");
   const copy = (en: string, ar: string) => i18n.language.startsWith("ar") ? ar : en;
+  const catalog = trpc.catalog.listActiveProducts.useQuery();
   const [routeCode, setRouteCode] = useState<string>(routes[0][0]);
   const [nationality, setNationality] = useState("");
   const [residenceCountry, setResidenceCountry] = useState("");
   const [context, setContext] = useState<DocumentRequirementContext | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const feedback = useValidationFeedback({
+    visa: !catalog.data?.some(product => product.id === routeCode) ? copy("Choose an available visa service.", "اختر خدمة تأشيرة متاحة.") : undefined,
     nationality: !nationality ? copy("Choose your nationality from the country list.", "اختر جنسيتك من قائمة الدول.") : undefined,
     residence: !residenceCountry ? copy("Choose the country where you currently live.", "اختر البلد الذي تقيم فيه حاليًا.") : undefined,
   });
@@ -40,7 +43,7 @@ export default function CustomerPrecheck() {
           <div><p className="mb-2 text-sm font-medium">{copy("Country of residence", "بلد الإقامة")}</p>
             <NationalitySelect {...feedback.fieldProps("residence", "precheck-residence-help")} compact purpose="residence" value={residenceCountry} onChange={code => { setResidenceCountry(code); changed(); }} />
             <p id="precheck-residence-help" className="mt-2 text-xs text-slate-500">{copy("The country you currently live in — not your country of citizenship.", "البلد الذي تقيم فيه حاليًا — وليس بلد جنسيتك.")}</p>{feedback.errorFor("residence")}</div>
-          <label className="block text-sm font-medium">{copy("Visa service", "خدمة التأشيرة")}<select value={routeCode} onChange={event => { setRouteCode(event.target.value); changed(); }} className="mt-2 min-h-11 w-full rounded-xl border px-3 py-2">{routes.map(([value, label]) => <option key={value} value={value}>{i18n.language.startsWith("ar") ? t(`visaTypes.${value.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}`) : label}</option>)}</select></label>
+          <label className="block text-sm font-medium">{copy("Visa service", "خدمة التأشيرة")}<select {...feedback.fieldProps("visa")} value={routeCode} onChange={event => { setRouteCode(event.target.value); changed(); }} className="mt-2 min-h-11 w-full rounded-xl border px-3 py-2">{routes.filter(([value]) => catalog.data?.some(product => product.id === value)).map(([value, label]) => <option key={value} value={value}>{i18n.language.startsWith("ar") ? t(`visaTypes.${value.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}`) : label}</option>)}</select>{feedback.errorFor("visa")}</label>
           <p className="text-sm text-slate-600">{copy("Trip purpose:", "غرض الرحلة:")} {/transit|96hours/i.test(routeCode) ? copy("Transit", "عبور") : copy("Tourism", "سياحة")}</p>
           <p aria-live="polite" className="text-sm text-red-700">{feedback.count > 0 && copy(`${feedback.count} fields need attention. Choose the missing countries above.`, `${feedback.count} حقول تحتاج مراجعة. اختر الدول الناقصة أعلاه.`)}</p>
           <button type="submit" className="w-full rounded-xl bg-[#0A1628] px-5 py-3 font-semibold text-white">{copy("Check requirements", "تحقّق من المتطلبات")}</button>

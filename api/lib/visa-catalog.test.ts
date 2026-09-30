@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../queries/connection", () => ({ getDb: vi.fn() }));
+vi.mock("./product-availability", () => ({ productAvailability: vi.fn(async () => ["14days-single", "14days-multiple", "30days-single", "30days-multiple", "60days-single", "60days-multiple", "96hours-transit"].map(serviceCode => ({ serviceCode, isActive: true }))) }));
 
 import { getActiveCatalogProducts } from "./visa-catalog";
 import { getDb } from "../queries/connection";

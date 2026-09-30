@@ -1,3 +1,4 @@
+import { expressPriceDelta } from "@contracts/price-delta";
 import { customerMoney } from "@contracts/customer-money";
 import { processingCopy } from "@contracts/processing-copy";
 import { useState } from "react";
@@ -43,7 +44,7 @@ function VisaCard({
   const hasExpress = product.expressPrice !== null;
   const currentPrice = speed === "express" ? product.expressPrice ?? product.regularPrice : product.regularPrice;
   const currentTime = processingCopy(isAr ? "ar" : "en")[speed === "express" && hasExpress ? "express" : "regular"];
-  const expressDelta = hasExpress ? Math.round((product.expressPrice! - product.regularPrice) * 100) / 100 : 0;
+  const expressDelta = hasExpress ? expressPriceDelta(product.regularPrice, product.expressPrice!) : 0;
 
   const name = isAr ? product.nameAr : product.nameEn;
   const validity = isAr ? product.validityAr : product.validityEn;

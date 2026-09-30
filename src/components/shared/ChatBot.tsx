@@ -1,3 +1,4 @@
+import { trpc } from "@/providers/trpc-client";
 import ChunkLoadErrorBoundary from "./ChunkLoadErrorBoundary";
 import { importWithStaleChunkRecovery } from "@/lib/lazy-import";
 import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -36,6 +37,7 @@ function AssistantPanel({ close }: { close: () => void }) {
   const [count, setCount] = useState(1);
   const resume = useSyncExternalStore(subscribeResume, readResume, serverResume);
   const heading = useRef<HTMLHeadingElement>(null);
+  const catalog = trpc.catalog.listActiveProducts.useQuery();
   const quotes = useProcessingQuotes(visa, count);
   useEffect(() => {
     heading.current?.focus();
@@ -64,7 +66,7 @@ function AssistantPanel({ close }: { close: () => void }) {
       <div className="my-4 grid grid-cols-2 gap-2">{topics.map(([key, label]) => <button key={key} type="button" aria-pressed={topic === key} onClick={() => setTopic(key)} className={`min-h-11 rounded-lg border p-2 text-sm ${topic === key ? "border-[#C9A04C] bg-amber-50" : "border-slate-200"}`}>{label}</button>)}</div>
       <p role="status" aria-live="polite" className="rounded-xl bg-slate-50 p-3 text-sm leading-relaxed">{ASSISTANT_GUIDANCE[language][topic]}</p>
       {topic === "documents" && <div className="mt-4 space-y-3">
-        <label className="block text-sm">{ar ? "نوع التأشيرة" : "Visa type"}<select className={field} value={visa} onChange={event => setVisa(event.target.value)}>{VISA_ROUTES.map(([code, label]) => <option key={code} value={code}>{ar ? code.replace("days-single", " يوم — دخول واحد").replace("days-multiple", " يوم — دخول متعدد").replace("96hours-transit", "96 ساعة — ترانزيت") : label}</option>)}</select></label>
+        <label className="block text-sm">{ar ? "نوع التأشيرة" : "Visa type"}<select className={field} value={visa} onChange={event => setVisa(event.target.value)}>{VISA_ROUTES.filter(([code]) => catalog.data?.some(product => product.id === code)).map(([code, label]) => <option key={code} value={code}>{ar ? code.replace("days-single", " يوم — دخول واحد").replace("days-multiple", " يوم — دخول متعدد").replace("96hours-transit", "96 ساعة — ترانزيت") : label}</option>)}</select></label>
         <label className="block text-sm">{ar ? "عدد المسافرين" : "Travellers"}<select className={field} value={count} onChange={event => setCount(Number(event.target.value))}>{Array.from({ length: 10 }, (_, i) => <option key={i + 1}>{i + 1}</option>)}</select></label>
         <div role="status" className="rounded-lg border border-[#C9A04C] p-3 text-sm">
           {quotes.loading ? ar ? "جارٍ جلب السعر الحالي…" : "Loading current price…" : quotes.failed ? <><p>{ar ? "تعذر جلب السعر. أعد المحاولة." : "Could not load the price. Please retry."}</p><button type="button" className="min-h-11 underline" onClick={quotes.retry}>{ar ? "إعادة المحاولة" : "Retry"}</button></> : <>
