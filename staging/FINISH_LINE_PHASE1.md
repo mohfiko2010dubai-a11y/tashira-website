@@ -1,4 +1,4 @@
-# FINISH-LINE Phase 1 — candidate, not deployed
+# FINISH-LINE Phase 1 — staging verification in progress
 
 Owner decisions: `codex-FINISH-LINE.txt`, 4 October 2026. The refund decision is now closed: amount less the actual processing fee, disclosed before payment and in the refund policy. Earlier pending-decision notes are superseded.
 
@@ -14,12 +14,23 @@ Owner decisions: `codex-FINISH-LINE.txt`, 4 October 2026. The refund decision is
 
 ## Verification in progress
 
-Local TypeScript, lint and production/SSR build pass. Latest full suite before final adjustments: 1,232 pass / 26 dedicated MySQL tests skipped locally. Follow-up full run: one obsolete policy-version assertion corrected; targeted tests pass. Final CI and staging UAT are still required.
+Local TypeScript/lint/production and SSR build pass. Latest full suite: 1,240 pass, 26 dedicated MySQL tests run separately by hosted CI. CI37156176697 and CI37156759641 both jobs pass, including the zero-skip MySQL gate and actual substitution filing trigger.
 
-Migrations 059–061 have not been applied at this checkpoint. CI runner executes them on a disposable schema and exercises the actual filing guard before running the existing 26 no-skip integration tests.
+Migrations 059–061 applied only to identity-verified staging after private backup `/var/backups/tashira-staging/2026-10-03T21-45-04-248Z-finish-line`. Deployed staging110d751. No production mutation.
 
-Staging read-only identity verified: `tashira_staging`, `tashira_staging_app@localhost`, storage UID999, deployed SHA `7cdde687b8d4d2386ab97c856f17304abe621e4b`. No production mutation. Original 15 unrelated dirty files remain hash-identical.
+Verified staging cases:
+
+- Approved company identity stored as version2 with phone provisional; exact named refusal and public intake closure verified. Separately labelled synthetic versions3–5 support TEST UAT; these are not production settings or an approval of the real phone.
+- Settings activate immediately; changed passport threshold changes computed review facts. Old invoice PDF hash, snapshot and settings version remain byte-identical. Review decision appears in the order timeline.
+- Actual Stripe TEST payment with short-validity passport creates immutable TEST-INV-00005/settings version3; actual fee3600 AED minor units matches the provider. Replay issues no additional invoice. No LIVE payment or customer email.
+- Initial confirmation returned500 after payment committed. Candidate7868a10 separates settlement-fee retry from the customer's successful payment; webhook retries until actual fee is reconciled. Explicit pending-fee regression tests pass. Fresh deployed confirmation test remains outstanding.
+- Dynamic GCC flow saves short passport/residence dates and optional DOB, flags child review, uploads distinct synthetic document leaves and reaches checkout READY. Initial UAT harness attempts omitted sequential questions/grouped leaves; corrected harness follows the client protocol.
+- Actual SQL filing blocked without consent; anonymous/admin sessions cannot acknowledge; stale proposal rejected; exact customer-owned version accepted; sold product unchanged.
+- Sudan multiple-entry restriction shown in Arabic and checkout rejected412 before Stripe; single-entry warning clears. Activation timestamp corrected via versioned admin API to Dubai midnight (20:00 UTC); audit retained.
+- PDF rendered and visually inspected; company header and archived identity correct. Tight payment-reference spacing corrected for subsequent invoices; issued PDFs remain immutable.
+
+Original15 unrelated dirty files preserved. Current synthetic evidence and sessions remain private under `/var/lib/tashira-maintenance/finishline-*`.
 
 ## Remaining before calling this phase complete
 
-Hosted CI, migration/staging deployment, browser UAT, immutable company/version invoice checks, checkout with short-validity dates, matrix and customer-consent ownership checks; seed/review company settings. Production remains closed. Phase 2 emails, approvals, staff controls and launch gates are not complete.
+Final correction deployment and fresh first-confirmation/PDF verification. Phase2 emails, approvals, staff controls and launch gates are not complete. Production remains closed. Dedicated phone still needs real owner confirmation before reopening; no flag was silently cleared in production.

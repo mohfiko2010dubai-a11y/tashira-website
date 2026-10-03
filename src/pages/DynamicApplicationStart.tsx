@@ -96,7 +96,6 @@ function OpenApplicationStart() {
   const [processingType, setProcessingType] = useState<"regular" | "express">(processingParam === "express" ? "express" : "regular");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [arrivalDate, setArrivalDate] = useState("");
 
   const travellerCount = applicationType === "single" ? 1 : applicantCount;
   const applicants = useMemo(
@@ -151,7 +150,6 @@ function OpenApplicationStart() {
       contactEmail: email.trim(),
       contactPhone: phone.trim(),
       journeyMode: "DYNAMIC",
-      ...(arrivalDate ? { arrivalDate } : {}),
       policyVersion: TERMS_POLICY_VERSION,
       applicants,
     });
@@ -239,12 +237,6 @@ function OpenApplicationStart() {
                 <input {...feedback.fieldProps("phone")} required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel"
                   className="mt-2 w-full rounded-xl border border-gray-300 aria-[invalid=true]:border-red-700 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-700 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
               {feedback.errorFor("phone")}
-              </label>
-              <label className="text-sm font-medium text-[#0A1628] sm:col-span-2">
-                {t("step1.arrival")} <span className="text-gray-400">({t("step1.optional")})</span>
-                <input type="date" min={new Date().toISOString().slice(0, 10)} value={arrivalDate}
-                  onChange={(event) => setArrivalDate(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-gray-300 aria-[invalid=true]:border-red-700 aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-red-700 px-4 py-3 focus:border-[#C9A04C] focus:outline-none" />
               </label>
             </div>
 

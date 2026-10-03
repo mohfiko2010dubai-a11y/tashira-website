@@ -1,3 +1,7 @@
+# FINISH-LINE staging UAT, 2026-10-04
+
+Staging110d751 with migrations059–061. Actual Stripe TEST invoice/fee/replay, dynamic GCC short-validity readiness, company-version immutability and substitution ownership/filing guards verified. Staging-discovered corrections are in7868a10; final release verification pending. Full1240 local tests pass; hosted26 MySQL tests zero skipped. Production remains closed. Real company phone remains provisional; staging UAT settings explicitly synthetic. See staging/FINISH_LINE_PHASE1.md.
+
 # FINISH-LINE Phase1 candidate, 2026-10-04
 
 Owner refund decision resolved. Candidate implements non-blocking entry-date review, company settings/provisional intake guard, versioned invoice identity, nationality/product windows, customer acknowledgement before substitution filing, actual Stripe fee capture. Local check/lint/build pass; CI/staging UAT outstanding. No production change; remains closed. See staging/FINISH_LINE_PHASE1.md in isolated worktree. Earlier pending refund notes are historical.
