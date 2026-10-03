@@ -1,3 +1,11 @@
+# Reply 03 — direct chat authorization required, 2026-10-03
+
+Both apps remain root. New owner attachment specifies separate per-user PM2 daemons inside generated hardened systemd units, staging first with denial and upload checks before production. Automatic review again rejected staging-only preparation because attached-file approval is not direct chat authorization; no server changes executed. Production aggregate has 2 LIVE paid / 1 LIVE pending orders; no customer records read. Duplicate-label fix now passes all local gates: 1172 tests / 26 skips, check/lint/build PASS, not deployed. See staging/REPLY02_ISOLATION_2026-10-03.md.
+
+# Reply 02 security gate — 2026-10-03
+
+Both production and staging PM2 apps verified UID/GID 0. Stage MySQL grants correctly scoped but root defeats the filesystem/config boundary. No production document content read. Prepared system-user/systemd isolation was rejected by automatic approval review pending explicit chat authorization; owner question pending, no server mutations executed. Live creation Set-Cookie rechecked host-only/Secure/HttpOnly/SameSite=Lax. Duplicate single-document names removed locally from CustomerPrecheckResult; EN/AR result and wizard tests pass. Full suite 1172 pass / 26 skips; TypeScript and lint pass. Build final verification still running in session 72246, log tmp/reply02-build.log. Source/report staged but not deployed. Phase 1 remains blocked. See staging/REPLY02_ISOLATION_2026-10-03.md.
+
 # Launch Master deployed review — 2026-09-30
 
 Staging source 148e0817e210e01832b9468e088e27ed8c31904b; check/lint/build pass; 1170 tests pass, 26 existing gated skips. Public/companion/document sharing, catalog availability, Arabic counters and configurable nationality payment gates verified. Production unchanged. NOT launch-cleared: actual $60 Stripe TEST Express refund awaits owner admin reauthentication; both 14-day products need supplier evidence; full-day SSR measurement pending (63 dated samples / 1.31 hours). See staging/LAUNCH_MASTER_2026-09-30.md and sanitized evidence. Fifteen unrelated worktree files preserved.

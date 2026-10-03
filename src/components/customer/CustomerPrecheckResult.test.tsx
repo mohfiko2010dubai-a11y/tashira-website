@@ -4,10 +4,29 @@ import { MemoryRouter } from "react-router-dom";
 import CustomerPrecheckResult from "./CustomerPrecheckResult";
 import { InterviewRequirementDocuments } from "./InterviewRequirementDocuments";
 import { requiredDocuments } from "@contracts/document-requirement-engine";
-vi.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: { language: "en" } }) }));
+import { documentCardCopy } from "./document-card-copy";
+const locale = vi.hoisted(() => ({ language: "en" }));
+vi.mock("react-i18next", () => ({ useTranslation: () => ({ i18n: locale }) }));
 vi.mock("./NationalityAvailabilityNotice", () => ({ default: () => null }));
 
 describe("CustomerPrecheckResult", () => {
+  it.each(["en", "ar"])("renders photo and single-page passport names once in both %s surfaces", language => {
+    locale.language = language;
+    try {
+      const context = { nationality: "EG", country_of_residence: "SA", visa_type: "30days-single", trip_purpose: "tourism" as const };
+      const result = renderToStaticMarkup(<MemoryRouter><CustomerPrecheckResult context={context} /></MemoryRouter>);
+      const wizard = renderToStaticMarkup(<InterviewRequirementDocuments busy={false} error={false} onUpload={vi.fn()}
+        applicants={[{ applicantId: 1, applicantIndex: 0, fullName: "Synthetic", nationality: "EG", residenceCountry: "SA", profileVersion: 1 }]}
+        requirements={requiredDocuments(context).map(rule => ({ applicantId: 1, requirementCode: rule.code, documentType: rule.document_type, state: "MISSING" }))} />);
+      for (const code of ["PERSONAL_PHOTO", "PASSPORT"]) {
+        const { label } = documentCardCopy({ key: code }, "EG", language === "ar");
+        for (const markup of [result, wizard]) {
+          const text = markup.replace(/<[^>]*>/g, "");
+          expect(text.split(label).length - 1).toBe(1);
+        }
+      }
+    } finally { locale.language = "en"; }
+  });
   it("renders the same eight slots and six grouped cards as the wizard, with optional flight outside the count", () => {
     const context = { nationality: "PK", country_of_residence: "SA", visa_type: "30days-single", trip_purpose: "tourism" as const };
     const html = renderToStaticMarkup(<MemoryRouter><CustomerPrecheckResult context={context} /></MemoryRouter>);

@@ -23,7 +23,8 @@ export default function CustomerPrecheckResult({ context }: { context: DocumentR
           const { label, hint } = documentCardCopy(card, context.nationality, ar);
           return <li key={card.key} data-document-card={card.key} className="rounded-xl border border-[#e8e0d2] bg-[#fcfbf8] p-3">
             <p className="font-semibold text-[#0A1628]">{label}</p><p className="mt-1 text-sm text-slate-600">{hint}</p>
-            <ul className={card.pair ? "mt-2 flex flex-wrap gap-2 text-xs text-slate-600" : "sr-only"}>{card.files.map(file => <li key={file.key} data-document-key={file.key} data-document-code={file.code}>{ar ? file.label_ar : file.label_en}</li>)}</ul>
+            {card.pair ? <ul className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">{card.files.map(file => <li key={file.key} data-document-key={file.key} data-document-code={file.code}>{ar ? file.label_ar : file.label_en}</li>)}</ul>
+              : card.files.map(file => <span key={file.key} data-document-key={file.key} data-document-code={file.code} aria-hidden="true" />)}
           </li>;
         })}</ul>
       </section>)}
