@@ -1,23 +1,21 @@
 CREATE TABLE IF NOT EXISTS financial_document_counters (
   series VARCHAR(12) NOT NULL,
-  document_year SMALLINT UNSIGNED NOT NULL,
-  last_number INT UNSIGNED NOT NULL DEFAULT 0,
-  PRIMARY KEY (series, document_year)
+  last_number BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (series)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS financial_document_archives (
-  document_number VARCHAR(21) NOT NULL PRIMARY KEY,
+  document_number VARCHAR(50) NOT NULL PRIMARY KEY,
   issuance_key VARCHAR(120) NOT NULL UNIQUE,
   application_id BIGINT UNSIGNED NOT NULL,
   payment_id BIGINT UNSIGNED NOT NULL,
   series VARCHAR(12) NOT NULL,
-  document_year SMALLINT UNSIGNED NOT NULL,
-  sequence_number INT UNSIGNED NOT NULL,
+  sequence_number BIGINT UNSIGNED NOT NULL,
   issued_at DATETIME(3) NOT NULL,
   snapshot_json LONGTEXT NOT NULL,
   pdf_bytes LONGBLOB NOT NULL,
   pdf_sha256 CHAR(64) NOT NULL,
-  UNIQUE KEY financial_document_sequence (series, document_year, sequence_number),
+  UNIQUE KEY financial_document_sequence (series, sequence_number),
   INDEX financial_document_application (application_id)
 ) ENGINE=InnoDB;
 
