@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-03T18:37:22.640Z",
+  "stagingSha": "0492e73e056f22d06110f4163b8560a2148169a5",
+  "productionSha": "9e589e0e0d751f314fea1c671db469f1b7161293",
+  "cases": {
+    "success": {
+      "number": "TEST-INV-00001",
+      "sequence": 1,
+      "paymentId": 60,
+      "sha256": "272f4e64625159ac7b2fe12a61c2666f1f35367fb1b8a2ad3eba2bed59dbd82a"
+    },
+    "concurrent": [
+      {
+        "number": "TEST-INV-00002",
+        "sequence": 2,
+        "paymentId": 61,
+        "sha256": "e4a1e6c0efc7c6895d61dc1eab289a52b0f187a1c49f24e750a7dfe1709eb0bc"
+      },
+      {
+        "number": "TEST-INV-00003",
+        "sequence": 3,
+        "paymentId": 62,
+        "sha256": "90815b4f00e09eace12c2e282883fcfec33dbd1a99fd0ebcb26f6c7a59caf02d"
+      }
+    ],
+    "declinedAndAbandoned": {
+      "providerCode": "card_declined",
+      "cancelled": true,
+      "counterUnchanged": true
+    },
+    "postStripeFailure": {
+      "number": "TEST-INV-00004",
+      "sequence": 4,
+      "paymentId": 65,
+      "sha256": "4f6408d0bad406b205c2131ec679d9e55007db3e825178f329014616b261939a"
+    },
+    "refund": {
+      "number": "TEST-CN-00001",
+      "providerStatus": "succeeded",
+      "amount": 30,
+      "currency": "USD",
+      "invoiceCounterUnchanged": true,
+      "replayExactlyOnce": true,
+      "archiveHash": "c9e4a8027cca8ad23a9b5a39526f8f41eaf251ad330afa0b247ae57f2fa55a03",
+      "method": "Actual Stripe TEST refund plus deployed backend helper; admin UI not exercised"
+    }
+  },
+  "counters": [
+    {
+      "series": "TEST-CN",
+      "last_number": 1
+    },
+    {
+      "series": "TEST-INV",
+      "last_number": 4
+    }
+  ],
+  "states": [
+    {
+      "payment_status": "paid",
+      "count": 4
+    },
+    {
+      "payment_status": "failed",
+      "count": 1
+    },
+    {
+      "payment_status": "pending",
+      "count": 1
+    }
+  ],
+  "faultTriggerRemoved": true,
+  "integration": {
+    "passed": 26,
+    "skipped": 0
+  },
+  "legacy": [
+    {
+      "applicationId": 40,
+      "number": "INV-TSH-273938",
+      "sha256": "d5d445ccdfea07dd2ca3d292e2ad45ab411e53ac3127ad12c94d9560ab1019e3",
+      "bytes": 50875
+    },
+    {
+      "applicationId": 41,
+      "number": "INV-TSH-123450",
+      "sha256": "407570c76dae2fd812552cb1eac0e289ea916b36ef61615518f402e8684785a8",
+      "bytes": 50883
+    }
+  ]
+}
+
