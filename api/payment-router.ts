@@ -1,7 +1,7 @@
 import { assertProductAvailable } from "./lib/product-availability";
 import { assertNationalityCheckoutAvailable } from "./lib/nationality-availability";
 import { z } from "zod";
-import { applicationAccessQuery, createRouter, paymentQuery } from "./middleware";
+import { newPaymentQuery, applicationAccessQuery, createRouter, paymentQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, applicants, payments, invoices } from "@db/schema";
 import { asc, eq } from "drizzle-orm";
@@ -60,7 +60,7 @@ export const paymentRouter = createRouter({
       return { accepted: true as const };
     }),
   // Create payment intent
-  createIntent: paymentQuery
+  createIntent: newPaymentQuery
     .input(z.object({
       amount: z.number().optional(), // Legacy client hint; never trusted.
       currency: z.string().optional(), // Legacy client hint; never trusted.

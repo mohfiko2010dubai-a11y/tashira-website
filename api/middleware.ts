@@ -1,5 +1,6 @@
 import { ErrorMessages } from "@contracts/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
+import { assertApplicationIntakeOpen } from "./lib/application-intake";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { consumeRateLimit } from "./lib/rate-limit";
@@ -91,6 +92,12 @@ export const applicationDocumentMetadataQuery = scopedProcedure
 export const paymentQuery = scopedProcedure.use(rateLimit("payment", 10));
 export const securityDepositQuery = t.procedure.use(rateLimit("security-deposit", 10, 5 * 60_000));
 export const applicationSubmissionQuery = t.procedure.use(rateLimit("application", 30));
+const requireIntakeOpen = t.middleware(({ next }) => {
+  assertApplicationIntakeOpen();
+  return next();
+});
+export const newApplicationQuery = applicationSubmissionQuery.use(requireIntakeOpen);
+export const newPaymentQuery = paymentQuery.use(requireIntakeOpen);
 export const recoveryRequestQuery = t.procedure.use(rateLimit("recovery-request", 5, 15 * 60_000));
 export const recoveryVerifyQuery = t.procedure.use(rateLimit("recovery-verify", 10, 15 * 60_000));
 export const applicationAccessQuery = scopedProcedure.use(requireApplicationAccess).use(rateLimit("customer", 120));

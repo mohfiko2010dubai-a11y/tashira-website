@@ -14,7 +14,8 @@ import { timelineRouter } from "./timeline-router";
 import { businessRouter } from "./business-router";
 import { retentionRouter } from "./retention-router";
 import { riskRouter } from "./risk-router";
-import { createRouter } from "./middleware";
+import { readApplicationIntake } from "./lib/application-intake";
+import { createRouter, publicQuery } from "./middleware";
 import { recoveryRouter } from "./recovery-router";
 import { contentRouter } from "./content-router";
 import { refundRouter } from "./refund-router";
@@ -40,6 +41,10 @@ import { sourceAuthorityGovernanceRouter } from "./source-authority-governance-r
 import { ruleGovernanceRouter } from "./rule-governance-router";
 
 export const appRouter = createRouter({
+  intakeStatus: publicQuery.query(({ ctx }) => {
+    ctx.resHeaders.set("Cache-Control", "private, no-store");
+    return readApplicationIntake();
+  }),
   auth: authRouter,
   application: applicationRouter,
   payment: paymentRouter,

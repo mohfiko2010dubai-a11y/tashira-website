@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { adminQuery, applicationAccessQuery, applicationSubmissionQuery, applicationUploadQuery, chatQuery, createRouter } from "./middleware";
+import { newApplicationQuery, adminQuery, applicationAccessQuery, applicationSubmissionQuery, applicationUploadQuery, chatQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applicants, applications, documents } from "@db/schema";
 import { and, eq, desc, sql } from "drizzle-orm";
@@ -118,7 +118,7 @@ export const wizardRouter = createRouter({
     }),
 
   // Start a new submitted application (called on first step)
-  startApplication: applicationSubmissionQuery
+  startApplication: newApplicationQuery
     .input(z.object({
       requestKey: z.string().uuid(),
       whoTraveling: z.string().optional(),

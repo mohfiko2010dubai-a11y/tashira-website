@@ -38,7 +38,7 @@ import {
 } from "./lib/stripe-webhook-idempotency";
 import { verifyInvoiceDownloadToken } from "./lib/invoice-download-token";
 import { publicAppOrigin } from "./lib/public-app-url";
-import { validateStripeRuntimeConfig } from "./lib/stripe-runtime";
+import { validateStripeRuntimeConfig, stripeRuntimeMode } from "./lib/stripe-runtime";
 import {
   finalizeSecurityDepositPayment,
   getSecurityDepositWebhookContext,
@@ -416,6 +416,10 @@ app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 export default app;
 
 if (env.isProduction) {
+  const { assertFinancialDocumentIntegrity } = await import("./lib/financial-document-integrity");
+  const { defaultOperationsPool } = await import("./lib/operations/mysql-query-client");
+  // Before opening a listener: a broken register must never accept a payment.
+  await assertFinancialDocumentIntegrity(defaultOperationsPool(), stripeRuntimeMode() === "TEST");
   const { serve } = await import("@hono/node-server");
   const { serveStaticFiles } = await import("./lib/vite");
   serveStaticFiles(app);

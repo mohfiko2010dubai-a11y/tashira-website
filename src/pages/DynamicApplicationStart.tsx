@@ -1,3 +1,5 @@
+import IntakeNotice from "@/components/shared/IntakeNotice";
+import { useApplicationIntake } from "@/hooks/useApplicationIntake";
 import NationalityAvailabilityNotice from "@/components/customer/NationalityAvailabilityNotice";
 import { customerFileCount } from "@contracts/customer-count";
 import { VISA_ROUTES as visaRoutes } from "@contracts/visa-options";
@@ -62,6 +64,11 @@ function SectionTitle({ children }: { children: string }) {
 }
 
 export default function DynamicApplicationStart() {
+  const intake = useApplicationIntake();
+  return (intake.data?.closed ?? true) ? <IntakeNotice /> : <OpenApplicationStart />;
+}
+
+function OpenApplicationStart() {
   const navigate = useNavigate();
   const creation = useApplicationCreation("FORM");
   const { t, i18n } = useTranslation("wizard");

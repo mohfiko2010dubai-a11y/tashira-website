@@ -1,3 +1,7 @@
+# REPLY12 — clean start authorized, candidate in progress
+
+Owner supersedes the migration/mapping plan: all old orders are tests. Verified private production DB/storage archive retained; clean invoice series starts at00001. Default-closed intake and permanent ledger boot integrity candidate implemented. No clean production switch or refund yet. See staging/REPLY12_CLEAN_START.md. Prior status entries below are historical.
+
 # Reply 06 — disk email verified; Phase 1 invoice candidate, 2026-10-03
 
 Owner confirmed the single system-level disk test arrived in Inbox. Standalone systemd/Python sender: >=80 warning, >=90 urgent, daily repeats and one recovery; six decision tests pass. Phase1 invoice candidate on codex/phase1-invoices implements transactional counters and immutable PDF archive; MySQL rehearsal passes concurrent issuance, replay, rollback, year boundary and independent test/credit-note series. Check/lint/build pass; 1178 tests pass,26 existing gated skips. Existing LIVE invoices40/41 found and preserved. No Phase1 migration/deployment yet; staging end-to-end UAT and remaining Phase1 rules are outstanding. Production remains closed9e589e0. See tmp/phase1-invoices/staging/REPLY06_PHASE1.md.

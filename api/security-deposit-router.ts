@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { assertApplicationIntakeOpen } from "./lib/application-intake";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -222,6 +223,7 @@ export const securityDepositRouter = createRouter({
   }),
 
   createPayment: securityDepositQuery.input(z.object({ token: z.string().regex(securityDepositTokenPattern) })).mutation(async ({ input }) => {
+    assertApplicationIntakeOpen();
     const db = getDb();
     const [request] = await db.select({
       id: securityDepositRequests.id,

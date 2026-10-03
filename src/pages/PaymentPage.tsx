@@ -1,3 +1,5 @@
+import IntakeNotice from "@/components/shared/IntakeNotice";
+import { useApplicationIntake } from "@/hooks/useApplicationIntake";
 import { Link } from "react-router-dom";
 import { customerMoney } from "@contracts/customer-money";
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -229,6 +231,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
 }
 
 export default function PaymentPage() {
+  const intake = useApplicationIntake();
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation('wizard');
@@ -435,7 +438,7 @@ export default function PaymentPage() {
               </div>
             </div>
           </div>
-        ) : stripePromise && readiness.data?.status === 'READY' ? (
+        ) : (intake.data?.closed ?? true) ? <IntakeNotice /> : stripePromise && readiness.data?.status === 'READY' ? (
           <Elements stripe={stripePromise}>
             <PaymentForm
               referenceNumber={referenceNumber!}

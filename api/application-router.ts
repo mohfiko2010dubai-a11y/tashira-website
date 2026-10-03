@@ -6,7 +6,7 @@ import { defaultOperationsSqlClient, defaultOperationsPool } from "./lib/operati
 import { z } from "zod";
 import { drizzle } from "drizzle-orm/mysql2";
 import { prepareApplicationCreation, withApplicationCreation } from "./lib/application-creation";
-import { adminQuery, applicationAccessQuery, applicationSubmissionQuery, createRouter, staffOrAdminQuery } from "./middleware";
+import { newApplicationQuery, adminQuery, applicationAccessQuery, applicationSubmissionQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications, applicants, suppliers } from "@db/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
@@ -53,7 +53,7 @@ async function enableDynamicJourneyForStaging(referenceNumber: string): Promise<
 export const applicationRouter = createRouter({
   prepareCreation: applicationSubmissionQuery.input(z.object({ flow: z.enum(["FORM", "CHAT", "LEGACY"]), startNew: z.boolean().default(false) }).strict())
     .mutation(({ input, ctx }) => prepareApplicationCreation(ctx, input.flow, input.startNew)),
-  create: applicationSubmissionQuery
+  create: newApplicationQuery
     .input(z.object({
       requestKey: z.string().uuid(),
       baseType: z.enum(["single", "family"]),
