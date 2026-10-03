@@ -1,3 +1,7 @@
+# REPLY12 — clean production deployed and closed, 2026-10-03
+
+Production/staging application SHA7cdde687. Production now uses the verified clean schema:117 tables/views,136 triggers, no applications/invoices and counters0; first genuine invoice00001. Public EN/AR routes/assets and exact approved catalogue pass. Old database/runtime/storage preserved privately with rollback. Non-root and cross-environment denials reverified. Full gates and hosted26-test MySQL CI pass. Staging explicitly open for TEST; production remains closed. No refunds performed: approval pending. Actual staging company/supplier data are synthetic, so real production values are requested and those clean tables remain empty. Remaining TASK25 work and launch gates remain open. See staging/REPLY12_CLEAN_START.md in tmp/phase1-invoices. Earlier entries are historical.
+
 # REPLY12 — clean start authorized, candidate in progress
 
 Owner supersedes the migration/mapping plan: all old orders are tests. Verified private production DB/storage archive retained; clean invoice series starts at00001. Default-closed intake and permanent ledger boot integrity candidate implemented. No clean production switch or refund yet. See staging/REPLY12_CLEAN_START.md. Prior status entries below are historical.
