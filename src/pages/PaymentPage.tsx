@@ -392,7 +392,7 @@ export default function PaymentPage() {
 
       {/* Policies acceptance — mandatory before payment */}
       <div className="mb-6">
-        {reviewFacts.data?.applicants.some(applicant => applicant.residence.status === "BELOW" || applicant.passport.status === "BELOW") && <p role="status" className="mb-4 rounded border border-amber-300 p-4">{RESIDENCE_REVIEW_NOTICE[i18n.language.startsWith("ar") ? "ar" : "en"]}</p>}
+        {reviewFacts.data?.applicants.some(applicant => applicant.needsTravelDate || applicant.residence.status === "BELOW" || applicant.passport.status === "BELOW") && <p role="status" className="mb-4 rounded border border-amber-300 p-4">{RESIDENCE_REVIEW_NOTICE[i18n.language.startsWith("ar") ? "ar" : "en"]}</p>}
         <PolicyAcceptance accepted={policiesAccepted} onChange={value => {
           if (!value) { setPoliciesAccepted(false); return; }
           if (acceptPolicies.isPending) return;

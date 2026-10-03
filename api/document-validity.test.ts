@@ -4,6 +4,10 @@ import { addCalendarMonths, assessDocumentValidity, isCalendarDate } from "../co
 const policy = { passportMonths: 6, residenceMonths: 3, childUnderYears: 12 };
 const today = "2026-10-04";
 describe("document review facts, without a payment gate", () => {
+  it("accepts the full active settings row without treating identity fields as thresholds", () => {
+    const settings = { ...policy, legalName: "Synthetic company", vatRate: null, version: 3 };
+    expect(assessDocumentValidity({ today, entryDate: today, passportExpiry: "2026-10-10" }, settings).passport.status).toBe("BELOW");
+  });
   it("anchors both thresholds to entry, including past entry, never today", () => {
     const facts = assessDocumentValidity({ today, entryDate: "2026-09-15", passportExpiry: "2027-03-14", residenceExpiry: "2026-12-15" }, policy);
     expect(facts.passport).toMatchObject({ status: "BELOW", requiredUntil: "2027-03-15" });

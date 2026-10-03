@@ -133,7 +133,7 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
         <input type="date" value={entryDate} className={fieldClass} onChange={event => setEntryDate(event.target.value)} />
       </label>}
     </fieldset>
-    {(findings?.residence.status === "BELOW" || findings?.passport.status === "BELOW") && <p role="status" className="mt-4 rounded border border-amber-300 p-3">{RESIDENCE_REVIEW_NOTICE[ar ? "ar" : "en"]}</p>}
+    {(findings?.needsTravelDate || findings?.residence.status === "BELOW" || findings?.passport.status === "BELOW") && <p role="status" className="mt-4 rounded border border-amber-300 p-3">{RESIDENCE_REVIEW_NOTICE[ar ? "ar" : "en"]}</p>}
     {error && <p role="alert" className="mt-5 text-sm text-red-700">{t("simple.error")}</p>}
     {!onValidationCount && <p aria-live="polite" aria-atomic="true" className="mt-3 text-sm text-red-700">{feedback.count > 0 ? t("validation.summary", { count: feedback.count }) : ""}</p>}
     <button type="submit" className="sr-only" tabIndex={-1} disabled={busy}>{t("simple.saveContinue")}</button>

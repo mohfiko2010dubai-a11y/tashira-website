@@ -88,6 +88,9 @@ export const businessRouter = createRouter({
     await getDb().insert(businessSettingsVersions).values({
       ...input,
       version,
+      // MySQL DATETIME(0) rounds fractional seconds up, briefly hiding a
+      // just-saved version from the effectiveAt <= now lookup. Truncate first.
+      effectiveAt: new Date(Math.floor(input.effectiveAt.getTime() / 1000) * 1000),
       vatRate: input.vatRegistered === "yes" ? input.vatRate?.toFixed(4) : null,
       trn: input.vatRegistered === "yes" ? input.trn : null,
       provisionalFieldsJson: JSON.stringify(input.provisionalFields),

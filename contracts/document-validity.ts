@@ -47,7 +47,7 @@ export function assessDocumentValidity(input: {
   entryDate?: string | null;
   today: string;
 }, policy: DocumentValidityPolicy) {
-  if (!isCalendarDate(input.today) || Object.values(policy).some(value => !Number.isInteger(value) || value <= 0)) {
+  if (!isCalendarDate(input.today) || [policy.passportMonths, policy.residenceMonths, policy.childUnderYears].some(value => !Number.isInteger(value) || value <= 0)) {
     throw new Error("Invalid document validity policy");
   }
   const entry = isCalendarDate(input.entryDate) ? input.entryDate : null;
