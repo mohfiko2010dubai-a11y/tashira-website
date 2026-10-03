@@ -130,11 +130,12 @@ app.post("/api/stripe/webhook", async (c) => {
         if (depositRequestId) {
           await finalizeSecurityDepositPayment(event.data.object.id, depositRequestId);
         } else {
-          await finalizeStripeTestPayment(context.referenceNumber, event.data.object.id, {
+          const finalized = await finalizeStripeTestPayment(context.referenceNumber, event.data.object.id, {
             actorType: "STRIPE",
             eventSource: "STRIPE_WEBHOOK",
             eventCreated: event.created,
           });
+          if (finalized.feeReconciliationPending) throw new Error("Stripe settlement fee pending; retry webhook reconciliation");
         }
       } else {
         if (depositRequestId) await recordSecurityDepositPaymentFailure(event.data.object.id, depositRequestId);

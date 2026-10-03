@@ -108,8 +108,9 @@ function drawIdentityRow(doc: jsPDF, label: string, value: string, y: number, ma
   doc.setFont("helvetica", "bold");
   doc.setTextColor("#1A2332");
   doc.text(`${label}:`, 15, y);
+  const valueX = Math.max(45, 15 + doc.getTextWidth(`${label}:`) + 3);
   doc.setTextColor("#555B66");
-  return drawValue(doc, value, 45, y, maxWidth);
+  return drawValue(doc, value, valueX, y, maxWidth - (valueX - 45));
 }
 
 export function generateInvoicePDF(data: InvoiceData): jsPDF {

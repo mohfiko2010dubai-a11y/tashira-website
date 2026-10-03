@@ -83,7 +83,16 @@ export async function finalizeStripeTestPayment(
     }
   }
 
-  await captureStripeFee(application.id, payment.id, paymentIntentId);
+  // Settlement details can arrive after the successful charge. The customer's
+  // committed payment remains successful; the webhook retries reconciliation.
+  let feeReconciliationPending = false;
+  try { await captureStripeFee(application.id, payment.id, paymentIntentId); }
+  catch {
+    feeReconciliationPending = true;
+    await recordTimelineEvent({ applicationId: application.id, paymentId: payment.id,
+      eventName: "STRIPE_FEE_RECONCILIATION_PENDING", eventSource: evidence.eventSource,
+      actorType: "SYSTEM", resultingState: "pending", summary: "Payment confirmed; Stripe settlement fee reconciliation will retry" });
+  }
   const [issuedInvoice] = await db.select().from(invoices).where(eq(invoices.applicationId, application.id)).limit(1);
   if (!issuedInvoice) throw new Error("Confirmed payment is missing its invoice archive");
   const invoiceNumber = issuedInvoice.invoiceNumber;
@@ -104,6 +113,7 @@ export async function finalizeStripeTestPayment(
     applicationId: application.id,
     paymentId: payment.id,
     success: true as const,
+    feeReconciliationPending,
     invoiceNumber,
     referenceNumber,
     totalAmount: Number(payment.amount),
