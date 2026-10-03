@@ -1,0 +1,711 @@
+{
+  "productionSha": "9e589e0e0d751f314fea1c671db469f1b7161293",
+  "stagingSha": "0492e73e056f22d06110f4163b8560a2148169a5",
+  "productionTables": 23,
+  "stagingTables": 117,
+  "tablesOnlyStaging": [
+    "admin_security_settings",
+    "applicant_field_selection_events",
+    "applicant_requirement_document_links",
+    "applicant_requirement_events",
+    "applicant_requirement_instances",
+    "application_creation_devices",
+    "application_creation_requests",
+    "application_service_clocks",
+    "application_supplements",
+    "application_supporting_documents",
+    "authority_application_field_requirements",
+    "checkout_payment_attempts",
+    "checkout_quote_revisions",
+    "content_items",
+    "content_redirects",
+    "content_versions",
+    "current_application_price_snapshots",
+    "customer_interview_command_events",
+    "customer_interview_profile_events",
+    "document_field_evidence",
+    "document_intelligence_governance_events",
+    "document_intelligence_runs",
+    "dynamic_interview_answer_events",
+    "family_readiness_snapshots",
+    "family_relationship_events",
+    "financial_document_archives",
+    "financial_document_counters",
+    "nationality_availability_audit",
+    "nationality_availability_config",
+    "operations_action_events",
+    "operations_audit_events",
+    "operations_authority_queries",
+    "operations_authority_query_events",
+    "operations_case_controls",
+    "operations_departments",
+    "operations_document_controls",
+    "operations_document_security_scans",
+    "operations_email_dispatch_events",
+    "operations_email_dispatches",
+    "operations_feature_flags",
+    "operations_idempotency_records",
+    "operations_permissions",
+    "operations_regulatory_change_events",
+    "operations_regulatory_change_impacts",
+    "operations_regulatory_changes",
+    "operations_role_permissions",
+    "operations_roles",
+    "operations_scope_grants",
+    "operations_staff_roles",
+    "operations_staff_workload_limits",
+    "operations_submission_policies",
+    "operations_submission_policy_events",
+    "operations_supplier_sla_events",
+    "operations_supplier_sla_instances",
+    "operations_supplier_sla_policies",
+    "operations_support_command_events",
+    "operations_support_internal_notes",
+    "operations_support_messages",
+    "operations_support_threads",
+    "operations_teams",
+    "operations_typing_pack_templates",
+    "operations_typing_packs",
+    "operations_visa_deliveries",
+    "passport_profile_versions",
+    "policy_consent_invalidations",
+    "refund_cases",
+    "refund_items",
+    "requirement_catalog_governance_events",
+    "requirement_catalog_imports",
+    "requirement_definitions",
+    "requirement_question_definitions",
+    "scheduler_communication_events",
+    "security_deposit_payments",
+    "security_deposit_requests",
+    "stripe_webhook_attempts",
+    "submission_schedule_snapshots",
+    "submission_scheduler_alert_events",
+    "travel_date_change_events",
+    "travel_document_applicant_links",
+    "travel_group_applicants",
+    "travel_groups",
+    "visa_product_availability",
+    "visa_product_availability_audit",
+    "visa_rule_evaluation_conflicts",
+    "visa_rule_evaluation_matches",
+    "visa_rule_evaluation_runs",
+    "visa_rule_evaluation_selections",
+    "visa_rule_governance_events",
+    "visa_rule_reviews",
+    "visa_rule_sets",
+    "visa_rule_source_authority_events",
+    "visa_rule_source_snapshots",
+    "visa_rule_sources",
+    "visa_rule_versions"
+  ],
+  "tablesOnlyProduction": [],
+  "newColumnsOnExistingTables": [
+    "applicants.profile_version",
+    "applications.stripe_event_created",
+    "applications.is_test",
+    "outbound_email_events.source_reference",
+    "outbound_email_events.sent_source_reference",
+    "payments.stripe_event_created",
+    "users.union_id",
+    "users.created_at"
+  ],
+  "changedExistingColumns": [
+    {
+      "column": "application_price_snapshots.snapshot_currency",
+      "production": {
+        "TABLE_NAME": "application_price_snapshots",
+        "COLUMN_NAME": "snapshot_currency",
+        "COLUMN_TYPE": "char(3)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "application_price_snapshots",
+        "COLUMN_NAME": "snapshot_currency",
+        "COLUMN_TYPE": "varchar(3)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "application_price_snapshots.snapshot_base_currency",
+      "production": {
+        "TABLE_NAME": "application_price_snapshots",
+        "COLUMN_NAME": "snapshot_base_currency",
+        "COLUMN_TYPE": "char(3)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "application_price_snapshots",
+        "COLUMN_NAME": "snapshot_base_currency",
+        "COLUMN_TYPE": "varchar(3)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "application_price_snapshots.created_at",
+      "production": {
+        "TABLE_NAME": "application_price_snapshots",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "application_price_snapshots",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "application_risk_assessments.created_at",
+      "production": {
+        "TABLE_NAME": "application_risk_assessments",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "application_risk_assessments",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "application_timeline_events.created_at",
+      "production": {
+        "TABLE_NAME": "application_timeline_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "application_timeline_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "applications.reference_number",
+      "production": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "reference_number",
+        "COLUMN_TYPE": "varchar(20)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "reference_number",
+        "COLUMN_TYPE": "varchar(50)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "applications.processing_type",
+      "production": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "processing_type",
+        "COLUMN_TYPE": "enum('regular','express')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "regular"
+      },
+      "staging": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "processing_type",
+        "COLUMN_TYPE": "enum('regular','express')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "applications.exchange_rate",
+      "production": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "exchange_rate",
+        "COLUMN_TYPE": "decimal(10,4)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "exchange_rate",
+        "COLUMN_TYPE": "decimal(10,4)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "applications.total_amount_aed",
+      "production": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "total_amount_aed",
+        "COLUMN_TYPE": "decimal(10,2)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "0.00"
+      },
+      "staging": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "total_amount_aed",
+        "COLUMN_TYPE": "decimal(10,2)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "applications.status",
+      "production": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "status",
+        "COLUMN_TYPE": "enum('submitted','payment_received','documents_pending','documents_received','under_review','visa_processing','visa_received','completed','approved','issued','rejected','cancelled')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "submitted"
+      },
+      "staging": {
+        "TABLE_NAME": "applications",
+        "COLUMN_NAME": "status",
+        "COLUMN_TYPE": "enum('submitted','payment_received','documents_pending','documents_received','under_review','visa_processing','visa_received','completed','rejected','cancelled')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "submitted"
+      }
+    },
+    {
+      "column": "business_settings_versions.base_currency",
+      "production": {
+        "TABLE_NAME": "business_settings_versions",
+        "COLUMN_NAME": "base_currency",
+        "COLUMN_TYPE": "char(3)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "business_settings_versions",
+        "COLUMN_NAME": "base_currency",
+        "COLUMN_TYPE": "varchar(3)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "business_settings_versions.created_at",
+      "production": {
+        "TABLE_NAME": "business_settings_versions",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "business_settings_versions",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "chat_messages.session_id",
+      "production": {
+        "TABLE_NAME": "chat_messages",
+        "COLUMN_NAME": "session_id",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "chat_messages",
+        "COLUMN_NAME": "session_id",
+        "COLUMN_TYPE": "varchar(100)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "chat_messages.role",
+      "production": {
+        "TABLE_NAME": "chat_messages",
+        "COLUMN_NAME": "role",
+        "COLUMN_TYPE": "enum('user','assistant')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "chat_messages",
+        "COLUMN_NAME": "role",
+        "COLUMN_TYPE": "enum('user','assistant','admin')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "chat_messages.is_read",
+      "production": {
+        "TABLE_NAME": "chat_messages",
+        "COLUMN_NAME": "is_read",
+        "COLUMN_TYPE": "varchar(20)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "unread"
+      },
+      "staging": {
+        "TABLE_NAME": "chat_messages",
+        "COLUMN_NAME": "is_read",
+        "COLUMN_TYPE": "enum('unread','read')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "unread"
+      }
+    },
+    {
+      "column": "customer_recovery_challenges.created_at",
+      "production": {
+        "TABLE_NAME": "customer_recovery_challenges",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "customer_recovery_challenges",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "deletion_audit_events.created_at",
+      "production": {
+        "TABLE_NAME": "deletion_audit_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "deletion_audit_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "document_lifecycle_events.created_at",
+      "production": {
+        "TABLE_NAME": "document_lifecycle_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "document_lifecycle_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "documents.created_at",
+      "production": {
+        "TABLE_NAME": "documents",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "documents",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "documents.updated_at",
+      "production": {
+        "TABLE_NAME": "documents",
+        "COLUMN_NAME": "updated_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "documents",
+        "COLUMN_NAME": "updated_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "financial_events.financial_event_currency",
+      "production": {
+        "TABLE_NAME": "financial_events",
+        "COLUMN_NAME": "financial_event_currency",
+        "COLUMN_TYPE": "char(3)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "financial_events",
+        "COLUMN_NAME": "financial_event_currency",
+        "COLUMN_TYPE": "varchar(3)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "financial_events.created_at",
+      "production": {
+        "TABLE_NAME": "financial_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "financial_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "legal_hold_events.created_at",
+      "production": {
+        "TABLE_NAME": "legal_hold_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "legal_hold_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "outbound_email_events.email_template",
+      "production": {
+        "TABLE_NAME": "outbound_email_events",
+        "COLUMN_NAME": "email_template",
+        "COLUMN_TYPE": "enum('APPLICATION_RECEIVED','PAYMENT_SUCCESS','PAYMENT_FAILED','DOCUMENTS_REQUIRED','SUBMITTED','STATUS_CHANGED','VISA_ISSUED','RESUME_LINK','RECOVERY_OTP')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "outbound_email_events",
+        "COLUMN_NAME": "email_template",
+        "COLUMN_TYPE": "enum('APPLICATION_RECEIVED','PAYMENT_SUCCESS','PAYMENT_FAILED','DOCUMENTS_REQUIRED','SUBMITTED','STATUS_CHANGED','VISA_ISSUED','RESUME_LINK','RECOVERY_OTP','SECURITY_DEPOSIT_REQUEST','REFUND_COMPLETED')",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "outbound_email_events.created_at",
+      "production": {
+        "TABLE_NAME": "outbound_email_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "outbound_email_events",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "payments.currency",
+      "production": {
+        "TABLE_NAME": "payments",
+        "COLUMN_NAME": "currency",
+        "COLUMN_TYPE": "varchar(10)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "usd"
+      },
+      "staging": {
+        "TABLE_NAME": "payments",
+        "COLUMN_NAME": "currency",
+        "COLUMN_TYPE": "varchar(10)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "pricing_rules.pricing_currency",
+      "production": {
+        "TABLE_NAME": "pricing_rules",
+        "COLUMN_NAME": "pricing_currency",
+        "COLUMN_TYPE": "char(3)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "pricing_rules",
+        "COLUMN_NAME": "pricing_currency",
+        "COLUMN_TYPE": "varchar(3)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": null
+      }
+    },
+    {
+      "column": "pricing_rules.created_at",
+      "production": {
+        "TABLE_NAME": "pricing_rules",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "pricing_rules",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "retention_policies.created_at",
+      "production": {
+        "TABLE_NAME": "retention_policies",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "retention_policies",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "retention_records.created_at",
+      "production": {
+        "TABLE_NAME": "retention_records",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "retention_records",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "staff_users.created_at",
+      "production": {
+        "TABLE_NAME": "staff_users",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "staff_users",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "staff_users.updated_at",
+      "production": {
+        "TABLE_NAME": "staff_users",
+        "COLUMN_NAME": "updated_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "staff_users",
+        "COLUMN_NAME": "updated_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "suppliers.created_at",
+      "production": {
+        "TABLE_NAME": "suppliers",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "suppliers",
+        "COLUMN_NAME": "created_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "suppliers.updated_at",
+      "production": {
+        "TABLE_NAME": "suppliers",
+        "COLUMN_NAME": "updated_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "CURRENT_TIMESTAMP"
+      },
+      "staging": {
+        "TABLE_NAME": "suppliers",
+        "COLUMN_NAME": "updated_at",
+        "COLUMN_TYPE": "timestamp",
+        "IS_NULLABLE": "NO",
+        "COLUMN_DEFAULT": "now()"
+      }
+    },
+    {
+      "column": "users.avatar",
+      "production": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "avatar",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null
+      },
+      "staging": {
+        "TABLE_NAME": "users",
+        "COLUMN_NAME": "avatar",
+        "COLUMN_TYPE": "varchar(500)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_DEFAULT": null
+      }
+    }
+  ]
+}
+

@@ -362,6 +362,14 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
   }
 
   private async lockCase(connection: PoolConnection, applicationId: number): Promise<LockedCase> {
+    // Lock-order convention for application-scoped writes: applications first,
+    // then operations_case_controls, then documents/operations_document_controls,
+    // then the idempotency record and audit writes. Never INSERT IGNORE or lock
+    // a child control row before its application: concurrent shared-lock upgrades
+    // can deadlock. Payment/refund paths likewise lock applications first, then
+    // the refund item if applicable, then financial_document_counters; rendering,
+    // network calls and retry waits stay outside the transaction. Any new path
+    // touching these rows must preserve this order, including replay handling.
     // Serialize before INSERT IGNORE: duplicate inserts otherwise retain shared
     // locks that deadlock when both commands upgrade the case lock to exclusive.
     await rows(connection, "SELECT id FROM applications WHERE id=? FOR UPDATE", [applicationId]);

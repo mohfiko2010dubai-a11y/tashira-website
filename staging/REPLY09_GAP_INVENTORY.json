@@ -1,0 +1,110 @@
+{
+  "from": "9e589e0e0d751f314fea1c671db469f1b7161293",
+  "to": "0492e73e056f22d06110f4163b8560a2148169a5",
+  "commitDifference": "1\t389",
+  "files": 1100,
+  "groups": {
+    "Documentation/evidence": {
+      "files": 214,
+      "added": 11423,
+      "deleted": 13
+    },
+    "Other": {
+      "files": 40,
+      "added": 1118,
+      "deleted": 70
+    },
+    "Build/CI/operations scripts": {
+      "files": 34,
+      "added": 2681,
+      "deleted": 1
+    },
+    "Backend": {
+      "files": 213,
+      "added": 15945,
+      "deleted": 1204
+    },
+    "Tests": {
+      "files": 262,
+      "added": 10785,
+      "deleted": 94
+    },
+    "Contracts/schema": {
+      "files": 33,
+      "added": 1249,
+      "deleted": 10
+    },
+    "Generated build": {
+      "files": 4,
+      "added": 50081,
+      "deleted": 33216
+    },
+    "Migrations": {
+      "files": 81,
+      "added": 2395,
+      "deleted": 0
+    },
+    "Public assets": {
+      "files": 46,
+      "added": 24,
+      "deleted": 12
+    },
+    "Frontend": {
+      "files": 173,
+      "added": 7523,
+      "deleted": 1913
+    }
+  },
+  "forwardMigrationFiles": 49,
+  "migrations": [
+    "migrations/010_refunds_and_security_deposits.sql",
+    "migrations/011_security_deposit_email.sql",
+    "migrations/012_refund_email_evidence.sql",
+    "migrations/013_refund_email_append_only_idempotency.sql",
+    "migrations/014_operations_rbac.sql",
+    "migrations/015_operations_audit_flags.sql",
+    "migrations/016_visa_rule_registry.sql",
+    "migrations/017_eligibility_evidence.sql",
+    "migrations/018_eligibility_snapshot_contract.sql",
+    "migrations/019_family_readiness_contract.sql",
+    "migrations/020_operations_controlled_write_persistence.sql",
+    "migrations/021_rule_registry_governance.sql",
+    "migrations/022_rule_layer_persistence.sql",
+    "migrations/023_operations_write_preconditions.sql",
+    "migrations/024_travel_party_submission_scheduler.sql",
+    "migrations/025_scheduler_alert_communication_events.sql",
+    "migrations/026_requirement_catalog.sql",
+    "migrations/027_catalog_governance_dynamic_interview.sql",
+    "migrations/028_customer_interview_write_contract.sql",
+    "migrations/029_customer_requirement_document_links.sql",
+    "migrations/030_dynamic_interview_answer_transitions.sql",
+    "migrations/031_support_inbox_persistence.sql",
+    "migrations/032_supplier_sla_escalation.sql",
+    "migrations/033_typing_pack_authority_query.sql",
+    "migrations/034_regulatory_change_center.sql",
+    "migrations/035_visa_delivery.sql",
+    "migrations/036_operations_email_queue.sql",
+    "migrations/037_operational_submission_policy_governance.sql",
+    "migrations/038_travel_date_change_evidence.sql",
+    "migrations/039_optional_requirement_classification.sql",
+    "migrations/040_rule_source_authority_governance.sql",
+    "migrations/041_visa_rule_lifecycle_evidence.sql",
+    "migrations/042_document_intelligence_governance.sql",
+    "migrations/043_operations_permission_catalog.sql",
+    "migrations/044_admin_security_settings.sql",
+    "migrations/045_content_platform.sql",
+    "migrations/046_checkout_quote_revisions.sql",
+    "migrations/047_stripe_event_order.sql",
+    "migrations/048_stripe_webhook_attempts.sql",
+    "migrations/049_policy_consent_invalidation.sql",
+    "migrations/050_application_creation_requests.sql",
+    "migrations/051_checkout_payment_attempts.sql",
+    "migrations/052_explicit_test_orders.sql",
+    "migrations/053_application_supplements.sql",
+    "migrations/054_uniform_express_fee.sql",
+    "migrations/055_product_availability.sql",
+    "migrations/056_processing_guarantee.sql",
+    "migrations/057_nationality_availability.sql",
+    "migrations/058_financial_document_series.sql"
+  ]
+}

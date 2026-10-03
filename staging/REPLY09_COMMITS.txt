@@ -1,0 +1,389 @@
+02f2da3 feat(refunds): add refund and deposit foundation
+97a4377 feat(refunds): add guarded admin approval flow
+bf963ca Merge branch 'main' into devops/deployment-safety
+4c47b4d feat(refunds): execute approved refunds safely
+5568221 feat(deposits): add secure refundable deposit flow
+76928a4 feat(deposits): add safe email retry
+f1c41c0 test(staging): verify deposit and refund flow
+0f7e414 test(staging): use current legal bundle
+907ae31 test(staging): include Stripe return URL
+da1ed6e docs: record refund staging verification
+214e135 feat(deposits): finalize payments from Stripe webhook
+f0abd4b docs: record deposit webhook UAT
+86dba84 feat(refunds): verify asynchronous Stripe outcomes
+2903e56 feat(refunds): reconcile asynchronous outcomes
+03dd83f feat(refunds): notify customers of outcomes
+a6c2bb8 chore(staging): guard refund email migration
+f1313e6 fix(staging): use guarded migration socket
+b75870a fix(staging): verify refund email enum
+c704eb2 fix(refunds): preserve append-only email evidence
+e0f52fc fix(staging): normalize migration index metadata
+5a5d42c docs: record refund notification staging verification
+21288ad feat(creative): add TASHIRA AI creative factory POC
+b23ee8e docs(operations): complete Visa Operations OS architecture audit
+53621e4 feat(operations): add authorization and rule import foundations
+b9b8100 feat(operations): add RBAC audit and rule registry migrations
+10ac7db feat(operations): add fail-closed flags and rule governance
+a67fac5 feat(operations): add deterministic eligibility precedence
+b11f318 feat(operations): add immutable eligibility evidence contract
+449702d feat(operations): add immutable applicant snapshots and family engine
+90d15ff feat(operations): generate applicant-scoped dynamic requirements
+c749a39 feat(operations): add deterministic family readiness
+e77802c feat(operations): preserve family requirement history
+9057f24 feat(operations): add read-only case gate
+8c33cde feat(operations): add read-only case workspace
+29b93a7 feat(operations): add controlled write contracts
+c6b048a feat(operations): add controlled write persistence gate
+28e3d92 test(operations): rehearse MySQL migration chain
+ca62a9d feat(operations): add MySQL access provider
+7f27e04 feat(rules): persist immutable rule layers
+b8efc7b feat(operations): persist controlled writes behind API gate
+3d315e8 docs(operations): clarify startup rehearsal evidence
+3553d3e feat(operations): add controlled write UI gate
+e45a4aa test(operations): complete local acceptance gate
+efdf8db feat(operations): add read-only case runtime
+9d66cee docs(operations): record staging read model gate
+901c69e chore(lint): exclude retained staging runtime data
+e09fe5e test(operations): harden staging transaction rehearsal
+87606b2 feat(operations): add inactive V1 service foundations
+54c2e81 docs(operations): record final staging completion
+9048395 feat(operations): add travel party submission scheduler foundations
+570e670 feat(operations): add rule-driven travel intake
+a459f5d feat(operations): harden submission schedule evidence
+8d744e5 docs(operations): record travel scheduler staging gate
+f1afe9a feat(operations): integrate travel scheduler read runtime
+996fc8b fix(operations): enforce travel scheduler feature gates
+828e833 feat(operations): add scheduler alert runtime contracts
+0a3a541 feat(operations): persist scheduler alert lifecycle
+34e99b0 feat(operations): connect scheduler alert runtime
+b23b797 docs(operations): record scheduler alert staging gate
+045419f feat(operations): add upcoming submissions workspace
+699db23 docs(operations): record submissions queue staging gate
+4c27b54 feat(operations): add dynamic customer application plan
+b1e08bd feat(operations): add customer status portal projection
+1bf458a feat(operations): add case output workflow foundations
+4b87405 feat(operations): complete provider-neutral V1 services
+064b79e feat(customer): connect secure operations portal runtime
+bb86b2b feat(rules): connect active customer precheck runtime
+d0f9150 feat(operations): add governed requirement catalog runtime
+61c7b7a docs(operations): record requirement catalog staging gate
+2a31622 feat(operations): add catalog governance and interview foundation
+4aa35b9 docs(operations): record staging migration 027 gate
+9962c60 feat(customer): add persistent adaptive visa interview
+8917e38 chore(staging): add governed generic catalog activation
+353a1b0 docs(operations): record dynamic interview staging runtime
+0d114ae feat(customer): preserve interview corrections safely
+08d7657 test(staging): add governed dynamic interview rules
+c475478 test(staging): add isolated interview applications
+0fdc48a docs(operations): record staging interview fixtures
+27b4661 feat(customer): add canonical applicant review
+1e1f35a feat(customer): unify dynamic interview orchestration
+86f97a9 test(customer): enforce interview schedule ownership
+eb2dd54 feat(customer): connect unified interview persistence
+2e15fc0 feat(customer): add interview write persistence contract
+2809b14 feat(customer): persist applicant interview writes
+ae0a8d8 feat(customer): add authenticated applicant mutations
+9437307 feat(customer): persist family relationships
+f84039a feat(customer): persist travel party writes
+77f4b49 feat(customer): present unified interview review
+39f359a feat(customer): persist completed interview evaluations
+d2c06aa test(staging): add scoped interview API gate
+88c3fd2 fix(customer): decode stored interview answers
+56dc88d fix(operations): normalize mysql travel dates
+fee7308 test(staging): cover unified interview scenarios
+61511dd test(staging): align unresolved profile state
+701279b docs(status): record unified interview staging gate
+39ae65e feat(interview): add customer travel party setup
+68bce4b test(staging): verify unified party setup
+b043b71 fix(staging): use synthetic party reference
+6475fe1 fix(staging): typecheck party setup e2e
+86089d4 docs(status): record unified party staging gate
+e49fc08 feat(portal): register secure customer status route
+cfeb26c test(staging): verify secure customer portal
+b0aba14 docs(status): record customer portal staging gate
+0aa75bf feat(operations): link shared travel documents
+93c00d2 test(staging): verify shared travel documents
+8b2f8a9 test(staging): seed shared document through APIs
+845753c docs(status): record shared document staging gate
+ba713e8 feat(operations): persist requirement document links
+37a7db9 feat(operations): connect dynamic requirement uploads
+047d9a1 test(staging): verify dynamic requirement documents
+faae7c7 fix(operations): persist evaluated requirements
+d57597f test(staging): select latest interview answer
+659bd70 test(staging): complete requirement interview fixture
+1b1c271 chore(operations): log safe interview diagnostics
+e0a2aa5 fix(operations): preserve repeated interview answers
+ab1adf3 docs(status): record requirement upload staging gate
+eb742a1 docs(operations): refresh V1 readiness evidence
+83a0320 feat(operations): add manager analytics dashboard
+5679f33 docs(operations): record manager dashboard staging gate
+06a5a3c feat(operations): add support inbox persistence schema
+7fcf01f feat(operations): add persistent support inbox runtime
+e5dd189 docs(operations): record support inbox rehearsal
+1e722e1 docs(operations): record support inbox staging gate
+3236fa8 docs(security): record staging credential rotation
+7c173c0 feat(operations): add supplier SLA controls
+44551d0 fix(operations): harden supplier SLA replay evidence
+4787956 fix(operations): compare SLA replay fields canonically
+09358c8 docs(operations): record supplier SLA staging gate
+e06d9b7 feat(operations): persist authority output evidence
+727be02 docs(operations): record authority output staging gate
+af231bc feat(operations): add regulatory change center
+e6bd6b0 docs(operations): record regulatory staging gate
+6c09f3f feat(operations): add secure visa delivery runtime
+5aad1db docs(operations): record visa delivery staging gate
+ed3ed58 feat(customer): add governed visa pre-check UI
+8f7feb4 docs(customer): record pre-check staging gate
+7a7e088 feat(customer): add authenticated visa assistant runtime
+e382327 docs(customer): record visa assistant staging gate
+67d2beb feat(customer): persist authenticated case handoffs
+39091fc docs(customer): record case handoff staging gate
+807d254 docs(operations): refresh remaining owner gates
+eececad feat(operations): add persistent email dispatch queue
+a7cb809 fix(operations): isolate email queue command payload
+7295f02 docs(operations): record email queue staging gate
+2925bc8 feat(interview): expose unified read API contract
+5afea33 test(interview): add staging read contract gate
+7198fda docs(operations): record unified read staging gate
+e15df47 docs(operations): refresh production readiness package
+081071a feat(operations): govern submission scheduling policy
+7b5c6aa docs(operations): record scheduler policy staging gate
+b0ad7af feat(operations): add policy governance API
+36c0ae9 feat(travel): govern date-change recalculation
+7596220 feat(travel): persist date-change evidence atomically
+e0ae4f2 docs(operations): record travel date staging gate
+2ce4533 feat(operations): add submission policy governance UI
+d43df38 docs(operations): record policy UI staging gate
+294ff50 feat(requirements): add optional policy classification
+b848875 docs(requirements): record optional classification gate
+fa0f152 feat(governance): enforce AI and source authority boundaries
+38459c8 docs(governance): record staging safety gate
+3b46284 feat(rules): persist source authority governance
+3f03e15 docs(rules): record source authority staging gate
+a140ac9 feat(rules): add controlled source authority review API
+7a9d9fd docs(rules): record source review API gate
+dff8518 feat(rules): persist governed rule lifecycle
+8973854 docs: record rule lifecycle staging gate
+04ac439 feat(rules): expose read-only lifecycle history
+9a81127 docs: record rule history staging gate
+3f4d5ea docs: update operations production readiness
+8569e43 feat(operations): add verified inbound email boundary
+188d33e docs: record inbound email staging gate
+a33e7d6 test(operations): add closed-state staging gate
+89a3174 docs: record staging closed-state gate
+14f8118 fix(interview): require explicit accompanying adult
+564a1b6 docs: record accompaniment safety gate
+5279c19 feat(operations): identify Typing Pack verification fields
+8b6ce31 docs: record Typing Pack verification gate
+4058dcd fix(operations): reject ambiguous Typing Pack fields
+dadbe20 docs: record Typing Pack output hardening
+3c1b8d1 test(operations): add release readiness manifest gate
+cbd8132 fix(operations): run readiness gate with native Node
+1946db3 docs: refresh Operations production readiness evidence
+f2c6c6d test(operations): add synthetic legacy rehearsal seed
+b9a3df5 docs: record full Operations migration rehearsal
+68c66d5 test(operations): automate migration round-trip rehearsal
+f6b7ac6 docs: record automated migration round-trip gate
+502786c docs: align Staging runbook with migrations 014-041
+1361430 docs: record current Staging runbook gate
+12562cf docs(operations): define final V1 owner gates
+f452285 docs(operations): reconcile resolved owner policies
+b495ce6 feat(operations): add document intelligence governance
+84e475d feat(operations): persist document intelligence evidence
+8924317 feat(operations): expose document intelligence review
+a08ee09 docs(operations): record document intelligence staging gate
+495adeb feat(operations): govern passport intelligence profiles
+c71eb80 feat(operations): complete document review safety
+2929390 docs(operations): add document provider decision gate
+94b6fcf docs(operations): normalize decision report formatting
+e6c72f5 docs(operations): record document intelligence staging gate
+031e0af feat(operations): complete manager review analytics
+be0598e docs(operations): record final closure gate
+53b0697 docs(operations): record authenticated browser gate
+c54528b feat(operations): connect professional staff workspace
+06d6a81 fix(operations): restore manager dashboard data
+8930321 feat(operations): expose case documents and actions
+032a612 feat(operations): integrate staging customer and case journey
+6f5888e fix(interview): keep incomplete family setup recoverable
+64d703c fix(customer): preserve pre-submission dynamic status
+1804601 test(staging): align UAT policy version
+cd69a0c fix(application): isolate dynamic staging flags
+0e59d4f test(staging): align payment authorization fixture
+901cae6 test(staging): harden payment readiness diagnostics
+fb7c38e chore(staging): add secure owner access reset
+763d0df fix(staging): validate owner password reset
+be9274f fix(operations): integrate customer cases with staff workflow
+5ceca88 chore(staging): scope owner operations acceptance
+58dbdbb fix(staging): grant audited owner acceptance access
+e47c3f3 chore(staging): report missing owner permissions
+174156d feat(operations): add canonical permission catalog
+c41de6d chore(staging): verify operations permission catalog
+0bc96db fix(operations): preserve payment authority
+2e47392 docs: record integrated staging payment gate
+12bbe15 fix(customer): add secure application resume actions
+65a61ed docs(status): record staging resume verification
+7400eb8 fix(operations): route unscoped intake assignments
+bbd718a docs(status): record staging intake routing
+b09a3d0 fix(operations): surface controlled actions in timeline
+0dc7f9b docs(status): record controlled action browser gate
+4bf7932 docs(staging): add owner acceptance guide
+27d23d2 docs(status): reconcile remaining owner gates
+4e0f520 fix(operations): gate visa delivery on issued state
+3f8070a fix(defects): close P1-P3 defect register items
+5ac30f8 fix(i18n): RTL detection for all RTL locales + cleanup
+886a14c docs: scope acceptance matrix with per-item evidence
+3470ca3 TASHIRA staging recovery preview
+10acdeb TASHIRA staging recovery preview
+9df33a8 fix(i18n): missing keys in Track placeholder and EN footer supportCenter
+7a9a74a feat(apply): approved 8-step wizard UI for start + rules-driven interview
+084088b Approved wizard form + redesign applied
+8174650 test(staging): keep family scenario repeatable
+bb01c5b test(staging): isolate canonical family members
+b321ef1 test(staging): preserve aggregate eligibility assertion
+019736c test(staging): restore strict family fixture assertions
+ad6310b fix(staging): consolidate authoritative handoff catalog
+b70c441 test(staging): verify 14-day multiple checkout
+9ffd0dd docs(handoff): record authoritative staging audit
+6606abd docs(handoff): normalize audit formatting
+3f8b47c feat(gap-closure): governed nationality catalog, rich human-review evidence, admin governance UIs, secure resume links, i18n fixes
+def0479 fix: harden authoritative staging gap closure
+4e2dbba fix: align staging UAT rule layer enum
+7ca6e5f fix: restore staging governance evidence views
+f37727b docs: record final staging browser acceptance
+2969f90 build: refresh staging server artifact
+42adbdc feat(admin-security): in-app admin password change with session invalidation
+9feaf3f feat(chatbot): add governed country and date pickers
+7852b8c build: refresh integrated staging server artifact
+0a1a168 docs: record integrated staging acceptance
+303671f feat: notify customers of operational updates
+9b0a4a2 fix: bind document notification to lifecycle event
+c63d049 build: refresh customer notification server bundle
+fc4396d fix: keep notification failures non-blocking
+201e5de build: refresh fail-safe notification bundle
+1736b82 feat(application-wizard): 3-step apply flow with per-traveller pages, save-via-email, policy-gated payment (EN/AR)
+4e29bb7 feat(wizard): minimal customer review screen, closed nationality dropdown, friendly boolean cards, hide travel groups
+7afd10c feat(content-platform): SEO landing pages, guides & news CMS, state machine, RBAC, SEO/hreflang/sitemap, guides & news index pages
+8656424 feat(content): expose guides news and admin CMS navigation
+4e3bf8c feat(visa-cards): Single/Multiple tabs, Regular/Express per-card, server-authoritative pricing, shared component for homepage & pricing page, i18n EN/AR, prefill Apply flow, source-scan tests
+e038194 fix(build): resolve TypeScript errors in VisaProductCards and visa-catalog.test — no other files modified
+a7be072 fix(wizard): integrate reviewed five-step flow on staging baseline
+a2aa272 docs: record guarded staging wizard deployment and browser smoke
+6fc186c Replace interview cards with grouped applicant forms
+9feb153 Let applicants remove conditional residency fields
+ce65dc8 Record grouped form staging UAT and pending guard approval
+c810051 Record passing final grouped form gates
+3376d8b Merge residence and applicant data and apply owner document matrix
+51bd6c5 Record merged form release and approval boundaries
+e93fb01 Fix operational document persistence and resume incomplete evaluations
+0b2ead1 Order evaluation history causally and complete forms once
+9ea2093 Record successful merged form Staging browser verification
+588bd41 Collect residence first and complete each traveller with passport and uploads
+0c81e7c Record sequential traveller validation phase
+dc777b4 Align payment heading with three-step traveller flow
+a2eaac0 Preserve same-second initial requirement and customer upload history
+b5d2bcc Record successful sequential traveller browser and upload UAT
+66ca72c Clarify saved document progression with Save and Continue
+47bd71d Record Save and Continue staging verification
+4b97b1e Repair staging wizard document review and checkout acceptance flow
+741edb2 Recheck current owned answers and eligibility before dynamic checkout
+3e441a2 Record failed end-to-end acceptance and exact eligibility blocker
+2296e10 Apply owner policy to collect payment after document uploads
+46e05f3 Enforce case scopes on legacy staff application and document endpoints
+85bd619 Record staging payment and downstream acceptance evidence
+6be9702 Use only owner form requirements before dynamic checkout
+c1176bf Record owner-only checkout live acceptance
+6bbde18 fix: surface wizard validation errors with accessible feedback
+790fc68 docs: record Task 1 staging validation acceptance
+5b9a34d Accept and normalize iPhone document uploads with real progress and retry
+8084a51 Keep converted document downloads consistent with JPEG metadata
+a5f08b0 Record live staging iPhone upload acceptance
+c596192 Unify document rules by saved nationality residence visa and purpose
+aba32dc Clarify rule documentation for the staging source scanner
+45f4189 Avoid ambiguous SQL-like prose in rule instructions
+5f5685c Record live staging document rule acceptance
+a938f6c Order traveller inputs before document preview and remove duplicate residence question
+cf2afb5 Allow sufficient heap for full TypeScript quality gate
+654f561 Record Task 4 staging browser acceptance
+d257ac3 Unify processing handling copy and disclose server-priced Express surcharge
+97e02ca Record Task 5 live processing-copy and surcharge acceptance
+dd50f57 fix(marketing): replace unverified claims and default reviews to empty
+96da9c7 docs: record Task 6 live staging acceptance
+7ecc580 fix(seo): return real 404 for held unpublished landing pages
+d1a3197 docs: record held landing live 404 verification
+b9c206c Add isolated English SSR with approved metadata and safe fallback
+39185be Document Phase 1 staging verification and performance threshold
+ca15cff Add SSR language routes and preserve wizard state across language switches
+8102483 Complete Arabic shared labels and measure CMS redirect lookup
+f053cca Record Phase 2 staging acceptance and measured performance limitations
+3c0206b Publish approved nationality and residence document requirements
+031f66a Allow valid replacement of historical duplicate document evidence
+79e018c Count document uploads separately from metadata saves
+88e2441 Record document rules staging acceptance and test evidence
+cdfc82f Rebuild traveller step with grouped immediate uploads and remove flight booking gate
+c164c23 Reuse prepared document instances while the checklist is unchanged
+e801431 Record Task 11 staging browser, admin and payment acceptance
+ced7aa5 Match public visa precheck to wizard documents and preserve country handoff
+d9a4d07 Record Task 12 staging precheck and route acceptance
+c288844 Complete traveller validation feedback at context and submit controls
+877710b Record staging validation verification and remaining feedback fixes
+4305032 Sniff document content and verify HEIC orientation
+0d3bac2 Record staging iPhone upload and orientation verification
+39dd933 Clarify passport name instructions and add a nonblocking single-name notice
+7aaf92b Record bilingual passport-name staging acceptance
+fb75db7 Document payment audit blockers and staging evidence
+37555aa Record admin preflight answers and owner review scope
+a716f3b Protect runtime logs and client errors with a central privacy boundary
+fc9485a Classify unexpected Stripe failures as internal errors
+0073892 Record privacy remediation evidence and remaining payment blockers
+105e5c5 fix: serialize price revisions and require the displayed quote at checkout
+bb970f6 docs: record verified privacy and price remediation delta
+e539082 fix: preserve paid state and atomically claim webhook retries
+a146376 fix: accept only explicit checkout consent and flag legacy evidence
+bb65753 docs: record explicit consent staging evidence and invalid counts
+a46b34d fix: make application creation and payment recovery idempotent
+7e859d9 docs: record payment creation and recovery acceptance evidence
+58e93d9 fix: preserve ownership errors and isolate reviewed test orders
+d475887 fix: prevent automatic analytics from collecting private URLs
+d266230 docs: record payment remediation verification and pending test flags
+d29df97 feat: apply supplied Gateway brand across customer and staff surfaces
+60956b4 docs: record Gateway brand deployment and client verification limits
+64f3891 Correct residence cards and companion documents; add optional application details
+d79a8bc Preserve companion context when preparing document upload instances
+23ac286 Document staging evidence and remaining Express owner decision for TASK15
+2abceb8 Add layout-scoped motion and honest upload feedback
+0af45af Remove legacy reveal dependency from marketing route
+bfe329c Keep working layouts and legacy marketing controls still
+3976592 Match reference arch opacity and stagger final-state behavior
+57bca90 Record motion verification and blocked staging transfer
+e2d4e93 Document TASK16 staging deployment and synthetic upload verification
+3d8ae0b Start brand motion when the footer first becomes visible
+9338dbf Record deployed brand visibility correction and browser evidence
+3647b07 Show reference-size brand motion in the first public viewport
+59ed698 Record first-screen brand deployment and desktop mobile visual UAT
+dd57d4e Remove rejected brand introduction and restore prior page spacing
+736ab24 Record owner-requested brand removal and staging verification
+8cdac22 fix(pricing): unify staging Express fee at USD 30
+f932055 fix(wizard): allow family traveller continuation and preserve shared context
+1747f9e fix(wizard): use approved photo guidance and scope private metadata
+bedcf8a docs(qa): record TASK17 family payment and staging verification
+8044eb2 fix(assistant): share current rules and embed the canonical application
+8f2bf9f fix(assistant): preserve selections when starting the embedded form
+570473d docs(qa): verify assistant rules and in-chat application flow
+0020214 fix(assistant): keep saved application status reachable inside chat
+019017d fix(assistant): preserve the host page title during embedded applications
+22ec792 docs(qa): record assistant follow-up review and deployed regression checks
+ffc5c79 fix(launch): govern product availability and withdraw inactive visas
+d7dd1dc docs(launch): record catalog UAT and remaining launch gates
+b978e79 feat(express): record submission clocks and refund frozen priority fees
+50a52c6 Align precheck guidance, shareable SSR checklists and public visa comparison
+fbe2820 Enforce owner-configured nationality availability before checkout
+148e081 Complete Arabic counters and retain per-layer SSR measurements
+c4c66ca Record Launch Master deployed evidence and remaining launch gates
+a9d6956 Remove duplicate document result labels and record isolation gate
+15425b4 Record verified per-user runtime isolation and staging acceptance
+3f32426 Record Reply 04 closure constraint and disk and skipped-test inventories
+e553340 docs: record intake closure cleanup and reboot verification
+3ae27e6 feat: allocate and archive invoices with payment transactions
+af5fc22 Preserve issued legacy invoices in continuous financial series
+024e49a Exercise MySQL integration guards and fix concurrent replay locking
+0492e73 Render financial documents before locking and archive confirmed refund credit notes
