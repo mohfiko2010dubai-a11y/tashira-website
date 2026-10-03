@@ -1,7 +1,8 @@
 name: CI
 
 # This workflow verifies review changes only. It must never deploy, connect to
-# production, use production secrets, restart services, or modify databases.
+# production, use production secrets, or restart application services.
+# The integration job owns an ephemeral MySQL service containing synthetic data only.
 on:
   pull_request:
     branches:
@@ -24,6 +25,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  mysql-integration:
+    name: Passport, finance and audit integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: disposable-ci-only
+          MYSQL_ROOT_HOST: "%"
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pdisposable-ci-only"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    env:
+      OPS_REHEARSAL_DATABASE_URL: mysql://root:disposable-ci-only@127.0.0.1:33306/tashira_ops_rehearsal_ci
+      OPS_REHEARSAL_RECREATE: "YES"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build synthetic schema and verify migration rollback
+        run: npx tsx scripts/rehearse-operations-migration-chain.ts
+      - name: Run every guarded MySQL integration test
+        run: node scripts/run-mysql-integrations.mjs
+
   verify:
     name: Verify
     runs-on: ubuntu-latest

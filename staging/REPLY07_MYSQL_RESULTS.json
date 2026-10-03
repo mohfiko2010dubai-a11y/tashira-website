@@ -1,0 +1,111 @@
+{
+  "passed": 26,
+  "skipped": 0,
+  "tests": [
+    {
+      "name": "persistent Operations executor and internal API returns authoritative minimized capabilities",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API never lets Operations assert payment truth for an unpaid application",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API routes an unscoped intake case only through a trusted single-team assignee",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API persists human review, audit, and restart-safe idempotency",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API rejects wrong-team and cross-applicant document writes without partial evidence",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API persists applicant-scoped document review, assignment, and controlled status",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API preserves history and appends a new re-evaluation snapshot and selection",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API rolls back business/version/action/idempotency if audit persistence fails",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API commits one of two stale concurrent writes and keeps finance fields unchanged",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API returns one commit and one deterministic replay for concurrent duplicate commands",
+      "status": "passed"
+    },
+    {
+      "name": "persistent Operations executor and internal API fails closed while the feature flag is disabled",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL customer interview applicant writes preserves ownership, optimistic concurrency, history and idempotency atomically",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL Dynamic Interview answer transitions preserves A to B to A as three immutable chronological events",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL interview evaluation requirement persistence creates immutable applicant requirements atomically and verifies exact replay",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL Passport Profile governance persists an immutable, replay-safe lifecycle with separated actors",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL Passport Profile governance loads synthetic ACTIVE profiles in Staging but never Production",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL document intelligence persistence loads synthetic governed fields only outside Production",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL document intelligence persistence persists immutable applicant-scoped evidence and restart-safe idempotency",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL document intelligence persistence fails closed for wrong-team and cross-applicant evidence",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL Operations access integration loads persisted permissions, scope, and a scoped enabled flag",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL Operations case read provider loads a legacy family with applicant-scoped documents and no financial fields",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL supplier SLA repository starts from trusted application/evaluation policy and preserves replay/concurrency/audit evidence",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL supplier SLA repository enforces immutable policy and append-only event evidence",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL Support Inbox repository loads persisted thread/message evidence and applies replay-safe concurrent commands",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL Support Inbox repository keeps message evidence append-only",
+      "status": "passed"
+    },
+    {
+      "name": "MySQL scheduler alert persistence persists deduplicated lifecycle, concurrency, idempotency, RBAC and audit evidence",
+      "status": "passed"
+    }
+  ],
+  "failed": 0
+}

@@ -362,6 +362,9 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
   }
 
   private async lockCase(connection: PoolConnection, applicationId: number): Promise<LockedCase> {
+    // Serialize before INSERT IGNORE: duplicate inserts otherwise retain shared
+    // locks that deadlock when both commands upgrade the case lock to exclusive.
+    await rows(connection, "SELECT id FROM applications WHERE id=? FOR UPDATE", [applicationId]);
     await affected(connection, "INSERT IGNORE INTO operations_case_controls (application_id,version) SELECT id,0 FROM applications WHERE id=?", [applicationId]);
     const cases = await rows(connection,
       `SELECT c.version, c.assigned_staff_user_id AS assignedStaffId, c.team_id AS teamId,

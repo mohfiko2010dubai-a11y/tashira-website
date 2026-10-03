@@ -93,7 +93,7 @@ describe.skipIf(!databaseUrl)("MySQL customer interview applicant writes", () =>
         VALUES (?,?,?,?,'synthetic-v1','PASSPORT','DOCUMENT',TRUE,FALSE)`,
       [requirementInstanceId, application.insertId, created.applicantId, evaluationId]);
       await pool.execute(`INSERT INTO applicant_requirement_events
-        (id,requirement_instance_id,state,reason,actor_reference,occurred_at) VALUES (?,?,'MISSING','Synthetic missing','staging-test',NOW(3))`,
+        (id,requirement_instance_id,state,reason,actor_reference,occurred_at) VALUES (?,?,'MISSING','Synthetic missing','staging-test',UTC_TIMESTAMP()-INTERVAL 1 MINUTE)`,
       [randomUUID(), requirementInstanceId]);
       const requirementLink = await repository.linkRequirementDocument({ applicationId: Number(application.insertId),
         applicantId: created.applicantId, requirementCode: "PASSPORT", documentId: Number(document.insertId),
