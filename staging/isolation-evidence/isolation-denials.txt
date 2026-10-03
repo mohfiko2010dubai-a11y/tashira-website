@@ -1,0 +1,28 @@
+{
+  "services": [
+    {
+      "user": "tashira-staging",
+      "appPid": 352494,
+      "uid": 999,
+      "unit": "pm2-tashira-staging.service",
+      "hardening": "ReadWritePaths=/var/www/tashira-staging/storage /var/www/tashira-staging/logs /var/lib/tashira-staging\nPrivateTmp=yes\nProtectHome=yes\nProtectSystem=strict\nNoNewPrivileges=yes"
+    },
+    {
+      "user": "tashira-prod",
+      "appPid": 353623,
+      "uid": 997,
+      "unit": "pm2-tashira-prod.service",
+      "hardening": "ReadWritePaths=/var/www/tashira/storage /var/www/tashira/logs /var/lib/tashira-prod\nPrivateTmp=yes\nProtectHome=yes\nProtectSystem=strict\nNoNewPrivileges=yes"
+    }
+  ],
+  "denials": {
+    "directory": "EACCES: permission denied, opendir",
+    "document": "EACCES: permission denied, open '/var/www/tashira/storage/documents/33/1785876021352-test.jpg'",
+    "configuration": "EACCES: permission denied, open '/var/www/tashira/.env'",
+    "pm2Configuration": "EACCES: permission denied, open '/etc/tashira-prod-pm2.json'",
+    "productionCredentials": "NOT ATTEMPTED: production credentials unavailable because configuration read was denied."
+  },
+  "rootPm2Stopped": true
+}
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        96G   91G  5.1G  95% /

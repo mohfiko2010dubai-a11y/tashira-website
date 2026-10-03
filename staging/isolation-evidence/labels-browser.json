@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "en/documents?nat=EG&res=SA&type=30d&purpose=tourism&companion=0: single title per document, including hidden text",
+    "en/apply/TSH-506C00B770C147A3A261C544F745D2E4/interview: single title per document, including hidden text",
+    "ar/documents?nat=EG&res=SA&type=30d&purpose=tourism&companion=0: single title per document, including hidden text",
+    "ar/apply/TSH-506C00B770C147A3A261C544F745D2E4/interview: single title per document, including hidden text"
+  ],
+  "cookies": [
+    "tashira_creation_device=<redacted>; Max-Age=2592000; Path=/; HttpOnly; Secure; SameSite=Lax"
+  ],
+  "errors": [],
+  "pass": true
+}

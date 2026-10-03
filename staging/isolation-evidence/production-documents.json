@@ -1,0 +1,52 @@
+{
+  "existingDocuments": [
+    {
+      "applicationId": 40,
+      "documentId": 12,
+      "http": 200,
+      "hashMatchesBackup": true,
+      "bytes": 111023
+    },
+    {
+      "applicationId": 40,
+      "documentId": 13,
+      "http": 200,
+      "hashMatchesBackup": true,
+      "bytes": 491856
+    },
+    {
+      "applicationId": 40,
+      "documentId": 14,
+      "http": 200,
+      "hashMatchesBackup": true,
+      "bytes": 336910
+    },
+    {
+      "applicationId": 41,
+      "documentId": 15,
+      "http": 200,
+      "hashMatchesBackup": true,
+      "bytes": 111023
+    },
+    {
+      "applicationId": 41,
+      "documentId": 16,
+      "http": 200,
+      "hashMatchesBackup": true,
+      "bytes": 491856
+    },
+    {
+      "applicationId": 41,
+      "documentId": 17,
+      "http": 200,
+      "hashMatchesBackup": true,
+      "bytes": 336910
+    }
+  ],
+  "newStorageWrite": {
+    "storageFunctionWrite": true,
+    "ownerUid": 997,
+    "readerUid": 997,
+    "bytes": 56
+  }
+}

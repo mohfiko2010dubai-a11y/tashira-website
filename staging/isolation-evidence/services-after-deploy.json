@@ -1,0 +1,23 @@
+{
+  "services": [
+    {
+      "user": "tashira-staging",
+      "uid": 999,
+      "daemonPid": 372239,
+      "appPid": 372250,
+      "publicStatus": 200,
+      "bootEnabled": "enabled",
+      "noNewPrivileges": "yes"
+    },
+    {
+      "user": "tashira-prod",
+      "uid": 997,
+      "daemonPid": 353611,
+      "appPid": 353623,
+      "publicStatus": 200,
+      "bootEnabled": "enabled",
+      "noNewPrivileges": "yes"
+    }
+  ],
+  "rootPm2PidAbsent": true
+}

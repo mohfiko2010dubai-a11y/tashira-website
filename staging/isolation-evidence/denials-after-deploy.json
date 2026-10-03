@@ -1,0 +1,13 @@
+{
+  "uid": 999,
+  "namespace": "actual staging systemd mount namespace",
+  "directory": "EACCES: permission denied, opendir",
+  "document": "EACCES: permission denied, open '/var/www/tashira/storage/documents/33/1785876021352-test.jpg'",
+  "configuration": "EACCES: permission denied, open '/var/www/tashira/.env'",
+  "productionDatabaseConnection": "NOT ATTEMPTED: production credentials unavailable because configuration read was denied.",
+  "grants": [
+    "GRANT USAGE ON *.* TO `tashira_staging_app`@`localhost`",
+    "GRANT SELECT, INSERT, UPDATE, DELETE ON `tashira_staging`.* TO `tashira_staging_app`@`localhost`"
+  ],
+  "database": "SELECT command denied to user 'tashira_staging_app'@'localhost' for table 'applications'"
+}
