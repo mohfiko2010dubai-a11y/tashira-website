@@ -7,7 +7,7 @@ import type { FamilyEvaluation } from "../family/family-engine";
 import type { SubmissionScheduleSnapshot } from "../travel/submission-scheduler";
 import type { TravelQuestion } from "../travel/travel-questionnaire";
 import { buildDynamicCustomerApplicationBehindFlags } from "./customer-experience-service";
-import type { CustomerApplicantIdentity, CustomerTravelGroup, DynamicCustomerApplicationPlan } from "./dynamic-application-plan";
+import { buildDynamicCustomerApplicationPlan, type CustomerApplicantIdentity, type CustomerTravelGroup, type DynamicCustomerApplicationPlan } from "./dynamic-application-plan";
 import type { CustomerPrecheckResult } from "./customer-precheck";
 
 export type PrecheckHandoff = {
@@ -34,6 +34,7 @@ export function comparePrecheckWithFinalEvaluation(input: {
 
 /** Runtime composition boundary. Rules produce codes; the governed catalog supplies customer meaning. */
 export async function buildDynamicApplicationFromCatalog(input: {
+  ownerForm?: boolean;
   context: FeatureFlagContext;
   flags: readonly FeatureFlagRecord[];
   catalogProvider: Pick<MysqlRequirementCatalogProvider, "active">;
@@ -48,9 +49,11 @@ export async function buildDynamicApplicationFromCatalog(input: {
 }): Promise<{ plan: DynamicCustomerApplicationPlan | null; requirements: DynamicRequirementView | null }> {
   const requiredFlags = ["VISA_RULES_EVALUATION", "DYNAMIC_REQUIREMENTS", "DYNAMIC_CUSTOMER_APPLICATION"] as const;
   const enabled = requiredFlags.every((key) => isOperationsFlagEnabled(key, input.context, input.flags));
-  if (!enabled) return { plan: null, requirements: null };
+  if (!input.ownerForm && !enabled) return { plan: null, requirements: null };
   const catalog = toDynamicRequirementCatalog(await input.catalogProvider.active(input.evaluatedAt));
   const requirements = buildDynamicRequirements({ family: input.family, catalog, answers: input.answers });
-  const plan = buildDynamicCustomerApplicationBehindFlags({ ...input, requirements });
+  const plan = input.ownerForm
+    ? buildDynamicCustomerApplicationPlan({ ...input, requirements })
+    : buildDynamicCustomerApplicationBehindFlags({ ...input, requirements });
   return { plan, requirements };
 }

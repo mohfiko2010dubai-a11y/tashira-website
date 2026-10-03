@@ -1,0 +1,2951 @@
+{
+  "baseline": "e59586542c12c4af4f4cb0c9bc8d9f119fd0bd4c",
+  "scope": "Tracked source/configuration; source expressions only, no environment values, secrets, or remote state. Includes lexical candidates, imports and fixtures; not an AST proof.",
+  "counts": {
+    "runtime": 180,
+    "tooling": 149,
+    "test": 161
+  },
+  "matches": [
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 50,
+      "source": "DEPLOYMENT_MODE: ${{ inputs.deployment_mode }}"
+    },
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 55,
+      "source": "[[ \"$DEPLOYMENT_MODE\" == \"PRELIVE\" || \"$DEPLOYMENT_MODE\" == \"LIVE\" ]]"
+    },
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 100,
+      "source": "DEPLOYMENT_MODE: ${{ inputs.deployment_mode }}"
+    },
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 108,
+      "source": "\"DEPLOYMENT_MODE=$DEPLOYMENT_MODE\" \\"
+    },
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 138,
+      "source": "if [[ \"$DEPLOYMENT_MODE\" == \"PRELIVE\" ]]; then"
+    },
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 139,
+      "source": "STRIPE_MODE=TEST"
+    },
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 141,
+      "source": "STRIPE_MODE=LIVE"
+    },
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 143,
+      "source": "export DEPLOYMENT_MODE STRIPE_MODE VITE_STRIPE_PUBLISHABLE_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET"
+    },
+    {
+      "kind": "tooling",
+      "file": ".github/workflows/deploy.yml",
+      "line": 145,
+      "source": "if [[ \"$DEPLOYMENT_MODE\" == \"PRELIVE\" ]]; then"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/application-router.ts",
+      "line": 26,
+      "source": "import { runtimeFlagEnvironment } from \"./lib/operations/mysql-access-provider\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/application-router.ts",
+      "line": 41,
+      "source": "if (runtimeFlagEnvironment() !== \"STAGING\") return false;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/application-router.ts",
+      "line": 162,
+      "source": "if (a.tripPurpose && input.journeyMode === \"DYNAMIC\" && runtimeFlagEnvironment() === \"STAGING\") {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/application-router.ts",
+      "line": 189,
+      "source": "const purposes = runtimeFlagEnvironment() === \"STAGING\" ? await loadTripPurposes(defaultOperationsSqlClient(), application.id) : new Map();"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/boot.ts",
+      "line": 41,
+      "source": "import { validateStripeRuntimeConfig, stripeRuntimeMode } from \"./lib/stripe-runtime\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/boot.ts",
+      "line": 364,
+      "source": "if (process.env.PUBLIC_APP_URL?.replace(/\\/$/, \"\") === \"https://staging.tashiraev.com\") {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/boot.ts",
+      "line": 418,
+      "source": "if (env.isProduction) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/boot.ts",
+      "line": 422,
+      "source": "await assertFinancialDocumentIntegrity(defaultOperationsPool(), stripeRuntimeMode() === \"TEST\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/boot.ts",
+      "line": 427,
+      "source": "const port = parseInt(process.env.PORT || \"3000\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/boot.ts",
+      "line": 428,
+      "source": "const hostname = process.env.HOST || \"0.0.0.0\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/customer-journey-ui.test.ts",
+      "line": 15,
+      "source": "expect(application).toContain(\"runtimeFlagEnvironment() !== \\\"STAGING\\\"\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/customer-operations-router.ts",
+      "line": 7,
+      "source": "import { isOperationsFlagEnabled } from \"./lib/feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/customer-operations-router.ts",
+      "line": 32,
+      "source": "if (!isOperationsFlagEnabled(\"CUSTOMER_OPERATIONS_PORTAL\", context, flags)) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/document-intelligence-router.ts",
+      "line": 6,
+      "source": "import { isOperationsFlagEnabled } from \"./lib/feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/document-intelligence-router.ts",
+      "line": 23,
+      "source": "if (!isOperationsFlagEnabled(\"DOCUMENT_INTELLIGENCE\", flagContext, flags)) throw new TRPCError({ code: \"FORBIDDEN\", message: \"Document Intelligence is disabled\" });"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/document-intelligence-router.ts",
+      "line": 28,
+      "source": "if(!isOperationsFlagEnabled(\"DOCUMENT_INTELLIGENCE\",flagContext,flags)||!isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\",flagContext,flags))throw new TRPCError({code:\"FORBIDDEN\",message:\"Document Intelligence review is disabled\"});"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/drive-router.ts",
+      "line": 11,
+      "source": "const serviceKeyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || \"\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/drive-router.ts",
+      "line": 12,
+      "source": "const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || \"\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 11,
+      "source": "import { isOperationsFlagEnabled } from \"./lib/feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 102,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_CUSTOMER_APPLICATION\", context, flags)"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 103,
+      "source": "|| !isOperationsFlagEnabled(\"VISA_RULES_EVALUATION\", context, flags)) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 112,
+      "source": "const ownerForm = context.environment === \"STAGING\" && Boolean(application.baseType);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 122,
+      "source": "const unifiedEnabled = isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 176,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", runtime.context, runtime.flags)) return;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 207,
+      "source": "if (!runtime.ownerForm || !deps.persistCompletedEvaluations || !isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", runtime.context, runtime.flags)) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 230,
+      "source": "if (context.environment !== \"STAGING\" || !application.baseType || !deps.editApplicant || !isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags)) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 247,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", runtime.context, runtime.flags) || !deps.persistCompletedEvaluations) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 357,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags) || !deps.addApplicant) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 372,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags) || !deps.editApplicant) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 392,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags) || !deps.defineRelationship) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 408,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags) || !deps.createTravelGroup) throw new TRPCError({ code: \"FORBIDDEN\", message: \"Travel changes unavailable\" });"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 418,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags) || !deps.updateTravelGroup) throw new TRPCError({ code: \"FORBIDDEN\", message: \"Travel changes unavailable\" });"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 430,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags) || !deps.linkSharedDocument) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 445,
+      "source": "if (!isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", context, flags) || !deps.linkRequirementDocument) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/dynamic-interview-router.ts",
+      "line": 449,
+      "source": "requirementCode: input.requirementCode, documentKey: input.documentKey, ownerDocuments: context.environment === \"STAGING\" && Boolean(application.baseType), documentId: input.documentId, actorReference: `customer:${input.referenceNumber}`,"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/admin-session.test.ts",
+      "line": 13,
+      "source": "process.env.ADMIN_PASSWORD = \"review-only-password\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/admin-session.test.ts",
+      "line": 14,
+      "source": "process.env.ADMIN_SESSION_SECRET = \"a-secure-review-session-secret-of-32-chars\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/admin-session.test.ts",
+      "line": 18,
+      "source": "delete process.env.ADMIN_PASSWORD;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/admin-session.test.ts",
+      "line": 19,
+      "source": "delete process.env.ADMIN_SESSION_SECRET;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/admin-session.ts",
+      "line": 8,
+      "source": "const secret = process.env.ADMIN_SESSION_SECRET || \"\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/admin-session.ts",
+      "line": 67,
+      "source": "const expected = process.env.ADMIN_PASSWORD || \"\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/application-intake.test.ts",
+      "line": 40,
+      "source": "vi.stubEnv('NODE_ENV', mode);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/application-intake.ts",
+      "line": 7,
+      "source": "const configPath = process.env.APPLICATION_INTAKE_CONFIG_PATH;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/application-readiness.ts",
+      "line": 13,
+      "source": "import { runtimeFlagEnvironment } from \"./operations/mysql-access-provider\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/application-readiness.ts",
+      "line": 129,
+      "source": "if (runtimeFlagEnvironment() !== \"STAGING\") return legacy;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/brand-email.test.ts",
+      "line": 6,
+      "source": "vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/brand-email.test.ts",
+      "line": 10,
+      "source": "invoiceUrl: 'https://staging.tashiraev.com/invoice-download/INV-TEST?expires=9999999999&signature=' + 'a'.repeat(43),"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/brand-email.test.ts",
+      "line": 11,
+      "source": "resumeUrl: 'https://staging.tashiraev.com/recover?token=test', otp: '123456', expiresMinutes: '10',"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/brand-email.test.ts",
+      "line": 12,
+      "source": "amount: '100', purpose: 'Test', depositUrl: 'https://staging.tashiraev.com/deposit/' + 'a'.repeat(43),"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/creation-device.ts",
+      "line": 7,
+      "source": "const secret = process.env.CUSTOMER_SESSION_SECRET ?? \"\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer-notification-email.test.ts",
+      "line": 6,
+      "source": "beforeEach(() => vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com'));"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer-session.test.ts",
+      "line": 7,
+      "source": "process.env.CUSTOMER_SESSION_SECRET = \"a-review-only-customer-session-secret\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer-session.test.ts",
+      "line": 11,
+      "source": "delete process.env.CUSTOMER_SESSION_SECRET;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer-session.test.ts",
+      "line": 40,
+      "source": "const signature = crypto.createHmac(\"sha256\", process.env.CUSTOMER_SESSION_SECRET!)"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer-session.test.ts",
+      "line": 50,
+      "source": "const cookie = createCustomerApplicationCookie(new Headers({ host: \"staging.tashiraev.com\" }), \"TSH-OWNED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer-session.ts",
+      "line": 14,
+      "source": "const secret = process.env.CUSTOMER_SESSION_SECRET || \"\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/case-handoff-runtime.ts",
+      "line": 6,
+      "source": "import { isOperationsFlagEnabled } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/case-handoff-runtime.ts",
+      "line": 36,
+      "source": "if (!isOperationsFlagEnabled(\"CASE_CHAT_HANDOFF\", input.context, input.flags))"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/customer-experience-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/customer-experience-service.ts",
+      "line": 20,
+      "source": "if (requiredFlags.some((flag) => !isOperationsFlagEnabled(flag, input.context, input.flags))) return null;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/customer-experience-service.ts",
+      "line": 31,
+      "source": "if (!isOperationsFlagEnabled(\"CUSTOMER_PRECHECK\", input.context, input.flags)) return null;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/customer-operations-portal.ts",
+      "line": 1,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/customer-operations-portal.ts",
+      "line": 73,
+      "source": "if (!isOperationsFlagEnabled(\"CUSTOMER_OPERATIONS_PORTAL\", input.context, input.flags)) return null;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/dynamic-application-runtime.ts",
+      "line": 1,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/dynamic-application-runtime.ts",
+      "line": 50,
+      "source": "const enabled = requiredFlags.every((key) => isOperationsFlagEnabled(key, input.context, input.flags));"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer/mysql-customer-interview-write-repository.integration.test.ts",
+      "line": 6,
+      "source": "const databaseUrl = process.env.CUSTOMER_WRITE_REHEARSAL_DATABASE_URL;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer/mysql-interview-answer-repository.integration.test.ts",
+      "line": 7,
+      "source": "const databaseUrl = process.env.INTERVIEW_ANSWER_REHEARSAL_DATABASE_URL;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer/mysql-interview-evaluation-repository.integration.test.ts",
+      "line": 7,
+      "source": "const databaseUrl = process.env.INTERVIEW_EVALUATION_REHEARSAL_DATABASE_URL;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer/staging-dynamic-interview-fixtures.test.ts",
+      "line": 8,
+      "source": "expect(script).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/customer/staging-requirement-document-e2e-script.test.ts",
+      "line": 8,
+      "source": "expect(source).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/visa-assistant-runtime.ts",
+      "line": 5,
+      "source": "import { isOperationsFlagEnabled } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/customer/visa-assistant-runtime.ts",
+      "line": 28,
+      "source": "if (!isOperationsFlagEnabled(\"VISA_ASSISTANT\", input.context, input.flags))"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/contracts.test.ts",
+      "line": 18,
+      "source": "effectiveFrom: \"2026-01-01T00:00:00Z\", effectiveTo: null, lifecycle: \"DRAFT\", stagingTestOnly: true,"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/contracts.ts",
+      "line": 52,
+      "source": "stagingTestOnly: boolean;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/mysql-passport-profile-governance-repository.integration.test.ts",
+      "line": 8,
+      "source": "const enabled=process.env.RUN_DOCUMENT_INTELLIGENCE_MYSQL_INTEGRATION===\"1\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/mysql-passport-profile-governance-repository.integration.test.ts",
+      "line": 17,
+      "source": "sourceEvidenceReferences:[\"STAGING_TEST_SYNTHETIC_NOT_REGULATORY\"],effectiveFrom:\"2026-01-01T00:00:00.000Z\",effectiveTo:null,stagingTestOnly:true};"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/mysql-passport-profile-governance-repository.integration.test.ts",
+      "line": 18,
+      "source": "beforeAll(async()=>{const uri=process.env.DOCUMENT_INTELLIGENCE_MYSQL_URL;if(!uri)throw new Error(\"DOCUMENT_INTELLIGENCE_MYSQL_URL_REQUIRED\");pool=createPool({uri,connectionLimit:3});repository=new MysqlPassportProfileGovernanceRepository(pool);});"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/mysql-passport-profile-governance-repository.integration.test.ts",
+      "line": 34,
+      "source": "expect(await repository.activeProfiles({evaluatedAt:new Date(),environment:\"STAGING\"})).toContainEqual(expect.objectContaining({profileId,lifecycle:\"ACTIVE\",stagingTestOnly:true}));"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/mysql-passport-profile-governance-repository.ts",
+      "line": 33,
+      "source": "new Date(profile.effectiveFrom),profile.effectiveTo?new Date(profile.effectiveTo):null,JSON.stringify(profile.sourceEvidenceReferences),profile.stagingTestOnly,actor.id,occurredAt]);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/mysql-passport-profile-governance-repository.ts",
+      "line": 44,
+      "source": "const [rows]=await connection.execute<RowDataPacket[]>(`SELECT p.profile_code profileCode,p.version,p.staging_test_only stagingTestOnly,e.to_status currentState,"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/mysql-passport-profile-governance-repository.ts",
+      "line": 50,
+      "source": "const next=evaluatePassportProfileTransition({current,action:input.action,actorPermissions:actor.permissions,environment:input.environment,stagingTestOnly:Boolean(Reflect.get(row,\"stagingTestOnly\"))});"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/mysql-passport-profile-governance-repository.ts",
+      "line": 77,
+      "source": "[input.environment!==\"PRODUCTION\",input.evaluatedAt,input.evaluatedAt]);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/mysql-repository.integration.test.ts",
+      "line": 10,
+      "source": "const enabled = process.env.RUN_DOCUMENT_INTELLIGENCE_MYSQL_INTEGRATION === \"1\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/mysql-repository.integration.test.ts",
+      "line": 30,
+      "source": "const uri = process.env.DOCUMENT_INTELLIGENCE_MYSQL_URL;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/mysql-repository.ts",
+      "line": 102,
+      "source": "[input.authorityCode, input.visaRouteCode, input.environment !== \"PRODUCTION\", input.evaluatedAt, input.evaluatedAt]);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/passport-profile-governance.test.ts",
+      "line": 6,
+      "source": "expect(evaluatePassportProfileTransition({ current: \"DRAFT\", action: \"SUBMIT_FOR_REVIEW\", actorPermissions: new Set([\"rule.propose\"]), environment: \"STAGING\", stagingTestOnly: true })).toBe(\"UNDER_REVIEW\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/passport-profile-governance.test.ts",
+      "line": 7,
+      "source": "expect(evaluatePassportProfileTransition({ current: \"UNDER_REVIEW\", action: \"APPROVE\", actorPermissions: new Set([\"rule.review\"]), environment: \"STAGING\", stagingTestOnly: true })).toBe(\"APPROVED\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/passport-profile-governance.test.ts",
+      "line": 8,
+      "source": "expect(evaluatePassportProfileTransition({ current: \"APPROVED\", action: \"ACTIVATE\", actorPermissions: new Set([\"rule.activate\"]), environment: \"STAGING\", stagingTestOnly: true })).toBe(\"ACTIVE\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/passport-profile-governance.test.ts",
+      "line": 9,
+      "source": "expect(() => evaluatePassportProfileTransition({ current: \"UNDER_REVIEW\", action: \"APPROVE\", actorPermissions: new Set([\"rule.propose\"]), environment: \"STAGING\", stagingTestOnly: true })).toThrow(\"PASSPORT_PROFILE_GOVERNANCE_ACCESS_DENIED\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/passport-profile-governance.test.ts",
+      "line": 13,
+      "source": "expect(() => evaluatePassportProfileTransition({ current: \"DRAFT\", action: \"ACTIVATE\", actorPermissions: new Set([\"rule.activate\"]), environment: \"STAGING\", stagingTestOnly: true })).toThrow(\"PASSPORT_PROFILE_TRANSITION_INVALID\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/passport-profile-governance.test.ts",
+      "line": 14,
+      "source": "expect(() => evaluatePassportProfileTransition({ current: \"APPROVED\", action: \"ACTIVATE\", actorPermissions: new Set([\"rule.activate\"]), environment: \"PRODUCTION\", stagingTestOnly: true })).toThrow(\"PASSPORT_PROFILE_STAGING_TEST_PRODUCTION_FORBIDDEN\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/passport-profile-governance.test.ts",
+      "line": 18,
+      "source": "expect(evaluatePassportProfileTransition({ current: \"ACTIVE\", action: \"SUPERSEDE\", actorPermissions: new Set([\"rule.activate\"]), environment: \"STAGING\", stagingTestOnly: false })).toBe(\"SUPERSEDED\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/passport-profile-governance.test.ts",
+      "line": 19,
+      "source": "expect(evaluatePassportProfileTransition({ current: \"ACTIVE\", action: \"RETIRE\", actorPermissions: new Set([\"rule.activate\"]), environment: \"STAGING\", stagingTestOnly: false })).toBe(\"RETIRED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/passport-profile-governance.ts",
+      "line": 22,
+      "source": "stagingTestOnly: boolean;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/passport-profile-governance.ts",
+      "line": 26,
+      "source": "if (input.action === \"ACTIVATE\" && input.stagingTestOnly && input.environment === \"PRODUCTION\") {"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/profile-registry.test.ts",
+      "line": 10,
+      "source": "sourceEvidenceReferences: [\"synthetic\"], effectiveFrom: \"2026-01-01\", effectiveTo: null, lifecycle: \"ACTIVE\", stagingTestOnly: true, ...overrides };"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/document-intelligence/profile-registry.ts",
+      "line": 20,
+      "source": "&& profile.lifecycle === \"ACTIVE\" && (!profile.stagingTestOnly || input.allowStagingTest)"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/document-intelligence/synthetic-e2e.test.ts",
+      "line": 15,
+      "source": "lifecycle: \"ACTIVE\", stagingTestOnly: true,"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/eligibility/applicant-evaluation-service.ts",
+      "line": 1,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/eligibility/applicant-evaluation-service.ts",
+      "line": 27,
+      "source": "if (!isOperationsFlagEnabled(\"VISA_RULES_EVALUATION\", input.featureContext, input.featureFlags)) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/email-provider.ts",
+      "line": 5,
+      "source": "const mode = process.env.EMAIL_MODE || process.env.STAGING_EMAIL_MODE;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/email-provider.ts",
+      "line": 7,
+      "source": "const staging = process.env.APP_ID === \"tashira-staging\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/email-provider.ts",
+      "line": 8,
+      "source": "const productionExplicitlyEnabled = process.env.ENABLE_PRODUCTION_EMAIL === \"true\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/email-provider.ts",
+      "line": 9,
+      "source": "const allowedRecipients = new Set((process.env.STAGING_EMAIL_ALLOWED_RECIPIENTS || \"\")"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/email-provider.ts",
+      "line": 12,
+      "source": "apiKey: process.env.RESEND_API_KEY || \"\","
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/email-provider.ts",
+      "line": 13,
+      "source": "fromName: process.env.FROM_NAME || \"TASHIRA Staging\","
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/email-provider.ts",
+      "line": 14,
+      "source": "fromEmail: process.env.FROM_EMAIL || \"onboarding@resend.dev\","
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/env.ts",
+      "line": 4,
+      "source": "const value = process.env[name];"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/env.ts",
+      "line": 5,
+      "source": "if (!value && process.env.NODE_ENV === \"production\") {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/env.ts",
+      "line": 14,
+      "source": "isProduction: process.env.NODE_ENV === \"production\","
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/env.ts",
+      "line": 16,
+      "source": "kimiAuthUrl: process.env.KIMI_AUTH_URL || \"https://unused.example.com\","
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/env.ts",
+      "line": 18,
+      "source": "ownerUnionId: process.env.OWNER_UNION_ID ?? \"\","
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/family/family-readiness-service.ts",
+      "line": 2,
+      "source": "isOperationsFlagEnabled,"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/family/family-readiness-service.ts",
+      "line": 13,
+      "source": "const familyEnabled = isOperationsFlagEnabled(\"FAMILY_ENGINE\", input.context, input.flags);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/family/family-readiness-service.ts",
+      "line": 14,
+      "source": "const requirementsEnabled = isOperationsFlagEnabled(\"DYNAMIC_REQUIREMENTS\", input.context, input.flags);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/feature-flags/feature-flags.test.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagRecord } from \"./feature-flags\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/feature-flags/feature-flags.test.ts",
+      "line": 14,
+      "source": "expect(isOperationsFlagEnabled(\"FAMILY_ENGINE\", { environment: \"STAGING\" }, [])).toBe(false);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/feature-flags/feature-flags.test.ts",
+      "line": 18,
+      "source": "expect(isOperationsFlagEnabled(\"VISA_RULES_EVALUATION\", { environment: \"STAGING\" }, [])).toBe(false);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/feature-flags/feature-flags.test.ts",
+      "line": 22,
+      "source": "expect(isOperationsFlagEnabled(\"VISA_RULES_EVALUATION\", { environment: \"PRODUCTION\" }, [globalFlag])).toBe(false);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/feature-flags/feature-flags.test.ts",
+      "line": 26,
+      "source": "expect(isOperationsFlagEnabled(\"VISA_RULES_EVALUATION\", { environment: \"STAGING\" }, [globalFlag])).toBe(true);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/feature-flags/feature-flags.test.ts",
+      "line": 30,
+      "source": "expect(isOperationsFlagEnabled(\"VISA_RULES_EVALUATION\", {"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/feature-flags/feature-flags.test.ts",
+      "line": 42,
+      "source": "expect(isOperationsFlagEnabled(\"VISA_RULES_EVALUATION\", {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/feature-flags/feature-flags.ts",
+      "line": 64,
+      "source": "export function isOperationsFlagEnabled("
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/feature-flags/feature-flags.ts",
+      "line": 70,
+      "source": ".filter((record) => record.flagKey === flagKey && record.environment === context.environment)"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/financial-document-integrity.ts",
+      "line": 24,
+      "source": "export async function assertFinancialDocumentIntegrity(pool: Pool, testRuntime = false) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/financial-document-integrity.ts",
+      "line": 50,
+      "source": "WHERE (${testRuntime ? \"i.invoice_number LIKE 'TSH-INV-%' OR i.invoice_number LIKE 'TEST-INV-%'\" : \"1=1\"})"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/invoice-download-token.test.ts",
+      "line": 6,
+      "source": "process.env.STORAGE_URL_SECRET = \"a-review-only-invoice-download-secret\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/invoice-download-token.test.ts",
+      "line": 7,
+      "source": "process.env.PUBLIC_APP_URL = \"https://staging.tashiraev.com\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/invoice-download-token.test.ts",
+      "line": 11,
+      "source": "delete process.env.STORAGE_URL_SECRET;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/invoice-download-token.test.ts",
+      "line": 12,
+      "source": "delete process.env.PUBLIC_APP_URL;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/invoice-download-token.test.ts",
+      "line": 17,
+      "source": "baseUrl: \"https://staging.tashiraev.com\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/invoice-download-token.test.ts",
+      "line": 50,
+      "source": "process.env.PUBLIC_APP_URL = \"https://tashiraev.com\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/invoice-download-token.ts",
+      "line": 7,
+      "source": "const value = process.env.STORAGE_URL_SECRET || \"\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/local-storage.test.ts",
+      "line": 18,
+      "source": "originalStorageRoot = process.env.STORAGE_ROOT;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/local-storage.test.ts",
+      "line": 20,
+      "source": "process.env.STORAGE_ROOT = temporaryRoot;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/local-storage.test.ts",
+      "line": 21,
+      "source": "process.env.STORAGE_URL_SECRET = \"a-secure-storage-url-secret-for-review\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/local-storage.test.ts",
+      "line": 25,
+      "source": "if (originalStorageRoot === undefined) delete process.env.STORAGE_ROOT;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/local-storage.test.ts",
+      "line": 26,
+      "source": "else process.env.STORAGE_ROOT = originalStorageRoot;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/local-storage.test.ts",
+      "line": 27,
+      "source": "delete process.env.STORAGE_URL_SECRET;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/local-storage.ts",
+      "line": 11,
+      "source": "return path.resolve(process.env.STORAGE_ROOT || DEFAULT_STORAGE_ROOT);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/local-storage.ts",
+      "line": 74,
+      "source": "const secret = process.env.STORAGE_URL_SECRET || \"\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/authority-output-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/authority-output-service.ts",
+      "line": 8,
+      "source": "function enabled(flag:\"TYPING_PACK\"|\"AUTHORITY_QUERY\",input:Context):void{if(!isOperationsFlagEnabled(flag,input.flagContext,input.flags))throw new Error(`${flag}_DISABLED`);}"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/case-output-service.ts",
+      "line": 1,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/case-output-service.ts",
+      "line": 8,
+      "source": "return isOperationsFlagEnabled(\"TYPING_PACK\", input.context, input.flags) ? generateTypingPack(input.pack) : null;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/case-output-service.ts",
+      "line": 11,
+      "source": "return isOperationsFlagEnabled(\"AUTHORITY_QUERY\", input.context, input.flags) ? new AuthorityQueryTimeline() : null;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/case-output-service.ts",
+      "line": 14,
+      "source": "return isOperationsFlagEnabled(\"VISA_DELIVERY\", input.context, input.flags) ? prepareVisaDelivery(input.delivery) : null;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/case-read-service.ts",
+      "line": 3,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/case-read-service.ts",
+      "line": 20,
+      "source": "if (!isOperationsFlagEnabled(\"OPERATIONS_CASE_READ_MODEL\", input.context, input.flags)) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/case-read-service.ts",
+      "line": 29,
+      "source": "const travelPartyEnabled = isOperationsFlagEnabled(\"TRAVEL_PARTY_ENGINE\", input.context, input.flags);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/case-read-service.ts",
+      "line": 30,
+      "source": "const schedulerEnabled = isOperationsFlagEnabled(\"SUBMISSION_SCHEDULER\", input.context, input.flags);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/controlled-actions.ts",
+      "line": 6,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/controlled-actions.ts",
+      "line": 32,
+      "source": "if (!isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\", input.context, input.flags)) throw new Error(\"OPERATIONS_CONTROLLED_WRITES_DISABLED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/inbound-email-service.ts",
+      "line": 1,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/inbound-email-service.ts",
+      "line": 9,
+      "source": "if (!isOperationsFlagEnabled(\"SUPPORT_INBOX\", input.context, input.flags)) throw new Error(\"INBOUND_EMAIL_DISABLED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/manager-dashboard-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/manager-dashboard-service.ts",
+      "line": 10,
+      "source": "if (!isOperationsFlagEnabled(\"OPERATIONS_CASE_READ_MODEL\", input.context, input.flags)) throw new Error(\"OPERATIONS_MANAGER_DASHBOARD_DISABLED\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.integration.test.ts",
+      "line": 4,
+      "source": "import { isOperationsFlagEnabled } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.integration.test.ts",
+      "line": 8,
+      "source": "const rehearsalUrl = process.env.OPS_REHEARSAL_DATABASE_URL;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.integration.test.ts",
+      "line": 78,
+      "source": "expect(isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\", { environment: \"TEST\", staffId, teamIds: actor.teamIds }, flags)).toBe(true);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.test.ts",
+      "line": 3,
+      "source": "import { isOperationsFlagEnabled } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.test.ts",
+      "line": 7,
+      "source": "runtimeFlagEnvironment,"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.test.ts",
+      "line": 73,
+      "source": "expect(isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\", { environment: \"TEST\", teamIds: new Set([7]) }, records)).toBe(true);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.test.ts",
+      "line": 74,
+      "source": "expect(isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\", { environment: \"TEST\", teamIds: new Set([8]) }, records)).toBe(false);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.test.ts",
+      "line": 79,
+      "source": "expect(isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\", { environment: \"TEST\" }, missing)).toBe(false);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.test.ts",
+      "line": 86,
+      "source": "expect(runtimeFlagEnvironment(\"production\")).toBe(\"PRODUCTION\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.test.ts",
+      "line": 87,
+      "source": "expect(runtimeFlagEnvironment(\"test\")).toBe(\"TEST\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-access-provider.test.ts",
+      "line": 88,
+      "source": "expect(runtimeFlagEnvironment(\"unexpected\")).toBe(\"DEVELOPMENT\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-access-provider.ts",
+      "line": 81,
+      "source": "export function runtimeFlagEnvironment(nodeEnvironment = process.env.NODE_ENV, appEnvironment = process.env.APP_ENV): FlagEnvironment {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-access-provider.ts",
+      "line": 190,
+      "source": "return flagKey === null || environment === null || enabled === null || scopeType === null || scopeReference === null"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-access-provider.ts",
+      "line": 230,
+      "source": "environment: runtimeFlagEnvironment(),"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-case-read-provider.integration.test.ts",
+      "line": 6,
+      "source": "const databaseUrl = process.env.OPS_READ_DATABASE_URL;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-controlled-write-executor.ts",
+      "line": 11,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-controlled-write-executor.ts",
+      "line": 14,
+      "source": "import { MysqlOperationsAccessProvider, runtimeFlagEnvironment } from \"./mysql-access-provider\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-controlled-write-executor.ts",
+      "line": 162,
+      "source": "if (!isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\", this.flagContext(trustedActor), flags)) throw new OperationsWriteError(\"FEATURE_DISABLED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-controlled-write-executor.ts",
+      "line": 267,
+      "source": "if (!isOperationsFlagEnabled(\"VISA_RULES_EVALUATION\", this.flagContext(trustedActor), flags)) throw new OperationsWriteError(\"FEATURE_DISABLED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-controlled-write-executor.ts",
+      "line": 307,
+      "source": "if (!isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\", this.flagContext(trustedActor), flags)) throw new OperationsWriteError(\"FEATURE_DISABLED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/mysql-controlled-write-executor.ts",
+      "line": 353,
+      "source": "return { environment: runtimeFlagEnvironment(), staffId: staff ? Number(staff[1]) : undefined, teamIds: actor.teamIds };"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-rehearsal-runner.test.ts",
+      "line": 13,
+      "source": "\"mysql://synthetic:hidden@127.0.0.1:33306/tashira_staging\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-supplier-sla-repository.integration.test.ts",
+      "line": 6,
+      "source": "const databaseUrl=process.env.OPS_SUPPLIER_SLA_DATABASE_URL;const integration=databaseUrl?describe.sequential:describe.skip;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/mysql-support-inbox-repository.integration.test.ts",
+      "line": 6,
+      "source": "const databaseUrl = process.env.OPS_SUPPORT_DATABASE_URL;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/operations-email-runtime.ts",
+      "line": 5,
+      "source": "import { isOperationsFlagEnabled } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/operations-email-runtime.ts",
+      "line": 20,
+      "source": "!isOperationsFlagEnabled("
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/regulatory-change-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled,type FeatureFlagContext,type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/regulatory-change-service.ts",
+      "line": 7,
+      "source": "function enabled(input:Context):void{if(!isOperationsFlagEnabled(\"REGULATORY_WATCHER\",input.flagContext,input.flags))throw new Error(\"REGULATORY_WATCHER_DISABLED\");}"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/operations/staging-v1-closed-state-script.test.ts",
+      "line": 8,
+      "source": "expect(source).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/submission-queue.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/submission-queue.ts",
+      "line": 28,
+      "source": "if (!isOperationsFlagEnabled(\"OPERATIONS_CASE_READ_MODEL\", input.context, input.flags)"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/submission-queue.ts",
+      "line": 29,
+      "source": "|| !isOperationsFlagEnabled(\"SUBMISSION_SCHEDULER\", input.context, input.flags)) throw new Error(\"SUBMISSION_QUEUE_DISABLED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/supplier-sla-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/supplier-sla-service.ts",
+      "line": 13,
+      "source": "function enabled(input: Context): void { if(!isOperationsFlagEnabled(\"SUPPLIER_SLA\",input.flagContext,input.flags))throw new Error(\"SUPPLIER_SLA_DISABLED\"); }"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/support-inbox-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/support-inbox-service.ts",
+      "line": 13,
+      "source": "function enabled(input: Context): void { if (!isOperationsFlagEnabled(\"SUPPORT_INBOX\", input.context, input.flags)) throw new Error(\"SUPPORT_INBOX_DISABLED\"); }"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/visa-delivery-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled,type FeatureFlagContext,type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/operations/visa-delivery-service.ts",
+      "line": 7,
+      "source": "function enabled(input:Flags):void{if(!isOperationsFlagEnabled(\"VISA_DELIVERY\",input.flagContext,input.flags))throw new Error(\"VISA_DELIVERY_DISABLED\");}"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/payment-finalization.ts",
+      "line": 12,
+      "source": "import { stripeRuntimeMode } from \"./stripe-runtime\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/payment-finalization.ts",
+      "line": 45,
+      "source": "isTest: application.isTest || stripeRuntimeMode() === \"TEST\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/payment-success-email.test.ts",
+      "line": 6,
+      "source": "beforeEach(() => { process.env.PUBLIC_APP_URL = \"https://staging.tashiraev.com\"; });"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/payment-success-email.test.ts",
+      "line": 7,
+      "source": "afterEach(() => { delete process.env.PUBLIC_APP_URL; });"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/payment-success-email.test.ts",
+      "line": 20,
+      "source": "invoiceUrl: \"https://staging.tashiraev.com/invoice-download/INV-TSH-123456?expires=9999999999&signature=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/payment-success-email.test.ts",
+      "line": 21,
+      "source": "trackingUrl: \"https://staging.tashiraev.com/track?ref=TSH-123456\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/payment-success-email.test.ts",
+      "line": 27,
+      "source": "expect(email.html).toContain(\"https://staging.tashiraev.com/invoice-download/INV-TSH-123456\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/payment-success-email.test.ts",
+      "line": 47,
+      "source": "invoiceUrl: \"https://staging.tashiraev.com/invoices/INV-TSH-123456.pdf?expires=9999999999&signature=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/production-deployment-mode.test.ts",
+      "line": 10,
+      "source": "...process.env,"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/production-deployment-mode.test.ts",
+      "line": 11,
+      "source": "DEPLOYMENT_MODE: deploymentMode,"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/public-app-url.test.ts",
+      "line": 4,
+      "source": "afterEach(() => delete process.env.PUBLIC_APP_URL);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/public-app-url.test.ts",
+      "line": 9,
+      "source": "\"https://staging.tashiraev.com\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/public-app-url.test.ts",
+      "line": 11,
+      "source": "process.env.PUBLIC_APP_URL = origin;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/public-app-url.test.ts",
+      "line": 17,
+      "source": "process.env.PUBLIC_APP_URL = \"https://tashiraev.com\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/public-app-url.test.ts",
+      "line": 29,
+      "source": "process.env.PUBLIC_APP_URL = configuredUrl;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/public-app-url.ts",
+      "line": 3,
+      "source": "export function publicAppOrigin(configuredUrl = process.env.PUBLIC_APP_URL) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/refund-credit-note.ts",
+      "line": 6,
+      "source": "import { stripeRuntimeMode } from \"./stripe-runtime\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/refund-credit-note.ts",
+      "line": 31,
+      "source": "kind: \"credit-note\", isTest: Boolean(row.is_test) || stripeRuntimeMode() === \"TEST\", issuedAt: new Date(),"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/refund-outcome-email.test.ts",
+      "line": 7,
+      "source": "beforeEach(() => vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com'));"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/requirements/mysql-requirement-catalog-provider.ts",
+      "line": 2,
+      "source": "import { runtimeFlagEnvironment } from \"../operations/mysql-access-provider\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/requirements/mysql-requirement-catalog-provider.ts",
+      "line": 84,
+      "source": "return runtimeFlagEnvironment() === \"STAGING\" ? withOwnerDocumentCatalog(catalog) : catalog;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/resend-email.test.ts",
+      "line": 11,
+      "source": "beforeEach(() => { process.env.PUBLIC_APP_URL = \"https://staging.tashiraev.com\"; });"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/resend-email.test.ts",
+      "line": 12,
+      "source": "afterEach(() => { delete process.env.PUBLIC_APP_URL; });"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/resend-email.test.ts",
+      "line": 18,
+      "source": "variables: { referenceNumber: \"TSH-1\", invoiceNumber: \"INV-1\", amountPaid: \"170.00\", currency: \"USD\", currentStatus: \"Paid / Ready for Processing\", invoiceUrl: \"https://staging.tashiraev.com/invoice-download/INV-1?expires=9999999999&signature=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" },"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/resend-email.test.ts",
+      "line": 35,
+      "source": "variables: { referenceNumber: \"TSH-1\", resumeUrl: \"https://staging.tashiraev.com/recover?token=safe-token\" },"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/resend-email.test.ts",
+      "line": 38,
+      "source": "expect(payload.html).toContain('href=\"https://staging.tashiraev.com/recover?token=safe-token\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/resend-email.test.ts",
+      "line": 40,
+      "source": "expect(payload.text).toContain(\"https://staging.tashiraev.com/recover?token=safe-token\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/rules/mysql-rule-governance-repository.ts",
+      "line": 82,
+      "source": "action: input.action, reason: input.reason.trim(), environment: input.environment, actorId: actor.id });"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/rules/mysql-rule-governance-repository.ts",
+      "line": 93,
+      "source": "environment: input.environment, ownerActivationApproved: input.ownerActivationApproved });"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/rules/rule-governance-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/rules/rule-governance-service.ts",
+      "line": 15,
+      "source": "if (!isOperationsFlagEnabled(\"REGULATORY_WATCHER\", input.flagContext, input.flags)) throw new Error(\"RULE_GOVERNANCE_DISABLED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/rules/rule-governance-service.ts",
+      "line": 20,
+      "source": "if (!isOperationsFlagEnabled(\"REGULATORY_WATCHER\", input.flagContext, input.flags)) throw new Error(\"RULE_GOVERNANCE_DISABLED\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/rules/rule-governance.ts",
+      "line": 49,
+      "source": "if (input.environment === \"PRODUCTION\" && input.action === \"ACTIVATE\" && !input.ownerActivationApproved) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/rules/source-authority-service.ts",
+      "line": 2,
+      "source": "import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/rules/source-authority-service.ts",
+      "line": 8,
+      "source": "if (!isOperationsFlagEnabled(\"REGULATORY_WATCHER\", input.flagContext, input.flags)) throw new Error(\"SOURCE_AUTHORITY_GOVERNANCE_DISABLED\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/rules/staging-customer-route-uat-rules.test.ts",
+      "line": 8,
+      "source": "expect(script).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/rules/staging-synthetic-rule-fixture.test.ts",
+      "line": 8,
+      "source": "expect(script).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/security-deposit.test.ts",
+      "line": 7,
+      "source": "beforeEach(() => { process.env.PUBLIC_APP_URL = \"https://staging.tashiraev.com\"; });"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/security-deposit.test.ts",
+      "line": 8,
+      "source": "afterEach(() => { delete process.env.PUBLIC_APP_URL; });"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/security-deposit.test.ts",
+      "line": 17,
+      "source": "depositUrl: `https://staging.tashiraev.com/deposit/${token}`,"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/security-deposit.test.ts",
+      "line": 20,
+      "source": "expect(email.html).toContain(`href=\"https://staging.tashiraev.com/deposit/${token}\"`);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/ssr-html.ts",
+      "line": 12,
+      "source": "const social = meta ? Object.entries(socialMetadata(meta, process.env.PUBLIC_APP_URL)).map(([key, value]) => `<meta ${key.startsWith(\"twitter:\") ? \"name\" : \"property\"}=\"${key}\" content=\"${escape(value)}\"/>`).join(\"\") : \"\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-migration.test.ts",
+      "line": 26,
+      "source": "expect(runner).toContain('databaseName !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-migration.test.ts",
+      "line": 27,
+      "source": "expect(runner).toContain('databaseUser !== \"tashira_staging_app\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-migration.test.ts",
+      "line": 28,
+      "source": "expect(runner).toContain('identity.database_name !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-migration.test.ts",
+      "line": 40,
+      "source": "expect(runner).toContain('identity?.database_name !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-migration.test.ts",
+      "line": 41,
+      "source": "expect(runner).toContain('identity?.database_user !== \"tashira_staging_app\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-owner-browser-auth.test.ts",
+      "line": 6,
+      "source": "import { BrowserAuthRateLimiter, consumeStagingOwnerBrowserToken, isStagingBrowserAuthEnvironment } from \"./staging-owner-browser-auth\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-owner-browser-auth.test.ts",
+      "line": 11,
+      "source": "PUBLIC_APP_URL: \"https://staging.tashiraev.com\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-owner-browser-auth.test.ts",
+      "line": 12,
+      "source": "DATABASE_URL: \"mysql://synthetic:synthetic@127.0.0.1:3306/tashira_staging\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-owner-browser-auth.test.ts",
+      "line": 29,
+      "source": "expect(isStagingBrowserAuthEnvironment(staging(directory))).toBe(true);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-owner-browser-auth.test.ts",
+      "line": 30,
+      "source": "expect(isStagingBrowserAuthEnvironment({ ...staging(directory), PUBLIC_APP_URL: \"https://tashiraev.com\" })).toBe(false);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-owner-browser-auth.test.ts",
+      "line": 31,
+      "source": "expect(isStagingBrowserAuthEnvironment({ ...staging(directory), DATABASE_URL: \"mysql://x:x@localhost/tashira\" })).toBe(false);"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/staging-owner-browser-auth.test.ts",
+      "line": 32,
+      "source": "expect(isStagingBrowserAuthEnvironment({ ...staging(directory), APP_ID: \"tashira\" })).toBe(false);"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/staging-owner-browser-auth.ts",
+      "line": 6,
+      "source": "const STAGING_ORIGIN = \"https://staging.tashiraev.com\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/staging-owner-browser-auth.ts",
+      "line": 8,
+      "source": "const STAGING_DATABASE = \"tashira_staging\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/staging-owner-browser-auth.ts",
+      "line": 16,
+      "source": "export function isStagingBrowserAuthEnvironment(environment: NodeJS.ProcessEnv = process.env): boolean {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/staging-owner-browser-auth.ts",
+      "line": 39,
+      "source": "const environment = options.environment ?? process.env;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/staging-owner-browser-auth.ts",
+      "line": 40,
+      "source": "if (!isStagingBrowserAuthEnvironment(environment) || !TOKEN_PATTERN.test(token)) return \"REJECTED\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-runtime.test.ts",
+      "line": 5,
+      "source": "STRIPE_MODE: \"TEST\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-runtime.test.ts",
+      "line": 12,
+      "source": "STRIPE_MODE: \"LIVE\","
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-runtime.test.ts",
+      "line": 19,
+      "source": "delete process.env.STRIPE_MODE;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-runtime.test.ts",
+      "line": 20,
+      "source": "delete process.env.DEPLOYMENT_MODE;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-runtime.test.ts",
+      "line": 30,
+      "source": "expect(validateStripeRuntimeConfig({ ...testConfig, STRIPE_MODE: undefined, DEPLOYMENT_MODE: \"PRELIVE\" }).mode).toBe(\"TEST\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-runtime.test.ts",
+      "line": 31,
+      "source": "expect(validateStripeRuntimeConfig({ ...liveConfig, STRIPE_MODE: undefined, DEPLOYMENT_MODE: \"LIVE\" }).mode).toBe(\"LIVE\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-runtime.ts",
+      "line": 12,
+      "source": "function explicitStripeMode(environment: NodeJS.ProcessEnv = process.env): StripeRuntimeMode {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-runtime.ts",
+      "line": 13,
+      "source": "if (environment.STRIPE_MODE === \"TEST\" || environment.STRIPE_MODE === \"LIVE\") {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-runtime.ts",
+      "line": 14,
+      "source": "return environment.STRIPE_MODE;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-runtime.ts",
+      "line": 16,
+      "source": "if (environment.DEPLOYMENT_MODE === \"PRELIVE\") return \"TEST\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-runtime.ts",
+      "line": 17,
+      "source": "if (environment.DEPLOYMENT_MODE === \"LIVE\") return \"LIVE\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-runtime.ts",
+      "line": 21,
+      "source": "export function validateStripeRuntimeConfig(environment: NodeJS.ProcessEnv = process.env) {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-runtime.ts",
+      "line": 44,
+      "source": "export function stripeRuntimeMode(): StripeRuntimeMode {"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 15,
+      "source": "const digest = createHmac(\"sha256\", process.env.STRIPE_WEBHOOK_SECRET!).update(`${timestamp}.${body}`).digest(\"hex\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 21,
+      "source": "process.env.STRIPE_MODE = \"TEST\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 22,
+      "source": "process.env.VITE_STRIPE_PUBLISHABLE_KEY = \"pk_test_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 23,
+      "source": "process.env.STRIPE_SECRET_KEY = \"sk_test_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 24,
+      "source": "process.env.STRIPE_WEBHOOK_SECRET = \"whsec_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 28,
+      "source": "delete process.env.STRIPE_MODE;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 29,
+      "source": "delete process.env.VITE_STRIPE_PUBLISHABLE_KEY;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 30,
+      "source": "delete process.env.STRIPE_SECRET_KEY;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 31,
+      "source": "delete process.env.STRIPE_WEBHOOK_SECRET;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 53,
+      "source": "process.env.STRIPE_MODE = \"LIVE\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 54,
+      "source": "process.env.VITE_STRIPE_PUBLISHABLE_KEY = \"pk_live_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 55,
+      "source": "process.env.STRIPE_SECRET_KEY = \"sk_live_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 63,
+      "source": "process.env.STRIPE_MODE = \"LIVE\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 64,
+      "source": "process.env.VITE_STRIPE_PUBLISHABLE_KEY = \"pk_live_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 65,
+      "source": "process.env.STRIPE_SECRET_KEY = \"sk_live_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 70,
+      "source": "process.env.STRIPE_MODE = \"LIVE\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 71,
+      "source": "process.env.VITE_STRIPE_PUBLISHABLE_KEY = \"pk_live_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 72,
+      "source": "process.env.STRIPE_SECRET_KEY = \"sk_live_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe-webhook.test.ts",
+      "line": 75,
+      "source": "process.env.STRIPE_WEBHOOK_SECRET = \"whsec_wrong_review_only\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-webhook.ts",
+      "line": 2,
+      "source": "import { stripeRuntimeMode, stripeWebhookSecret } from \"./stripe-runtime\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/stripe-webhook.ts",
+      "line": 48,
+      "source": "const expectedLiveMode = stripeRuntimeMode() === \"LIVE\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 16,
+      "source": "process.env.STRIPE_MODE = \"TEST\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 17,
+      "source": "process.env.VITE_STRIPE_PUBLISHABLE_KEY = \"pk_test_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 18,
+      "source": "process.env.STRIPE_SECRET_KEY = [\"sk\", \"test\", \"review_only\"].join(\"_\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 19,
+      "source": "process.env.STRIPE_WEBHOOK_SECRET = \"whsec_review_only\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 23,
+      "source": "delete process.env.STRIPE_MODE;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 24,
+      "source": "delete process.env.VITE_STRIPE_PUBLISHABLE_KEY;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 25,
+      "source": "delete process.env.STRIPE_SECRET_KEY;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 26,
+      "source": "delete process.env.STRIPE_WEBHOOK_SECRET;"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/stripe.test.ts",
+      "line": 43,
+      "source": "process.env.STRIPE_SECRET_KEY = \"not-a-test-key\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/supabase.ts",
+      "line": 4,
+      "source": "const SUPABASE_URL = (process.env.SUPABASE_URL || \"\").replace(/\\/$/, \"\");"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/supabase.ts",
+      "line": 5,
+      "source": "const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || \"\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/supabase.ts",
+      "line": 7,
+      "source": "export const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || \"tashira-documents\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/synthetic-seed-guard.test.ts",
+      "line": 6,
+      "source": "const isolated = { directory: '/var/www/tashira-staging', databaseUrl: 'mysql://tashira_staging_app:test@localhost/tashira_staging', storageRoot: '/var/www/tashira-staging/storage/documents' };"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/synthetic-seed-guard.test.ts",
+      "line": 12,
+      "source": "expect(() => assertSyntheticSeedConnection('tashira_db', 'tashira_staging_app@localhost')).toThrow();"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/synthetic-seed-guard.test.ts",
+      "line": 13,
+      "source": "expect(() => assertSyntheticSeedConnection('tashira_staging', 'root@localhost')).toThrow();"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/synthetic-seed-guard.test.ts",
+      "line": 14,
+      "source": "expect(() => assertSyntheticSeedConnection('tashira_staging', 'tashira_staging_app@localhost')).not.toThrow();"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/synthetic-seed-guard.ts",
+      "line": 4,
+      "source": "|| url.pathname !== '/tashira_staging' || decodeURIComponent(url.username) !== 'tashira_staging_app') {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/synthetic-seed-guard.ts",
+      "line": 10,
+      "source": "if (database !== 'tashira_staging' || user.split('@')[0] !== 'tashira_staging_app') {"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/travel/mysql-scheduler-alert-provider.integration.test.ts",
+      "line": 9,
+      "source": "const enabled = process.env.RUN_SCHEDULER_ALERT_MYSQL_INTEGRATION === \"1\";"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/travel/mysql-scheduler-alert-provider.integration.test.ts",
+      "line": 22,
+      "source": "const uri = process.env.SCHEDULER_ALERT_MYSQL_URL;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/travel/mysql-scheduler-alert-provider.ts",
+      "line": 5,
+      "source": "import { isOperationsFlagEnabled } from \"../feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/travel/mysql-scheduler-alert-provider.ts",
+      "line": 6,
+      "source": "import { MysqlOperationsAccessProvider, runtimeFlagEnvironment } from \"../operations/mysql-access-provider\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/travel/mysql-scheduler-alert-provider.ts",
+      "line": 181,
+      "source": "const context = { environment: runtimeFlagEnvironment(), staffId: staff ? Number(staff[1]) : undefined, teamIds: trusted.teamIds };"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/travel/mysql-scheduler-alert-provider.ts",
+      "line": 182,
+      "source": "if (!isOperationsFlagEnabled(\"SUBMISSION_SCHEDULER\", context, flags)) throw new SchedulerAlertPersistenceError(\"FEATURE_DISABLED\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/vite.test.ts",
+      "line": 29,
+      "source": "vi.stubEnv(\"PUBLIC_APP_URL\", \"https://staging.tashiraev.com\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/lib/vite.test.ts",
+      "line": 74,
+      "source": "vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com');"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/vite.ts",
+      "line": 25,
+      "source": "if (process.env.PUBLIC_APP_URL?.replace(/\\/$/, \"\") === \"https://staging.tashiraev.com\") {"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/vite.ts",
+      "line": 44,
+      "source": "if (process.env.PUBLIC_APP_URL?.replace(/\\/$/, \"\") === \"https://staging.tashiraev.com\" &&"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/lib/vite.ts",
+      "line": 59,
+      "source": "const result = await renderInWorker({ url: c.req.path + requestUrl.search, apiOrigin: `http://127.0.0.1:${process.env.PORT || \"3000\"}`, fault }, signal);"
+    },
+    {
+      "kind": "test",
+      "file": "api/operations-write-mysql.integration.test.ts",
+      "line": 10,
+      "source": "const databaseUrl = process.env.OPS_EXECUTOR_DATABASE_URL;"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/operations-write-router.ts",
+      "line": 6,
+      "source": "import { isOperationsFlagEnabled } from \"./lib/feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/operations-write-router.ts",
+      "line": 44,
+      "source": "if (!isOperationsFlagEnabled(\"OPERATIONS_CONTROLLED_WRITES\", await deps.flagContextForContext(ctx), flags)) {"
+    },
+    {
+      "kind": "test",
+      "file": "api/passport-profile-governance-router.test.ts",
+      "line": 14,
+      "source": "sourceEvidenceReferences:[\"STAGING_TEST_SYNTHETIC_NOT_REGULATORY\"],effectiveFrom:\"2026-01-01T00:00:00.000Z\",effectiveTo:null,stagingTestOnly:true};"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/passport-profile-governance-router.ts",
+      "line": 5,
+      "source": "import { isOperationsFlagEnabled } from \"./lib/feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/passport-profile-governance-router.ts",
+      "line": 19,
+      "source": "effectiveFrom:iso,effectiveTo:iso.nullable(),stagingTestOnly:z.boolean()}).strict();"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/passport-profile-governance-router.ts",
+      "line": 26,
+      "source": "if(!isOperationsFlagEnabled(\"DOCUMENT_INTELLIGENCE\",flagContext,flags))throw new Error(\"PASSPORT_PROFILE_GOVERNANCE_DISABLED\");return{actor,flagContext};}"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/rule-governance-router.ts",
+      "line": 9,
+      "source": "import { isOperationsFlagEnabled } from \"./lib/feature-flags/feature-flags\";"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/rule-governance-router.ts",
+      "line": 45,
+      "source": "mutationsEnabled: isOperationsFlagEnabled(\"REGULATORY_WATCHER\", evidenceContext.flagContext, evidenceContext.flags),"
+    },
+    {
+      "kind": "runtime",
+      "file": "api/rule-governance-router.ts",
+      "line": 59,
+      "source": "return flags.filter((flag) => flag.environment === \"STAGING\");"
+    },
+    {
+      "kind": "test",
+      "file": "api/staging-owner-operations-scope.test.ts",
+      "line": 7,
+      "source": "expect(source).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/staging-unified-scripts.test.ts",
+      "line": 14,
+      "source": "expect(scope).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/staging-unified-scripts.test.ts",
+      "line": 34,
+      "source": "expect(scenarios).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/staging-unified-scripts.test.ts",
+      "line": 43,
+      "source": "expect(readContract).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/staging-unified-scripts.test.ts",
+      "line": 52,
+      "source": "expect(partySetup).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "test",
+      "file": "api/staging-unified-scripts.test.ts",
+      "line": 63,
+      "source": "expect(portalScope).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "tooling",
+      "file": "db/seed.ts",
+      "line": 7,
+      "source": "assertSyntheticSeedTarget({ directory: realpathSync(process.cwd()), databaseUrl: process.env.DATABASE_URL || '',"
+    },
+    {
+      "kind": "tooling",
+      "file": "db/seed.ts",
+      "line": 8,
+      "source": "storageRoot: realpathSync(process.env.STORAGE_ROOT || '.') });"
+    },
+    {
+      "kind": "tooling",
+      "file": "docker-compose.yml",
+      "line": 14,
+      "source": "- NODE_ENV=production"
+    },
+    {
+      "kind": "tooling",
+      "file": "drizzle.config.ts",
+      "line": 4,
+      "source": "const connectionString = process.env.DATABASE_URL;"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/configure-production-stripe-live.sh",
+      "line": 82,
+      "source": "STRIPE_MODE=*)"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/configure-production-stripe-live.sh",
+      "line": 84,
+      "source": "printf 'STRIPE_MODE=LIVE\\n' >> \"$temp_file\""
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/configure-production-stripe-live.sh",
+      "line": 95,
+      "source": "[[ \"$mode_written\" -eq 1 ]] || printf 'STRIPE_MODE=LIVE\\n' >> \"$temp_file\""
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/configure-production-stripe-live.sh",
+      "line": 106,
+      "source": "test \"$(grep -c '^STRIPE_MODE=LIVE$' \"$env_file\")\" -eq 1"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/configure-production-stripe-live.sh",
+      "line": 107,
+      "source": "test \"$(grep -Ec '^(VITE_STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|STRIPE_MODE)=' \"$env_file\")\" -eq 4"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/invoice-series-rehearsal.mjs",
+      "line": 9,
+      "source": "const name='tashira_staging_invoice_rehearsal';"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/refund-credit-note-rehearsal.ts",
+      "line": 7,
+      "source": "const raw = process.env.OPS_REHEARSAL_DATABASE_URL ?? \"\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/refund-credit-note-rehearsal.ts",
+      "line": 9,
+      "source": "process.env.DATABASE_URL = raw;"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/refund-credit-note-rehearsal.ts",
+      "line": 10,
+      "source": "process.env.STRIPE_MODE = \"TEST\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/refund-credit-note-rehearsal.ts",
+      "line": 11,
+      "source": "process.env.VITE_STRIPE_PUBLISHABLE_KEY = \"pk_test_synthetic_ci\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/refund-credit-note-rehearsal.ts",
+      "line": 12,
+      "source": "process.env.STRIPE_SECRET_KEY = \"sk_test_synthetic_ci\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/refund-credit-note-rehearsal.ts",
+      "line": 13,
+      "source": "process.env.STRIPE_WEBHOOK_SECRET = \"whsec_synthetic_ci\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/rehearse-operations-migration-chain.ts",
+      "line": 7,
+      "source": "const rawUrl = process.env.OPS_REHEARSAL_DATABASE_URL;"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/rehearse-operations-migration-chain.ts",
+      "line": 9,
+      "source": "if (process.env.OPS_REHEARSAL_RECREATE !== \"YES\") throw new Error(\"OPS_REHEARSAL_RECREATE_CONFIRMATION_REQUIRED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/rehearse-operations-persistence.mjs",
+      "line": 4,
+      "source": "const rawUrl = process.env.OPS_REHEARSAL_DATABASE_URL;"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/run-mysql-integrations.mjs",
+      "line": 7,
+      "source": "const raw = process.env.OPS_REHEARSAL_DATABASE_URL;"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/run-mysql-integrations.mjs",
+      "line": 46,
+      "source": "const env = {...process.env, RUN_DOCUMENT_INTELLIGENCE_MYSQL_INTEGRATION:'1',RUN_SCHEDULER_ALERT_MYSQL_INTEGRATION:'1'};"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-create-dynamic-interview-fixtures.ts",
+      "line": 5,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_FIXTURE_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-govern-customer-route-uat-rules.ts",
+      "line": 14,
+      "source": "* - Refuses to run outside the tashira_staging database and the staging path."
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-govern-customer-route-uat-rules.ts",
+      "line": 20,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_RULE_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-govern-customer-route-uat-rules.ts",
+      "line": 24,
+      "source": "const sourceUrl = \"https://staging.tashiraev.com/internal/testing/customer-route-uat-rules-v1\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-govern-dynamic-interview-rules.ts",
+      "line": 6,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_RULE_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-govern-dynamic-interview-rules.ts",
+      "line": 10,
+      "source": "const sourceUrl = \"https://staging.tashiraev.com/internal/testing/dynamic-interview-rules-v1\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-govern-generic-catalog.ts",
+      "line": 8,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_CATALOG_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "test",
+      "file": "scripts/staging-prepare-unified-interview-runtime.test.ts",
+      "line": 8,
+      "source": "expect(source).toContain('databaseUrl.pathname.slice(1) !== \"tashira_staging\"');"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-prepare-unified-interview-runtime.ts",
+      "line": 6,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_UNIFIED_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-customer-portal-e2e.ts",
+      "line": 9,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_PORTAL_E2E_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-customer-portal-e2e.ts",
+      "line": 13,
+      "source": "const base = new Headers({ host: \"staging.tashiraev.com\", \"x-forwarded-proto\": \"https\" });"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-requirement-document-e2e.ts",
+      "line": 11,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_REQUIREMENT_DOCUMENT_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-requirement-document-e2e.ts",
+      "line": 17,
+      "source": "const base = new Headers({ host: \"staging.tashiraev.com\", \"x-forwarded-proto\": \"https\" });"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-unified-interview-api-e2e.ts",
+      "line": 10,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_E2E_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-unified-interview-api-e2e.ts",
+      "line": 14,
+      "source": "const headers = new Headers({ host: \"staging.tashiraev.com\", \"x-forwarded-proto\": \"https\" });"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-unified-interview-read-contract-e2e.ts",
+      "line": 9,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_READ_CONTRACT_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-unified-interview-read-contract-e2e.ts",
+      "line": 13,
+      "source": "const headers = new Headers({ host: \"staging.tashiraev.com\", \"x-forwarded-proto\": \"https\" });"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-unified-interview-scenario-e2e.ts",
+      "line": 18,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_SCENARIO_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-unified-interview-scenario-e2e.ts",
+      "line": 22,
+      "source": "const headers = new Headers({ host: \"staging.tashiraev.com\", \"x-forwarded-proto\": \"https\" });"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-unified-party-setup-e2e.ts",
+      "line": 10,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_PARTY_E2E_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-run-unified-party-setup-e2e.ts",
+      "line": 14,
+      "source": "const base = new Headers({ host: \"staging.tashiraev.com\", \"x-forwarded-proto\": \"https\" });"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-scope-customer-portal.ts",
+      "line": 5,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_PORTAL_SCOPE_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-scope-dynamic-interview.ts",
+      "line": 5,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_SCOPE_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-scope-owner-operations.ts",
+      "line": 20,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_OWNER_SCOPE_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-seed-content-platform.ts",
+      "line": 14,
+      "source": "storageRoot: realpathSync(process.env.STORAGE_ROOT || '.') });"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-verify-v1-closed-state.ts",
+      "line": 5,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") throw new Error(\"STAGING_V1_GATE_DATABASE_IDENTITY_FAILED\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/staging-verify-v1-closed-state.ts",
+      "line": 44,
+      "source": "if (identity.length !== 1 || identity[0].databaseName !== \"tashira_staging\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/validate-stripe-deployment-mode.mjs",
+      "line": 40,
+      "source": "deploymentMode: process.env.DEPLOYMENT_MODE,"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/validate-stripe-deployment-mode.mjs",
+      "line": 41,
+      "source": "publishableKey: process.env.VITE_STRIPE_PUBLISHABLE_KEY,"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/validate-stripe-deployment-mode.mjs",
+      "line": 42,
+      "source": "secretKey: process.env.STRIPE_SECRET_KEY,"
+    },
+    {
+      "kind": "tooling",
+      "file": "scripts/validate-stripe-deployment-mode.mjs",
+      "line": 43,
+      "source": "webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,"
+    },
+    {
+      "kind": "tooling",
+      "file": "setup.sh",
+      "line": 54,
+      "source": "NODE_ENV=production"
+    },
+    {
+      "kind": "runtime",
+      "file": "src/components/shared/StripePaymentForm.tsx",
+      "line": 244,
+      "source": "import.meta.env.STRIPE_MODE,"
+    },
+    {
+      "kind": "runtime",
+      "file": "src/components/shared/StripePaymentForm.tsx",
+      "line": 245,
+      "source": "import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,"
+    },
+    {
+      "kind": "runtime",
+      "file": "src/pages/Login.tsx",
+      "line": 5,
+      "source": "const kimiAuthUrl = import.meta.env.VITE_KIMI_AUTH_URL;"
+    },
+    {
+      "kind": "runtime",
+      "file": "src/pages/Login.tsx",
+      "line": 6,
+      "source": "const appID = import.meta.env.VITE_APP_ID;"
+    },
+    {
+      "kind": "runtime",
+      "file": "src/pages/PaymentPage.tsx",
+      "line": 37,
+      "source": "import.meta.env.STRIPE_MODE,"
+    },
+    {
+      "kind": "runtime",
+      "file": "src/pages/PaymentPage.tsx",
+      "line": 38,
+      "source": "import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,"
+    },
+    {
+      "kind": "runtime",
+      "file": "src/pages/SecurityDepositPage.tsx",
+      "line": 9,
+      "source": "const publishableKey = validatedStripePublishableKey(import.meta.env.STRIPE_MODE, import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-applicant-slot-migration.mjs",
+      "line": 5,
+      "source": "uri: process.env.DATABASE_URL,"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-applicant-slot-migration.mjs",
+      "line": 15,
+      "source": "identity?.database_name !== \"tashira_staging\""
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-applicant-slot-migration.mjs",
+      "line": 16,
+      "source": "|| identity?.database_user !== \"tashira_staging_app\""
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-refund-email-migration.mjs",
+      "line": 4,
+      "source": "if (process.env.STAGING_MIGRATION_SOCKET !== \"true\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-refund-email-migration.mjs",
+      "line": 11,
+      "source": "database: \"tashira_staging\","
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-refund-email-migration.mjs",
+      "line": 20,
+      "source": "if (identity?.database_name !== \"tashira_staging\" || identity?.database_user !== \"root\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-stripe-webhook-migration.mjs",
+      "line": 5,
+      "source": "uri: process.env.DATABASE_URL,"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-stripe-webhook-migration.mjs",
+      "line": 15,
+      "source": "identity?.database_name !== \"tashira_staging\""
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/apply-stripe-webhook-migration.mjs",
+      "line": 16,
+      "source": "|| identity?.database_user !== \"tashira_staging_app\""
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/build-native.mjs",
+      "line": 14,
+      "source": "...process.env,"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/build-native.mjs",
+      "line": 15,
+      "source": "STRIPE_MODE: \"TEST\","
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/docker-compose.yml",
+      "line": 66,
+      "source": "NODE_ENV: production"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/docker-compose.yml",
+      "line": 138,
+      "source": "name: tashira_staging_mysql"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/docker-compose.yml",
+      "line": 140,
+      "source": "name: tashira_staging_documents"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/docker-compose.yml",
+      "line": 142,
+      "source": "name: tashira_staging_invoices"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/docker-compose.yml",
+      "line": 144,
+      "source": "name: tashira_staging_public_invoices"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/guarded-db-push.mjs",
+      "line": 11,
+      "source": "const databaseName = process.env.STAGING_DATABASE_NAME;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/guarded-db-push.mjs",
+      "line": 12,
+      "source": "const databaseUser = process.env.STAGING_DATABASE_USER;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/guarded-db-push.mjs",
+      "line": 14,
+      "source": "if (process.env.STAGING_RUNTIME !== \"true\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/guarded-db-push.mjs",
+      "line": 17,
+      "source": "if (databaseName !== \"tashira_staging\" || databaseUser !== \"tashira_staging_app\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/guarded-db-push.mjs",
+      "line": 22,
+      "source": "process.env.DATABASE_URL = `mysql://${databaseUser}:${password}@staging-db:3306/${databaseName}`;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/guarded-db-push.mjs",
+      "line": 27,
+      "source": "{ stdio: \"inherit\", env: process.env },"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/guarded-db-push.mjs",
+      "line": 44,
+      "source": "if (identity.database_name !== \"tashira_staging\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/guarded-db-push.mjs",
+      "line": 45,
+      "source": "throw new Error(\"Migration connection did not resolve to tashira_staging\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/manage-browser-staff.mjs",
+      "line": 1,
+      "source": "const baseUrl = process.env.STAGING_BASE_URL ?? \"http://127.0.0.1:3002\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/manage-browser-staff.mjs",
+      "line": 2,
+      "source": "const action = process.env.STAGING_UAT_ACTION;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/manage-browser-staff.mjs",
+      "line": 3,
+      "source": "const username = process.env.STAGING_UAT_STAFF_USERNAME ?? \"\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/manage-browser-staff.mjs",
+      "line": 4,
+      "source": "const password = process.env.STAGING_UAT_STAFF_PASSWORD ?? \"\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/manage-browser-staff.mjs",
+      "line": 10,
+      "source": "assert(process.env.ADMIN_PASSWORD, \"ADMIN_PASSWORD is required\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/manage-browser-staff.mjs",
+      "line": 42,
+      "source": "await mutation(\"auth.adminLogin\", { password: process.env.ADMIN_PASSWORD });"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/provision-native.sh",
+      "line": 5,
+      "source": "database_name=\"tashira_staging\""
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/provision-native.sh",
+      "line": 6,
+      "source": "database_user=\"tashira_staging_app\""
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/provision-native.sh",
+      "line": 7,
+      "source": "migration_user=\"tashira_staging_migrator\""
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/provision-native.sh",
+      "line": 89,
+      "source": "write_secret_if_missing NODE_ENV production"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 10,
+      "source": "const databaseName = process.env.STAGING_DATABASE_NAME;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 11,
+      "source": "const databaseUser = process.env.STAGING_DATABASE_USER;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 13,
+      "source": "if (databaseName !== \"tashira_staging\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 14,
+      "source": "throw new Error(\"Refusing to start outside the tashira_staging database\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 16,
+      "source": "if (databaseUser !== \"tashira_staging_app\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 21,
+      "source": "process.env.DATABASE_URL = `mysql://${databaseUser}:${databasePassword}@staging-db:3306/${databaseName}`;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 22,
+      "source": "process.env.APP_ID = \"tashira-staging\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 23,
+      "source": "process.env.APP_SECRET = readSecret(\"app_secret\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 24,
+      "source": "process.env.KIMI_OPEN_URL = \"https://unused.example.com\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 25,
+      "source": "process.env.ADMIN_PASSWORD = readSecret(\"admin_password\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 26,
+      "source": "process.env.ADMIN_SESSION_SECRET = readSecret(\"admin_session_secret\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 27,
+      "source": "process.env.CUSTOMER_SESSION_SECRET = readSecret(\"customer_session_secret\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 28,
+      "source": "process.env.STORAGE_URL_SECRET = readSecret(\"storage_url_secret\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 29,
+      "source": "process.env.STRIPE_MODE = \"TEST\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 30,
+      "source": "process.env.STRIPE_SECRET_KEY = readSecret(\"stripe_secret_key\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 31,
+      "source": "process.env.STRIPE_WEBHOOK_SECRET = readSecret(\"stripe_webhook_secret\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 32,
+      "source": "process.env.VITE_KIMI_API_KEY = readSecret(\"kimi_api_key\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 34,
+      "source": "if (!process.env.STRIPE_SECRET_KEY.startsWith(\"sk_test_\")) {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-app.mjs",
+      "line": 37,
+      "source": "if (!process.env.STRIPE_WEBHOOK_SECRET.startsWith(\"whsec_\")) {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 27,
+      "source": "process.env.VITE_STRIPE_PUBLISHABLE_KEY = publishableKey;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 28,
+      "source": "process.env.STRIPE_MODE = \"TEST\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 29,
+      "source": "process.env.STRIPE_SECRET_KEY = readSecret(\"stripe_secret_key\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 30,
+      "source": "process.env.STRIPE_WEBHOOK_SECRET = readSecret(\"stripe_webhook_secret\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 31,
+      "source": "process.env.STAGING_BROWSER_AUTH_DIR = \"/var/lib/tashira-staging/browser-auth\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 33,
+      "source": "if (stagingConfig[name]) process.env[name] = stagingConfig[name];"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 38,
+      "source": "if (resendApiKey) process.env.RESEND_API_KEY = resendApiKey;"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 41,
+      "source": "if (!process.env.STRIPE_SECRET_KEY.startsWith(\"sk_test_\")) {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 44,
+      "source": "if (!process.env.STRIPE_WEBHOOK_SECRET.startsWith(\"whsec_\")) {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 49,
+      "source": "process.env.EMAIL_MODE = \"disabled\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/run-native.mjs",
+      "line": 50,
+      "source": "process.env.STAGING_EMAIL_MODE = \"disabled\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-14day-multiple.mjs",
+      "line": 8,
+      "source": "const baseUrl = process.env.STAGING_BASE_URL ?? \"http://127.0.0.1:3002\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-14day-multiple.mjs",
+      "line": 9,
+      "source": "const databaseUrl = new URL(process.env.DATABASE_URL);"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-14day-multiple.mjs",
+      "line": 10,
+      "source": "if (databaseUrl.pathname.slice(1) !== \"tashira_staging\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-14day-multiple.mjs",
+      "line": 11,
+      "source": "throw new Error(\"14-day multiple-entry verification requires tashira_staging\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-14day-multiple.mjs",
+      "line": 96,
+      "source": "const db = await mysql.createConnection(process.env.DATABASE_URL);"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-authentication.mjs",
+      "line": 1,
+      "source": "const baseUrl = process.env.STAGING_BASE_URL ?? \"http://127.0.0.1:3002\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-authentication.mjs",
+      "line": 29,
+      "source": "assert(process.env.ADMIN_PASSWORD, \"ADMIN_PASSWORD is required for authentication UAT\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-authentication.mjs",
+      "line": 34,
+      "source": "const adminLogin = await trpc(\"auth.adminLogin\", { password: process.env.ADMIN_PASSWORD }, { mutation: true });"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-family-chatbot.mjs",
+      "line": 1,
+      "source": "const baseUrl = process.env.STAGING_BASE_URL ?? \"http://127.0.0.1:3002\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-family-chatbot.mjs",
+      "line": 144,
+      "source": "assert(process.env.ADMIN_PASSWORD, \"ADMIN_PASSWORD is required for privileged document UAT\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-family-chatbot.mjs",
+      "line": 145,
+      "source": "await mutation(\"auth.adminLogin\", { password: process.env.ADMIN_PASSWORD });"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-payment-readiness.mjs",
+      "line": 1,
+      "source": "const baseUrl = process.env.STAGING_BASE_URL ?? \"http://127.0.0.1:3002\";"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-recovery-delivery.mjs",
+      "line": 29,
+      "source": "if (identity.database_name !== \"tashira_staging\" || identity.database_user !== \"tashira_staging_app\") {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-refund-deposit.mjs",
+      "line": 68,
+      "source": "return_url: \"https://staging.tashiraev.com/deposit/uat\","
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-refund-deposit.mjs",
+      "line": 103,
+      "source": "assert(identity[0].database_name === \"tashira_staging\" && identity[0].database_user === \"tashira_staging_app\", \"Staging database identity mismatch\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-stripe-test.mjs",
+      "line": 29,
+      "source": "const response = await fetch(\"https://staging.tashiraev.com/api/stripe/webhook\", {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-stripe-test.mjs",
+      "line": 36,
+      "source": "if (identity[0].database_name !== \"tashira_staging\" || identity[0].database_user !== \"tashira_staging_app\") throw new Error(\"Staging DB identity mismatch\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-stripe-test.mjs",
+      "line": 72,
+      "source": "const action = await stripe(`payment_intents/${threeDs.intent.id}/confirm`, { payment_method: \"pm_card_threeDSecure2Required\", return_url: \"https://staging.tashiraev.com/payment-return\" });"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-v1-launch.mjs",
+      "line": 78,
+      "source": "const response = await fetch(\"https://staging.tashiraev.com/api/stripe/webhook\", {"
+    },
+    {
+      "kind": "tooling",
+      "file": "staging/verify-v1-launch.mjs",
+      "line": 93,
+      "source": "assert(identity[0].database_name === \"tashira_staging\" && identity[0].database_user === \"tashira_staging_app\", \"Staging database identity mismatch\");"
+    },
+    {
+      "kind": "tooling",
+      "file": "vite.config.ts",
+      "line": 9,
+      "source": "const isNativeStaging = repositoryRoot === '/var/www/tashira-staging'"
+    },
+    {
+      "kind": "tooling",
+      "file": "vite.config.ts",
+      "line": 10,
+      "source": "if (isNativeStaging && !process.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_')) {"
+    },
+    {
+      "kind": "tooling",
+      "file": "vite.config.ts",
+      "line": 17,
+      "source": "// STRIPE_MODE is a non-secret deployment setting. Expose only that mode so"
+    },
+    {
+      "kind": "tooling",
+      "file": "vite.config.ts",
+      "line": 19,
+      "source": "'import.meta.env.STRIPE_MODE': JSON.stringify(process.env.STRIPE_MODE ?? ''),"
+    }
+  ]
+}

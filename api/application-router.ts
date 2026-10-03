@@ -23,7 +23,6 @@ import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/prici
 import { activeBusinessSettings } from "./lib/pricing-engine";
 import { canEnterApplicationState } from "./lib/processing-gate";
 import { TRPCError } from "@trpc/server";
-import { runtimeFlagEnvironment } from "./lib/operations/mysql-access-provider";
 import { staffApplicationListCondition } from "./lib/staff-application-scope";
 import { financialApplicationScope } from "./lib/financial-application-scope";
 import { withCheckoutLock } from "./lib/checkout-quote";
@@ -32,24 +31,6 @@ import { recordAuthoritySubmission } from "./lib/processing-guarantee";
 const STATUS_ENUM = ["submitted","payment_received","documents_pending","documents_received","under_review","visa_processing","visa_received","completed","rejected","cancelled"] as const;
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
 const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
-const DYNAMIC_STAGING_FLAGS = [
-  "DYNAMIC_CUSTOMER_APPLICATION", "DYNAMIC_REQUIREMENTS", "VISA_RULES_EVALUATION",
-  "CUSTOMER_OPERATIONS_PORTAL", "VISA_DELIVERY",
-] as const;
-
-async function enableDynamicJourneyForStaging(referenceNumber: string): Promise<boolean> {
-  if (runtimeFlagEnvironment() !== "STAGING") return false;
-  const db = getDb();
-  for (const flag of DYNAMIC_STAGING_FLAGS) {
-    await db.execute(sql`INSERT INTO operations_feature_flags
-      (flag_key, environment, enabled, scope_type, scope_reference, reason, changed_by)
-      VALUES (${flag}, 'STAGING', 'YES', 'APPLICATION', ${referenceNumber},
-        'Customer started the integrated Dynamic Application journey', 'application-api')
-      ON DUPLICATE KEY UPDATE enabled='YES', reason=VALUES(reason), changed_by=VALUES(changed_by)`);
-  }
-  return true;
-}
-
 export const applicationRouter = createRouter({
   prepareCreation: applicationSubmissionQuery.input(z.object({ flow: z.enum(["FORM", "CHAT", "LEGACY"]), startNew: z.boolean().default(false) }).strict())
     .mutation(({ input, ctx }) => prepareApplicationCreation(ctx, input.flow, input.startNew)),
@@ -159,7 +140,7 @@ export const applicationRouter = createRouter({
         return { applicationId: appId, applicantIds };
         });
         for (const [index, a] of input.applicants.entries()) {
-          if (a.tripPurpose && input.journeyMode === "DYNAMIC" && runtimeFlagEnvironment() === "STAGING") {
+          if (a.tripPurpose && input.journeyMode === "DYNAMIC") {
             const applicantId = created.applicantIds[index];
             await new MysqlCustomerInterviewWriteRepository(defaultOperationsPool()).editApplicant({ applicationId: created.applicationId,
               applicantId, expectedVersion: 1, profile: { fullName: a.fullName, nationality: a.nationality || null,
@@ -167,9 +148,7 @@ export const applicationRouter = createRouter({
               actorReference: `customer:${created.referenceNumber}`, idempotencyKey: `initial-purpose:${applicantId}`, occurredAt: new Date() });
           }
         }
-        const dynamicJourneyEnabled = input.journeyMode === "DYNAMIC"
-          ? await enableDynamicJourneyForStaging(created.referenceNumber)
-          : false;
+        const dynamicJourneyEnabled = input.journeyMode === "DYNAMIC";
         ctx.resHeaders.append("set-cookie", createCustomerApplicationCookie(ctx.req.headers, created.referenceNumber));
         return { id: created.applicationId, referenceNumber: created.referenceNumber, applicantIds: created.applicantIds, dynamicJourneyEnabled };
       } catch (err: unknown) {
@@ -186,7 +165,7 @@ export const applicationRouter = createRouter({
       assertApplicationReferenceAccess(ctx, input.referenceNumber);
       const application = await getCanonicalApplicationByReference(input.referenceNumber);
       if (!application) return application;
-      const purposes = runtimeFlagEnvironment() === "STAGING" ? await loadTripPurposes(defaultOperationsSqlClient(), application.id) : new Map();
+      const purposes = await loadTripPurposes(defaultOperationsSqlClient(), application.id);
       return { ...application, documentRuleDiagnostics: application.applicants.map(applicant => {
         const result = evaluateDocumentRequirements({ nationality: applicant.nationality, country_of_residence: applicant.gccResidenceCountry,
           visa_type: application.visaType, residence_type: application.residenceType, trip_purpose: purposes.get(applicant.id) });

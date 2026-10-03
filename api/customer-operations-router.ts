@@ -4,7 +4,6 @@ import type { TrpcContext } from "./context";
 import { assertApplicationReferenceAccess } from "./lib/application-authorization";
 import { buildCustomerPortalFromRuntime } from "./lib/customer/customer-portal-runtime";
 import type { FeatureFlagContext, FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
-import { isOperationsFlagEnabled } from "./lib/feature-flags/feature-flags";
 import { MysqlOperationsAccessProvider } from "./lib/operations/mysql-access-provider";
 import { MysqlOperationsCaseReadProvider, type MysqlOperationsCaseBundle } from "./lib/operations/mysql-case-read-provider";
 import { defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
@@ -29,9 +28,6 @@ export function createCustomerOperationsRouter(deps: Dependencies) {
             deps.flagContextForContext(ctx), deps.flagsForContext(ctx),
           ]);
           const context = { ...baseContext, applicationReference: input.referenceNumber };
-          if (!isOperationsFlagEnabled("CUSTOMER_OPERATIONS_PORTAL", context, flags)) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "Customer portal unavailable" });
-          }
           const bundle = await deps.load(input.referenceNumber);
           if (!bundle) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
           const portal = buildCustomerPortalFromRuntime({ bundle, context, flags, customerAuthorized });

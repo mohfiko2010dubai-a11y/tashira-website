@@ -10,7 +10,6 @@ import { hasTimelinePolicyAcceptance } from "./application-timeline";
 import { TERMS_POLICY_VERSION } from "../../contracts/constants";
 import { getDb } from "../queries/connection";
 import { validPassportExpiry } from "../../contracts/traveller-details";
-import { runtimeFlagEnvironment } from "./operations/mysql-access-provider";
 import type { TrpcContext } from "../context";
 
 export type MissingItem = { code: string; label: string };
@@ -125,8 +124,6 @@ export async function getApplicationReadiness(applicationId: number, context?: T
     legacy.applicationMissing.push({ code: "application.nationality_unavailable", label: nationalityUnavailableCopy(blocked, false) + " / " + nationalityUnavailableCopy(blocked, true) });
     legacy.status = "INCOMPLETE";
   }
-  // The owner-reviewed wizard is staging-only. Legacy and production checkout retain their existing gate.
-  if (runtimeFlagEnvironment() !== "STAGING") return legacy;
   const { defaultOperationsSqlClient } = await import("./operations/mysql-query-client");
   const sql = defaultOperationsSqlClient();
   const started = await sql.query("SELECT id FROM dynamic_interview_answer_events WHERE application_id=? LIMIT 1", [applicationId]);

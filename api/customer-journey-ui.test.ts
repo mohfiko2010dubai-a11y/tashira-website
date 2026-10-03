@@ -12,8 +12,8 @@ describe("integrated staging customer and Operations journey", () => {
     expect(start).toContain("WizardShell");
     expect(start).toContain('t("step1.family")');
     expect(start).toContain('journeyMode: "DYNAMIC"');
-    expect(application).toContain("runtimeFlagEnvironment() !== \"STAGING\"");
-    expect(application).toContain("'APPLICATION'");
+    expect(application).not.toContain("runtimeFlagEnvironment");
+    expect(application).not.toContain("enableDynamicJourneyForStaging");
     expect(application).toContain('if (input.journeyMode === "LEGACY")');
     expect(application).toContain('input.journeyMode === "DYNAMIC"');
     expect(interview).toContain('t("step2.continueToPay")');

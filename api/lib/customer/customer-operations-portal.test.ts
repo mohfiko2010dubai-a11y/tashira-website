@@ -16,8 +16,8 @@ const base = {
 };
 
 describe("customer operations portal", () => {
-  it("stays closed unless the application-scoped flag is enabled", () => {
-    expect(buildCustomerOperationsPortalBehindFlag({ ...base, flags: [] })).toBeNull();
+  it("provides the approved portal without deployment rollout flags", () => {
+    expect(buildCustomerOperationsPortalBehindFlag({ ...base, flags: [] })).toEqual(buildCustomerOperationsPortalBehindFlag(base));
   });
   it("sorts immutable timeline evidence and exposes customer-safe status only", () => {
     const portal = buildCustomerOperationsPortalBehindFlag(base);

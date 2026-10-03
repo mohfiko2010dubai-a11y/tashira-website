@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/warn-draft-document-rules.mjs && vite build && vite build --ssr src/entry-server.tsx --outDir dist/server && node scripts/verify-static-assets.mjs && esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\" && node scripts/verify-marketing-claims.mjs && node scripts/verify-marketing-copy.mjs",
+    "build": "vitest run api/business-environment.test.ts && node scripts/warn-draft-document-rules.mjs && vite build && vite build --ssr src/entry-server.tsx --outDir dist/server && node scripts/verify-static-assets.mjs && esbuild api/boot.ts --platform=node --bundle --format=esm --outdir=dist --banner:js=\"import { createRequire } from 'module';const require = createRequire(import.meta.url);\" && node scripts/verify-marketing-claims.mjs && node scripts/verify-marketing-copy.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "NODE_ENV=production node dist/boot.js",

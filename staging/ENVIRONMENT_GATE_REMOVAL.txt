@@ -1,0 +1,72 @@
+ENVIRONMENT-AND-RULES — implementation checkpoint, 2026-10-04
+
+Owner decision supersedes REPLY13's date hard block: passport/residence dates
+must produce notices and recorded human-review facts, not payment refusals.
+Nationality x product remains a catalogue hard block. Refund handling after
+an adverse document review is an owner decision; question sent, no default set.
+
+WHY EACH OF THE EIGHT CONDITIONS EXISTED / ACTION
+
+1 application-router: enableDynamicJourneyForStaging
+  Introduced in 032a612 (integrate staging customer and case journey).
+  Rollout bootstrap, not a visa rule. Deleted the conditional AND the automatic
+  per-order flag insertion. Canonical baseType applications now use the new
+  authenticated form without those rollout flags. No global flags enabled.
+  Also removed the graduated customer portal / visa delivery rollout barriers;
+  otherwise deleting the bootstrap would strand new orders after payment.
+  Ownership, staff permission/team scope, paid/visa-issued state checks remain.
+2 application-router: initial purpose write
+  Rollout isolation for the new persisted document context. Removed environment
+  condition; DYNAMIC journey still controls which application data is written.
+3 application-router: loadTripPurposes
+  Legacy projection fallback; removed empty-map production substitution.
+4 dynamic-interview-router: ownerForm
+  Added with 3376d8b (merged applicant/residence flow and owner document matrix).
+  Rollout, not unfinished policy. Select by persisted application shape alone.
+5 dynamic-interview-router: editDocumentContext
+  Protected the new profile writer during rollout. Removed environment gate;
+  ownership, profile version and idempotency protections remain.
+6 dynamic-interview-router: ownerDocuments
+  Rollout switch between legacy and owner document-key mapping. Removed
+  environment clause; persisted application shape selects the mapping.
+7 application-readiness: STAGING-only owner readiness
+  Introduced in 4b97b1e (wizard review/checkout repair). Removed environment early
+  return. Saved new-form evidence now selects owner readiness in every host.
+  IMPORTANT: six-month date blocking still exists until the next change replaces
+  it with the owner's requested notice/review workflow. Not launchable yet.
+8 mysql-requirement-catalog-provider: owner overlay
+  Rollout of approved document definitions. Overlay now applied consistently.
+
+Preserved infrastructure boundaries: TEST/LIVE Stripe credentials and webhook
+mode verification, synthetic-profile production exclusions, authentication,
+server ownership and staff authorization, intake closure, invoice integrity.
+Legacy applications without baseType still use the existing legacy feature
+machinery. This checkpoint is not certification of every optional Operations
+feature or of the live database configuration.
+
+BUILD GUARD
+api/business-environment.test.ts scans all contracts and customer/eligibility
+domain files recursively plus application/catalog/readiness/pricing boundaries.
+Uses TypeScript syntax nodes to reject process/env reads, import.meta,
+context.environment, string-index access, destructuring and known environment
+helpers. Type-only transport context is allowed. Mutation examples test the
+guard itself. package.json build runs this guard before bundling.
+Scope is explicit, not a proof against arbitrary reflective or transitive code.
+
+VERIFICATION
+Initial focused: 43 passed, including owner-form upload preparation in STAGING
+and PRODUCTION with no flags and foreign-applicant/unauthenticated denial.
+Initial full run: 1210 passed, 26 existing MySQL integration tests skipped locally.
+Later portal/delivery changes require final checks; see PROJECT_STATUS.
+No production or staging deployment. No company data/settings migration yet.
+No date policy, nationality x product, submitted-product or Stripe-fee completion
+claim. These remain next, with the company settings/provisional reopening guard.
+
+Build tooling incident: bundled pnpm unexpectedly started reorganizing local
+dependencies. Stopped immediately; restored all104 moved package directories
+from node_modules/.ignored. All15 protected dirty source hashes unchanged.
+Build rerun directly with installed CLI entrypoints, no package installation.
+
+Final local verification: TypeScript PASS; ESLint PASS; complete build including
+environment gate/static assets/marketing scans PASS;1210 tests PASS,26 existing
+MySQL skips (dedicated CI not executed locally). Protected15 source hashes match.

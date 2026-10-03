@@ -1,0 +1,197 @@
+COMPANY DATA — environment inventory and implementation checkpoint
+2026-10-04. Reviewed source baseline e59586542c12c4af4f4cb0c9bc8d9f119fd0bd4c.
+This is a source audit, not a deployment or a runtime parity certification.
+Production remains closed. No production settings, orders, counters, keys or services changed.
+
+1. BUSINESS-LOGIC DIFFERENCES THAT BLOCK LAUNCH
+
+api/application-router.ts:41
+  enableDynamicJourneyForStaging returns false outside STAGING. Only staging
+  gets the five application-scoped flags for the new journey. Production is
+  more restrictive about access, but does not exercise the approved journey.
+  Do not fix by enabling every Operations flag globally.
+api/application-router.ts:162
+  Initial trip-purpose/profile write is STAGING-only. Production loses the
+  input used by conditional document requirements: production is less strict
+  where omitted purpose suppresses required documents.
+api/application-router.ts:189
+  Production substitutes an empty purpose map on application retrieval.
+  Document projection differs; production can omit purpose-based requirements.
+api/dynamic-interview-router.ts:112
+  ownerForm requires STAGING and baseType. Staging uses owner document policy;
+  production loads the old rule set instead. Strictness is MIXED, not parity:
+  extra legacy requirements can block valid cases while new requirements vanish.
+api/dynamic-interview-router.ts:230
+  New applicant editing rejects non-STAGING. Production is more restrictive
+  but the approved form cannot complete through this path.
+api/dynamic-interview-router.ts:449
+  ownerDocuments flag on document linking is STAGING-only. Production uses a
+  different mapping. Missing/wrong linkage may block a valid uploaded file or
+  bypass the intended document-key checks. Must test actual upload + checkout.
+api/lib/application-readiness.ts:129
+  Production unconditionally returns legacy readiness, even for new-form data.
+  Legacy checks passport expiry only for presence (lines84–95); owner readiness
+  actually calls validPassportExpiry (line157). Production is LESS STRICT for
+  expiry. Legacy also demands arrival, passport type, travelling-from and GCC
+  number plus fixed document counts: it is MORE STRICT in unrelated places.
+  Do not describe the legacy gate as safer because it asks for more fields.
+api/lib/requirements/mysql-requirement-catalog-provider.ts:84
+  Owner catalogue overlay only in STAGING. Production lacks the same reviewed
+  document definitions; mixed/missing requirements, not behavior equivalence.
+
+2. ENVIRONMENT-SCOPED FEATURE FLAGS (INDIRECT CONDITIONS)
+
+api/lib/operations/mysql-access-provider.ts:81
+  APP_ENV overrides NODE_ENV; unknown/missing values become DEVELOPMENT.
+  This is not a fail-closed validation of deployment identity. A typo can select
+  the wrong flag set and bypass PRODUCTION-specific synthetic-data protections.
+api/lib/feature-flags/feature-flags.ts:64–74
+  Exact environment and scope match; missing flag is false. Application scope
+  outranks staff, team, global. Neither environment is inherently stricter;
+  actual rows decide. Disabled mutation gates deny writes, but disabled
+  evaluation/planning gates can return FEATURE_DISABLED/null, not an error.
+  Therefore 'all flags off' is not proof that every required check happened.
+  24 declared flags: VISA_RULES_EVALUATION, DYNAMIC_REQUIREMENTS, FAMILY_ENGINE,
+  TRAVEL_PARTY_ENGINE, SUBMISSION_SCHEDULER, OPERATIONS_CASE_READ_MODEL,
+  OPERATIONS_CONTROLLED_WRITES, AI_DOCUMENT_REVIEW, DOCUMENT_INTELLIGENCE,
+  OPERATIONS_STATE_MACHINE, SUPPORT_INBOX, REGULATORY_WATCHER,
+  DYNAMIC_CUSTOMER_APPLICATION, CUSTOMER_PRECHECK, CUSTOMER_OPERATIONS_PORTAL,
+  TYPING_PACK, AUTHORITY_QUERY, VISA_DELIVERY, VISA_ASSISTANT, CASE_CHAT_HANDOFF,
+  OPERATIONS_EMAIL_AUTOMATION, MANAGER_DASHBOARD, OPERATIONS_ANALYTICS, SUPPLIER_SLA.
+  Every lexical call site is listed in COMPANY_DATA_ENVIRONMENT_SOURCE.json.
+  Notable fallbacks: eligibility/applicant-evaluation-service.ts:27 returns
+  FEATURE_DISABLED; family/family-readiness-service.ts:13–15 returns null;
+  customer/dynamic-application-runtime.ts:50–51 returns null plan/requirements.
+api/rule-governance-router.ts:59
+  Admin flag view returns only STAGING flags even on a production deployment.
+  Neither stricter; misleading operational visibility. Not a production flag audit.
+
+3. INTENTIONAL SAFETY DIFFERENCES TO PRESERVE
+
+api/lib/rules/rule-governance.ts:49
+  Production rule activation additionally requires owner approval. PRODUCTION stricter.
+api/lib/document-intelligence/passport-profile-governance.ts:26
+  Production refuses synthetic profile activation. PRODUCTION stricter.
+api/lib/document-intelligence/mysql-passport-profile-governance-repository.ts:77
+api/lib/document-intelligence/mysql-repository.ts:102
+  Production excludes staging-test profiles/requirements from reads. PRODUCTION stricter.
+api/lib/document-intelligence/profile-registry.ts:20
+  In-memory profile inclusion uses allowStagingTest, not runtime identity itself.
+  Default false is stricter. Callers must never enable it for production.
+api/lib/staging-owner-browser-auth.ts:16–40
+  One-time browser authentication requires exact staging app ID, origin and DB.
+  Production cannot use it. PRODUCTION stricter; preserve all three checks.
+api/lib/synthetic-seed-guard.ts:2–12; db/seed.ts:7; scripts/staging-seed-content-platform.ts
+  Exact staging directory/storage/database/user checks; production denied.
+  PRODUCTION stricter. Keep these boundaries independently of business-rule parity.
+api/lib/vite.ts:44
+  SSR fault injection is staging-origin-only AND authenticated admin-only.
+  PRODUCTION stricter. Not a reason to change the normal SSR fallback.
+
+4. FINANCE, EMAIL, BUILD AND ROUTING DIFFERENCES
+
+api/lib/stripe-runtime.ts:12–39
+  Explicit STRIPE_MODE, otherwise PRELIVE=>TEST / LIVE=>LIVE; absent invalid mode
+  fails. Matching key classes mandatory in both; neither weaker for verification.
+  STRIPE_MODE takes precedence if DEPLOYMENT_MODE disagrees: configuration audit
+  must check consistency, not merely assert one variable exists.
+api/lib/stripe-webhook.ts:48
+  Incoming event.livemode must match runtime. Symmetric mode isolation.
+api/lib/payment-finalization.ts:45; api/lib/refund-credit-note.ts:31;
+api/lib/financial-document-series.ts:6–7
+  TEST runtime or test application uses TEST series; real series otherwise.
+  Separation, not weaker payment verification. Never mix into production turnover.
+api/lib/financial-document-integrity.ts:24,50; api/boot.ts:422
+  TEST runtime tolerates unarchived old-format invoice fixtures; LIVE checks all
+  invoice rows. PRODUCTION/LIVE stricter. All numbered archive series still checked.
+api/lib/financial-application-scope.ts:6
+  Reports require LIVE classification AND isTest=false, independent of host.
+  Same filtering in both environments; classification must not substitute for
+  Stripe provider evidence when reconciling a real charge.
+api/lib/email-provider.ts:5–18; staging/run-native.mjs:49–50
+  Disabled unless resend selected. Staging uses recipient allowlist and prefix;
+  non-staging additionally requires ENABLE_PRODUCTION_EMAIL=true, then has no
+  staging recipient restriction. Mixed/intentional delivery policy, not form
+  validation. Native staging wrapper now forcibly disables outbound mail.
+api/lib/env.ts:5; api/boot.ts:418
+  NODE_ENV=production requires env values and starts native server with ledger
+  integrity guard; development does not. This is build mode, not STAGING vs LIVE:
+  deployed staging should also run NODE_ENV=production. Production-build stricter.
+api/boot.ts:364; api/lib/vite.ts:25
+  Staging-origin sitemap404 / robots disallow; production indexable. Staging
+  stricter for indexing. Correct isolation, unrelated to a missing customer page.
+api/lib/vite.ts:59; api/boot.ts:427–428
+  Configured local SSR API port / listener host and port. Neither inherently
+  stricter. Deployment must retain private listeners and nginx proxy permissions.
+api/lib/public-app-url.ts:3; api/lib/ssr-html.ts:12
+  Configured secure public origin for links/metadata, same validation both sides.
+src/pages/PaymentPage.tsx:37; src/pages/SecurityDepositPage.tsx:9;
+src/components/shared/StripePaymentForm.tsx:244
+  Client receives non-secret Stripe mode/key and validates their compatibility.
+  Symmetric. No price/rule authority is delegated to these variables.
+src/pages/Login.tsx:5–6; api/kimi/auth.ts; api/queries/users.ts:26
+  Configured identity-provider URLs/app ID/owner union ID. Neither host inherently
+  stricter; matching owner union ID assigns privilege, so this is sensitive config.
+api/lib/admin-session.ts; customer-session.ts; creation-device.ts;
+invoice-download-token.ts; local-storage.ts; supabase.ts; api/drive-router.ts
+  Secret/storage/provider configuration reads, not STAGING-only business branches.
+  Credential and filesystem isolation remain required. No values exported here.
+
+5. TOOLING INVENTORY / LIMITATIONS
+
+The JSON companion lists tracked runtime, tooling and test lexical matches by
+file and line, including imports and non-branch configuration reads. It is NOT
+a claim of that many distinct conditional branches or an AST proof.
+Scanned .ts/.tsx/.js/.mjs/.cjs/.sh/.yml/.yaml source; no .env values were read.
+Tests are separated from runtime rather than counted as customer behavior.
+
+scripts/staging-* identity checks and staging/apply-* migrations: production
+denied by target checks; staging is the allowed target, not a weaker app gate.
+scripts/run-mysql-integrations.mjs and rehearsal scripts: disposable database
+guards; not production execution paths. CI integration switches control tests.
+staging/run-native.mjs, run-app.mjs, build-native.mjs, vite.config.ts: enforce
+TEST key classes for staging. scripts/validate-stripe-deployment-mode.mjs checks
+matching LIVE/PRELIVE key classes symmetrically. deploy.yml is separate tooling.
+
+Additional tooling risk: staging/manage-browser-staff.mjs and several verify-*
+scripts accept STAGING_BASE_URL but do not validate its host before mutations.
+The default staging URL is not an isolation boundary. Do not run them with a
+production URL; add exact-target guards before using these as launch evidence.
+This audit did not execute deployment/UAT scripts or certify remote environment
+values, nginx/systemd configuration, active DB flags, or end-to-end parity today.
+
+6. COMPANY-DATA IMPLEMENTATION GAP (NOT YET FIXED)
+
+business_settings_versions exists, but lacks licence/website/logo/bank/provisional
+fields and residence/margin policy settings. api/business-router.ts exposes
+version creation/history; current admin pages only read settings, no matching
+complete company-settings editor found. Version allocation is read-latest+1 and
+needs serialization/conflict handling for concurrent admin edits.
+api/lib/invoice-pdf.ts:133–136 hardcodes legal/address/licence/website.
+api/lib/payment-finalization.ts reads settings for VAT but does not pass company
+identity/version into the invoice snapshot. Existing immutable archive must stay.
+api/lib/application-intake.ts currently reads closed JSON only: there is NO
+provisional-company-field reopening guard yet. Do not claim that there is one.
+The guard must run server-side even if the JSON is edited to closed=false; a
+disabled admin button alone is not sufficient. Missing settings must fail closed.
+
+Approved data to enter through versioned settings (not template constants):
+Legal name: TASHIRA E-Visa & Tourism L.L.C-FZ
+Address: Meydan Grandstand, 6th Floor, Meydan Road, Nad Al Sheba, Dubai, United Arab Emirates
+Licence: Commercial Licence 2541485.01, Meydan Free Zone
+Website: tashiraev.com
+Email: admin@tashiraev.com
+Phone: +971 58 989 6644; provisional=true until owner replaces it.
+VAT: off; TRN/rate empty; warning AED300000 trailing12months, threshold375000.
+Books AED, sale USD, conversion3.6725; FX difference PER PAYOUT, Stripe fee PER ORDER.
+No customer-visible government-fee amount. One total / Government fees included.
+No supplier costs entered: supplier setup belongs to Phase3.
+
+7. STILL REQUIRED BEFORE CLAIMING PHASE1 COMPLETE
+
+Versioned company admin UI + immutable invoice settings linkage + provisional
+reopening guard; remaining-validity residence rule (REPLY13, not residence age);
+nationality x product; separate submitted product/acknowledgment/refund path;
+per-order Stripe fees; repair and test environment parity without removing
+synthetic-data/auth/approval guards. Run all four gates plus actual staging UAT.
+No implementation/deployment completion is claimed by this report.

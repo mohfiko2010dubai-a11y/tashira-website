@@ -1,5 +1,4 @@
 import type { OperationsSqlClient } from "../operations/mysql-access-provider";
-import { runtimeFlagEnvironment } from "../operations/mysql-access-provider";
 import { withOwnerDocumentCatalog } from "../customer/owner-document-policy";
 import {
   isDefinitionEffective,
@@ -81,6 +80,6 @@ export class MysqlRequirementCatalogProvider {
     const duplicate = (items: readonly { code: string }[]) => new Set(items.map(({ code }) => code)).size !== items.length;
     if (duplicate(requirements) || duplicate(questions)) throw new Error("CATALOG_ACTIVE_VERSION_CONFLICT");
     const catalog = { catalogVersion: `active-${at.toISOString()}`, requirements, questions };
-    return runtimeFlagEnvironment() === "STAGING" ? withOwnerDocumentCatalog(catalog) : catalog;
+    return withOwnerDocumentCatalog(catalog);
   }
 }

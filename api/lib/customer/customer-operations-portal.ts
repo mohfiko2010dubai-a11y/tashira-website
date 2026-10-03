@@ -1,4 +1,4 @@
-import { isOperationsFlagEnabled, type FeatureFlagContext, type FeatureFlagRecord } from "../feature-flags/feature-flags";
+import type { FeatureFlagContext, FeatureFlagRecord } from "../feature-flags/feature-flags";
 import { projectCanonicalStatus, type CanonicalStatusEvent } from "../operations/status-projection";
 import type { SubmissionScheduleSnapshot } from "../travel/submission-scheduler";
 
@@ -70,6 +70,5 @@ export function buildCustomerOperationsPortalBehindFlag(input: {
   statusEvents: readonly CanonicalStatusEvent[];
   schedules: readonly SubmissionScheduleSnapshot[];
 }): CustomerOperationsPortal | null {
-  if (!isOperationsFlagEnabled("CUSTOMER_OPERATIONS_PORTAL", input.context, input.flags)) return null;
   return buildPortal(input);
 }

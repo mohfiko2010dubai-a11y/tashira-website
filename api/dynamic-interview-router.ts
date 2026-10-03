@@ -99,8 +99,8 @@ async function authorizedRuntime(deps: Dependencies, ctx: TrpcContext, reference
   const [baseContext, flags, application] = await Promise.all([deps.flagContextForContext(ctx), deps.flagsForContext(ctx), deps.loadApplication(referenceNumber)]);
   if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
   const context = { ...baseContext, applicationReference: referenceNumber };
-  if (!isOperationsFlagEnabled("DYNAMIC_CUSTOMER_APPLICATION", context, flags)
-    || !isOperationsFlagEnabled("VISA_RULES_EVALUATION", context, flags)) {
+  if (!application.baseType && (!isOperationsFlagEnabled("DYNAMIC_CUSTOMER_APPLICATION", context, flags)
+    || !isOperationsFlagEnabled("VISA_RULES_EVALUATION", context, flags))) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Dynamic interview unavailable" });
   }
   return { application, context, flags };
@@ -109,7 +109,7 @@ async function authorizedRuntime(deps: Dependencies, ctx: TrpcContext, reference
 export function createDynamicInterviewRouter(deps: Dependencies) {
   const state = async (ctx: TrpcContext, referenceNumber: string) => {
     const authorized = await authorizedRuntime(deps, ctx, referenceNumber); const { application, context, flags } = authorized; const now = deps.now();
-    const ownerForm = context.environment === "STAGING" && Boolean(application.baseType);
+    const ownerForm = Boolean(application.baseType);
     const [loadedCatalog, loadedRules, events] = await Promise.all([deps.loadCatalog(now), ownerForm ? Promise.resolve([]) : deps.loadRules(application.routeCode),
       deps.loadEvents(application.applicationId)]);
     const catalog = ownerForm ? withOwnerDocumentCatalog(loadedCatalog) : loadedCatalog;
@@ -119,7 +119,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       routeCode: application.routeCode, applicantIds: application.applicantIds, questions, requirements, rules, events, evaluatedAt: now,
       customerForm: ownerForm, residenceType: application.residenceType, documentProfiles: application.applicants });
     const applicantId = interview.currentQuestions[0]?.applicantId ?? null;
-    const unifiedEnabled = isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
+    const unifiedEnabled = ownerForm || isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags);
     const partyBundle = unifiedEnabled ? await (deps.loadUnifiedBundle?.(referenceNumber) ?? Promise.resolve(null)) : null;
     // A saved answer can predate its evaluation (for example after a failed transaction).
     // Keep the form readable so completeForm can rebuild the missing immutable evaluation.
@@ -132,7 +132,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         const persistent = adaptPersistentUnifiedInterview(bundle);
         const answers = Object.fromEntries(application.applicantIds.map((id) => [id, Object.fromEntries(interview.knownAnswers
           .filter((answer) => answer.applicantId === id).map((answer) => [answer.code, String(answer.answer)]))]));
-        unifiedReview = (await buildUnifiedInterviewRuntime({ context, flags,
+        unifiedReview = (await buildUnifiedInterviewRuntime({ context, flags, ownerForm,
           catalogProvider: { active: async () => catalog }, evaluatedAt: now,
           applicationId: application.applicationId, ...persistent, answers, travelQuestions: [] })).review;
       } catch (error) {
@@ -173,7 +173,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       unifiedReview, unifiedReviewBlocker } };
   };
   const persistCompletion = async (runtime: Awaited<ReturnType<typeof state>>, trigger: InterviewAnswerEvent, reason: string) => {
-    if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags)) return;
+    if ((!runtime.ownerForm && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags))) return;
     const events = await deps.loadEvents(runtime.application.applicationId);
     const evaluatedAt = new Date(trigger.occurredAt);
     const evaluations = evaluateCompletedInterviewApplicants({ applicationId: runtime.application.applicationId,
@@ -204,7 +204,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       const runtime = await state(ctx, input.referenceNumber);
       const applicant = runtime.application.applicants.find(item => item.applicantId === input.applicantId);
       if (!applicant) throw new TRPCError({ code: "FORBIDDEN", message: "Applicant access denied" });
-      if (!runtime.ownerForm || !deps.persistCompletedEvaluations || !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags)) {
+      if (!runtime.ownerForm || !deps.persistCompletedEvaluations || (!runtime.ownerForm && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Document uploads unavailable" });
       }
       if (!applicant.nationality || !applicant.residenceCountry) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose nationality and country of residence to see your documents." });
@@ -227,7 +227,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
       const applicant = application.applicants.find(item => item.applicantId === input.applicantId);
       if (!applicant) throw new TRPCError({ code: "FORBIDDEN", message: "Applicant access denied" });
-      if (context.environment !== "STAGING" || !application.baseType || !deps.editApplicant || !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) {
+      if (!application.baseType || !deps.editApplicant || (!application.baseType && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Applicant changes unavailable" });
       }
       await deps.editApplicant({ applicationId: application.applicationId, applicantId: applicant.applicantId, expectedVersion: input.expectedVersion,
@@ -244,7 +244,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Enter passport number, profession and a passport valid for at least six months" });
       }
       if (runtime.state.currentQuestions.some(question => input.applicantId === undefined || question.applicantId === input.applicantId || question.applicantId === null)) throw new TRPCError({ code: "CONFLICT", message: "Complete the applicant fields first" });
-      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags) || !deps.persistCompletedEvaluations) {
+      if ((!runtime.ownerForm && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", runtime.context, runtime.flags)) || !deps.persistCompletedEvaluations) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Document requirements unavailable" });
       }
       const evaluatedAt = deps.now();
@@ -354,7 +354,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         residenceCountry: governedCountryCodeSchema.nullable(), tripPurpose: tripPurposeSchema.optional() }).strict(), reason: z.string().trim().min(3).max(500),
       idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
-      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.addApplicant) {
+      if ((!application.baseType && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) || !deps.addApplicant) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Applicant changes unavailable" });
       }
       try { return await deps.addApplicant({ applicationId: application.applicationId, profile: input.profile, reason: input.reason,
@@ -369,7 +369,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
         nationality: governedCountryCodeSchema.nullable(), residenceCountry: governedCountryCodeSchema.nullable(), tripPurpose: tripPurposeSchema.optional() }).strict(),
       reason: z.string().trim().min(3).max(500), idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
-      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.editApplicant) {
+      if ((!application.baseType && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) || !deps.editApplicant) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Applicant changes unavailable" });
       }
       try { return await deps.editApplicant({ applicationId: application.applicationId, applicantId: input.applicantId,
@@ -389,7 +389,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       relationship: z.enum(["SPOUSE", "PARENT", "CHILD", "GUARDIAN", "DEPENDENT"]), reason: z.string().trim().min(3).max(500),
       idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
-      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.defineRelationship) {
+      if ((!application.baseType && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) || !deps.defineRelationship) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Relationship changes unavailable" });
       }
       try { return await deps.defineRelationship({ applicationId: application.applicationId, fromApplicantId: input.fromApplicantId,
@@ -405,7 +405,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
     createTravelGroup: applicationAccessQuery.input(z.object({ referenceNumber: z.string().trim().min(3).max(50), group: travelGroupInputSchema,
       reason: z.string().trim().min(3).max(500), idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
-      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.createTravelGroup) throw new TRPCError({ code: "FORBIDDEN", message: "Travel changes unavailable" });
+      if ((!application.baseType && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) || !deps.createTravelGroup) throw new TRPCError({ code: "FORBIDDEN", message: "Travel changes unavailable" });
       try { return await deps.createTravelGroup({ applicationId: application.applicationId, group: input.group, reason: input.reason,
         actorReference: `customer:${input.referenceNumber}`, idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
       catch (error) { if (error instanceof Error && error.message.includes("CONFLICT")) throw new TRPCError({ code: "CONFLICT", message: "Travel change is no longer current" });
@@ -415,7 +415,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       expectedVersion: z.number().int().positive(), group: travelGroupInputSchema, reason: z.string().trim().min(3).max(500),
       idempotencyKey: z.string().trim().min(8).max(100) }).strict()).mutation(async ({ input, ctx }) => {
       const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
-      if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.updateTravelGroup) throw new TRPCError({ code: "FORBIDDEN", message: "Travel changes unavailable" });
+      if ((!application.baseType && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) || !deps.updateTravelGroup) throw new TRPCError({ code: "FORBIDDEN", message: "Travel changes unavailable" });
       try { return await deps.updateTravelGroup({ applicationId: application.applicationId, travelGroupId: input.travelGroupId,
         expectedVersion: input.expectedVersion, group: input.group, reason: input.reason, actorReference: `customer:${input.referenceNumber}`,
         idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
@@ -427,7 +427,7 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       applicantIds: z.array(z.number().int().positive()).min(1).max(50), idempotencyKey: z.string().trim().min(8).max(100) }).strict())
       .mutation(async ({ input, ctx }) => {
         const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
-        if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.linkSharedDocument) {
+        if ((!application.baseType && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) || !deps.linkSharedDocument) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Shared document changes unavailable" });
         }
         try { return await deps.linkSharedDocument({ applicationId: application.applicationId, documentId: input.documentId,
@@ -442,11 +442,11 @@ export function createDynamicInterviewRouter(deps: Dependencies) {
       documentId: z.number().int().positive(), idempotencyKey: z.string().trim().min(8).max(100) }).strict())
       .mutation(async ({ input, ctx }) => {
         const { application, context, flags } = await authorizedRuntime(deps, ctx, input.referenceNumber);
-        if (!isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags) || !deps.linkRequirementDocument) {
+        if ((!application.baseType && !isOperationsFlagEnabled("DYNAMIC_REQUIREMENTS", context, flags)) || !deps.linkRequirementDocument) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Requirement document changes unavailable" });
         }
         try { return await deps.linkRequirementDocument({ applicationId: application.applicationId, applicantId: input.applicantId,
-          requirementCode: input.requirementCode, documentKey: input.documentKey, ownerDocuments: context.environment === "STAGING" && Boolean(application.baseType), documentId: input.documentId, actorReference: `customer:${input.referenceNumber}`,
+          requirementCode: input.requirementCode, documentKey: input.documentKey, ownerDocuments: Boolean(application.baseType), documentId: input.documentId, actorReference: `customer:${input.referenceNumber}`,
           idempotencyKey: input.idempotencyKey, occurredAt: deps.now() }); }
         catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error && error.message === DISTINCT_DOCUMENT_MESSAGE ? error.message : "Requirement document could not be linked. Refresh the document list and try again." }); }
       }),

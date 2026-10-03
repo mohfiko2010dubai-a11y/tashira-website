@@ -48,6 +48,7 @@ function validateTravelOwnership(input: { applicationId: number; applicantIds: R
 }
 
 export async function buildUnifiedInterviewRuntime(input: {
+  ownerForm?: boolean;
   context: FeatureFlagContext;
   flags: readonly FeatureFlagRecord[];
   catalogProvider: Pick<MysqlRequirementCatalogProvider, "active">;

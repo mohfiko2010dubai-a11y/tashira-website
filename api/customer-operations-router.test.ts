@@ -58,9 +58,9 @@ describe("customer operations runtime router", () => {
       .rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("fails closed unless the application-scoped portal flag is enabled", async () => {
+  it("serves the owned portal without the retired rollout flag", async () => {
     await expect(router([]).createCaller(context([reference])).portal({ referenceNumber: reference }))
-      .rejects.toMatchObject({ code: "FORBIDDEN" });
+      .resolves.toEqual(await router().createCaller(context([reference])).portal({ referenceNumber: reference }));
   });
 
   it("returns only the authenticated customer's finance-free projection", async () => {
@@ -71,8 +71,8 @@ describe("customer operations runtime router", () => {
     expect(JSON.stringify(result)).not.toMatch(/Supplier|cost|margin|profit|reasonCode/i);
   });
 
-  it("does not disclose missing applications while the feature is disabled", async () => {
-    await expect(router([]).createCaller(context(["TSH-MISSING"])).portal({ referenceNumber: "TSH-MISSING" }))
+  it("does not disclose another application even without rollout flags", async () => {
+    await expect(router([]).createCaller(context([reference])).portal({ referenceNumber: "TSH-MISSING" }))
       .rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
