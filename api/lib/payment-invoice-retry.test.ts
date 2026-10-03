@@ -16,6 +16,7 @@ describe("invoice retry ordering", () => {
       .mockImplementationOnce(async () => { events.push("commit"); return { paid: true, applied: true }; });
     const result = applyStripePaymentState({ applicationId: 1, paymentId: 1, paymentIntentId: "pi_synthetic",
       target: "paid", actorType: "STRIPE", eventSource: "SYNTHETIC", invoice: { data: {
+  company: { version: 1, legalName: "Synthetic company", address: "Test address", licence: "TEST", website: "example.test", email: "test@example.test", phone: "000", logo: null },
         referenceNumber: "SYNTHETIC", customerName: "Synthetic Customer", customerEmail: "ci@example.invalid", customerPhone: "000",
         passportNumber: "SYNTHETIC", passportExpiry: "2030-01-01", nationality: "EG", visaType: "30days-single", processingType: "regular",
         applicantCount: 1, unitPriceInBaseCurrency: 367, baseCurrency: "AED", exchangeRateToBase: 3.67,

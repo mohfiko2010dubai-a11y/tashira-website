@@ -13,6 +13,7 @@ const lead = {
 };
 
 const invoice = (overrides: Partial<InvoiceData> = {}): InvoiceData => ({
+  company: { version: 1, legalName: "Synthetic company", address: "Test address", licence: "TEST", website: "example.test", email: "test@example.test", phone: "000", logo: null },
   invoiceNumber: "INV-TSH-123456",
   referenceNumber: "TSH-123456",
   createdAt: "2026-08-19T00:00:00.000Z",

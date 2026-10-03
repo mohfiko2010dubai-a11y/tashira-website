@@ -13,6 +13,6 @@ export const Paths = {
   oauthCallback: "/api/oauth/callback",
 } as const;
 
-export const TERMS_POLICY_VERSION = "legal-bundle-2026-09-30-v3" as const;
-export const TERMS_POLICY_EFFECTIVE_DATE = "2026-09-30" as const;
+export const TERMS_POLICY_VERSION = "legal-bundle-2026-10-04-v4" as const;
+export const TERMS_POLICY_EFFECTIVE_DATE = "2026-10-04" as const;
 export const ACCEPTED_POLICY_TYPES = ["TERMS", "PRIVACY", "REFUND_CANCELLATION"] as const;

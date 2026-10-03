@@ -61,7 +61,7 @@ describe("owner wizard checkout uses applicant-scoped persisted requirements", (
     expect(run({ evidence: [{ ...evidence, eligibility: "INELIGIBLE" }] }).status).toBe("READY");
     expect(run({ evidence: [{ ...evidence, eligibility: undefined }] }).status).toBe("READY");
     expect(run({ evidence: [{ ...evidence, route: "different-route" }] }).status).toBe("READY");
-    expect(run({ applicants: [{ ...applicant, passportExpiry: "2020-01-01" }] }).status).toBe("INCOMPLETE");
+    expect(run({ applicants: [{ ...applicant, passportExpiry: "2020-01-01" }] }).status).toBe("READY");
     expect(run({ relationshipsComplete: false }).status).toBe("READY");
     expect(run({ legacy: evaluate({ acceptedPolicyVersion: undefined }) }).applicationMissing).toContainEqual(expect.objectContaining({ code: "application.policy" }));
   });

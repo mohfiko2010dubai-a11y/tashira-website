@@ -161,12 +161,12 @@ describe("authenticated Dynamic Interview API", () => {
     expect(changed.review.applicants[0].requirements.map(item => item.code)).toContain("UAE_ACCOMMODATION");
     expect(changed.review.applicants[0].requirements.map(item => item.code)).not.toContain("SA_ABSHER_REPORT");
   });
-  it("completes one family traveller before the next has answers and enforces passport validity and ownership", async () => {
+  it("completes one family traveller before the next has answers and accepts short validity while enforcing date format and ownership", async () => {
     const current = deps([...flags, { flagKey: "DYNAMIC_REQUIREMENTS", environment: "STAGING", enabled: true, scopeType: "APPLICATION", scopeReference: reference }]);
     const load = current.loadApplication;
     const together = { ...question, definitionId: "77777777-1111-4111-8111-111111111111", code: "TRAVELLING_TOGETHER", answerType: "BOOLEAN" as const };
     current.loadCatalog = async () => ({ catalogVersion: "test", questions: [question, together], requirements: [requirement] });
-    let expiry = "2026-12-01";
+    let expiry = "not-a-date";
     current.loadApplication = async value => { const app = await load(value); return app ? { ...app, applicantIds: [21, 22],
       applicants: [21, 22].map((id, index) => ({ ...app.applicants[0], applicantId: id, applicantIndex: index,
         passportNumber: "TEST12345", passportExpiry: expiry, profession: "Engineer" })) } : null; };
@@ -175,7 +175,7 @@ describe("authenticated Dynamic Interview API", () => {
     await caller.answer({ referenceNumber: reference, applicantId: null, questionCode: "TRAVELLING_TOGETHER", answer: true, fromForm: true, changeReason: "CUSTOMER_FORM_SAVE" });
     const input = { referenceNumber: reference, applicantId: 21, submissionId: "aaaaaaaa-1111-4111-8111-111111111111" };
     await expect(caller.completeForm(input)).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expiry = "2028-01-01";
+    expiry = "2026-12-01";
     await caller.completeForm(input);
     expect(current.persistCompletedEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ evaluations: [expect.objectContaining({ applicantId: 21 })] }));
     await expect(caller.completeForm({ ...input, applicantId: 999 })).rejects.toMatchObject({ code: "FORBIDDEN" });

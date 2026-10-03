@@ -112,6 +112,7 @@ export default function AdminApplications() {
           <Link to="/admin/supplier-dashboard" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Building2 size={14} /> Supplier Bills
           </Link>
+          <Link to="/admin/company-settings" className="px-3 py-1.5 text-sm text-gray-400 hover:text-white">Company settings</Link>
           <Link to="/admin/vat" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Percent size={14} /> VAT
           </Link>

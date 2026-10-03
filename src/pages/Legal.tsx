@@ -1,3 +1,4 @@
+import { RESIDENCE_REVIEW_NOTICE } from "@contracts/document-validity";
 import { useTranslation } from 'react-i18next';
 import { validatedLegalHtml } from '@/lib/legal-html';
 import { languagePath } from '@contracts/language-routes';
@@ -32,6 +33,7 @@ export default function Legal({ page }: LegalProps) {
           className="prose prose-lg max-w-none legal-content"
           dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
+        {page === 'refund' && <p className="prose prose-lg mt-6 max-w-none">{RESIDENCE_REVIEW_NOTICE[i18n.language.startsWith('ar') ? 'ar' : 'en']}</p>}
         {page === 'terms' && (
           <div className="prose prose-lg mt-6 max-w-none legal-content">
             <h2>{i18n.language.startsWith('ar') ? 'ملحق تفويض الدافع - ساري من 19 أغسطس 2026' : 'Payer Authorization Addendum - Effective 19 August 2026'}</h2>

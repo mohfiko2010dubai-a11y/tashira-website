@@ -1,3 +1,4 @@
+import { captureStripeFee } from "./stripe-fee";
 import { and, eq } from "drizzle-orm";
 import { applications, invoices, payments } from "@db/schema";
 import { getDb } from "../queries/connection";
@@ -43,8 +44,10 @@ export async function finalizeStripeTestPayment(
     if (!payerEvidence) throw new Error("Verified payer authorization evidence is unavailable for invoice generation");
     const invoice = {
       isTest: application.isTest || stripeRuntimeMode() === "TEST",
-      vatRate: settings.vatRegistered === "yes" ? settings.vatRate : "0.00",
+      vatRate: settings.vatRegistered === "yes" ? (settings.vatRate ?? "0.00") : "0.00",
       data: {
+        company: { version: settings.version, legalName: settings.legalName, address: settings.address,
+          licence: settings.licence, website: settings.website, email: settings.email, phone: settings.phone, logo: settings.logo },
         referenceNumber, customerName: customerIdentity.fullName, customerEmail: application.contactEmail,
         customerPhone: application.contactPhone, nationality: customerIdentity.nationality,
         passportNumber: customerIdentity.passportNumber, passportExpiry: customerIdentity.passportExpiry,
@@ -80,6 +83,7 @@ export async function finalizeStripeTestPayment(
     }
   }
 
+  await captureStripeFee(application.id, payment.id, paymentIntentId);
   const [issuedInvoice] = await db.select().from(invoices).where(eq(invoices.applicationId, application.id)).limit(1);
   if (!issuedInvoice) throw new Error("Confirmed payment is missing its invoice archive");
   const invoiceNumber = issuedInvoice.invoiceNumber;

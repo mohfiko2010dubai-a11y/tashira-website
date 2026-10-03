@@ -92,8 +92,8 @@ export const applicationDocumentMetadataQuery = scopedProcedure
 export const paymentQuery = scopedProcedure.use(rateLimit("payment", 10));
 export const securityDepositQuery = t.procedure.use(rateLimit("security-deposit", 10, 5 * 60_000));
 export const applicationSubmissionQuery = t.procedure.use(rateLimit("application", 30));
-const requireIntakeOpen = t.middleware(({ next }) => {
-  assertApplicationIntakeOpen();
+const requireIntakeOpen = t.middleware(async ({ next }) => {
+  await assertApplicationIntakeOpen();
   return next();
 });
 export const newApplicationQuery = applicationSubmissionQuery.use(requireIntakeOpen);

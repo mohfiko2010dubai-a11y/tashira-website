@@ -1,3 +1,5 @@
+import { COMPANY_FIELDS, companyReopeningBlockers } from "../contracts/company-settings";
+import { captureStripeFee } from "./lib/stripe-fee";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { financialApplicationScope } from "./lib/financial-application-scope";
@@ -20,25 +22,55 @@ function actorReference(ctx: { user?: { id: number }; staffId?: number }) {
 }
 
 export const businessRouter = createRouter({
+  orderFees: adminQuery.input(z.object({ applicationId: z.number().int().positive() })).query(({ input }) =>
+    getDb().select({ paymentId: payments.id, status: payments.status, feeMinor: payments.stripeFeeMinor,
+      currency: payments.stripeFeeCurrency, balanceTransaction: payments.stripeBalanceTransactionId }).from(payments).where(eq(payments.applicationId, input.applicationId))),
+  reconcileOrderFee: adminQuery.input(z.object({ paymentId: z.number().int().positive() })).mutation(async ({ input }) => {
+    const [payment] = await getDb().select().from(payments).where(eq(payments.id, input.paymentId)).limit(1);
+    if (!payment || payment.status !== "succeeded" || !payment.stripePaymentIntentId) throw new Error("Select a verified successful payment to reconcile.");
+    return captureStripeFee(payment.applicationId, payment.id, payment.stripePaymentIntentId);
+  }),
   quote: publicQuery.input(z.object({
     serviceCode: z.string().min(1).max(80),
     processingType: z.enum(["regular", "express"]),
     applicantCount: z.number().int().min(1).max(10),
-  })).query(({ input }) => quoteApplicationPrice(input)),
+  })).query(async ({ input }) => {
+    const quote = await quoteApplicationPrice(input);
+    return { applicantCount: quote.applicantCount, unitPrice: quote.unitPrice, totalPrice: quote.totalPrice,
+      currency: quote.currency, baseCurrency: quote.baseCurrency, totalInBaseCurrency: quote.totalInBaseCurrency,
+      exchangeRateToBase: quote.exchangeRateToBase, expressFeeTotal: quote.expressFeeTotal };
+  }),
 
   settings: adminQuery.query(() => activeBusinessSettings()),
+
+  reopeningStatus: adminQuery.query(async () => {
+    try { return { blockers: companyReopeningBlockers(await activeBusinessSettings()) }; }
+    catch { return { blockers: ["Cannot reopen: company settings are not configured."] }; }
+  }),
+  documentValidityPolicy: publicQuery.query(async () => {
+    const settings = await activeBusinessSettings();
+    return { passportMonths: settings.passportMonths, residenceMonths: settings.residenceMonths, childUnderYears: settings.childUnderYears };
+  }),
 
   settingsHistory: adminQuery.query(() => getDb().select().from(businessSettingsVersions)
     .orderBy(desc(businessSettingsVersions.version))),
 
   createSettingsVersion: adminQuery.input(z.object({
+    expectedVersion: z.number().int().min(0),
     legalName: z.string().min(1).max(255),
     address: z.string().min(1).max(2000),
     phone: z.string().min(1).max(50),
     email: z.string().email(),
+    licence: z.string().min(1).max(255),
+    website: z.string().min(1).max(255),
+    logo: z.string().startsWith("data:image/png;base64,").max(2000000),
+    provisionalFields: z.array(z.enum(COMPANY_FIELDS)),
+    passportMonths: z.number().int().min(1).max(36),
+    residenceMonths: z.number().int().min(1).max(36),
+    childUnderYears: z.number().int().min(1).max(18),
     vatRegistered: z.enum(["yes", "no"]),
     trn: z.string().max(100).optional(),
-    vatRate: z.number().min(0).max(100),
+    vatRate: z.number().min(0).max(100).nullable(),
     vatEffectiveAt: z.coerce.date().optional(),
     registrationThreshold: z.number().positive().optional(),
     warningLevels,
@@ -48,14 +80,17 @@ export const businessRouter = createRouter({
     usdToBaseRate: z.number().positive(),
     effectiveAt: z.coerce.date(),
   })).mutation(async ({ input, ctx }) => {
-    if (input.vatRegistered === "yes" && !input.trn) throw new Error("TRN is required when VAT registration is enabled");
+    if (input.vatRegistered === "yes" && (!input.trn || input.vatRate === null)) throw new Error("TRN is required when VAT registration is enabled");
     const [latest] = await getDb().select({ version: businessSettingsVersions.version })
       .from(businessSettingsVersions).orderBy(desc(businessSettingsVersions.version)).limit(1);
+    if ((latest?.version ?? 0) !== input.expectedVersion) throw new Error("Company settings changed. Refresh before saving a new version.");
     const version = (latest?.version ?? 0) + 1;
     await getDb().insert(businessSettingsVersions).values({
       ...input,
       version,
-      vatRate: input.vatRate.toFixed(4),
+      vatRate: input.vatRegistered === "yes" ? input.vatRate?.toFixed(4) : null,
+      trn: input.vatRegistered === "yes" ? input.trn : null,
+      provisionalFieldsJson: JSON.stringify(input.provisionalFields),
       registrationThreshold: input.registrationThreshold?.toFixed(2),
       warningLevelsJson: JSON.stringify(input.warningLevels),
       usdToBaseRate: input.usdToBaseRate.toFixed(6),

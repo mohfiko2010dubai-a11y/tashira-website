@@ -35,6 +35,7 @@ const AdminSuppliers = lazy(() => importWithStaleChunkRecovery(() => import('@/p
 const AdminStaff = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminStaff')));
 const AdminInvoices = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminInvoices')));
 const AdminSupplierDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminSupplierDashboard')));
+const AdminCompanySettings = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminCompanySettings')));
 const AdminVat = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminVat')));
 const AdminChat = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminChat')));
 const StaffLogin = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffLogin')));
@@ -128,6 +129,7 @@ function AppContent() {
           <Route path="/admin/staff" element={<AdminGuard><AdminStaff /></AdminGuard>} />
           <Route path="/admin/invoices" element={<AdminGuard><AdminInvoices /></AdminGuard>} />
           <Route path="/admin/supplier-dashboard" element={<AdminGuard><AdminSupplierDashboard /></AdminGuard>} />
+          <Route path="/admin/company-settings" element={<AdminGuard><AdminCompanySettings /></AdminGuard>} />
           <Route path="/admin/vat" element={<AdminGuard><AdminVat /></AdminGuard>} />
           <Route path="/admin/finance" element={<AdminGuard><AdminFinanceCockpit /></AdminGuard>} />
           <Route path="/admin/chat" element={<AdminGuard><AdminChat /></AdminGuard>} />

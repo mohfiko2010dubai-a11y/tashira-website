@@ -1,4 +1,4 @@
-import { BRAND_MARK_PNG } from "../../contracts/brand-bitmap";
+import type { CompanyIdentity } from "../../contracts/company-settings";
 import fs from "fs";
 import path from "path";
 import { jsPDF } from "jspdf";
@@ -18,6 +18,7 @@ export function getStorageDir(): string {
 }
 
 export interface InvoiceData {
+  company: CompanyIdentity & { version: number };
   invoiceNumber: string;
   referenceNumber: string;
   createdAt: string;
@@ -124,16 +125,17 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setFont("helvetica", "bold");
   doc.setFillColor("#FFFFFF");
   doc.roundedRect(11, 6, 22, 22, 2, 2, "F");
-  doc.addImage(BRAND_MARK_PNG, "PNG", 12, 7, 20, 20);
+  if (data.company.logo?.startsWith("data:image/png;base64,")) doc.addImage(data.company.logo, "PNG", 12, 7, 20, 20);
   doc.text("TASHIRA", 35, 20);
   doc.setFontSize(8);
   doc.text("UAE E-VISA SERVICES", 35, 26);
   doc.setTextColor("#FFFFFF");
   doc.setFont("helvetica", "normal");
-  doc.text("E-Visa & Tourism L.L.C-FZ", 15, 33);
-  doc.text("Meydan Free Zone, Dubai, U.A.E.", 15, 38);
-  doc.text("License No: 2541485.01", 15, 43);
-  doc.text("Website: tashiraev.com", 15, 48);
+  doc.setFontSize(7);
+  doc.text(data.company.legalName ?? "", 15, 33, { maxWidth: 120 });
+  doc.text(data.company.address ?? "", 15, 38, { maxWidth: 120 });
+  doc.text(data.company.licence ?? "", 15, 46, { maxWidth: 120 });
+  doc.text([data.company.website, data.company.email, data.company.phone].filter(Boolean).join(" · "), 15, 50, { maxWidth: 180 });
   doc.setTextColor("#C9A04C");
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");

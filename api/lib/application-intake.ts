@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import { TRPCError } from "@trpc/server";
 import { INTAKE_CLOSED_COPY } from "@contracts/application-intake";
+import { companyReopeningBlockers } from "@contracts/company-settings";
+import { activeBusinessSettings } from "./pricing-engine";
 
 // Read on every request: reopening requires an atomic config edit, not a deploy.
 export function readApplicationIntake() {
@@ -18,8 +20,14 @@ export function readApplicationIntake() {
   }
 }
 
-export function assertApplicationIntakeOpen() {
-  if (readApplicationIntake().closed) {
+export async function effectiveApplicationIntake() {
+  if (readApplicationIntake().closed) return { closed: true };
+  try { return { closed: companyReopeningBlockers(await activeBusinessSettings()).length > 0 }; }
+  catch { return { closed: true }; }
+}
+
+export async function assertApplicationIntakeOpen() {
+  if ((await effectiveApplicationIntake()).closed) {
     throw new TRPCError({ code: "FORBIDDEN", message: `${INTAKE_CLOSED_COPY.en} ${INTAKE_CLOSED_COPY.ar}` });
   }
 }

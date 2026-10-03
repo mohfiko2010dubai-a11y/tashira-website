@@ -11,11 +11,11 @@ export async function preparePaidInvoice(applicationId: number, paymentId: numbe
     kind: "invoice", isTest: input.isTest, issuedAt: new Date(), snapshot: { ...input.data, vatRate: input.vatRate },
     render: (invoiceNumber, date) => Buffer.from(generateInvoicePDF({ ...input.data, invoiceNumber, createdAt: date.toISOString() }).output("arraybuffer")),
   });
-  return { document, amount: input.data.totalAmount.toFixed(2), vatRate: input.vatRate };
+  return { document, settingsVersion: input.data.company.version, amount: input.data.totalAmount.toFixed(2), vatRate: input.vatRate };
 }
 
 export async function issuePaidInvoice(connection: PoolConnection, applicationId: number, paymentId: number,
-  input?: { document: PreparedFinancialDocument; amount: string; vatRate: string }) {
+  input?: { document: PreparedFinancialDocument; settingsVersion: number; amount: string; vatRate: string }) {
   const [existing] = await connection.execute<RowDataPacket[]>("SELECT invoice_number,payment_id FROM invoices WHERE application_id=? ORDER BY id LIMIT 1", [applicationId]);
   if (existing[0]) {
     if (Number(existing[0].payment_id) !== paymentId) throw new Error("Issued invoice belongs to another payment");
@@ -24,8 +24,8 @@ export async function issuePaidInvoice(connection: PoolConnection, applicationId
   if (!input) throw new Error("Verified invoice snapshot is required before confirming payment");
   if (input.document.applicationId !== applicationId || input.document.paymentId !== paymentId) throw new Error("Prepared invoice identity mismatch");
   const issued = await issueFinancialDocument(connection, input.document);
-  await connection.execute("INSERT INTO invoices (invoice_number,application_id,payment_id,amount,vat_rate,pdf_path) VALUES (?,?,?,?,?,?)",
-    [issued.number, applicationId, paymentId, input.amount, input.vatRate, `archive:${issued.number}`]);
+  await connection.execute("INSERT INTO invoices (invoice_number,application_id,payment_id,amount,vat_rate,pdf_path,business_settings_version) VALUES (?,?,?,?,?,?,?)",
+    [issued.number, applicationId, paymentId, input.amount, input.vatRate, `archive:${issued.number}`, input.settingsVersion]);
   await connection.execute("UPDATE applications SET invoice_number=?,invoice_pdf_path=?,invoice_pdf_url=? WHERE id=?",
     [issued.number, `archive:${issued.number}`, `/invoices/${issued.number}/view`, applicationId]);
   return issued.number;

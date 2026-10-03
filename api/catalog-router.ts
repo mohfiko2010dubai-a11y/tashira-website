@@ -1,3 +1,4 @@
+import { nationalityProductRules } from "../contracts/nationality-product";
 import { productAvailability, updateProductAvailability } from "./lib/product-availability";
 import { nationalityAvailability, updateNationalityAvailability } from "./lib/nationality-availability";
 import { z } from "zod";
@@ -6,7 +7,7 @@ import { getActiveCatalogProducts } from "./lib/visa-catalog";
 
 export const catalogRouter = createRouter({
   nationalityAvailability: publicQuery.query(() => nationalityAvailability()),
-  updateNationalityAvailability: adminQuery.input(z.object({ codes: z.array(z.string().regex(/^[A-Z]{2}$/)).max(250), expectedVersion: z.number().int().positive() }).strict()).mutation(({ input, ctx }) => updateNationalityAvailability(input, ctx.user?.id ? `user:${ctx.user.id}` : "admin-session")),
+  updateNationalityAvailability: adminQuery.input(z.object({ codes: z.array(z.string().regex(/^[A-Z]{2}$/)).max(250), rules: nationalityProductRules.optional(), expectedVersion: z.number().int().positive() }).strict()).mutation(({ input, ctx }) => updateNationalityAvailability(input, ctx.user?.id ? `user:${ctx.user.id}` : "admin-session")),
   adminProducts: adminQuery.query(() => productAvailability()),
   updateProduct: adminQuery.input(z.object({ serviceCode: z.string().min(1).max(80), expectedVersion: z.number().int().positive(), isActive: z.boolean(), verificationSource: z.string().url().startsWith("https://").max(1000).optional() }).strict()).mutation(({ input, ctx }) => updateProductAvailability(input, ctx.user?.id ? `user:${ctx.user.id}` : "admin-session")),
   listActiveProducts: publicQuery

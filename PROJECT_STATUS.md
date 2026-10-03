@@ -1,3 +1,7 @@
+# FINISH-LINE Phase1 candidate, 2026-10-04
+
+Owner refund decision resolved. Candidate implements non-blocking entry-date review, company settings/provisional intake guard, versioned invoice identity, nationality/product windows, customer acknowledgement before substitution filing, actual Stripe fee capture. Local check/lint/build pass; CI/staging UAT outstanding. No production change; remains closed. See staging/FINISH_LINE_PHASE1.md in isolated worktree. Earlier pending refund notes are historical.
+
 # ENVIRONMENT-AND-RULES — rollout-gate removal verified locally, 2026-10-04
 
 Owner supersedes date hard blocks: warn before payment, flag for human review; nationality x product remains blocked. Removed eight explicit environment branches from canonical form/requirements and removed automatic per-order flag provisioning. Graduated portal/delivery retain ownership, staff permissions and paid/issued-state guards. Added build-failing domain environment-read test and STAGING/PRODUCTION no-flags ownership tests. Final local check/lint/build pass;1210 tests pass,26 existing MySQL tests require dedicated CI. No staging/production deploy; production stays closed. Date notices/review flags/admin thresholds, nationality x product, company settings/invoice-version/provisional guard, submitted-product and Stripe fee work remain incomplete. Owner refund decision requested, no policy assumed. Details: staging/ENVIRONMENT_GATE_REMOVAL.txt in isolated worktree. Original15 dirty source files unchanged.

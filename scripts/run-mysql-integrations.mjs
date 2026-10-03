@@ -21,10 +21,22 @@ try {
   await db.query('ALTER TABLE applicants ADD COLUMN sponsor_name varchar(255) NULL, ADD COLUMN sponsor_relation varchar(100) NULL');
   await db.query("ALTER TABLE documents ADD COLUMN storage_provider varchar(50) NOT NULL DEFAULT 'filesystem', ADD COLUMN storage_bucket varchar(100) NULL");
   for(const file of ['005_business_architecture.sql','009_application_data_classification.sql','010_refunds_and_security_deposits.sql',
-    '046_checkout_quote_revisions.sql','051_checkout_payment_attempts.sql','055_product_availability.sql','056_processing_guarantee.sql']) {
+    '046_checkout_quote_revisions.sql','051_checkout_payment_attempts.sql','055_product_availability.sql','056_processing_guarantee.sql','057_nationality_availability.sql','059_company_policy_settings.sql','060_nationality_product_rules.sql','061_submission_and_stripe_fee.sql']) {
     for(const statement of parseMysqlClientScript(readFileSync('migrations/'+file,'utf8'))) await db.query(statement);
   }
   await db.query("UPDATE applications SET data_classification='TEST'");
+  // Exercise the real trigger in the disposable database, then restore fixtures.
+  await db.beginTransaction();
+  try {
+    await db.query("UPDATE applications SET visa_type='SOLD_TEST',submitted_product='SUBMITTED_TEST',substitution_version=1,substitution_acknowledged_version=NULL,status='under_review' WHERE id=2");
+    let refused = false;
+    try { await db.query("UPDATE applications SET status='visa_processing' WHERE id=2"); }
+    catch (error) { if (error.sqlState !== '45000' || !error.message.includes('acknowledgement')) throw error; refused = true; }
+    if (!refused) throw new Error('Missing customer acknowledgement did not prevent filing');
+    await db.query("UPDATE applications SET substitution_acknowledged_version=1,substitution_acknowledged_at=NOW(3) WHERE id=2");
+    await db.query("UPDATE applications SET status='visa_processing' WHERE id=2");
+    console.log('Substitution filing trigger: refused before consent, accepted exact-version consent.');
+  } finally { await db.rollback(); }
   await db.query("INSERT INTO visa_product_availability (service_code,is_active) VALUES ('ROUTE_TEST',1)");
   await db.query(`INSERT INTO pricing_rules (service_code,pricing_processing_type,version,supplier_cost,internal_cost,markup,selling_price,
     minimum_selling_price,pricing_currency,effective_at,created_by) VALUES ('ROUTE_TEST','regular',1,40,10,50,100,100,'USD','2020-01-01','synthetic-ci')`);

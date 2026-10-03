@@ -3,7 +3,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import { readApplicationIntake } from './application-intake';
+import { effectiveApplicationIntake, readApplicationIntake } from './application-intake';
+const settings = vi.hoisted(() => ({ read: vi.fn() }));
+vi.mock('./pricing-engine', () => ({ activeBusinessSettings: settings.read }));
 import { applicationUploadQuery, createRouter, newApplicationQuery, newPaymentQuery, paymentQuery } from '../middleware';
 
 let directory: string;
@@ -20,6 +22,15 @@ afterEach(() => {
 });
 
 describe('application intake closure', () => {
+  it('cannot reopen by config while the company phone is provisional or settings are unavailable', async () => {
+    fs.writeFileSync(config, JSON.stringify({ closed: false }));
+    settings.read.mockResolvedValue({ legalName: 'Synthetic', address: 'Test', licence: 'TEST', email: 'test@example.test', phone: '000', website: 'example.test', logo: 'test', provisionalFieldsJson: '["phone"]' });
+    expect(await effectiveApplicationIntake()).toEqual({ closed: true });
+    settings.read.mockResolvedValue({ legalName: 'Synthetic', address: 'Test', licence: 'TEST', email: 'test@example.test', phone: '000', website: 'example.test', logo: 'test', provisionalFieldsJson: '[]' });
+    expect(await effectiveApplicationIntake()).toEqual({ closed: false });
+    settings.read.mockRejectedValue(new Error('Unavailable'));
+    expect(await effectiveApplicationIntake()).toEqual({ closed: true });
+  });
   it('reopens immediately after the config changes without a restart', () => {
     expect(readApplicationIntake()).toEqual({ closed: true });
     fs.writeFileSync(config, JSON.stringify({ closed: false }));

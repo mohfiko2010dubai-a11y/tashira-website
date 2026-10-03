@@ -30,7 +30,7 @@ describe("Grouped applicant form", () => {
     expect(html).not.toContain('field-11:GCC_RESIDENT');
     expect(html).not.toContain('field-11:GCC_COUNTRY');
     expect(html).not.toContain('simple.fields.RESIDENCE_COUNTRY');
-    expect(html).toContain('-11:RESIDENCE_EXPIRY');
+    expect(html).toContain('Residence permit expiry');
     expect(html).not.toContain('disabled=""');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('noValidate=""');
@@ -38,7 +38,7 @@ describe("Grouped applicant form", () => {
   it("does not require removed GCC fields when residency is false", () => {
     const html = render(false);
     expect(html).not.toContain('field-11:GCC_COUNTRY');
-    expect(html).not.toContain('-11:RESIDENCE_EXPIRY');
+    expect(html).not.toContain('Residence permit expiry');
     expect(html).not.toContain('disabled=""');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('noValidate=""');
@@ -49,7 +49,7 @@ describe("Grouped applicant form", () => {
   });
   it("never hydrates another traveller's answer", () => {
     const html = render(true, 12);
-    expect(html).toContain('-11:RESIDENCE_EXPIRY');
+    expect(html).toContain('Residence permit expiry');
     expect(html).not.toContain('disabled=""');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('noValidate=""');

@@ -1,4 +1,6 @@
+import { ProductSubstitutionNotice } from "@/components/customer/ProductSubstitutionNotice";
 import IntakeNotice from "@/components/shared/IntakeNotice";
+import { RESIDENCE_REVIEW_NOTICE } from "@contracts/document-validity";
 import { useApplicationIntake } from "@/hooks/useApplicationIntake";
 import { Link } from "react-router-dom";
 import { customerMoney } from "@contracts/customer-money";
@@ -238,6 +240,7 @@ export default function PaymentPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [policiesAccepted, setPoliciesAccepted] = useState(false);
   const acceptPolicies = trpc.payment.acceptPolicies.useMutation();
+  const reviewFacts = trpc.application.documentReviewFacts.useQuery({ referenceNumber: referenceNumber || "" }, { enabled: !!referenceNumber });
 
   // Get application details
   const { data: app, isLoading, error } = trpc.application.getByReference.useQuery(
@@ -333,7 +336,8 @@ export default function PaymentPage() {
 
   return (
     <WizardShell currentStep={3}>
-      <StepHeader step={3} title={t('step3.title')} subtitle={t('step3.subtitle')} />
+      <ProductSubstitutionNotice referenceNumber={referenceNumber || ""} />
+        <StepHeader step={3} title={t('step3.title')} subtitle={t('step3.subtitle')} />
 
       {/* Review summary — everything on screen before payment */}
       <div className="bg-[#FAFAF7] rounded-xl border border-gray-200 p-6 mb-6">
@@ -388,6 +392,7 @@ export default function PaymentPage() {
 
       {/* Policies acceptance — mandatory before payment */}
       <div className="mb-6">
+        {reviewFacts.data?.applicants.some(applicant => applicant.residence.status === "BELOW" || applicant.passport.status === "BELOW") && <p role="status" className="mb-4 rounded border border-amber-300 p-4">{RESIDENCE_REVIEW_NOTICE[i18n.language.startsWith("ar") ? "ar" : "en"]}</p>}
         <PolicyAcceptance accepted={policiesAccepted} onChange={value => {
           if (!value) { setPoliciesAccepted(false); return; }
           if (acceptPolicies.isPending) return;

@@ -43,6 +43,8 @@ type ApplicantInput = {
   passportNumber?: string;
   passportType?: string;
   passportExpiry?: string;
+  residenceExpiry?: string;
+  dateOfBirth?: string;
   profession?: string;
   countryFrom?: string;
 };
@@ -59,6 +61,8 @@ async function persistApplicant(applicationId: number, applicantIndex: number, i
   if (input.passportNumber !== undefined) values.passportNumber = input.passportNumber;
   if (input.passportType !== undefined) values.passportType = input.passportType;
   else if (existing && !existing.passportType) values.passportType = "ordinary";
+  if (input.residenceExpiry !== undefined) values.residenceExpiry = input.residenceExpiry || null;
+  if (input.dateOfBirth !== undefined) values.dateOfBirth = input.dateOfBirth || null;
   if (input.passportExpiry !== undefined) values.passportExpiry = input.passportExpiry;
   if (input.profession !== undefined) values.profession = input.profession;
   if (input.countryFrom !== undefined) values.travelingFrom = input.countryFrom;
@@ -129,6 +133,8 @@ export const wizardRouter = createRouter({
       nationality: z.string().optional(),
       passportNumber: z.string().optional(),
       passportExpiry: z.string().optional(),
+      residenceExpiry: z.string().optional(),
+      dateOfBirth: z.string().optional(),
       profession: z.string().optional(),
       countryFrom: z.string().optional(),
       arrivalDate: z.string().optional(),
@@ -216,6 +222,8 @@ export const wizardRouter = createRouter({
       nationality: z.string().optional(),
       passportNumber: z.string().optional(),
       passportExpiry: z.string().optional(),
+      residenceExpiry: z.string().optional(),
+      dateOfBirth: z.string().optional(),
       profession: z.string().optional(),
       countryFrom: z.string().optional(),
       arrivalDate: z.string().optional(),

@@ -1,5 +1,7 @@
 import { MysqlCustomerInterviewWriteRepository } from "./lib/customer/mysql-customer-interview-write-repository";
 import { applicantName } from "../contracts/applicant-name";
+import { assessDocumentValidity } from "../contracts/document-validity";
+import { acknowledgeSubmittedProduct, proposeSubmittedProduct } from "./lib/product-substitution";
 import { evaluateDocumentRequirements, tripPurposeSchema } from "../contracts/document-requirement-engine";
 import { loadTripPurposes } from "./lib/customer/trip-purpose";
 import { defaultOperationsSqlClient, defaultOperationsPool } from "./lib/operations/mysql-query-client";
@@ -32,6 +34,36 @@ const STATUS_ENUM = ["submitted","payment_received","documents_pending","documen
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
 const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
 export const applicationRouter = createRouter({
+  proposeSubmittedProduct: adminQuery.input(z.object({ referenceNumber: z.string().min(3), product: z.string().min(1).max(80), reason: z.string().trim().min(1).max(500) })).mutation(async ({ input, ctx }) => {
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+    return proposeSubmittedProduct(application.id, input.product, String(ctx.user?.id ?? ctx.staffId ?? "admin-session"), input.reason);
+  }),
+  acknowledgeSubmittedProduct: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3), version: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
+    // Staff privilege is deliberately insufficient to provide customer consent.
+    if (!ctx.customerApplicationReferences.has(input.referenceNumber)) throw new TRPCError({ code: "FORBIDDEN", message: "Open your secure application link to acknowledge this change." });
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+    return acknowledgeSubmittedProduct(application.id, input.version);
+  }),
+  documentReviewFacts: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3) })).query(async ({ input, ctx }) => {
+    assertApplicationReferenceAccess(ctx, input.referenceNumber);
+    const [application, settings] = await Promise.all([getCanonicalApplicationByReference(input.referenceNumber), activeBusinessSettings()]);
+    if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+    return { settingsVersion: settings.version, applicants: application.applicants.map(applicant => ({ applicantId: applicant.id,
+      ...assessDocumentValidity({ passportExpiry: applicant.passportExpiry, residenceExpiry: applicant.residenceExpiry,
+        dateOfBirth: applicant.dateOfBirth, entryDate: application.arrivalDate, today: new Date().toISOString().slice(0, 10) }, settings) })) };
+  }),
+  recordDocumentReview: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), applicantId: z.number().int().positive(),
+    decision: z.enum(["PROCEED", "CONTACT", "SUBSTITUTE", "REFUND"]), reason: z.string().trim().min(1).max(180) })).mutation(async ({ input, ctx }) => {
+    assertApplicationReferenceAccess(ctx, input.referenceNumber);
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application?.applicants.some(applicant => applicant.id === input.applicantId)) throw new TRPCError({ code: "NOT_FOUND", message: "Applicant not found" });
+    await recordTimelineEvent({ applicationId: application.id, eventName: "DOCUMENT_REVIEW_DECISION", eventSource: "DOCUMENT_REVIEW", actorType: ctx.staffId ? "STAFF" : "ADMIN",
+      actorReference: ctx.staffId ? String(ctx.staffId) : String(ctx.user?.id ?? "admin-session"), resultingState: input.decision,
+      summary: `Applicant ${input.applicantId}: ${input.reason}` });
+    return { recorded: true };
+  }),
   prepareCreation: applicationSubmissionQuery.input(z.object({ flow: z.enum(["FORM", "CHAT", "LEGACY"]), startNew: z.boolean().default(false) }).strict())
     .mutation(({ input, ctx }) => prepareApplicationCreation(ctx, input.flow, input.startNew)),
   create: newApplicationQuery

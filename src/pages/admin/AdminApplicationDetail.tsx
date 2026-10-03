@@ -1,3 +1,4 @@
+import { DocumentValidityReview } from "@/components/admin/DocumentValidityReview";
 import Logo from '@/components/shared/Logo';
 import { ApplicationSupplementReview } from "@/components/admin/ApplicationSupplementReview";
 import { ApplicationDocumentDiagnostics } from "@/components/admin/ApplicationDocumentDiagnostics";
@@ -58,6 +59,8 @@ export default function AdminApplicationDetail() {
     { applicationId: app?.id || 0 },
     { enabled: !!app?.id },
   );
+  const fees = trpc.business.orderFees.useQuery({ applicationId: app?.id || 0 }, { enabled: !!app?.id });
+  const reconcileFee = trpc.business.reconcileOrderFee.useMutation({ onSuccess: () => { void fees.refetch(); } });
   const { data: risk } = trpc.risk.latest.useQuery(
     { referenceNumber: referenceNumber || "" },
     { enabled: !!referenceNumber },
@@ -141,6 +144,14 @@ export default function AdminApplicationDetail() {
           {updateStatus.isPending && <RefreshCw size={12} className="animate-spin text-[#C9A04C]" />}
         </div>
       </header>
+      <DocumentValidityReview referenceNumber={app.referenceNumber} />
+      <section className="my-4 rounded border bg-white p-4"><h2 className="font-bold">Actual Stripe fees</h2>
+        {fees.data?.filter(payment => payment.status === "succeeded").map(payment => <div key={payment.paymentId} className="mt-2">
+          Payment {payment.paymentId}: {payment.feeMinor === null ? "Not yet reconciled" : `${payment.feeMinor} minor units (${payment.currency})`} · {payment.balanceTransaction}
+          <button className="ms-3 underline" disabled={reconcileFee.isPending} onClick={() => reconcileFee.mutate({ paymentId: payment.paymentId })}>Reconcile with Stripe</button>
+        </div>)}
+        {reconcileFee.error && <p role="alert">{reconcileFee.error.message}</p>}
+      </section>
       <ApplicationDocumentDiagnostics applicants={app.documentRuleDiagnostics} />
 
       <div className="max-w-6xl mx-auto px-4 py-6">

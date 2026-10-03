@@ -1,3 +1,4 @@
+import { blockedProductNationalities } from "../../contracts/nationality-product";
 import { applicantName } from "../../contracts/applicant-name";
 import { nationalityAvailability } from "./nationality-availability";
 import { nationalityUnavailableCopy, unavailableNationalities } from "../../contracts/nationality-availability";
@@ -9,7 +10,7 @@ import { applicants, currentApplicationPriceSnapshots as applicationPriceSnapsho
 import { hasTimelinePolicyAcceptance } from "./application-timeline";
 import { TERMS_POLICY_VERSION } from "../../contracts/constants";
 import { getDb } from "../queries/connection";
-import { validPassportExpiry } from "../../contracts/traveller-details";
+import { isCalendarDate } from "../../contracts/document-validity";
 import type { TrpcContext } from "../context";
 
 export type MissingItem = { code: string; label: string };
@@ -119,7 +120,8 @@ export async function getApplicationReadiness(applicationId: number, context?: T
   const policyAccepted = await hasTimelinePolicyAcceptance(applicationId, TERMS_POLICY_VERSION);
   const legacy = evaluateApplicationReadiness({ application, applicants: applicantList, documents: documentList, hasPriceSnapshot: Boolean(snapshot), acceptedPolicyVersion: policyAccepted ? TERMS_POLICY_VERSION : undefined });
   const availability = await nationalityAvailability();
-  const blocked = unavailableNationalities(availability.codes, applicantList.map(applicant => applicant.nationality));
+  const nationalities = applicantList.map(applicant => applicant.nationality);
+  const blocked = [...new Set([...unavailableNationalities(availability.codes, nationalities), ...blockedProductNationalities(availability.rules, application.visaType, nationalities, new Date())])];
   if (blocked.length) {
     legacy.applicationMissing.push({ code: "application.nationality_unavailable", label: nationalityUnavailableCopy(blocked, false) + " / " + nationalityUnavailableCopy(blocked, true) });
     legacy.status = "INCOMPLETE";
@@ -151,7 +153,7 @@ export function evaluateInterviewReadiness(input: { legacy: ApplicationReadiness
     for (const [key, label] of [["fullName", "Full name"], ["nationality", "Nationality"], ["passportNumber", "Passport number"], ["profession", "Profession"], ["gccResidenceCountry", "Country of residence"]] as const) {
       if (!present(key === "fullName" ? applicantName(applicant.fullName) : applicant[key])) missing.push({ code: `applicant.${key}`, label });
     }
-    if (!validPassportExpiry(applicant.passportExpiry ?? "", input.application.arrivalDate)) missing.push({ code: "applicant.passportExpiry", label: "Passport valid for at least six months" });
+    if (!isCalendarDate(applicant.passportExpiry)) missing.push({ code: "applicant.passportExpiry", label: "Enter a valid passport expiry date" });
     if (input.application.residenceType === "gcc-accompany") {
       for (const [key, label] of [["sponsorName", "Enter the sponsor's full name"], ["sponsorRelation", "Enter the sponsor's relationship"]] as const) {
         if (!present(applicant[key])) missing.push({ code: `applicant.${key}`, label });

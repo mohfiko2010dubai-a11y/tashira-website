@@ -59,7 +59,7 @@ describe("payer authorization evidence", () => {
       policyVersion: PAYER_AUTHORIZATION_VERSION,
     });
     expect(evidence).not.toBeNull();
-    const rows = invoicePaymentDetailRows({
+    const rows = invoicePaymentDetailRows({ company: { version: 1, legalName: "Synthetic company", address: "Test", licence: "TEST", website: "example.test", email: "test@example.test", phone: "000", logo: null },
       invoiceNumber: "INV-TSH-1", referenceNumber: "TSH-1", createdAt: "2026-08-19", customerName: "FATIMA AHMED",
       customerEmail: "approved@example.com", customerPhone: "+971500000000", passportNumber: "A123", passportExpiry: "2030-01-01",
       nationality: "Egyptian", visaType: "30-day", processingType: "regular", applicantCount: 2, unitPriceInBaseCurrency: 624,

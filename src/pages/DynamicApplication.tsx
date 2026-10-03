@@ -1,3 +1,4 @@
+import { ProductSubstitutionNotice } from "@/components/customer/ProductSubstitutionNotice";
 import NationalityAvailabilityNotice from "@/components/customer/NationalityAvailabilityNotice";
 import { ApplicationDomScope } from "@/components/customer/ApplicationDomScope";
 import { interviewTitle } from "../../contracts/private-page-title";
@@ -41,6 +42,7 @@ export default function DynamicApplication() {
   const { t, i18n } = useTranslation("wizard");
   useEffect(() => { if (!domScope) document.title = interviewTitle(i18n.language); }, [domScope, i18n.language]);
   const { referenceNumber = "" } = useParams();
+  const validityPolicy = trpc.business.documentValidityPolicy.useQuery();
   const query = trpc.dynamicInterview.current.useQuery({ referenceNumber }, { enabled: referenceNumber.length >= 3, retry: false });
   const [phase, updatePhase] = useState<3 | 4 | 5 | null>(null);
   const setPhase = (next: 3 | 4 | 5) => { if (next === phase) return; motionCommit(() => updatePhase(next), next < (phase ?? 3)); };
@@ -112,7 +114,7 @@ export default function DynamicApplication() {
     if (!applicant) throw new Error("Applicant unavailable");
     const previousCodes = ownerRequiredDocumentCodes(applicant.nationality, applicant.residenceCountry, state.applicationContext.visaType, applicant.tripPurpose, state.applicationContext.residenceType);
     await updateApplicationMutation.mutateAsync({ referenceNumber, applicantIndex: applicant.applicantIndex,
-      passportNumber: submission.passportNumber, passportExpiry: submission.passportExpiry, profession: submission.profession });
+      arrivalDate: submission.arrivalDate, residenceExpiry: submission.residenceExpiry, dateOfBirth: submission.dateOfBirth, passportNumber: submission.passportNumber, passportExpiry: submission.passportExpiry, profession: submission.profession });
     if (applicant.fullName !== submission.profile.fullName || applicant.nationality !== submission.profile.nationality || applicant.residenceCountry !== submission.profile.residenceCountry || applicant.tripPurpose !== submission.profile.tripPurpose) {
       await editApplicantMutation.mutateAsync({ referenceNumber, applicantId, expectedVersion: applicant.profileVersion,
         profile: submission.profile, reason: "Customer saved applicant form", idempotencyKey: crypto.randomUUID() });
@@ -193,6 +195,7 @@ export default function DynamicApplication() {
   const canOpenCheckout = canVisitCheckout(readiness.data);
   return <WizardShell compactContent currentStep={currentStep === 5 ? 3 : 2}>
     <div className="mx-auto w-full max-w-[680px]">
+      <ProductSubstitutionNotice referenceNumber={referenceNumber} />
       <StepHeader
         step={currentStep === 5 ? 3 : 2}
         title={t(currentStep === 5 ? "steps.review" : "steps.data")}
@@ -267,7 +270,7 @@ export default function DynamicApplication() {
 
       {/* A complete, grouped form per applicant; hidden instances retain independent drafts. */}
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
-        <ApplicantDataForm applicant={applicant} onValidationCount={onValidationCount} formId={`traveller-form-${applicant.applicantId}`} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
+        <ApplicantDataForm applicant={applicant} validityPolicy={validityPolicy.data} onValidationCount={onValidationCount} formId={`traveller-form-${applicant.applicantId}`} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
           questions={Array.from(new Map([...(state.formQuestions ?? []), ...state.currentQuestions].map(field => [`${field.applicantId}:${field.code}`, field])).values()).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
           saved={state.knownAnswers} onSave={(submission, continueAfter) => saveApplicantForm(applicant.applicantId, submission, continueAfter)} />
       </div>)}
