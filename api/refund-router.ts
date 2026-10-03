@@ -19,6 +19,7 @@ import { verifyAdminPasswordAsync } from "./lib/admin-session";
 import { assertRefundSource, calculateRefund, deriveRefundCaseStatus, reconcileRefundStatus, type RefundDeduction } from "./lib/refund-domain";
 import { createStripeRefund, retrieveStripeRefund } from "./lib/stripe";
 import { sendRefundOutcomeEmail } from "./lib/refund-outcome-email";
+import { completeVisaRefundWithCreditNote } from "./lib/refund-credit-note";
 
 const currency = z.string().regex(/^[A-Za-z]{3}$/u).transform((value) => value.toUpperCase());
 const deduction = z.discriminatedUnion("type", [
@@ -316,6 +317,7 @@ export const refundRouter = createRouter({
     let succeeded = 0;
     let processing = 0;
     for (const item of claimed.items) {
+      let acceptedRefundId: string | undefined;
       try {
         const stripeRefund = await createStripeRefund({
           paymentIntentId: item.paymentIntentId,
@@ -323,14 +325,23 @@ export const refundRouter = createRouter({
           idempotencyKey: item.idempotencyKey,
           metadata: { refundCaseId: claimed.refundCase.id, refundItemId: item.id, sourceType: item.sourceType },
         });
+        acceptedRefundId = stripeRefund.id;
         const itemStatus = stripeRefund.status === "succeeded" ? "SUCCEEDED" : "PROCESSING";
-        await db.update(refundItems).set({ status: itemStatus, stripeRefundId: stripeRefund.id, failureCategory: null })
+        // Preserve the provider reference before accounting, so a local failure can be reconciled.
+        await db.update(refundItems).set({ status: "PROCESSING", stripeRefundId: stripeRefund.id, failureCategory: null })
           .where(and(eq(refundItems.id, item.id), eq(refundItems.status, "PROCESSING")));
+        if (itemStatus === "SUCCEEDED" && item.sourceType === "VISA_SERVICE") {
+          await completeVisaRefundWithCreditNote(item.id, stripeRefund);
+        } else if (itemStatus === "SUCCEEDED") {
+          await db.update(refundItems).set({ status: itemStatus }).where(and(eq(refundItems.id, item.id), eq(refundItems.status, "PROCESSING")));
+        }
         if (itemStatus === "SUCCEEDED") succeeded += 1;
         else processing += 1;
       } catch (error: unknown) {
         const category = error instanceof Error ? error.message.replace(/^Stripe refund failed: /u, "").slice(0, 80) : "unknown";
-        await db.update(refundItems).set({ status: "FAILED", failureCategory: category })
+        if (acceptedRefundId) processing += 1;
+        await db.update(refundItems).set({ status: acceptedRefundId ? "PROCESSING" : "FAILED",
+          ...(acceptedRefundId ? { stripeRefundId: acceptedRefundId } : {}), failureCategory: acceptedRefundId ? "accounting_pending" : category })
           .where(and(eq(refundItems.id, item.id), eq(refundItems.status, "PROCESSING")));
       }
     }
@@ -440,6 +451,11 @@ export const refundRouter = createRouter({
       try {
         const stripeRefund = await retrieveStripeRefund(item.stripeRefundId!, item.paymentIntentId);
         const status = reconcileRefundStatus(stripeRefund.status);
+        if (status === "SUCCEEDED" && item.sourceType === "VISA_SERVICE") {
+          const result = await completeVisaRefundWithCreditNote(item.id, stripeRefund);
+          if (result.changed) newlySucceeded.push(item);
+          continue;
+        }
         const update = await db.update(refundItems).set({
           status,
           failureCategory: status === "FAILED" ? "stripe_refund_failed" : null,

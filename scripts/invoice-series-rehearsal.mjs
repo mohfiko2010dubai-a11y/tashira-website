@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { transformSync } from 'esbuild';
 const source = fs.readFileSync(new URL('../api/lib/financial-document-series.ts', import.meta.url), 'utf8');
 const code = transformSync(source, { loader: 'ts', format: 'esm' }).code;
-const { issueFinancialDocument, registerLegacyInvoices } = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'));
+const { issueFinancialDocument, prepareFinancialDocument, DocumentNumberChanged, registerLegacyInvoices } = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'));
 const name='tashira_staging_invoice_rehearsal';
 const admin=await mysql.createConnection({socketPath:'/var/run/mysqld/mysqld.sock',user:'root',multipleStatements:true});
 const [existing]=await admin.query('SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME=?',[name]);
@@ -18,7 +18,23 @@ try{
   for(let i=1;i<=40;i++)await pool.query('INSERT INTO qa_orders (id) VALUES (?)',[i]);
   const input=(id,overrides={})=>({applicationId:id,paymentId:id,issuanceKey:'payment:'+id,kind:'invoice',isTest:false,
     issuedAt:new Date('2026-10-03T12:00:00Z'),snapshot:{synthetic:true},render:number=>Buffer.from('%PDF-1.7\n'+number),...overrides});
-  async function paid(id,overrides={},rollback=false){const c=await pool.getConnection();try{await c.beginTransaction();await c.execute('SELECT id FROM qa_orders WHERE id=? FOR UPDATE',[id]);const r=await issueFinancialDocument(c,input(id,overrides));await c.execute('UPDATE qa_orders SET paid=TRUE WHERE id=?',[id]);if(rollback)throw Error('injected rollback');await c.commit();return r;}catch(e){await c.rollback();throw e;}finally{c.release();}}
+  let collisions=0;const lockDurations=[];
+  async function paid(id,overrides={},rollback=false){
+    for(let attempt=0;attempt<64;attempt++){
+      const prepared=await prepareFinancialDocument(pool,input(id,overrides));
+      const c=await pool.getConnection();
+      try{
+        await c.beginTransaction();await c.execute('SELECT id FROM qa_orders WHERE id=? FOR UPDATE',[id]);
+        const start=performance.now();const result=await issueFinancialDocument(c,prepared);
+        await c.execute('UPDATE qa_orders SET paid=TRUE WHERE id=?',[id]);
+        if(rollback)throw Error('injected rollback');
+        await c.commit();lockDurations.push(performance.now()-start);return result;
+      }catch(error){await c.rollback();if(!(error instanceof DocumentNumberChanged))throw error;collisions++;}
+      finally{c.release();}
+      await new Promise(resolve=>setTimeout(resolve,5+Math.random()*20));
+    }
+    throw Error('Synthetic retry budget exhausted');
+  }
   await assert.rejects(paid(1,{},true),/injected rollback/);
   const [rolled]=await pool.query('SELECT * FROM financial_document_archives');assert.equal(rolled.length,0);
   const [unpaid]=await pool.query('SELECT paid FROM qa_orders WHERE id=1');assert.equal(unpaid[0].paid,0);
@@ -48,5 +64,6 @@ try{
   assert.equal((await paid(28)).number,'TSH-INV-00026');
   await assert.rejects(pool.query("UPDATE financial_document_archives SET snapshot_json='{}' WHERE document_number=?",[first.number]),/immutable/);
   await assert.rejects(pool.query('DELETE FROM financial_document_archives WHERE document_number=?',[first.number]),/cannot be deleted/);
-  console.log(JSON.stringify({database:name,rollbackWithoutGap:true,paymentAndNumberAtomic:true,concurrentPayments:20,duplicateReplay:true,testAndCreditSeriesIndependent:true,noAnnualReset:true,legacyMappingPreserved:true,renderFailureNoGap:true,archiveImmutable:true}));
+  assert(collisions>0,'Concurrent candidates must actually collide and retry');
+  console.log(JSON.stringify({database:name,rollbackWithoutGap:true,paymentAndNumberAtomic:true,concurrentPayments:20,duplicateReplay:true,testAndCreditSeriesIndependent:true,noAnnualReset:true,legacyMappingPreserved:true,renderFailureNoGap:true,archiveImmutable:true,collisionsRetried:collisions,maxTransactionMs:Math.max(...lockDurations)}));
 }finally{await pool.end();await admin.query('DROP DATABASE '+name);await admin.end();}

@@ -19,16 +19,30 @@ export function assertDisplayedQuote(current: CheckoutQuote, displayedId: string
     message: "Your application price has changed. Refresh the price, review the new total, and select Pay again." });
 }
 
-export async function withCheckoutLock<T>(applicationId: number, work: (connection: PoolConnection) => Promise<T>): Promise<T> {
+export async function withCheckoutLock<T>(applicationId: number, work: (connection: PoolConnection) => Promise<T>, lockWaitSeconds?: number): Promise<T> {
   const connection = await defaultOperationsPool().getConnection();
+  let originalTimeout: number | undefined;
   try {
+    if (lockWaitSeconds !== undefined) {
+      if (!Number.isInteger(lockWaitSeconds) || lockWaitSeconds < 1 || lockWaitSeconds > 5) throw new Error("Invalid bounded lock wait");
+      const [settings] = await connection.query<RowDataPacket[]>("SELECT @@SESSION.innodb_lock_wait_timeout AS seconds");
+      originalTimeout = Number(settings[0].seconds);
+      await connection.query("SET SESSION innodb_lock_wait_timeout=?", [lockWaitSeconds]);
+    }
     await connection.beginTransaction();
     const [rows] = await connection.execute<RowDataPacket[]>("SELECT id FROM applications WHERE id=? FOR UPDATE", [applicationId]);
     if (!rows.length) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found. Reopen your saved application." });
     const result = await work(connection);
     await connection.commit();
     return result;
-  } catch (error) { await connection.rollback(); throw error; } finally { connection.release(); }
+  } catch (error) { await connection.rollback(); throw error; } finally {
+    let reusable = true;
+    if (originalTimeout !== undefined) {
+      try { await connection.query("SET SESSION innodb_lock_wait_timeout=?", [originalTimeout]); }
+      catch { reusable = false; connection.destroy(); }
+    }
+    if (reusable) connection.release();
+  }
 }
 
 export async function latestCheckoutQuote(connection: PoolConnection, applicationId: number): Promise<CheckoutQuote | null> {

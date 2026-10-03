@@ -92,6 +92,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
     setLoading(true);
     setError('');
     paymentTimeline.paymentStarted();
+    let stripeSucceeded = false;
 
     try {
       // Convert amount from dollars to cents for Stripe
@@ -124,6 +125,7 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
       }
 
       if (paymentIntent?.status === 'succeeded') {
+        stripeSucceeded = true;
         // Confirm in backend
         const confirmedPayment = await confirmPayment.mutateAsync({
           referenceNumber,
@@ -141,6 +143,11 @@ function PaymentForm({ referenceNumber, amount, quoteId, applicantName, policies
       }
       await utils.payment.status.invalidate({ referenceNumber });
     } catch (err: unknown) {
+      if (stripeSucceeded) {
+        setError('Your payment succeeded. We are completing your confirmation. Check payment status; do not pay again. / تم الدفع بنجاح وجارٍ استكمال التأكيد. تحقق من حالة الدفع ولا تدفع مرة أخرى.');
+        await utils.payment.status.invalidate({ referenceNumber });
+        return;
+      }
       paymentTimeline.paymentFailed("unknown");
       setError(safeCheckoutErrorMessage(err));
       await utils.payment.quote.invalidate({ referenceNumber });

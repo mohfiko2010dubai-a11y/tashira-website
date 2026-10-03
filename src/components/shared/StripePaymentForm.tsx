@@ -112,6 +112,7 @@ function PaymentFormInner({
     setError('');
     paymentTimeline.paymentStarted();
     let failureRecorded = false;
+    let stripeSucceeded = false;
 
     try {
       const intentResult = await createIntent.mutateAsync({
@@ -136,6 +137,7 @@ function PaymentFormInner({
       }
 
       if (paymentIntent?.status === 'succeeded') {
+        stripeSucceeded = true;
         const confirmedPayment = await confirmPayment.mutateAsync({
           referenceNumber,
           paymentIntentId: paymentIntent.id,
@@ -147,10 +149,15 @@ function PaymentFormInner({
           value: confirmedPayment.totalAmount,
           currency: confirmedPayment.currency,
         });
-        onSuccess(`INV-${referenceNumber}`);
+        onSuccess(confirmedPayment.invoiceNumber);
       }
       await recovery.refresh();
     } catch (err: unknown) {
+      if (stripeSucceeded) {
+        setError('Your payment succeeded. We are completing your confirmation. Check payment status; do not pay again. / تم الدفع بنجاح وجارٍ استكمال التأكيد. تحقق من حالة الدفع ولا تدفع مرة أخرى.');
+        await recovery.refresh();
+        return;
+      }
       if (!failureRecorded) paymentTimeline.paymentFailed('unknown');
       setError(err instanceof Error ? err.message : 'Payment failed. Please try again.');
       await price.refetch();

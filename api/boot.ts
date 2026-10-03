@@ -1,4 +1,4 @@
-import { readArchivedInvoice } from "./lib/invoice-archive";
+import { archivedDocumentApplicationId, readArchivedInvoice } from "./lib/invoice-archive";
 import "../contracts/install-safe-console";
 import { languagePath, languageRoute } from "../contracts/language-routes";
 import { withSsrDeadline } from "./lib/ssr-deadline";
@@ -171,6 +171,11 @@ const INVOICES_DIR = getStorageDir();
 // Helper: find application by invoice number (with fallback to reference)
 async function findApplicationByInvoice(invoiceNumber: string) {
   const db = getDb();
+  const archivedApplicationId = await archivedDocumentApplicationId(invoiceNumber);
+  if (archivedApplicationId !== null) {
+    const [archivedApplication] = await db.select().from(applications).where(eq(applications.id, archivedApplicationId)).limit(1);
+    return archivedApplication ?? null;
+  }
 
   // 1. Try by invoice_number
   const [byInvoice] = await db.select().from(applications)

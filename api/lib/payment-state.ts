@@ -3,7 +3,8 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { applications, payments } from "../../db/schema";
 import { withCheckoutLock } from "./checkout-quote";
 import { recordTimelineEvent, type TimelineActorType } from "./application-timeline";
-import { issuePaidInvoice, type InvoiceIssueData } from "./invoice-archive";
+import { issuePaidInvoice, preparePaidInvoice, type InvoiceIssueData } from "./invoice-archive";
+import { FinancialFinalizationPending, retryableFinancialConflict } from "./financial-document-series";
 
 export class SupersededStripeEvent extends Error {}
 
@@ -18,7 +19,12 @@ export async function applyStripePaymentState(input: {
   eventCreated?: number; actorType: TimelineActorType; eventSource: string;
   invoice?: InvoiceIssueData;
 }) {
-  return withCheckoutLock(input.applicationId, async connection => {
+  for (let attempt = 0; ; attempt++) {
+    // All rendering and candidate-number reads precede BEGIN and both row locks.
+    const prepared = input.target === "paid" && input.invoice
+      ? await preparePaidInvoice(input.applicationId, input.paymentId, input.invoice) : undefined;
+    try {
+      return await withCheckoutLock(input.applicationId, async connection => {
     const db = drizzle(connection);
     const [app] = await db.select().from(applications).where(eq(applications.id, input.applicationId)).limit(1);
     const [payment] = await db.select().from(payments).where(and(eq(payments.id, input.paymentId),
@@ -33,7 +39,7 @@ export async function applyStripePaymentState(input: {
     const nextCreated = Math.max(lastEventCreated, input.eventCreated ?? 0);
     const changed = app.paymentStatus !== input.target;
     if (input.target === "paid") {
-      await issuePaidInvoice(connection, input.applicationId, input.paymentId, input.invoice);
+      await issuePaidInvoice(connection, input.applicationId, input.paymentId, prepared);
     }
     await db.update(applications).set({ paymentStatus: input.target, stripeEventCreated: nextCreated,
       ...(input.target === "paid" && changed ? { status: "payment_received" as const } : {}) }).where(eq(applications.id, input.applicationId));
@@ -44,5 +50,12 @@ export async function applyStripePaymentState(input: {
       actorType: input.actorType, actorReference: input.paymentIntentId, resultingState: input.target,
       summary: input.target === "paid" ? "Payment confirmed by Stripe" : "Stripe reported payment failure" }, db);
     return { applied: changed, paid: input.target === "paid" };
-  });
+      }, 2);
+    } catch (error) {
+      if (!retryableFinancialConflict(error)) throw error;
+      if (attempt >= 31) throw new FinancialFinalizationPending("Payment accounting is still being finalized; retry confirmation without charging again");
+      // withCheckoutLock has rolled back and released the connection before waiting.
+      await new Promise(resolve => setTimeout(resolve, Math.min(500, 25 * (attempt + 1)) + Math.random() * 50));
+    }
+  }
 }
