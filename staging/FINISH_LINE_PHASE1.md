@@ -1,4 +1,4 @@
-# FINISH-LINE Phase 1 — staging verification in progress
+# FINISH-LINE Phase 1 — staging verified
 
 Owner decisions: `codex-FINISH-LINE.txt`, 4 October 2026. The refund decision is now closed: amount less the actual processing fee, disclosed before payment and in the refund policy. Earlier pending-decision notes are superseded.
 
@@ -31,6 +31,12 @@ Verified staging cases:
 
 Original15 unrelated dirty files preserved. Current synthetic evidence and sessions remain private under `/var/lib/tashira-maintenance/finishline-*`.
 
-## Remaining before calling this phase complete
+## Final deployed verification — 4 October 2026
 
-Final correction deployment and fresh first-confirmation/PDF verification. Phase2 emails, approvals, staff controls and launch gates are not complete. Production remains closed. Dedicated phone still needs real owner confirmation before reopening; no flag was silently cleared in production.
+Staging deployed d57a69911bd0de898a7868903e4456bd40d10c22. CI37157724442 both jobs SUCCESS, including the dedicated 26 MySQL tests with zero skipped. Deployment repeated check/lint/tests/build and returned local/public health200. No production mutation.
+
+Fresh synthetic GCC traveller payment: first confirmation returned success while the provider balance transaction was pending. Immutable TEST-INV-00006 records company settings version5; replay returns the same invoice and invoice count remains1. A subsequent confirmation, after the provider transaction became available, stored the actual fee3600 AED minor units, exactly matching Stripe. This explicitly verifies both pending and available settlement paths; it does not claim an observed automatic webhook retry for this charge. Webhook retry behavior is covered by the implementation and regression tests.
+
+Rendered the new archived PDF: company identity, total185USD, settings snapshot and corrected payment-reference spacing inspected. Archive SHA256 a2d3e485598fffd67c1034a4914dc5bfe59f532e5f673a4fea153f9de8341c56. Admin settings UI shows history and6/3/12 thresholds. Original15 unrelated dirty files remain unchanged.
+
+Phase1 implementation and staging verification complete. Phase2 emails, approvals, staff controls and launch gates are not complete. Production remains closed. Dedicated phone still needs real owner confirmation before reopening; no flag was silently cleared in production.

@@ -1,3 +1,6 @@
+# FINISH-LINE Phase1 verified on staging, 2026-10-04
+
+Staging d57a69911bd0de898a7868903e4456bd40d10c22; CI37157724442 both jobs green, dedicated26 MySQL tests zero skipped. Full local1240 pass; deployed check/lint/test/build and public/local health pass. Fresh Stripe TEST first confirmation succeeds with fee pending; subsequent confirmation reconciles actual3600 AED minor units. TEST-INV-00006 version5 archive and replay uniqueness verified, PDF visually checked. Company provisional refusal, entry-date warnings, nationality/product block and exact-version substitution acknowledgement passed. Phase1 staging complete; Phase2 staff/approvals/refunds/emails outstanding. Production untouched and CLOSED; launch not approved. See staging/FINISH_LINE_PHASE1.md. Original15 dirty files preserved.
 # FINISH-LINE staging UAT, 2026-10-04
 
 Staging110d751 with migrations059–061. Actual Stripe TEST invoice/fee/replay, dynamic GCC short-validity readiness, company-version immutability and substitution ownership/filing guards verified. Staging-discovered corrections are in7868a10; final release verification pending. Full1240 local tests pass; hosted26 MySQL tests zero skipped. Production remains closed. Real company phone remains provisional; staging UAT settings explicitly synthetic. See staging/FINISH_LINE_PHASE1.md.
