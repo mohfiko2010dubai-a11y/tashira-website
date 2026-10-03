@@ -201,7 +201,7 @@ export default function DynamicApplication() {
         title={t(currentStep === 5 ? "steps.review" : "steps.data")}
         subtitle={t(currentStep === 5 ? "flow.subtitle" : "flow.matchedDocuments")}
       />
-      <NationalityAvailabilityNotice nationalities={state.partySetup?.applicants.map(traveller => traveller.nationality) ?? []} />
+      <NationalityAvailabilityNotice visaType={state.applicationContext.visaType} nationalities={state.partySetup?.applicants.map(traveller => traveller.nationality) ?? []} />
       {currentStep !== 5 && activeProfile && <TravellerContext key={`${activeId}:${contextOpen}`} applicant={activeProfile} reference={referenceNumber} editing={contextOpen} nationalityOnly={!editingContext && Boolean(activeProfile.residenceCountry && activeProfile.tripPurpose)}
         onEdit={() => setEditingContext(true)} onCancel={() => setEditingContext(false)} onSave={async profile => {
           const previous = ownerRequiredDocumentCodes(activeProfile.nationality, activeProfile.residenceCountry, state.applicationContext.visaType, activeProfile.tripPurpose, state.applicationContext.residenceType);

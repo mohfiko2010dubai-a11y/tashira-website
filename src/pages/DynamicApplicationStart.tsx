@@ -200,7 +200,7 @@ function OpenApplicationStart() {
               <div><p className="mb-2 text-sm font-medium">{t("simple.fields.RESIDENCE_COUNTRY")} *</p>
                 <NationalitySelect {...feedback.fieldProps("residence", "start-residence-help")} compact purpose="residence" value={country} onChange={setCountry} allowedCodes={allowedResidence ?? []} />
                 <p id="start-residence-help" className="mt-2 text-xs text-slate-500">{t("simple.residenceHint")}</p>{feedback.errorFor("residence")}</div>
-              <NationalityAvailabilityNotice nationalities={[nationality]} />
+              <NationalityAvailabilityNotice visaType={visaType} nationalities={[nationality]} />
           <TripPurposeSelect value={purpose} onChange={setPurpose} visaType={visaType} />
             </div>
             {country && (applicationType === "family" || nationality) && <section className="mt-5 rounded-xl border border-[#C9A04C] p-4" aria-live="polite">

@@ -2,11 +2,13 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc-client";
 import { nationalityUnavailableCopy, unavailableNationalities } from "@contracts/nationality-availability";
+import { blockedProductNationalities } from "@contracts/nationality-product";
 
-export default function NationalityAvailabilityNotice({ nationalities }: { nationalities: readonly (string | null | undefined)[] }) {
+export default function NationalityAvailabilityNotice({ nationalities, visaType = "" }: { nationalities: readonly (string | null | undefined)[]; visaType?: string }) {
   const { i18n } = useTranslation();const ar = i18n.language.startsWith("ar");
   const config = trpc.catalog.nationalityAvailability.useQuery(undefined, { refetchInterval: 60000 });
-  const blocked = unavailableNationalities(config.data?.codes ?? [], nationalities);
+  const blocked = [...new Set([...unavailableNationalities(config.data?.codes ?? [], nationalities),
+    ...blockedProductNationalities(config.data?.rules ?? [], visaType, nationalities, new Date())])];
   if (!blocked.length) return null;
   return <aside role="status" className="my-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
     <p>{nationalityUnavailableCopy(blocked, ar)}</p>

@@ -84,6 +84,8 @@ async function persistApplicant(applicationId: number, applicantIndex: number, i
     passportNumber: input.passportNumber,
     passportType: input.passportType ?? "ordinary",
     passportExpiry: input.passportExpiry,
+    residenceExpiry: input.residenceExpiry || null,
+    dateOfBirth: input.dateOfBirth || null,
     profession: input.profession,
     travelingFrom: input.countryFrom,
   }).$returningId();
