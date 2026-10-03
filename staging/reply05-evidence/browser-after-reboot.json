@@ -1,0 +1,16 @@
+{
+  "orders": [
+    {
+      "applicationId": 40,
+      "paidPageAfterReboot": true,
+      "assistantAfterReboot": true
+    },
+    {
+      "applicationId": 41,
+      "paidPageAfterReboot": true,
+      "assistantAfterReboot": true
+    }
+  ],
+  "publicPages200": true,
+  "closurePersists": true
+}

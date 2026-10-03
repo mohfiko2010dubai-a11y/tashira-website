@@ -1,0 +1,49 @@
+{
+  "productionRevision": "9e589e0e0d751f314fea1c671db469f1b7161293",
+  "productionClosed": true,
+  "protectedBackup": "/srv/tashira-production-recovery/isolation-20261003",
+  "protectedFilesAndOriginalsHashVerified": 6,
+  "preReboot": {
+    "bootId": "8dd16fb0-6d82-4e0d-973e-9bd7aaf92d76",
+    "originalDocumentsHttpHashVerified": 6,
+    "paidOrdersVerified": [
+      40,
+      41
+    ],
+    "newOrdersLast30Minutes": 0,
+    "uid": {
+      "tashira-prod": "997",
+      "tashira-staging": "999"
+    },
+    "rootPm2Absent": true,
+    "closed": true
+  },
+  "postReboot": {
+    "bootId": "55a7c8c8-6df7-4664-81f1-2694b79fb432",
+    "originalDocumentsHttpHashVerified": 6,
+    "paidOrdersVerified": [
+      40,
+      41
+    ],
+    "newOrdersLast30Minutes": 0,
+    "uid": {
+      "tashira-prod": "997",
+      "tashira-staging": "999"
+    },
+    "rootPm2Absent": true,
+    "closed": true
+  },
+  "services": [
+    "active",
+    "active",
+    "active",
+    "active",
+    "active",
+    "active"
+  ],
+  "disk": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        96G   24G   73G  25% /",
+  "localDiskAlertSimulationPassed": true,
+  "externalDiskAlertConfigured": false,
+  "rootPm2Absent": true
+}
+

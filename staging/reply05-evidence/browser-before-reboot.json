@@ -1,0 +1,32 @@
+{
+  "entry": [
+    {
+      "path": "/en/apply",
+      "closed": true
+    },
+    {
+      "path": "/ar/apply",
+      "closed": true
+    },
+    {
+      "path": "/visa-pre-check",
+      "closed": true
+    }
+  ],
+  "orders": [
+    {
+      "applicationId": 40,
+      "freshResumeLink": true,
+      "paidPage": true,
+      "resumedAssistant": true
+    },
+    {
+      "applicationId": 41,
+      "freshResumeLink": true,
+      "paidPage": true,
+      "resumedAssistant": true
+    }
+  ],
+  "adminStatus": true,
+  "chatClosed": true
+}

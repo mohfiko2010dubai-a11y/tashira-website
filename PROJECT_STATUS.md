@@ -1,3 +1,6 @@
+# Reply 05 â€” production closed, cleanup and reboot verified, 2026-10-03
+
+Production closure-only 9e589e0 deployed from its exact older baseline. Existing paid LIVE orders 40/41 resume and load successfully before/after actual reboot; six document HTTP hashes match backups. Backup protected at /srv/tashira-production-recovery/isolation-20261003. Disk now 25% used / 73 GiB free. Three complete generated rollback backups retained; deploy/daily pruning, per-user rotation and five-minute local disk monitoring installed. Both apps auto-start non-root (997/999), nginx/MySQL active, root PM2 absent. External disk-alert delivery awaits owner destination; Phase 1 and launch remain incomplete, production stays closed. Duplicate-label fix stays staging-only because the production baseline lacks that component. See staging/REPLY05_OPERATIONS.md and sanitized reply05-evidence.
 # Reply 04 received â€” production closure pending ordering decision, 2026-10-03
 
 Owner accepted isolation. New priorities: close new production orders while preserving existing orders; reclaim disk with inventory first; configure log rotation; controlled reboot; list skipped integration tests; then Phase 1. No existing closure flag in production 3d595412. Clarification pending on initial deployment versus disk-first prohibition. Production is NOT yet closed. Read-only inventory: 48 GiB staging backups, 30 GiB build trees, 3.4 GiB root npm cache, 4.6 GiB free (96% used); production documents 3,371,922 bytes. No further deletion or reboot in this reply. All 26 skipped tests inventoried with reasons. See staging/REPLY04_INTAKE.md and REPLY04_SKIPPED_TESTS.md.
@@ -285,19 +288,19 @@ Residence type is now on the first screen. The second screen collects passport n
 TypeScript, ESLint, 886 tests / 26 skips and client/static/server build PASS. Staging verified at 0b2ead1e13981676b20e24d34dabade4cd62130c and database tashira_staging. Guarded deployment and synthetic browser/upload UAT pending. No schema, Production or provider changes.
 
 
-## Final merged form verified on Staging — 2026-09-11
+## Final merged form verified on Staging ï¿½ 2026-09-11
 
 Deployed 0b2ead1e13981676b20e24d34dabade4cd62130c through full guard: TypeScript, ESLint, 882 tests / 26 skips, client/static/server build, local and public HTTP 200. Browser synthetic TSH-MTWNP3MI-671169 successfully recovers saved data, completes PK/SA to eight separate document uploads and review, keeps payment blocked while files are missing, then edits to IN/KW and displays exactly its six relevant uploads. Four visible steps and merged residence/applicant screen verified; GCC countries restricted and repeated family/residency/ticket prompts removed. Report: output/merged-form-20260911/REVIEW.md. No actual file uploads, payments or outbound email were sent during browser UAT. Production and schema untouched.
 
 
-## Same-second evaluation recovery — 2026-09-11
+## Same-second evaluation recovery ï¿½ 2026-09-11
 
 Repair e93fb01 deployed with all gates and local/public health 200. Browser UAT recovered synthetic TSH-MTWNP3MI-671169, saved PK/SA, displayed all eight independent uploads, and reached review with payment blocked for missing documents. Editing to IN/KW exposed legacy second-precision ordering: a child evaluation sorted ahead of its parent by UUID.
 
 The read provider now loads parent evaluations first, rejects missing/cyclic ancestry, and breaks equal-time selection ties using causal ancestry. Form answers defer evaluation until the single completeForm call, avoiding intermediate snapshots per field. No timestamp fabrication, schema changes or database edits. TypeScript, ESLint, 882 tests / 26 skips and client/static/server build PASS. Final guarded deployment and repeat edit UAT pending.
 
 
-## Merged form Staging UAT repair — 2026-09-11
+## Merged form Staging UAT repair ï¿½ 2026-09-11
 
 Owner explicitly approved source transfer, the narrow generated-artifact guard correction and Staging deployment. Candidate 3376d8b deployed with every gate passing and both health checks 200; the guard backup is /var/backups/tashira-staging/guard-artifact-20260911T073636Z. Browser UAT verified the merged four-step UI and GCC-only country picker, but synthetic TSH-MTWNP3MI-671169 exposed completion persistence failure: operational document pseudo-rules had no registered DB rule versions.
 
@@ -658,4 +661,5 @@ Complete the remaining protected owner acceptance on isolated Staging: use the a
 - Added a bilingual homepage content-highlights section backed only by published CMS content, with safe empty-state links to the public indexes.
 - Added the Content CMS entry to the legacy Admin Applications navigation and aligned the content list with the canonical Admin navigation shell.
 - Focused navigation coverage and the full quality gates pass. Deployment and any content publication remain Staging-only; Production and `main/master` are unchanged.
+
 
