@@ -1,0 +1,196 @@
+{
+  "observedAt": "2026-10-03T19:05:05.387Z",
+  "productionSha": "9e589e0e0d751f314fea1c671db469f1b7161293",
+  "database": "tashira_db",
+  "closed": true,
+  "method": "COUNT(*) in a consistent read-only transaction; no customer field values selected",
+  "tables": [
+    {
+      "table": "applicants",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 35
+    },
+    {
+      "table": "application_price_snapshots",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 2
+    },
+    {
+      "table": "application_risk_assessments",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 0
+    },
+    {
+      "table": "application_timeline_events",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 53
+    },
+    {
+      "table": "applications",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 42
+    },
+    {
+      "table": "business_settings_versions",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 1
+    },
+    {
+      "table": "chat_messages",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 37
+    },
+    {
+      "table": "customer_recovery_challenges",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 4
+    },
+    {
+      "table": "deletion_audit_events",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 0
+    },
+    {
+      "table": "document_lifecycle_events",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 3
+    },
+    {
+      "table": "documents",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 17
+    },
+    {
+      "table": "financial_events",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 0
+    },
+    {
+      "table": "invoices",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 11
+    },
+    {
+      "table": "legal_hold_events",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 0
+    },
+    {
+      "table": "outbound_email_events",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 4
+    },
+    {
+      "table": "payments",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 42
+    },
+    {
+      "table": "pricing_rules",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 16
+    },
+    {
+      "table": "retention_policies",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 0
+    },
+    {
+      "table": "retention_records",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 0
+    },
+    {
+      "table": "staff_users",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 2
+    },
+    {
+      "table": "stripe_webhook_events",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 2
+    },
+    {
+      "table": "suppliers",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 1
+    },
+    {
+      "table": "users",
+      "type": "BASE TABLE",
+      "engine": "InnoDB",
+      "rows": 0
+    }
+  ],
+  "applicationCounts": [
+    {
+      "payment_status": "pending",
+      "data_classification": "LIVE",
+      "count": 1
+    },
+    {
+      "payment_status": "pending",
+      "data_classification": "TEST",
+      "count": 14
+    },
+    {
+      "payment_status": "paid",
+      "data_classification": "LIVE",
+      "count": 2
+    },
+    {
+      "payment_status": "paid",
+      "data_classification": "TEST",
+      "count": 25
+    }
+  ],
+  "paymentCounts": [
+    {
+      "status": "pending",
+      "count": 14
+    },
+    {
+      "status": "succeeded",
+      "count": 28
+    }
+  ],
+  "approvedLegacyOrderCounts": [
+    {
+      "id": 40,
+      "applicants": 1,
+      "documents": 3,
+      "invoices": 1,
+      "payments": 1
+    },
+    {
+      "id": 41,
+      "applicants": 1,
+      "documents": 3,
+      "invoices": 1,
+      "payments": 1
+    }
+  ]
+}
+
