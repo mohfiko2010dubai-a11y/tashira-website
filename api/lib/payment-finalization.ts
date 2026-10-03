@@ -1,8 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { applications, invoices, payments } from "@db/schema";
 import { getDb } from "../queries/connection";
-import { saveInvoiceToDisk } from "./invoice-pdf";
-import { getErrorMessage } from "./errors";
 import { retrieveStripeTestIntent, verifyStripeIntent } from "./stripe";
 import { hasTimelineEvent, recordTimelineEvent, type TimelineActorType } from "./application-timeline";
 import { activeBusinessSettings, getApplicationPriceSnapshot } from "./pricing-engine";
@@ -11,6 +9,7 @@ import { getCanonicalInvoiceCustomerIdentity } from "./invoice-customer-name";
 import { getPayerEvidence } from "./payer-authorization";
 import { retrieveStripeTestCardSummary } from "./stripe";
 import { applyStripePaymentState, SupersededStripeEvent } from "./payment-state";
+import { stripeRuntimeMode } from "./stripe-runtime";
 
 export async function finalizeStripeTestPayment(
   referenceNumber: string,
@@ -36,8 +35,35 @@ export async function finalizeStripeTestPayment(
     throw new Error("Stripe payment verification failed");
   }
 
+  const prepareInvoice = async () => {
+    const [customerIdentity, payerEvidence, cardSummary, settings] = await Promise.all([
+      getCanonicalInvoiceCustomerIdentity(application.id), getPayerEvidence(application.id, payment.id),
+      retrieveStripeTestCardSummary(paymentIntentId).catch(() => null), activeBusinessSettings(),
+    ]);
+    if (!payerEvidence) throw new Error("Verified payer authorization evidence is unavailable for invoice generation");
+    const invoice = {
+      isTest: application.isTest || stripeRuntimeMode() === "TEST",
+      vatRate: settings.vatRegistered === "yes" ? settings.vatRate : "0.00",
+      data: {
+        referenceNumber, customerName: customerIdentity.fullName, customerEmail: application.contactEmail,
+        customerPhone: application.contactPhone, nationality: customerIdentity.nationality,
+        passportNumber: customerIdentity.passportNumber, passportExpiry: customerIdentity.passportExpiry,
+        visaType: application.visaType, processingType: application.processingType,
+        arrivalDate: application.arrivalDate || undefined, applicantCount: priceSnapshot.applicantCount,
+        unitPriceInBaseCurrency: Number(priceSnapshot.unitPrice) * Number(priceSnapshot.exchangeRateToBase),
+        baseCurrency: priceSnapshot.baseCurrency.toUpperCase(), exchangeRateToBase: Number(priceSnapshot.exchangeRateToBase),
+        totalAmount: Number(payment.amount), currency: payment.currency.toUpperCase(), stripePaymentIntentId: paymentIntentId,
+        payerName: payerEvidence.payerName, payerRelationship: payerEvidence.relationship,
+        cardBrand: cardSummary?.brand, cardLast4: cardSummary?.last4,
+      },
+    };
+    return invoice;
+  };
+  const [existingInvoice] = await db.select({ id: invoices.id }).from(invoices)
+    .where(eq(invoices.applicationId, application.id)).limit(1);
+  const invoice = existingInvoice ? undefined : await prepareInvoice();
   const transition = await applyStripePaymentState({ applicationId: application.id, paymentId: payment.id,
-    paymentIntentId, target: "paid", ...evidence });
+    paymentIntentId, target: "paid", invoice, ...evidence });
   if (!transition.paid) throw new SupersededStripeEvent("A newer payment event supersedes this confirmation");
   if (transition.applied) {
     if (await hasTimelineEvent(application.id, "THREE_DS_REQUIRED")) {
@@ -54,83 +80,10 @@ export async function finalizeStripeTestPayment(
     }
   }
 
-  const invoiceNumber = `INV-${referenceNumber}`;
-  let invoicePdfPath = application.invoicePdfPath || "";
-  const [existingInvoice] = await db.select({ id: invoices.id }).from(invoices)
-    .where(eq(invoices.applicationId, application.id)).limit(1);
-  if (!existingInvoice) {
-    const settings = await activeBusinessSettings();
-    try {
-      await db.insert(invoices).values({
-        invoiceNumber,
-        applicationId: application.id,
-        paymentId: payment.id,
-        amount: payment.amount,
-        vatRate: settings.vatRegistered === "yes" ? settings.vatRate : "0.00",
-      });
-    } catch (error: unknown) {
-      const [concurrentInvoice] = await db.select({ id: invoices.id }).from(invoices)
-        .where(eq(invoices.invoiceNumber, invoiceNumber)).limit(1);
-      if (!concurrentInvoice) throw error;
-    }
-  }
-
-  const invoiceEventExists = await hasTimelineEvent(application.id, "INVOICE_GENERATED");
-  if (!application.invoicePdfPath || !invoiceEventExists) {
-    try {
-      const [customerIdentity, payerEvidence, cardSummary] = await Promise.all([
-        getCanonicalInvoiceCustomerIdentity(application.id),
-        getPayerEvidence(application.id, payment.id),
-        retrieveStripeTestCardSummary(paymentIntentId).catch(() => null),
-      ]);
-      if (!payerEvidence) throw new Error("Verified payer authorization evidence is unavailable for invoice generation");
-      const { pdfPath, pdfUrl } = saveInvoiceToDisk({
-        invoiceNumber,
-        referenceNumber,
-        createdAt: new Date().toISOString(),
-        customerName: customerIdentity.fullName,
-        customerEmail: application.contactEmail,
-        customerPhone: application.contactPhone,
-        nationality: customerIdentity.nationality,
-        passportNumber: customerIdentity.passportNumber,
-        passportExpiry: customerIdentity.passportExpiry,
-        visaType: application.visaType,
-        processingType: application.processingType,
-        arrivalDate: application.arrivalDate || undefined,
-        applicantCount: priceSnapshot.applicantCount,
-        unitPriceInBaseCurrency: Number(priceSnapshot.unitPrice) * Number(priceSnapshot.exchangeRateToBase),
-        baseCurrency: priceSnapshot.baseCurrency.toUpperCase(),
-        exchangeRateToBase: Number(priceSnapshot.exchangeRateToBase),
-        totalAmount: Number(payment.amount),
-        currency: payment.currency.toUpperCase(),
-        stripePaymentIntentId: paymentIntentId,
-        payerName: payerEvidence.payerName,
-        payerRelationship: payerEvidence.relationship,
-        cardBrand: cardSummary?.brand,
-        cardLast4: cardSummary?.last4,
-      });
-      invoicePdfPath = pdfPath;
-      await db.update(applications).set({
-        invoiceNumber,
-        invoicePdfPath: pdfPath,
-        invoicePdfUrl: pdfUrl,
-      }).where(eq(applications.id, application.id));
-      if (!invoiceEventExists) {
-        await recordTimelineEvent({
-          applicationId: application.id,
-          paymentId: payment.id,
-          eventName: "INVOICE_GENERATED",
-          eventSource: "INVOICE_SERVICE",
-          actorType: "SYSTEM",
-          actorReference: invoiceNumber,
-          resultingState: "generated",
-          summary: "Invoice PDF generated",
-        });
-      }
-    } catch (error: unknown) {
-      console.error("[Invoice Auto-Gen Error]", getErrorMessage(error));
-    }
-  }
+  const [issuedInvoice] = await db.select().from(invoices).where(eq(invoices.applicationId, application.id)).limit(1);
+  if (!issuedInvoice) throw new Error("Confirmed payment is missing its invoice archive");
+  const invoiceNumber = issuedInvoice.invoiceNumber;
+  const invoicePdfPath = issuedInvoice.pdfPath || application.invoicePdfPath || "";
 
   await sendPaymentSuccessEmail({
     applicationId: application.id,

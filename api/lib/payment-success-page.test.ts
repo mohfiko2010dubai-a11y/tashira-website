@@ -54,7 +54,8 @@ describe("final payment success presentation", () => {
     expect(helper).toContain("applicants.passportNumber");
     expect(helper).toContain("applicants.passportExpiry");
     expect(finalization).toContain("getCanonicalInvoiceCustomerIdentity(application.id)");
-    expect(fallback).toContain("getCanonicalInvoiceCustomerIdentity(appRow.id)");
+    expect(fallback).toContain("readArchivedInvoice(invoiceNumber)");
+    expect(fallback).not.toContain("generateInvoicePDF");
     expect(finalization).not.toContain('application.contactEmail.split("@")');
     expect(fallback).not.toContain('customerEmail.split("@")');
   });

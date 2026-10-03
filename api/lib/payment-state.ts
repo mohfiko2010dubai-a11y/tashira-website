@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { applications, payments } from "../../db/schema";
 import { withCheckoutLock } from "./checkout-quote";
 import { recordTimelineEvent, type TimelineActorType } from "./application-timeline";
+import { issuePaidInvoice, type InvoiceIssueData } from "./invoice-archive";
 
 export class SupersededStripeEvent extends Error {}
 
@@ -15,6 +16,7 @@ export function paymentTransitionAllowed(input: { paid: boolean; lastEventCreate
 export async function applyStripePaymentState(input: {
   applicationId: number; paymentId: number; paymentIntentId: string; target: "paid" | "failed";
   eventCreated?: number; actorType: TimelineActorType; eventSource: string;
+  invoice?: InvoiceIssueData;
 }) {
   return withCheckoutLock(input.applicationId, async connection => {
     const db = drizzle(connection);
@@ -30,6 +32,9 @@ export async function applyStripePaymentState(input: {
     }
     const nextCreated = Math.max(lastEventCreated, input.eventCreated ?? 0);
     const changed = app.paymentStatus !== input.target;
+    if (input.target === "paid") {
+      await issuePaidInvoice(connection, input.applicationId, input.paymentId, input.invoice);
+    }
     await db.update(applications).set({ paymentStatus: input.target, stripeEventCreated: nextCreated,
       ...(input.target === "paid" && changed ? { status: "payment_received" as const } : {}) }).where(eq(applications.id, input.applicationId));
     await db.update(payments).set({ status: input.target === "paid" ? "succeeded" : "failed", stripeEventCreated: nextCreated })

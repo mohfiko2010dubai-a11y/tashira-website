@@ -3,20 +3,9 @@ import { adminQuery, applicationAccessQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
 import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
-import fs from "fs";
-import path from "path";
 import { getErrorMessage } from "./lib/errors";
 import { internalFailure } from "./lib/public-error";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
-import { recordTimelineEvent } from "./lib/application-timeline";
-
-// Resolve absolute invoices directory
-const INVOICES_DIR = path.resolve(process.cwd(), "dist/public/invoices");
-
-// Ensure invoices directory exists
-if (!fs.existsSync(INVOICES_DIR)) {
-  fs.mkdirSync(INVOICES_DIR, { recursive: true });
-}
 
 export const invoiceRouter = createRouter({
   // Save invoice PDF (base64) to disk
@@ -29,42 +18,7 @@ export const invoiceRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       try {
         assertApplicationReferenceAccess(ctx, input.referenceNumber);
-        if (input.invoiceNumber !== `INV-${input.referenceNumber}`) throw new Error("Invoice does not match application");
-        const pdfBuffer = Buffer.from(input.pdfBase64, "base64");
-        if (pdfBuffer.length > 10 * 1024 * 1024 || pdfBuffer.subarray(0, 4).toString() !== "%PDF") {
-          throw new Error("Invalid invoice PDF");
-        }
-        const fileName = `${input.invoiceNumber}.pdf`;
-        const absolutePath = path.join(INVOICES_DIR, fileName);
-        const publicUrl = `/invoices/${fileName}`;
-
-        // Write PDF to disk
-        fs.writeFileSync(absolutePath, pdfBuffer);
-
-        // Update application with invoice info
-        const db = getDb();
-        await db.update(applications).set({
-          invoiceNumber: input.invoiceNumber,
-          invoicePdfPath: absolutePath,
-          invoicePdfUrl: publicUrl,
-        }).where(eq(applications.referenceNumber, input.referenceNumber));
-        const [application] = await db.select({ id: applications.id }).from(applications)
-          .where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
-        if (application) await recordTimelineEvent({
-          applicationId: application.id,
-          eventName: "INVOICE_GENERATED",
-          eventSource: "INVOICE_API",
-          actorType: ctx.isAdmin ? "ADMIN" : ctx.staffId ? "STAFF" : "CUSTOMER",
-          actorReference: input.invoiceNumber,
-          resultingState: "generated",
-          summary: "Invoice PDF saved",
-        });
-
-        return {
-          success: true,
-          pdfUrl: publicUrl,
-          absolutePath,
-        };
+        throw new Error("Issued invoices cannot be replaced. Request a credit note and a new invoice through the approved finance workflow.");
       } catch (err: unknown) {
         const message = getErrorMessage(err);
         console.error("[Invoice Save Error]", message);

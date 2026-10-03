@@ -1,0 +1,1 @@
+{"database":"tashira_staging_invoice_rehearsal","rollbackWithoutGap":true,"paymentAndNumberAtomic":true,"concurrentPayments":20,"duplicateReplay":true,"testAndCreditSeriesIndependent":true,"dubaiYearBoundary":true,"renderFailureNoGap":true,"archiveImmutable":true}

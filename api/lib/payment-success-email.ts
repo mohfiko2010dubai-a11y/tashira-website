@@ -9,6 +9,7 @@ import { paymentSuccessEmailIdempotencyKey } from "./email-idempotency";
 import { createInvoiceDownloadUrl } from "./invoice-download-token";
 import { publicAppOrigin } from "./public-app-url";
 import { recordTimelineEvent } from "./application-timeline";
+import { readArchivedInvoice } from "./invoice-archive";
 
 type PaymentSuccessEmailInput = {
   applicationId: number;
@@ -36,7 +37,7 @@ export async function sendPaymentSuccessEmail(input: PaymentSuccessEmailInput) {
     providerName = provider.name;
     const publicAppUrl = publicAppOrigin();
     if (!/^[A-Za-z0-9_-]+$/.test(input.invoiceNumber)) throw new Error("Invoice number is invalid");
-    const invoicePdf = fs.readFileSync(input.invoicePdfPath);
+    const invoicePdf = await readArchivedInvoice(input.invoiceNumber) ?? fs.readFileSync(input.invoicePdfPath);
     if (invoicePdf.length === 0 || invoicePdf.length > 20 * 1024 * 1024 || invoicePdf.subarray(0, 4).toString() !== "%PDF") {
       throw new Error("Invoice attachment is invalid");
     }

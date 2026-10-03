@@ -1,3 +1,4 @@
+import { readArchivedInvoice } from "./lib/invoice-archive";
 import "../contracts/install-safe-console";
 import { languagePath, languageRoute } from "../contracts/language-routes";
 import { withSsrDeadline } from "./lib/ssr-deadline";
@@ -14,9 +15,9 @@ import { Paths } from "@contracts/constants";
 import fs from "fs";
 import path from "path";
 import { getDb } from "./queries/connection";
-import { applications, payments } from "@db/schema";
-import { desc, eq } from "drizzle-orm";
-import { generateInvoicePDF, getStorageDir } from "./lib/invoice-pdf";
+import { applications } from "@db/schema";
+import { eq } from "drizzle-orm";
+import { getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
 import { internalFailure } from "./lib/public-error";
 import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
@@ -36,10 +37,6 @@ import {
   type StripeWebhookClaim,
 } from "./lib/stripe-webhook-idempotency";
 import { verifyInvoiceDownloadToken } from "./lib/invoice-download-token";
-import { getCanonicalInvoiceCustomerIdentity } from "./lib/invoice-customer-name";
-import { getApplicationPriceSnapshot } from "./lib/pricing-engine";
-import { getPayerEvidence } from "./lib/payer-authorization";
-import { retrieveStripeTestCardSummary } from "./lib/stripe";
 import { publicAppOrigin } from "./lib/public-app-url";
 import { validateStripeRuntimeConfig } from "./lib/stripe-runtime";
 import {
@@ -200,102 +197,18 @@ async function findApplicationByInvoice(invoiceNumber: string) {
   return null;
 }
 
-// Helper: get or regenerate PDF
+// Serve issued bytes only. A missing archive is an operational error, never a new invoice.
 async function getOrGeneratePdf(invoiceNumber: string) {
   const fileName = `${invoiceNumber}.pdf`;
-  const absolutePath = path.join(INVOICES_DIR, fileName);
-
-  console.log(`[Invoice] Request: ${invoiceNumber}`);
-  console.log(`[Invoice] Checking: ${absolutePath}`);
-
-  // 1. Check if file already exists
-  if (fs.existsSync(absolutePath)) {
-    console.log(`[Invoice] File exists: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);
-    return { absolutePath, fileName, regenerated: false };
-  }
-
-  console.log(`[Invoice] File missing, looking up DB...`);
-
-  // 2. Find application
+  const archived = await readArchivedInvoice(invoiceNumber);
+  if (archived) return { bytes: archived, fileName };
   const appRow = await findApplicationByInvoice(invoiceNumber);
-  if (!appRow) {
-    console.log(`[Invoice] Application not found for: ${invoiceNumber}`);
-    return null;
+  if (!appRow || appRow.paymentStatus !== "paid") return null;
+  const candidates = [appRow.invoicePdfPath, path.join(INVOICES_DIR, fileName)];
+  for (const candidate of candidates) {
+    if (candidate && !candidate.startsWith("archive:") && fs.existsSync(candidate)) return { bytes: fs.readFileSync(candidate), fileName };
   }
-
-  // 3. Check DB stored path
-  const dbPath = appRow.invoicePdfPath;
-  if (dbPath && typeof dbPath === 'string' && dbPath.length > 0) {
-    if (fs.existsSync(dbPath)) {
-      console.log(`[Invoice] Found existing PDF at DB path: ${dbPath}`);
-      return { absolutePath: dbPath, fileName, regenerated: false };
-    }
-    console.log(`[Invoice] DB path exists but file missing: ${dbPath}`);
-  } else {
-    console.log(`[Invoice] No invoicePdfPath in DB for: ${invoiceNumber}`);
-  }
-
-  // 4. Auto-regenerate
-  console.log(`[Invoice] Auto-regenerating PDF for: ${invoiceNumber}`);
-  try {
-    const customerEmail = appRow.contactEmail || "customer@example.com";
-    const [customerIdentity, priceSnapshot, paymentRows] = await Promise.all([
-      getCanonicalInvoiceCustomerIdentity(appRow.id),
-      getApplicationPriceSnapshot(appRow.id),
-      getDb().select().from(payments).where(eq(payments.applicationId, appRow.id)).orderBy(desc(payments.createdAt)).limit(1),
-    ]);
-    const payment = paymentRows[0];
-    if (!payment) throw new Error("Verified payment is unavailable for invoice generation");
-    const [payerEvidence, cardSummary] = await Promise.all([
-      getPayerEvidence(appRow.id, payment.id),
-      retrieveStripeTestCardSummary(payment.stripePaymentIntentId).catch(() => null),
-    ]);
-    if (!payerEvidence) throw new Error("Verified payer authorization evidence is unavailable for invoice generation");
-    
-    const invoiceData = {
-      invoiceNumber,
-      referenceNumber: appRow.referenceNumber,
-      createdAt: appRow.createdAt ? new Date(appRow.createdAt).toISOString() : new Date().toISOString(),
-      customerName: customerIdentity.fullName,
-      customerEmail,
-      customerPhone: appRow.contactPhone || "",
-      nationality: customerIdentity.nationality,
-      passportNumber: customerIdentity.passportNumber,
-      passportExpiry: customerIdentity.passportExpiry,
-      visaType: appRow.visaType || "",
-      processingType: appRow.processingType || "",
-      arrivalDate: appRow.arrivalDate || undefined,
-      applicantCount: priceSnapshot.applicantCount,
-      unitPriceInBaseCurrency: Number(priceSnapshot.unitPrice) * Number(priceSnapshot.exchangeRateToBase),
-      baseCurrency: priceSnapshot.baseCurrency.toUpperCase(),
-      exchangeRateToBase: Number(priceSnapshot.exchangeRateToBase),
-      totalAmount: Number(appRow.totalAmountUsd || appRow.stripeAmountUsd || 0),
-      currency: priceSnapshot.currency.toUpperCase(),
-      stripePaymentIntentId: appRow.stripePaymentIntentId || undefined,
-      payerName: payerEvidence.payerName,
-      payerRelationship: payerEvidence.relationship,
-      cardBrand: cardSummary?.brand,
-      cardLast4: cardSummary?.last4,
-    };
-
-    const doc = generateInvoicePDF(invoiceData);
-    const pdfOutput = doc.output("arraybuffer");
-    fs.writeFileSync(absolutePath, Buffer.from(pdfOutput));
-
-    // Update DB
-    const db = getDb();
-    await db.update(applications).set({
-      invoiceNumber,
-      invoicePdfPath: absolutePath,
-      invoicePdfUrl: `/invoices/${invoiceNumber}/view`,
-    }).where(eq(applications.id, appRow.id));
-
-    console.log(`[Invoice] Regenerated and saved: ${absolutePath} (${fs.statSync(absolutePath).size} bytes)`);
-    return { absolutePath, fileName, regenerated: true };
-  } catch (err: unknown) {
-    console.error(`[Invoice] Regeneration failed: ${getErrorMessage(err)}`);
-    return null;
-  }
+  return null;
 }
 
 function canAccessInvoice(headers: Headers, referenceNumber: string) {
@@ -335,12 +248,12 @@ app.get("/invoice-download/:invoiceNumber", async (c) => {
     resultingState: "downloaded",
     summary: "Invoice downloaded with short-lived email capability",
   });
-  const pdfBuffer = fs.readFileSync(result.absolutePath);
+  const pdfBuffer = result.bytes;
   c.header("Content-Type", "application/pdf");
   c.header("Content-Disposition", `attachment; filename="${result.fileName}"`);
   c.header("Content-Length", String(pdfBuffer.length));
   c.header("Cache-Control", "private, no-store");
-  return c.body(pdfBuffer);
+  return c.body(new Uint8Array(pdfBuffer));
 });
 
 // VIEW route (inline) - NOT under /api/ to avoid catch-all conflict
@@ -355,11 +268,11 @@ app.get("/invoices/:invoiceNumber/view", async (c) => {
   }
 
   try {
-    const pdfBuffer = fs.readFileSync(result.absolutePath);
+    const pdfBuffer = result.bytes;
     c.header("Content-Type", "application/pdf");
     c.header("Content-Disposition", `inline; filename="${result.fileName}"`);
-    console.log(`[Invoice] Serving VIEW: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
-    return c.body(pdfBuffer);
+    console.log(`[Invoice] Serving VIEW: archived PDF (${pdfBuffer.length} bytes)`);
+    return c.body(new Uint8Array(pdfBuffer));
   } catch (err: unknown) {
     console.error(`[Invoice] Read error: ${getErrorMessage(err)}`);
     return c.json({ error: "Failed to read PDF" }, 500);
@@ -378,12 +291,12 @@ app.get("/invoices/:invoiceNumber/download", async (c) => {
   }
 
   try {
-    const pdfBuffer = fs.readFileSync(result.absolutePath);
+    const pdfBuffer = result.bytes;
     c.header("Content-Type", "application/pdf");
     c.header("Content-Disposition", `attachment; filename="${result.fileName}"`);
     c.header("Content-Length", String(pdfBuffer.length));
-    console.log(`[Invoice] Serving DOWNLOAD: ${result.absolutePath} (${pdfBuffer.length} bytes)`);
-    return c.body(pdfBuffer);
+    console.log(`[Invoice] Serving DOWNLOAD: archived PDF (${pdfBuffer.length} bytes)`);
+    return c.body(new Uint8Array(pdfBuffer));
   } catch (err: unknown) {
     console.error(`[Invoice] Read error: ${getErrorMessage(err)}`);
     return c.json({ error: "Failed to read PDF" }, 500);
