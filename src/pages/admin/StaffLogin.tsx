@@ -3,8 +3,11 @@ import { useState } from 'react';
 import { trpc } from '@/providers/trpc-client';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { adminLoginDestination } from '@contracts/admin-login-destination';
 
 export default function StaffLogin() {
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,8 +25,8 @@ export default function StaffLogin() {
   const mfaMutation = trpc.staff.completeLogin.useMutation({
     onSuccess: (data) => {
       login(data.staff);
-      // Use full page reload instead of navigate to ensure StaffGuard picks up the token
-      window.location.href = data.staff.role === 'admin' ? '/admin/applications' : '/staff/operations/dashboard';
+      // Reload to consume the issued cookie, preserving only an approved internal destination.
+      window.location.href = adminLoginDestination(data.staff.role, location.state);
     },
     onError: (err) => {
       setError(err.message || 'Invalid username or password');

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Loader2 } from 'lucide-react';
 
@@ -9,6 +9,7 @@ interface AdminGuardProps {
 
 export default function AdminGuard({ children }: AdminGuardProps) {
   const { isAuthenticated, isLoading } = useAdminAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -19,7 +20,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/admin/login" replace state={{ returnTo: location.pathname + location.hash }} />;
   }
 
   return <>{children}</>;

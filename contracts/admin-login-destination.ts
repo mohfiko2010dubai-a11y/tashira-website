@@ -1,0 +1,8 @@
+/** Preserve an internal email destination through MFA, never an external redirect. */
+export function adminLoginDestination(role: string, state: unknown): string {
+  if (role !== 'admin') return '/staff/operations/dashboard';
+  const fallback = '/admin/applications';
+  if (!state || typeof state !== 'object' || !('returnTo' in state) || typeof state.returnTo !== 'string') return fallback;
+  const path = state.returnTo;
+  return /^\/admin\/(?:approvals(?:#(?:refund-case-\d+|refund-failures|processing-guarantee))?|company-settings|applications\/[A-Za-z0-9_-]+)$/.test(path) ? path : fallback;
+}

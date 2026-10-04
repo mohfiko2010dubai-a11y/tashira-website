@@ -92,3 +92,22 @@ The Phase2 application is NOT deployed: staging runtime remains Phase1 d57a699.
 Thus the new approvals routes cannot yet be accepted against the live runtime.
 Named-account UAT is still blocked by the earlier automatic-review rejection;
 no account created and no workaround. Production remains CLOSED and unchanged.
+
+OWNER SCREENSHOT FOLLOW-UP
+
+The reported problem is a clickable link opening /admin/approvals as404, not
+evidence of broken plaintext encoding. Reproduced in the browser on staging.
+The candidate server permits /admin/* and its client registers /admin/approvals;
+the deployed Phase1 client does not yet contain the approvals screen. Sending
+the corrected preview before its destination was deployed was premature.
+No substitute destination, fake success page or authentication bypass applied.
+
+Review additionally found login discarded the email destination. The candidate
+now retains an allowlisted internal destination through named-account MFA,
+including the refund-case anchor. Twelve tests cover approved destinations,
+external/unapproved redirect refusal and staff/admin separation. Live acceptance
+still requires the blocked Phase2 deployment and named-account UAT.
+
+Hosted CI37218242291 passed both jobs for4ff9a9a, including migration065 enum
+assertions and all26 guarded MySQL tests. The subsequent login-return fix is
+being checked separately; do not attribute that older CI result to newer code.
