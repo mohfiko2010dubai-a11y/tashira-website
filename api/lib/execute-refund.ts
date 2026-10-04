@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { applicationTimelineEvents, financialEvents, payments, refundCases, refundItems, securityDepositPayments, securityDepositRequests } from '@db/schema';
 import { getDb } from '../queries/connection';
@@ -7,6 +7,7 @@ import { createStripeRefund, StripeRefundRejected } from './stripe';
 import { completeVisaRefundWithCreditNote } from './refund-credit-note';
 import { sendRefundOutcomeEmail } from './refund-outcome-email';
 import { refundChargeSummary } from './refund-provider-summary';
+import { refundExecutionStatus } from './refund-domain';
 
 /** Atomic claim + immutable provider idempotency key; shared by approved manual and objective automatic refunds. */
 export async function executeApprovedRefund(refundCaseId: string, actor: string) {
@@ -45,7 +46,6 @@ export async function executeApprovedRefund(refundCaseId: string, actor: string)
     });
 
     let succeeded = 0;
-    let processing = 0;
     for (const item of claimed.items) {
       let acceptedRefundId: string | undefined;
       let requestStarted = false;
@@ -70,11 +70,9 @@ export async function executeApprovedRefund(refundCaseId: string, actor: string)
           await db.update(refundItems).set({ status: itemStatus }).where(and(eq(refundItems.id, item.id), eq(refundItems.status, "PROCESSING")));
         }
         if (itemStatus === "SUCCEEDED") succeeded += 1;
-        else processing += 1;
       } catch (error: unknown) {
         const category = error instanceof Error ? error.message.replace(/^Stripe refund failed: /u, "").slice(0, 80) : "unknown";
         const uncertain = Boolean(acceptedRefundId) || (requestStarted && !(error instanceof StripeRefundRejected));
-        if (uncertain) processing += 1;
         await db.update(refundItems).set({ status: uncertain ? "PROCESSING" : "FAILED",
           ...(acceptedRefundId ? { stripeRefundId: acceptedRefundId } : {}), failureCategory: acceptedRefundId ? "accounting_pending" : category,
           failureMessage: error instanceof Error ? error.message : 'Unknown execution failure' })
@@ -82,13 +80,8 @@ export async function executeApprovedRefund(refundCaseId: string, actor: string)
       }
     }
 
-    const finalStatus = succeeded === claimed.items.length
-      ? "REFUNDED"
-      : processing > 0
-        ? "PROCESSING"
-        : succeeded > 0
-          ? "PARTIALLY_REFUNDED"
-          : "FAILED";
+    const allItems = await db.select({ status: refundItems.status }).from(refundItems).where(eq(refundItems.refundCaseId, claimed.refundCase.id));
+    const finalStatus = refundExecutionStatus(allItems.map(item => item.status));
     await db.transaction(async (tx) => {
       await tx.update(refundCases).set({
         status: finalStatus,
@@ -110,6 +103,7 @@ export async function executeApprovedRefund(refundCaseId: string, actor: string)
         const succeededItems = await tx.select().from(refundItems).where(and(
           eq(refundItems.refundCaseId, claimed.refundCase.id),
           eq(refundItems.status, "SUCCEEDED"),
+          inArray(refundItems.id, claimed.items.map(item => item.id)),
         ));
         await tx.insert(financialEvents).values(succeededItems.map((item) => ({
           id: crypto.randomUUID(),

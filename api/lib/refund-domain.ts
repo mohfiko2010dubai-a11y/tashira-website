@@ -10,6 +10,13 @@ export type RefundCalculation = {
   refundAmount: number;
 };
 
+/** Include earlier successful items when a failed portion is retried. */
+export function refundExecutionStatus(statuses: readonly string[]) {
+  if (statuses.length && statuses.every(status => status === 'SUCCEEDED' || status === 'CANCELLED') && statuses.includes('SUCCEEDED')) return 'REFUNDED' as const;
+  if (statuses.some(status => status === 'PROCESSING' || status === 'PENDING')) return 'PROCESSING' as const;
+  return statuses.includes('SUCCEEDED') ? 'PARTIALLY_REFUNDED' as const : 'FAILED' as const;
+}
+
 function money(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }

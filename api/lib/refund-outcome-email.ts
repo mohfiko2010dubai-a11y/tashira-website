@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, gte, or } from "drizzle-orm";
 import { applications, outboundEmailEvents, refundCases, refundItems } from "../../db/schema";
 import { getDb } from "../queries/connection";
 import { transactionalEmailProvider } from "./email-provider";
@@ -11,6 +11,7 @@ export async function sendRefundOutcomeEmail(refundCaseId: string) {
   const [details] = await db.select({
     applicationId: refundCases.applicationId,
     status: refundCases.status,
+    completedAt: refundCases.completedAt,
     referenceNumber: applications.referenceNumber,
     recipient: applications.contactEmail,
     language: applications.preferredLanguage,
@@ -21,18 +22,21 @@ export async function sendRefundOutcomeEmail(refundCaseId: string) {
     return { status: "NOT_APPLICABLE" as const };
   }
 
-  const succeededItems = await db.select({ amount: refundItems.refundAmount, currency: refundItems.currency })
-    .from(refundItems).where(and(eq(refundItems.refundCaseId, refundCaseId), eq(refundItems.status, "SUCCEEDED")));
+  const succeededItems = await db.select({ id: refundItems.id, amount: refundItems.refundAmount, currency: refundItems.currency })
+    .from(refundItems).where(and(eq(refundItems.refundCaseId, refundCaseId), eq(refundItems.status, "SUCCEEDED"))).orderBy(asc(refundItems.id));
   if (succeededItems.length === 0) return { status: "NOT_APPLICABLE" as const };
 
   const totals = new Map<string, number>();
   for (const item of succeededItems) totals.set(item.currency, (totals.get(item.currency) || 0) + Number(item.amount));
   const refundSummary = [...totals].map(([currency, amount]) => `${currency} ${amount.toFixed(2)}`).join(" and ");
-  const sourceReference = refundOutcomeEmailIdempotencyKey(refundCaseId);
+  const sourceReference = refundOutcomeEmailIdempotencyKey(refundCaseId, succeededItems.map(item => item.id));
   const [alreadySent] = await db.select({ id: outboundEmailEvents.id })
     .from(outboundEmailEvents).where(and(
       eq(outboundEmailEvents.template, "REFUND_COMPLETED"),
-      eq(outboundEmailEvents.sourceReference, sourceReference),
+      or(eq(outboundEmailEvents.sourceReference, sourceReference), details.status === 'REFUNDED' && details.completedAt ? and(
+        eq(outboundEmailEvents.sourceReference, refundOutcomeEmailIdempotencyKey(refundCaseId)),
+        gte(outboundEmailEvents.createdAt, details.completedAt),
+      ) : undefined),
       eq(outboundEmailEvents.status, "SENT"),
     )).limit(1);
   if (alreadySent) return { status: "ALREADY_SENT" as const };

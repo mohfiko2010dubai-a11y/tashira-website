@@ -47,15 +47,17 @@ export const refundQueueRouter = createRouter({
       if (!identity) throw new TRPCError({ code: 'NOT_FOUND', message: 'Refund not found. Refresh the queue.' });
       await tx.select({ id: applications.id }).from(applications).where(eq(applications.id, identity.applicationId)).for('update');
       const [entry] = await tx.select().from(refundCases).where(eq(refundCases.id, input.refundCaseId)).limit(1).for('update');
-      if (!entry || entry.status !== 'FAILED') throw new TRPCError({ code: 'CONFLICT', message: 'Only a failed refund can be queued again. Refresh its status.' });
+      if (!entry || !['FAILED','PARTIALLY_REFUNDED'].includes(entry.status)) throw new TRPCError({ code: 'CONFLICT', message: 'Only a refund with failed items can be queued again. Refresh its status.' });
       const items = await tx.select().from(refundItems).where(and(eq(refundItems.refundCaseId, entry.id), eq(refundItems.status, 'FAILED')));
+      if (!items.length) throw new TRPCError({ code: 'CONFLICT', message: 'No failed refund items remain. Refresh its status.' });
       for (const item of items) {
         if (!item.paymentId) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Only visa-service refunds are available in this launch phase.' });
         const [payment] = await tx.select().from(payments).where(eq(payments.id, item.paymentId)).limit(1);
         const [reserved] = await tx.select({ total: sql<string>`COALESCE(SUM(${refundItems.refundAmount}),0)` }).from(refundItems).where(and(eq(refundItems.paymentId, item.paymentId), inArray(refundItems.status, ['PENDING','PROCESSING','SUCCEEDED'])));
         if (!payment || Math.round((Number(payment.amount) - Number(reserved.total)) * 100) < Math.round(Number(item.refundAmount) * 100)) throw new TRPCError({ code: 'CONFLICT', message: 'Other refunds already reserve this balance. Review them before retrying.' });
+        // Reserve each item inside this transaction before checking the next one.
+        await tx.update(refundItems).set({ status: 'PENDING' }).where(and(eq(refundItems.id, item.id), eq(refundItems.status, 'FAILED')));
       }
-      await tx.update(refundItems).set({ status: 'PENDING' }).where(and(eq(refundItems.refundCaseId, entry.id), eq(refundItems.status, 'FAILED')));
       await tx.update(refundCases).set({ status: 'PENDING_APPROVAL', approvedAt: null, approvedBy: null }).where(eq(refundCases.id, entry.id));
     });
     return { success: true };

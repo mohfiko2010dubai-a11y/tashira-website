@@ -15,10 +15,12 @@ function ApprovalRow({ row, refresh }: { row: QueueRow; refresh: () => void }) {
   const reject = trpc.refundQueue.reject.useMutation(options), retry = trpc.refundQueue.retry.useMutation(options), reconcile = trpc.refund.reconcileCase.useMutation(options);
   const pending = approve.isPending || execute.isPending || reject.isPending || retry.isPending || reconcile.isPending;
   const total = row.items.reduce((sum, entry) => sum + Number(entry.refundAmount), 0);
-  const affordable = charge.data && charge.data.currency === item?.currency && charge.data.remainingMinor >= Math.round(total * 100);
+  const pendingTotal = row.items.filter(entry => entry.status === 'PENDING').reduce((sum, entry) => sum + Number(entry.refundAmount), 0);
+  const affordable = charge.data && charge.data.currency === item?.currency && charge.data.remainingMinor >= Math.round(pendingTotal * 100);
   return <article id={`refund-case-${row.refundCase.id}`} className="rounded-xl border bg-white p-4 space-y-3">
     <div className="flex flex-wrap justify-between gap-2"><Link className="font-semibold underline" to={`/admin/applications/${row.reference}`}>{row.reference}</Link><strong>{row.refundCase.status}</strong></div>
     <p>{row.customer} · {item?.currency} {total.toFixed(2)}</p>
+    {pendingTotal > 0 && <p>Awaiting execution: {item?.currency} {pendingTotal.toFixed(2)}. Previously refunded items will not be sent again.</p>}
     <p>Requested by {row.requester || row.refundCase.requestedBy} · {new Date(row.refundCase.createdAt).toLocaleString()} · waiting {row.waitingHours} hours</p>
     <p>{row.refundCase.reason}</p>
     {row.refundCase.approvedBy && <p>Approved by {row.refundCase.approvedBy}</p>}
@@ -30,7 +32,7 @@ function ApprovalRow({ row, refresh }: { row: QueueRow; refresh: () => void }) {
     <div className="flex flex-wrap gap-2">
       {row.refundCase.status === 'PENDING_APPROVAL' && <button className="min-h-11 rounded bg-slate-900 px-4 text-white disabled:opacity-40" disabled={pending || !password || !affordable} onClick={() => approve.mutate({ refundCaseId: row.refundCase.id, adminPassword: password })}>Approve</button>}
       {row.refundCase.status === 'APPROVED' && <button className="min-h-11 rounded bg-slate-900 px-4 text-white disabled:opacity-40" disabled={pending || !password || !affordable} onClick={() => execute.mutate({ refundCaseId: row.refundCase.id, adminPassword: password, confirmation: 'EXECUTE REFUND' })}>Execute approved refund</button>}
-      {row.refundCase.status === 'FAILED' && <button className="min-h-11 rounded border px-4" disabled={pending} onClick={() => retry.mutate({ refundCaseId: row.refundCase.id })}>Return to approval queue</button>}
+      {['FAILED','PARTIALLY_REFUNDED'].includes(row.refundCase.status) && row.items.some(entry => entry.status === 'FAILED') && <button className="min-h-11 rounded border px-4" disabled={pending} onClick={() => retry.mutate({ refundCaseId: row.refundCase.id })}>Return failed items to approval queue</button>}
       {row.refundCase.status === 'PROCESSING' && <button className="min-h-11 rounded border px-4" disabled={pending || !password} onClick={() => reconcile.mutate({ refundCaseId: row.refundCase.id, adminPassword: password, confirmation: 'RECONCILE REFUND' })}>Check Stripe result</button>}
     </div>
     {['PENDING_APPROVAL','FAILED'].includes(row.refundCase.status) && <div className="flex flex-wrap gap-2"><input aria-label="Reason for rejecting refund" className="min-w-0 flex-1 rounded border p-3" placeholder="Required rejection reason" value={reason} onChange={e => setReason(e.target.value)} /><button className="min-h-11 rounded border px-4 disabled:opacity-40" disabled={pending || reason.trim().length < 5} onClick={() => reject.mutate({ refundCaseId: row.refundCase.id, reason })}>Reject</button></div>}

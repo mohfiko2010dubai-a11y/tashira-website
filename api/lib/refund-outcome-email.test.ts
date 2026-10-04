@@ -9,6 +9,11 @@ describe("refund outcome email", () => {
   it("uses one stable provider idempotency key per refund case", () => {
     expect(refundOutcomeEmailIdempotencyKey("case-id")).toBe("refund-case/case-id");
   });
+  it('sends a new outcome only when additional refund items complete, stable across retries', () => {
+    expect(refundOutcomeEmailIdempotencyKey('case-id', ['a','b'])).toBe(refundOutcomeEmailIdempotencyKey('case-id', ['b','a']));
+    expect(refundOutcomeEmailIdempotencyKey('case-id', ['a'])).not.toBe(refundOutcomeEmailIdempotencyKey('case-id', ['a','b']));
+    expect(refundOutcomeEmailIdempotencyKey('00000000-0000-4000-8000-000000000042', ['a','b']).length).toBeLessThanOrEqual(100);
+  });
 
   it("renders only safe refund facts and no payment-card data", () => {
     const email = renderTransactionalEmail("REFUND_COMPLETED", {
