@@ -57,9 +57,9 @@ async function seedJobs() {
     AND created_at < DATE_SUB(NOW(),INTERVAL 24 HOUR) ON DUPLICATE KEY UPDATE job_key=transactional_email_jobs.job_key`);
 }
 
-async function dispatch(job: RowDataPacket): Promise<boolean> {
+async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRESSED'> {
   const pool = defaultOperationsPool();
-  const [rows] = await pool.execute<RowDataPacket[]>('SELECT reference_number,contact_email,preferred_language,payment_status,status,visa_type,submitted_product,substitution_version,substitution_acknowledged_version FROM applications WHERE id=?', [job.application_id]);
+  const [rows] = await pool.execute<RowDataPacket[]>('SELECT reference_number,contact_email,preferred_language,processing_type,payment_status,status,visa_type,submitted_product,substitution_version,substitution_acknowledged_version FROM applications WHERE id=?', [job.application_id]);
   const application = rows[0];
   if (!application) throw new Error('Email owner is missing');
   const variables: Record<string, string> = typeof job.variables_json === 'string' ? JSON.parse(job.variables_json) : job.variables_json;
@@ -70,28 +70,28 @@ async function dispatch(job: RowDataPacket): Promise<boolean> {
     job.job_key !== `substitution:${job.application_id}:${application.substitution_version}` ||
     application.substitution_acknowledged_version === application.substitution_version ||
     variables.originalProduct !== application.visa_type || variables.replacementProduct !== application.submitted_product
-  )) return true;
-  if (template === 'RESUME_REMINDER' && (application.payment_status !== 'pending' || ['cancelled','rejected','completed'].includes(application.status))) return true;
+  )) return 'SUPPRESSED';
+  if (template === 'RESUME_REMINDER' && (application.payment_status !== 'pending' || ['cancelled','rejected','completed'].includes(application.status))) return 'SUPPRESSED';
   if (template === 'PAYMENT_SUCCESS') {
     const [invoices] = await pool.execute<RowDataPacket[]>(`SELECT i.invoice_number,i.amount,i.pdf_path,i.payment_id,p.currency FROM invoices i JOIN payments p ON p.id=i.payment_id WHERE i.application_id=? ORDER BY i.id DESC LIMIT 1`, [job.application_id]);
-    if (!invoices[0]) return false;
+    if (!invoices[0]) return 'FAILED';
     const invoice = invoices[0];
     const result = await sendPaymentSuccessEmail({ applicationId: Number(job.application_id), paymentId: Number(invoice.payment_id), recipient: application.contact_email, referenceNumber: application.reference_number, invoiceNumber: invoice.invoice_number, amountPaid: Number(invoice.amount), currency: invoice.currency, invoicePdfPath: invoice.pdf_path });
-    return result.status === 'SENT' || result.status === 'ALREADY_SENT';
+    return result.status === 'SENT' || result.status === 'ALREADY_SENT' ? 'SENT' : 'FAILED';
   }
   if (template === 'REFUND_COMPLETED') {
     const [refunds] = await pool.execute<RowDataPacket[]>("SELECT id FROM refund_cases WHERE application_id=? AND refund_case_status IN ('REFUNDED','PARTIALLY_REFUNDED')", [job.application_id]);
-    if (!refunds.length) return false;
-    for (const refund of refunds) { const result = await sendRefundOutcomeEmail(refund.id); if (result.status === 'FAILED') return false; }
-    return true;
+    if (!refunds.length) return 'FAILED';
+    for (const refund of refunds) { const result = await sendRefundOutcomeEmail(refund.id); if (!['SENT','ALREADY_SENT'].includes(result.status)) return 'FAILED'; }
+    return 'SENT';
   }
   const recipient = isAdminEmail(template) ? adminEmailRecipient() : String(application.contact_email);
   if (!recipient) throw new Error('Configure the monitored administrator notification address, then retry this message.');
   const refundCaseId = isAdminEmail(template) ? String(job.job_key).split(':').at(-1) || '' : '';
   const actionUrl = isAdminEmail(template) ? adminEmailActionUrl(template, { ...variables, refundCaseId }) : `${publicAppOrigin()}/${application.preferred_language}/track`;
   const result = await sendCustomerNotification({ applicationId: Number(job.application_id), recipient, template,
-    variables: { ...variables, refundCaseId, referenceNumber: application.reference_number, actionUrl }, sourceReference: template === 'VISA_ISSUED' ? 'status:visa_received' : template === 'REJECTED' ? 'status:rejected' : template === 'SUBMITTED' ? 'status:visa_processing' : String(job.job_key), failureCategory: 'transactional_delivery_failed' });
-  return result.status !== 'FAILED';
+    variables: { ...variables, refundCaseId, processingType: application.processing_type, referenceNumber: application.reference_number, actionUrl }, sourceReference: template === 'VISA_ISSUED' ? 'status:visa_received' : template === 'REJECTED' ? 'status:rejected' : template === 'SUBMITTED' ? 'status:visa_processing' : String(job.job_key), failureCategory: 'transactional_delivery_failed' });
+  return result.status !== 'FAILED' ? 'SENT' : 'FAILED';
 }
 let running = false;
 export async function runTransactionalEmails(): Promise<void> {
@@ -114,8 +114,8 @@ export async function runTransactionalEmails(): Promise<void> {
       } catch (error) { await connection.rollback(); throw error; } finally { connection.release(); }
       if (!job) break;
       let failure = 'Delivery failed. Check the mail provider and recipient settings, then retry.';
-      const success = await dispatch(job).catch((error: unknown) => { if (error instanceof Error && error.message.startsWith('Configure the monitored administrator')) failure = error.message; return false; });
-      await pool.execute("UPDATE transactional_email_jobs SET job_status=?,failure_message=?,available_at=DATE_ADD(NOW(),INTERVAL 10 MINUTE) WHERE job_key=?", [success ? 'SENT' : 'FAILED', success ? null : failure, job.job_key]);
+      const status = await dispatch(job).catch((error: unknown) => { if (error instanceof Error && error.message.startsWith('Configure the monitored administrator')) failure = error.message; return 'FAILED' as const; });
+      await pool.execute("UPDATE transactional_email_jobs SET job_status=?,failure_message=?,available_at=DATE_ADD(NOW(),INTERVAL 10 MINUTE) WHERE job_key=?", [status, status === 'FAILED' ? failure : null, job.job_key]);
     }
   } finally { running = false; }
 }

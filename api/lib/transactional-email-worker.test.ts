@@ -31,11 +31,11 @@ describe('durable transactional email dispatch', () => {
     let pending = true;
     mocks.claim.mockImplementation(async (sql: string) => {
       if (!sql.startsWith('SELECT *')) return [{}];
-      const rows = pending ? [{ ...job(), template, job_key: 'approval:42', variables_json: {} }] : [];
+      const rows = pending ? [{ ...job(), template, job_key: 'approval:00000000-0000-4000-8000-000000000042', variables_json: {} }] : [];
       pending = false; return [rows];
     });
     await runTransactionalEmails();
-    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ recipient: 'admin@tashiraev.com', variables: expect.objectContaining({ refundCaseId: '42', actionUrl: 'https://staging.tashiraev.com/admin/approvals#refund-case-42' }) }));
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ recipient: 'admin@tashiraev.com', variables: expect.objectContaining({ refundCaseId: '00000000-0000-4000-8000-000000000042', actionUrl: 'https://staging.tashiraev.com/admin/approvals#refund-case-00000000-0000-4000-8000-000000000042' }) }));
   });
   it('sends the current proposal with the stored customer-language route', async () => {
     await runTransactionalEmails();
@@ -46,6 +46,7 @@ describe('durable transactional email dispatch', () => {
     if (scenario === 'accepted') current.substitution_acknowledged_version = 2;
     if (scenario === 'product-changed') current.submitted_product = '60days-single';
     await runTransactionalEmails(); expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.execute).toHaveBeenCalledWith(expect.stringContaining('failure_message=?'), ['SUPPRESSED', null, 'substitution:91:2']);
   });
   it('keeps provider failure visible and retryable under the same job key', async () => {
     mocks.send.mockResolvedValue({ status: 'FAILED' });

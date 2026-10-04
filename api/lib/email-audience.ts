@@ -15,7 +15,7 @@ export function isAdminEmail(template: string): template is keyof typeof ADMIN_E
 
 export function adminEmailActionUrl(template: string, variables: Record<string, string> = {}): string {
   if (!isAdminEmail(template)) throw new Error('Not an administrator email template');
-  if (['APPROVAL_PENDING', 'GUARANTEE_BREACHED', 'CONNECTION_BROKEN'].includes(template) && /^\d+$/.test(variables.refundCaseId || '')) {
+  if (['APPROVAL_PENDING', 'GUARANTEE_BREACHED', 'CONNECTION_BROKEN'].includes(template) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(variables.refundCaseId || '')) {
     return `${publicAppOrigin()}/admin/approvals#refund-case-${variables.refundCaseId}`;
   }
   if (template === 'SUPPLIER_OVERRIDE' && variables.referenceNumber) {

@@ -1,5 +1,6 @@
 import type { EmailTemplate } from './transactional-email';
 import { publicAppOrigin } from './public-app-url';
+import { processingCopy } from '../../contracts/processing-copy';
 
 /** Customer language is recorded on the order, independently of the operator's UI. */
 export function arabicEmailContent(template: EmailTemplate, v: Record<string, string>) {
@@ -9,7 +10,7 @@ export function arabicEmailContent(template: EmailTemplate, v: Record<string, st
     PAYMENT_SUCCESS: ['تم استلام الدفع', `تم التحقق من الدفع للطلب ${r}. رقم الفاتورة: ${v.invoiceNumber}. المبلغ المدفوع: ${v.amountPaid} ${v.currency}. رابط الفاتورة الآمن: ${v.invoiceUrl}. سنراجع الطلب المدفوع؛ تأكيد الدفع لا يعني إرساله إلى الجهة الحكومية. ${v.trackingUrl || ''}`],
     PAYMENT_FAILED: ['الدفع يحتاج إلى متابعة', `لم يكتمل الدفع للطلب ${r}. افتح صفحة طلبك للتحقق من حالة الدفع والمحاولة مجددًا.`],
     DOCUMENTS_REQUIRED: ['مستندات مطلوبة', `يحتاج الطلب ${r} إلى المستندات التالية. ارفعها من صفحة طلبك الآمنة.\n${v.documentList || ''}`],
-    DOCUMENTS_COMPLETE: ['اكتملت المستندات', `اكتملت المستندات المطلوبة للطلب ${r}. ستتابع تأشيرة إجراءات التقديم. الموافقة ووقت إصدار التأشيرة تحددهما الجهة المختصة.`],
+    DOCUMENTS_COMPLETE: ['اكتملت المستندات', `اكتملت المستندات المطلوبة للطلب ${r}. ${v.processingType === 'express' ? processingCopy('ar').express : processingCopy('ar').regular}`],
     SUBMITTED: ['تم التقديم للجهة المختصة', `تم إرسال الطلب ${r} إلى الجهة المختصة. قرار الموافقة ووقت الإصدار يعودان إليها.`],
     STATUS_CHANGED: ['تحديث حالة الطلب', `تم تحديث الطلب ${r}. افتح صفحة طلبك الآمنة للاطلاع على الحالة الحالية.`],
     VISA_ISSUED: ['صدرت التأشيرة', `تم تسجيل إصدار التأشيرة للطلب ${r}. افتح صفحة طلبك الآمنة للاطلاع على التأشيرة.`],

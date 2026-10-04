@@ -11,7 +11,7 @@ describe('transactional mail in the customer language', () => {
     invoiceUrl: `https://staging.tashiraev.com/invoice-download/TEST-INV-00001?expires=2000000000&signature=${'a'.repeat(43)}`,
     resumeUrl: 'https://staging.tashiraev.com/recover?token=synthetic', otp: '123456', expiresMinutes: '10',
     amount: '50.00', purpose: 'Synthetic', depositUrl: `https://staging.tashiraev.com/deposit/${'b'.repeat(43)}`, expiresAt: '2030-01-01',
-    originalProduct: '30 day', replacementProduct: '14 day', actionUrl: 'https://staging.tashiraev.com/en/track' };
+    processingType: 'regular', originalProduct: '30 day', replacementProduct: '14 day', actionUrl: 'https://staging.tashiraev.com/en/track' };
   it.each(EMAIL_TEMPLATES)('%s has safe plaintext and HTML in both languages', template => {
     for (const language of ['ar','en']) {
       const result = renderTransactionalEmail(template, { ...variables, language });
@@ -37,6 +37,14 @@ describe('transactional mail in the customer language', () => {
   it('does not allow Arabic rendering to bypass invoice URL authorization', () => {
     expect(() => renderTransactionalEmail('PAYMENT_SUCCESS', { ...variables, language: 'ar', invoiceUrl: 'https://evil.example/invoice' })).toThrow();
   });
+  it.each(['en','ar'])('documents complete states the correct continuous service window in %s', language => {
+    const regular = renderTransactionalEmail('DOCUMENTS_COMPLETE', { ...variables, language, processingType: 'regular' });
+    const express = renderTransactionalEmail('DOCUMENTS_COMPLETE', { ...variables, language, processingType: 'express' });
+    expect(regular.body).toContain('48');
+    expect(express.body).toContain('24');
+    expect(express.body).toContain(language === 'ar' ? 'رسم الاستعجال كاملًا' : 'express fee in full');
+    expect(() => renderTransactionalEmail('DOCUMENTS_COMPLETE', { ...variables, processingType: '' })).toThrow();
+  });
   it('uses the approved Arabic copy and named HTML links without remote images', () => {
     const result = renderTransactionalEmail('APPLICATION_RECEIVED', { ...variables, language: 'ar' });
     expect(result.body).toContain('يمكنك متابعة حالة طلبك ورفع مستنداتك من صفحة طلبك الآمنة');
@@ -47,8 +55,8 @@ describe('transactional mail in the customer language', () => {
     expect(invoice.html).not.toMatch(/>https:\/\//);
   });
   it.each(['APPROVAL_PENDING', 'GUARANTEE_BREACHED', 'CONNECTION_BROKEN'] as const)('routes %s to the exact refund case despite a supplied customer URL', template => {
-    const result = renderTransactionalEmail(template, { ...variables, refundCaseId: '42' });
-    expect(result.html).toContain('href="https://staging.tashiraev.com/admin/approvals#refund-case-42"');
+    const result = renderTransactionalEmail(template, { ...variables, refundCaseId: '00000000-0000-4000-8000-000000000042' });
+    expect(result.html).toContain('href="https://staging.tashiraev.com/admin/approvals#refund-case-00000000-0000-4000-8000-000000000042"');
     expect(result.body).not.toContain('/track');
   });
   it('blocks an external action link and escapes untrusted strings', () => {

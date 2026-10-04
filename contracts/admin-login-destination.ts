@@ -4,5 +4,5 @@ export function adminLoginDestination(role: string, state: unknown): string {
   const fallback = '/admin/applications';
   if (!state || typeof state !== 'object' || !('returnTo' in state) || typeof state.returnTo !== 'string') return fallback;
   const path = state.returnTo;
-  return /^\/admin\/(?:approvals(?:#(?:refund-case-\d+|refund-failures|processing-guarantee))?|company-settings|applications\/[A-Za-z0-9_-]+)$/.test(path) ? path : fallback;
+  return /^\/admin\/(?:approvals(?:#(?:refund-case-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|refund-failures|processing-guarantee))?|company-settings|applications\/[A-Za-z0-9_-]+)$/.test(path) ? path : fallback;
 }

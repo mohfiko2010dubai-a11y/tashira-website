@@ -29,6 +29,11 @@ export async function verifyPhase2Mysql(db) {
     const [claimed] = await db.execute("UPDATE transactional_email_jobs SET job_status='SENDING',attempts=attempts+1 WHERE job_key=? AND job_status='PENDING'", [reference]);
     const [replay] = await db.execute("UPDATE transactional_email_jobs SET job_status='SENDING',attempts=attempts+1 WHERE job_key=? AND job_status='PENDING'", [reference]);
     assert.equal(claimed.affectedRows, 1); assert.equal(replay.affectedRows, 0);
+    await db.execute("UPDATE transactional_email_jobs SET job_status='SUPPRESSED' WHERE job_key=?", [reference]);
+    const [[suppressed]] = await db.execute('SELECT job_status FROM transactional_email_jobs WHERE job_key=?', [reference]);
+    assert.equal(suppressed.job_status, 'SUPPRESSED');
+    const [retryable] = await db.execute("SELECT job_key FROM transactional_email_jobs WHERE job_key=? AND job_status IN ('PENDING','FAILED')", [reference]);
+    assert.equal(retryable.length, 0);
     console.log('Phase2 MySQL: named-role defaults, immutable access audit, send/bounce timeline, bounce flag, receipt/send deduplication and exclusive mail claim PASS.');
   } finally { await db.rollback(); }
 }

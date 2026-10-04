@@ -12,7 +12,7 @@ it('uses a text wordmark for customers and plain internal notices with images di
     resumeUrl: 'https://staging.tashiraev.com/recover?token=test', otp: '123456', expiresMinutes: '10',
     amount: '100', purpose: 'Test', depositUrl: 'https://staging.tashiraev.com/deposit/' + 'a'.repeat(43),
     expiresAt: '2030-01-01', refundSummary: 'Test refund',
-    originalProduct: '30 day', replacementProduct: '14 day', actionUrl: 'https://staging.tashiraev.com/en/track',
+    processingType: 'regular', originalProduct: '30 day', replacementProduct: '14 day', actionUrl: 'https://staging.tashiraev.com/en/track',
   };
   for (const template of EMAIL_TEMPLATES) {
     const email = renderTransactionalEmail(template, variables);

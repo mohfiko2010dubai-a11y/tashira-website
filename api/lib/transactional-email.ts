@@ -1,6 +1,7 @@
 import { requirePublicAppUrl, publicAppOrigin } from "./public-app-url";
 import { arabicEmailContent } from './transactional-email-ar';
 import { adminEmailActionUrl, isAdminEmail } from './email-audience';
+import { processingCopy } from '../../contracts/processing-copy';
 
 export const EMAIL_TEMPLATES = [
   "APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED",
@@ -42,7 +43,7 @@ export function validateTemplateVariables(template: EmailTemplate, variables: Re
     RECOVERY_OTP: ["referenceNumber", "otp", "expiresMinutes"],
     SECURITY_DEPOSIT_REQUEST: ["referenceNumber", "amount", "currency", "purpose", "depositUrl", "expiresAt"],
     REFUND_COMPLETED: ["referenceNumber", "refundSummary", "statusLabel"],
-    DOCUMENTS_COMPLETE: ['referenceNumber'],
+    DOCUMENTS_COMPLETE: ['referenceNumber', 'processingType'],
     PRODUCT_SUBSTITUTED: ['referenceNumber', 'originalProduct', 'replacementProduct', 'actionUrl'],
     REJECTED: ['referenceNumber', 'actionUrl'],
     RESUME_REMINDER: ['referenceNumber', 'actionUrl'],
@@ -55,6 +56,7 @@ export function validateTemplateVariables(template: EmailTemplate, variables: Re
   };
   const missing = required[template].filter((key) => !variables[key]);
   if (missing.length) throw new Error(`Missing email template variables: ${missing.join(", ")}`);
+  if (template === 'DOCUMENTS_COMPLETE' && !['regular', 'express'].includes(variables.processingType)) throw new Error('Invalid document-completion processing type');
 }
 
 function renderEmailContent(template: EmailTemplate, variables: Record<string, string>) {
@@ -75,7 +77,7 @@ function renderEmailContent(template: EmailTemplate, variables: Record<string, s
     RECOVERY_OTP: { subject: `Application recovery code — ${reference}`, body: `Your one-time code is ${variables.otp}. It expires in ${variables.expiresMinutes} minutes.` },
     SECURITY_DEPOSIT_REQUEST: { subject: `Refundable security deposit request — ${reference}`, body: `TASHIRA requested a refundable security deposit of ${variables.amount} ${variables.currency} for application ${reference}. Purpose: ${variables.purpose}. Review and respond securely: ${variables.depositUrl}. This link expires at ${variables.expiresAt}. The deposit is separate from visa service fees.` },
     REFUND_COMPLETED: { subject: `Refund completed — ${reference}`, body: `Your refund for application ${reference} has been processed. Refund: ${variables.refundSummary}. Status: ${variables.statusLabel}. Your bank may require additional time to display the credit.` },
-    DOCUMENTS_COMPLETE: { subject: `Documents complete — ${reference}`, body: `The required documents for ${reference} are complete. TASHIRA will process the application for submission. Approval and issuing time are decided by the authority.` },
+    DOCUMENTS_COMPLETE: { subject: `Documents complete — ${reference}`, body: `The required documents for ${reference} are complete. ${variables.processingType === 'express' ? processingCopy('en').express : processingCopy('en').regular}` },
     PRODUCT_SUBSTITUTED: { subject: `Your acknowledgement is required — ${reference}`, body: `For application ${reference}, TASHIRA proposes changing ${variables.originalProduct} to ${variables.replacementProduct}. Review the proposal and explicitly acknowledge it in your secure application. We cannot file the changed product before your acknowledgement.` },
     REJECTED: { subject: `Authority decision — ${reference}`, body: `The authority has refused application ${reference}. This is the authority's decision, not TASHIRA's. We do not speculate about the reason. The Refund Policy explains any refund entitlement for your case. Open your application to review the decision and, where available for your case, the reconsideration option. Refund Policy: ${publicAppOrigin()}/en/refund` },
     RESUME_REMINDER: { subject: `Continue your application — ${reference}`, body: `Application ${reference} is waiting for you. Open the secure application page to continue from the details already saved.` },
