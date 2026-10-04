@@ -9,6 +9,8 @@ import { encryptStaffMfaSecret, decryptStaffMfaSecret } from "./lib/admin-sessio
 import { TRPCError } from '@trpc/server';
 import { auditLog } from "./lib/audit-log";
 import { hashPassword, verifyPassword } from "./lib/password";
+import { completeStaffSetup } from './lib/staff-setup';
+import { recordNamedAdminVerification } from './lib/staff-auth-transition';
 
 async function saveStaffChanges(id: number, update: Partial<typeof staffUsers.$inferInsert>) {
   await getDb().transaction(async tx => {
@@ -22,6 +24,8 @@ async function saveStaffChanges(id: number, update: Partial<typeof staffUsers.$i
 }
 
 export const staffRouter = createRouter({
+  completeSetup: loginQuery.input(z.object({ token: z.string().regex(/^[a-f0-9]{64}$/), password: z.string().min(12).max(500) }).strict())
+    .mutation(({ input }) => completeStaffSetup(input.token, input.password)),
   // Staff login - returns token
   login: loginQuery
     .input(
@@ -80,6 +84,7 @@ export const staffRouter = createRouter({
           sql`${staffUsers.mfaLastCounter} <=> ${staff.mfaLastCounter}`));
       if (result.affectedRows !== 1) throw reject();
       deleteMfaChallenge(input.challenge);
+      await recordNamedAdminVerification(staff.id, staff.role);
       const token = createStaffSession(staff.id);
       ctx.resHeaders.append('set-cookie', staffSessionCookie(ctx.req.headers, token));
       auditLog('staff.login', 'success', `staff:${staff.id}`);

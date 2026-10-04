@@ -7,6 +7,13 @@ export async function verifyPhase2Mysql(db) {
   try {
     const [[staff]] = await db.query('SELECT id,staff_role,mfa_secret,mfa_last_counter FROM staff_users LIMIT 1');
     assert(staff); assert.equal(staff.staff_role, 'staff'); assert.equal(staff.mfa_secret, null);
+    const [[transition]] = await db.query('SELECT COUNT(*) total FROM staff_auth_transition');
+    assert.equal(Number(transition.total), 0);
+    const setupHash = randomUUID().replaceAll('-', '').padEnd(64, '0');
+    await db.execute('INSERT INTO staff_setup_links(token_hash,staff_id,expires_at) VALUES(?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 HOUR))', [setupHash, staff.id]);
+    const [consumed] = await db.execute('UPDATE staff_setup_links SET consumed_at=UTC_TIMESTAMP() WHERE token_hash=? AND consumed_at IS NULL', [setupHash]);
+    const [reused] = await db.execute('UPDATE staff_setup_links SET consumed_at=UTC_TIMESTAMP() WHERE token_hash=? AND consumed_at IS NULL', [setupHash]);
+    assert.equal(consumed.affectedRows, 1); assert.equal(reused.affectedRows, 0);
     await assert.rejects(db.execute('DELETE FROM staff_users WHERE id=?', [staff.id]), error => error.sqlState === '45000');
     const [insert] = await db.execute("INSERT INTO document_access_events(document_id,staff_id,action) VALUES(1,?,'VIEW')", [staff.id]);
     for (const statement of ['UPDATE document_access_events SET staff_id=999 WHERE id=?','DELETE FROM document_access_events WHERE id=?']) {

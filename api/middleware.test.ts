@@ -7,6 +7,7 @@ const securityRouter = createRouter({
   adminOnly: adminQuery.query(() => true),
   staffOrAdmin: staffOrAdminQuery.query(() => true),
   customerApplication: applicationAccessQuery.query(() => true),
+  orderPayload: staffOrAdminQuery.query(() => ({ supplierId: 2, totalAmount: '185.00', supplierCostAed: '90.00', supplierNotes: 'internal financial note', snapshots: [{ supplier_cost: '80.00', internalCost: '10.00', markup: '95.00', grossMargin: '51%', sellingPrice: '185.00' }] })),
 });
 
 function context(overrides: Partial<TrpcContext> = {}): TrpcContext {
@@ -20,6 +21,12 @@ function context(overrides: Partial<TrpcContext> = {}): TrpcContext {
 }
 
 describe("authorization middleware", () => {
+  it('omits costs and margins from nested agent API data, while preserving them for the administrator', async () => {
+    const agent = await securityRouter.createCaller(context({ staffId: 7 })).orderPayload();
+    expect(agent).toEqual({ supplierId: 2, totalAmount: '185.00', snapshots: [{ sellingPrice: '185.00' }] });
+    const admin = await securityRouter.createCaller(context({ staffId: 8, isAdmin: true })).orderPayload();
+    expect(admin.supplierCostAed).toBe('90.00');
+  });
   it("rejects anonymous callers from protected procedures", async () => {
     const caller = securityRouter.createCaller(context());
     await expect(caller.adminOnly()).rejects.toMatchObject({ code: "FORBIDDEN" });

@@ -4,6 +4,8 @@ import { authenticateRequest } from "./kimi/auth";
 import { getStaffSession, staffTokenFromHeaders } from "./lib/staff-session";
 import { getDb } from "./queries/connection";
 import { eq } from "drizzle-orm";
+import { verifyAdminSessionAsync } from './lib/admin-session';
+import { legacyAdminLoginEnabled } from './lib/staff-auth-transition';
 import { getCustomerApplicationReferences } from "./lib/customer-session";
 
 export type TrpcContext = {
@@ -40,6 +42,9 @@ export async function createContext(
       .where(eq(staffUsers.id, staffSession.staffId))
       .limit(1);
     if (staff?.isActive === "active") { ctx.staffId = staff.id; ctx.isAdmin = staff.role === 'admin'; }
+  }
+  if (!ctx.staffId && opts.req.headers.get('cookie')?.includes('tashira_admin_session=') && await legacyAdminLoginEnabled()) {
+    ctx.isAdmin = await verifyAdminSessionAsync(opts.req.headers);
   }
   return ctx;
 }

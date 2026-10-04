@@ -6,6 +6,9 @@ import { loginQuery, publicQuery } from "./middleware";
 import { z } from "zod";
 import {
   clearAdminSessionCookie,
+  createAdminSessionCookie,
+  getAdminSessionEpoch,
+  verifyAdminPasswordAsync,
   validateNewAdminPassword,
 } from "./lib/admin-session";
 import { TRPCError } from "@trpc/server";
@@ -16,12 +19,18 @@ import { getDb } from "./queries/connection";
 import { staffUsers } from "@db/schema";
 import { hashPassword, verifyPassword } from "./lib/password";
 import { deleteStaffSession, staffTokenFromHeaders, staffSessionCookie, revokeStaffSessions, createStaffSession } from './lib/staff-session';
+import { legacyAdminLoginEnabled } from './lib/staff-auth-transition';
 
 export const authRouter = createRouter({
+  legacyLoginAvailable: publicQuery.query(() => legacyAdminLoginEnabled()),
   adminLogin: loginQuery
     .input(z.object({ password: z.string().min(1).max(500) }))
-    .mutation(() => {
-      throw new TRPCError({ code: 'FORBIDDEN', message: 'Shared administrator sign-in is disabled. Use your named account and authenticator code.' });
+    .mutation(async ({ input, ctx }) => {
+      if (!(await legacyAdminLoginEnabled())) throw new TRPCError({ code: 'FORBIDDEN', message: 'Shared administrator sign-in is disabled. Use your named account and authenticator code.' });
+      if (!(await verifyAdminPasswordAsync(input.password))) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials. Check your password and try again.' });
+      ctx.resHeaders.append('set-cookie', createAdminSessionCookie(ctx.req.headers, await getAdminSessionEpoch()));
+      auditLog('admin.login', 'success', 'admin');
+      return { success: true };
     }),
   adminChangePassword: adminQuery
     .input(z.object({

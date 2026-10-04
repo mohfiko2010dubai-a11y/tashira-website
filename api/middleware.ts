@@ -6,6 +6,7 @@ import type { TrpcContext } from "./context";
 import { consumeRateLimit } from "./lib/rate-limit";
 import { enforceStaffApplicationScope } from "./lib/staff-application-scope";
 import { publicError } from "./lib/public-error";
+import { redactStaffFinancials } from './lib/staff-financial-redaction';
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -19,7 +20,11 @@ const t = initTRPC.context<TrpcContext>().create({
 export const createRouter = t.router;
 const scopedProcedure = t.procedure.use(async ({ ctx, path, getRawInput, type, next }) => {
   await enforceStaffApplicationScope(ctx, path, await getRawInput(), type === "mutation");
-  return next();
+  const result = await next();
+  if (result.ok && ctx.staffId && !ctx.isAdmin && ctx.user?.role !== 'admin') {
+    return { ...result, data: redactStaffFinancials(result.data) };
+  }
+  return result;
 });
 export const publicQuery = scopedProcedure;
 

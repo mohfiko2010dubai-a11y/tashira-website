@@ -12,8 +12,8 @@ vi.mock('./queries/connection', () => ({ getDb: () => ({
 }) }));
 import { refundRouter } from './refund-router';
 
-function caller(staffId?: number) {
-  const context: TrpcContext = { req: new Request('https://staging.tashiraev.com/api/trpc'), resHeaders: new Headers(), isAdmin: true, staffId, customerApplicationReferences: new Set() };
+function caller(staffId?: number, isAdmin = true) {
+  const context: TrpcContext = { req: new Request('https://staging.tashiraev.com/api/trpc'), resHeaders: new Headers(), isAdmin, staffId, customerApplicationReferences: new Set() };
   return refundRouter.createCaller(context);
 }
 const input = { refundCaseId: 'a153205e-e7a5-4b48-8b0d-c4d01d62e99e', adminPassword: 'synthetic-re-authentication' };
@@ -24,6 +24,10 @@ beforeEach(() => {
   mocks.event.mockResolvedValue(undefined);
 });
 describe('named refund maker/checker through the actual router', () => {
+  it.each([17, 19])('rejects agent %i regardless of whether they made this refund request', async staffId => {
+    await expect(caller(staffId, false).approveCase(input)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mocks.change).not.toHaveBeenCalled();
+  });
   it('allows a different named checker and persists that identity', async () => {
     await expect(caller(18).approveCase(input)).resolves.toEqual({ status: 'APPROVED' });
     expect(mocks.change).toHaveBeenCalledWith(expect.objectContaining({ approvedBy: 'staff:18' }));

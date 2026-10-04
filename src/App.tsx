@@ -40,6 +40,7 @@ const AdminApprovals = lazy(() => importWithStaleChunkRecovery(() => import('@/p
 const AdminVat = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminVat')));
 const AdminChat = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminChat')));
 const StaffLogin = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffLogin')));
+const StaffSetup = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffSetup')));
 const StaffDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffDashboard')));
 const StaffApplicationDetail = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffApplicationDetail')));
 const StaffOperationsCase = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationsCase')));
@@ -144,6 +145,7 @@ function AppContent() {
           <Route path="/admin/rule-evaluations" element={<AdminGuard><AdminRuleEvaluations /></AdminGuard>} />
           <Route path="/admin/security" element={<AdminGuard><AdminSecurity /></AdminGuard>} />
           <Route path="/staff/login" element={<StaffLogin />} />
+          <Route path="/staff/setup" element={<StaffSetup />} />
           <Route path="/staff/dashboard" element={<StaffGuard><StaffDashboard /></StaffGuard>} />
           <Route path="/staff/applications/:referenceNumber" element={<StaffGuard><StaffApplicationDetail /></StaffGuard>} />
           <Route path="/staff/operations/:referenceNumber" element={<StaffGuard><StaffOperationsCase /></StaffGuard>} />

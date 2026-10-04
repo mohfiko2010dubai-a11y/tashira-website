@@ -30,6 +30,7 @@ try {
   for (const template of ['APPROVAL_PENDING','GUARANTEE_BREACHED','CONNECTION_BROKEN','SUPPLIER_OVERRIDE','LICENCE_EXPIRY']) {
     if (!templateColumn.Type.includes(`'${template}'`)) throw new Error('Missing internal email audit template: ' + template);
   }
+  for (const statement of parseMysqlClientScript(readFileSync('migrations/067_staff_setup_links.sql', 'utf8'))) await db.query(statement);
   await verifyPhase2Mysql(db);
   // Exercise the real trigger in the disposable database, then restore fixtures.
   await db.beginTransaction();
