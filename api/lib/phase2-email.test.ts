@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EMAIL_TEMPLATES, renderTransactionalEmail } from './transactional-email';
 import { verifyEmailSignature } from './email-webhook-signature';
+import { createHmac, randomBytes } from 'node:crypto';
 
 beforeEach(() => vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com'));
 afterEach(() => vi.unstubAllEnvs());
@@ -31,9 +32,12 @@ describe('transactional mail in the customer language', () => {
   });
 });
 describe('signed delivery receipts', () => {
-  const raw = '{"event_type":"ping","data":{"success":true}}', secret = 'whsec_plJ3nmyCDGBKInavdOK15jsl';
-  const headers = () => new Headers({ 'svix-id': 'msg_loFOjxBNrRLzqYUf', 'svix-timestamp': '1731705121', 'svix-signature': 'v1,rAvfW3dJ/X/qxhsaXPOyyCGmRKsaKWcsNccKXlIktD0=' });
-  it('matches the published Svix reference vector', () => expect(verifyEmailSignature(raw, headers(), secret, 1731705121000)).toBe('msg_loFOjxBNrRLzqYUf'));
+  // Generate a disposable test key: no credential-shaped literal belongs in source.
+  const raw = '{"event_type":"ping","data":{"success":true}}', key = randomBytes(32);
+  const secret = `whsec_${key.toString('base64')}`;
+  const signature = createHmac('sha256', key).update(`msg_synthetic.1731705121.${raw}`).digest('base64');
+  const headers = () => new Headers({ 'svix-id': 'msg_synthetic', 'svix-timestamp': '1731705121', 'svix-signature': `v1,${signature}` });
+  it('verifies a separately signed Svix-protocol fixture', () => expect(verifyEmailSignature(raw, headers(), secret, 1731705121000)).toBe('msg_synthetic'));
   it('rejects body tampering, stale timestamps and absent secrets', () => {
     expect(() => verifyEmailSignature(raw + ' ', headers(), secret, 1731705121000)).toThrow();
     expect(() => verifyEmailSignature(raw, headers(), secret, 1731706000000)).toThrow();
