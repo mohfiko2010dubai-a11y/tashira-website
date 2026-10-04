@@ -45,8 +45,9 @@ const itemInput = z.discriminatedUnion("sourceType", [
   }),
 ]);
 
-function actorReference(ctx: { user?: { id: number } }) {
-  return ctx.user?.id ? `user:${ctx.user.id}` : "admin-session";
+function actorReference(ctx: { staffId?: number }) {
+  if (!ctx.staffId) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Sign in with your named staff account before changing a refund.' });
+  return `staff:${ctx.staffId}`;
 }
 
 export const refundRouter = createRouter({
