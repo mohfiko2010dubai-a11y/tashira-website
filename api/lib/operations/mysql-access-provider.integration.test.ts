@@ -58,7 +58,8 @@ run("MySQL Operations access integration", () => {
     await pool.execute("DELETE FROM operations_roles WHERE id = ?", [roleId]);
     await pool.execute("DELETE FROM operations_teams WHERE id = ?", [teamId]);
     await pool.execute("DELETE FROM operations_departments WHERE id = ?", [departmentId]);
-    await pool.execute("DELETE FROM staff_users WHERE id = ?", [staffId]);
+    // Named identities are retained even after a synthetic account is retired.
+    await pool.execute("UPDATE staff_users SET is_active = 'inactive' WHERE id = ?", [staffId]);
     await pool.end();
   });
 

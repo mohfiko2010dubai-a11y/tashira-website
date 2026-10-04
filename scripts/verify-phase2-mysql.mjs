@@ -7,6 +7,7 @@ export async function verifyPhase2Mysql(db) {
   try {
     const [[staff]] = await db.query('SELECT id,staff_role,mfa_secret,mfa_last_counter FROM staff_users LIMIT 1');
     assert(staff); assert.equal(staff.staff_role, 'staff'); assert.equal(staff.mfa_secret, null);
+    await assert.rejects(db.execute('DELETE FROM staff_users WHERE id=?', [staff.id]), error => error.sqlState === '45000');
     const [insert] = await db.execute("INSERT INTO document_access_events(document_id,staff_id,action) VALUES(1,?,'VIEW')", [staff.id]);
     for (const statement of ['UPDATE document_access_events SET staff_id=999 WHERE id=?','DELETE FROM document_access_events WHERE id=?']) {
       await assert.rejects(db.execute(statement, [insert.insertId]), error => error.sqlState === '45000');
