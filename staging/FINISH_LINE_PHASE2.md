@@ -1,4 +1,16 @@
-# FINISH-LINE Phase 2 — candidate, not accepted
+# FINISH-LINE Phase 2 — deployed on staging, UAT not accepted
+
+## Current checkpoint — 4 October 2026
+
+Supersedes historical candidate notes below. Runtime1c838f26071a8e50710f5e916e1dbc7113d4e42a deployed successfully; both local and public health200. Migrations065–067 applied after backup `/var/backups/tashira-staging/2026-10-04T17-41-26-078Z-owner-access`. Database identity and exact three inactive accounts verified; no generated passwords/MFA secrets. Existing login remains enabled, named owner verification not yet recorded.
+
+Browser verification: `/staff/setup` displays password setup guidance and refuses missing token; `/admin/login` displays named-account login plus working existing-administrator entry; anonymous `/admin/approvals` reaches login instead of404. Three one-time invitations were provider-accepted for the authorized owner/agent1/agent2 plus-addresses, expire24 hours, and store hashes only. Provider receipts retained privately on staging. Inbox delivery and password/MFA completion require owner confirmation.
+
+Local1330 tests plus check/lint/build pass; CI37222260401 Verify and MySQL jobs pass, including26 database tests with zero skips. Initialf497b41 runtime failed on duplicate createRequire and automatically rolled back to d57a699; corrected release aliases the banner import, externalizes native sharp, and syntax-checks the final bundle. Second deployment passed all gates and actual startup. Logs retained in root tmp/owner-access-deploy.log and tmp/owner-access-retry-deploy.log.
+
+Pending, not claimed complete: all eight named-user staff UAT scenarios; remaining role-scope verification including supplier selection and deposit/adjustment requests; owner setup/MFA for all three; mail webhook acceptance; full customer journey. Written recovery exists in STAFF_ACCESS_RECOVERY.md. Do not disable legacy access before owner ADMIN+MFA proof and confirmation. Production unchanged/CLOSED; original15 dirty files preserved.
+
+## Historical implementation notes
 
 Phase 1 is closed at staging d57a699. Phase 2 implementation is in progress on the isolated approved worktree. Production remains CLOSED and unchanged.
 
