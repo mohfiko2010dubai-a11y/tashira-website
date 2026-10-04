@@ -1,12 +1,13 @@
 import { requirePublicAppUrl, publicAppOrigin } from "./public-app-url";
 import { arabicEmailContent } from './transactional-email-ar';
+import { adminEmailActionUrl, isAdminEmail } from './email-audience';
 
 export const EMAIL_TEMPLATES = [
   "APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED",
   "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP",
   "SECURITY_DEPOSIT_REQUEST", "REFUND_COMPLETED",
   "DOCUMENTS_COMPLETE", "PRODUCT_SUBSTITUTED", "REJECTED", "RESUME_REMINDER", "REVIEW_REQUEST",
-  "APPROVAL_PENDING", "GUARANTEE_BREACHED", "CONNECTION_BROKEN",
+  "APPROVAL_PENDING", "GUARANTEE_BREACHED", "CONNECTION_BROKEN", "SUPPLIER_OVERRIDE", "LICENCE_EXPIRY",
 ] as const;
 
 export type EmailTemplate = typeof EMAIL_TEMPLATES[number];
@@ -49,6 +50,8 @@ export function validateTemplateVariables(template: EmailTemplate, variables: Re
     APPROVAL_PENDING: ['referenceNumber', 'actionUrl'],
     GUARANTEE_BREACHED: ['referenceNumber', 'actionUrl'],
     CONNECTION_BROKEN: ['referenceNumber', 'actionUrl'],
+    SUPPLIER_OVERRIDE: ['referenceNumber'],
+    LICENCE_EXPIRY: ['referenceNumber'],
   };
   const missing = required[template].filter((key) => !variables[key]);
   if (missing.length) throw new Error(`Missing email template variables: ${missing.join(", ")}`);
@@ -80,6 +83,8 @@ function renderEmailContent(template: EmailTemplate, variables: Record<string, s
     APPROVAL_PENDING: { subject: `Refund approval pending — ${reference}`, body: `A refund for ${reference} is awaiting a different named administrator's decision. Review the original charge, remaining balance and request in the approvals dashboard.` },
     GUARANTEE_BREACHED: { subject: `Express deadline exceeded — ${reference}`, body: `The paid Express submission deadline for ${reference} has passed. Review the automatic refund result and address any execution error in the approvals dashboard.` },
     CONNECTION_BROKEN: { subject: `Service connection needs attention — ${reference}`, body: `A required service connection could not complete its operation for ${reference}. Open the dashboard, inspect the failure and restore the connection.` },
+    SUPPLIER_OVERRIDE: { subject: `Supplier override requires review — ${reference}`, body: `Review the supplier override for ${reference} in supplier administration before taking further action.` },
+    LICENCE_EXPIRY: { subject: `Company licence expiry requires review — ${reference}`, body: `Review the company licence expiry and supporting record in company settings, then update the verified renewal details.` },
   };
   const rendered = content[template];
   if (template === "PAYMENT_SUCCESS") {
@@ -137,14 +142,26 @@ function escapeHtml(value: string) {
 }
 
 export function renderTransactionalEmail(template: EmailTemplate, variables: Record<string, string>) {
+  const internal = isAdminEmail(template);
+  if (internal) variables = { ...variables, actionUrl: adminEmailActionUrl(template, variables) };
   const validated = renderEmailContent(template, variables);
   if (variables.actionUrl) requirePublicAppUrl(variables.actionUrl);
   const ar = variables.language === 'ar';
   const rendered = ar ? { ...arabicEmailContent(template, variables), html: undefined } : validated;
-  const action = variables.actionUrl ? `\n\n${variables.actionUrl}` : '';
+  const actionUrl = variables.actionUrl || (!internal ? `${publicAppOrigin()}/${ar ? 'ar' : 'en'}/track` : '');
+  const label = internal ? (ar ? 'افتح لوحة الإدارة' : 'Open administration') : (ar ? 'تابع طلبك' : 'Track your application');
+  const action = actionUrl ? `\n\n${label}: ${actionUrl}` : '';
   const footer = ar ? 'لن نطلب منك إرسال مستندات أو بيانات البطاقة بالرد على البريد. استخدم صفحة طلبك الآمنة لرفع المستندات، وصفحة الدفع الآمنة لإدخال بيانات البطاقة.' : 'We never ask you to send documents or card details by email reply. Upload documents through your secure application and enter card details only on the secure payment page.';
-  const body = rendered.body + action + '\n\n' + footer;
-  const logo = '<img src="' + publicAppOrigin() + '/icons/mark-1024-transparent.png" width="64" height="64" alt="TASHIRA — UAE E-Visa Services" style="display:block;border:0;margin:16px 0" />';
-  const html = rendered.html ? rendered.html.replace(/(<body[^>]*>)/, '$1' + logo).replace('</body>', `<p>${escapeHtml(footer)}</p></body>`) : `<!doctype html><html lang="${ar ? 'ar' : 'en'}" dir="${ar ? 'rtl' : 'ltr'}"><body style="font-family:Arial,sans-serif">` + logo + '<p>' + escapeHtml(body).replaceAll('\n', '<br>') + '</p></body></html>';
+  const body = rendered.body + action + (internal ? '' : '\n\n' + footer);
+  const wordmark = internal ? '' : '<p dir="ltr" style="color:#172235;font-size:26px;font-weight:700;letter-spacing:3px;border-bottom:2px solid #d9ad55;padding-bottom:12px">TASHIRA</p>';
+  const linkLabel = (url: string) => url.includes('/invoice-download/') ? (ar ? 'عرض الفاتورة' : 'View / Download Invoice') : url.includes('/recover') ? (ar ? 'استكمل طلبك' : 'Resume Application') : url.includes('/deposit/') ? (ar ? 'راجع طلب التأمين' : 'Review deposit') : url.endsWith('/refund') ? (ar ? 'سياسة الاسترداد' : 'Refund Policy') : label;
+  const contentHtml = rendered.body.split(/(https:\/\/[^\s]+)/g).map(part => {
+    if (!part.startsWith('https://')) return escapeHtml(part).replaceAll('\n', '<br>');
+    const url = part.replace(/[.,]$/, '');
+    requirePublicAppUrl(url);
+    return `<a href="${escapeHtml(url)}">${escapeHtml(linkLabel(url))}</a>${part.slice(url.length)}`;
+  }).join('');
+  const cta = actionUrl ? `<p><a href="${escapeHtml(actionUrl)}" style="display:inline-block;padding:12px 16px;${internal ? '' : 'background:#172235;color:#fff;'}">${label}</a></p>` : '';
+  const html = `<!doctype html><html lang="${ar ? 'ar' : 'en'}" dir="${ar ? 'rtl' : 'ltr'}"><body style="font-family:Arial,sans-serif;line-height:1.6;color:#172235">${wordmark}<h1 style="font-size:20px">${escapeHtml(rendered.subject)}</h1><p>${contentHtml}</p>${cta}${internal ? '' : `<p>${escapeHtml(footer)}</p>`}</body></html>`;
   return { ...rendered, body, html };
 }

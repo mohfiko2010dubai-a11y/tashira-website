@@ -6,6 +6,7 @@ import { sendRefundOutcomeEmail } from './refund-outcome-email';
 import { adminEmailRecipient } from './email-provider';
 import { publicAppOrigin } from './public-app-url';
 import { EMAIL_TEMPLATES, type EmailTemplate } from './transactional-email';
+import { adminEmailActionUrl, isAdminEmail } from './email-audience';
 
 // Durable source events, not UI actions: retries and process restarts do not lose mail.
 export const timelineEmailTemplates: Readonly<Record<string, EmailTemplate>> = {
@@ -84,11 +85,12 @@ async function dispatch(job: RowDataPacket): Promise<boolean> {
     for (const refund of refunds) { const result = await sendRefundOutcomeEmail(refund.id); if (result.status === 'FAILED') return false; }
     return true;
   }
-  const recipient = variables.admin === '1' ? adminEmailRecipient() : String(application.contact_email);
+  const recipient = isAdminEmail(template) ? adminEmailRecipient() : String(application.contact_email);
   if (!recipient) throw new Error('Configure the monitored administrator notification address, then retry this message.');
-  const actionUrl = variables.admin === '1' ? `${publicAppOrigin()}/admin/approvals` : `${publicAppOrigin()}/${application.preferred_language}/track`;
+  const refundCaseId = isAdminEmail(template) ? String(job.job_key).split(':').at(-1) || '' : '';
+  const actionUrl = isAdminEmail(template) ? adminEmailActionUrl(template, { ...variables, refundCaseId }) : `${publicAppOrigin()}/${application.preferred_language}/track`;
   const result = await sendCustomerNotification({ applicationId: Number(job.application_id), recipient, template,
-    variables: { ...variables, referenceNumber: application.reference_number, actionUrl }, sourceReference: template === 'VISA_ISSUED' ? 'status:visa_received' : template === 'REJECTED' ? 'status:rejected' : template === 'SUBMITTED' ? 'status:visa_processing' : String(job.job_key), failureCategory: 'transactional_delivery_failed' });
+    variables: { ...variables, refundCaseId, referenceNumber: application.reference_number, actionUrl }, sourceReference: template === 'VISA_ISSUED' ? 'status:visa_received' : template === 'REJECTED' ? 'status:rejected' : template === 'SUBMITTED' ? 'status:visa_processing' : String(job.job_key), failureCategory: 'transactional_delivery_failed' });
   return result.status !== 'FAILED';
 }
 let running = false;

@@ -16,7 +16,7 @@ function ApprovalRow({ row, refresh }: { row: QueueRow; refresh: () => void }) {
   const pending = approve.isPending || execute.isPending || reject.isPending || retry.isPending || reconcile.isPending;
   const total = row.items.reduce((sum, entry) => sum + Number(entry.refundAmount), 0);
   const affordable = charge.data && charge.data.currency === item?.currency && charge.data.remainingMinor >= Math.round(total * 100);
-  return <article className="rounded-xl border bg-white p-4 space-y-3">
+  return <article id={`refund-case-${row.refundCase.id}`} className="rounded-xl border bg-white p-4 space-y-3">
     <div className="flex flex-wrap justify-between gap-2"><Link className="font-semibold underline" to={`/admin/applications/${row.reference}`}>{row.reference}</Link><strong>{row.refundCase.status}</strong></div>
     <p>{row.customer} · {item?.currency} {total.toFixed(2)}</p>
     <p>Requested by {row.requester || row.refundCase.requestedBy} · {new Date(row.refundCase.createdAt).toLocaleString()} · waiting {row.waitingHours} hours</p>
@@ -48,9 +48,9 @@ export default function AdminApprovals() {
     <section className="rounded-xl border bg-amber-50 p-4"><h2 className="font-bold">Stripe balance and pending refunds</h2>{query.data?.balance.error && <p role="alert">{query.data.balance.error}</p>}{query.data?.balance.available.map(entry => <p key={entry.currency}>Available: {(entry.amountMinor/100).toFixed(2)} {entry.currency}</p>)}{[...totals].map(([currency, amount]) => <p key={currency}>Pending: {amount.toFixed(2)} {currency}</p>)}<p>Balances may use a different settlement currency; these figures are not assumed equivalent.</p></section>
     <button className="min-h-11 rounded border px-4" onClick={refresh}>Refresh</button>
     {query.error && <p role="alert">Unable to load approvals. Refresh to try again.</p>}
-    {query.data?.rows.map(row => <ApprovalRow key={row.refundCase.id} row={row} refresh={refresh} />)}
+    <div id="refund-failures" className="space-y-4">{query.data?.rows.map(row => <ApprovalRow key={row.refundCase.id} row={row} refresh={refresh} />)}</div>
     {query.data?.rows.length === 0 && <p>No refunds awaiting review.</p>}
-    <ProcessingGuarantee />
+    <div id="processing-guarantee"><ProcessingGuarantee /></div>
     <section className="rounded-xl border bg-white p-4 space-y-3"><h2 className="font-bold">Email delivery needs attention</h2>
       {emailFailures.error && <p role="alert">Could not load the email queue. Refresh to retry.</p>}
       {emailFailures.data?.length === 0 && <p>No failed queued messages. Inbox placement still requires a real delivery check.</p>}

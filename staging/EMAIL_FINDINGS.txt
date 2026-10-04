@@ -1,0 +1,94 @@
+EMAIL FINDINGS — 4 October 2026
+
+Owner evidence accepted: the first template batch reached admin@tashiraev.com
+Inbox in Outlook, and Arabic renders right-to-left in a real mail client.
+Plain-text rendering in that client has not yet been confirmed.
+
+IMPLEMENTED IN THE PHASE2 CANDIDATE
+
+Customer: text TASHIRA wordmark in brand colours, security footer, track CTA,
+stored customer language. No remote images, image-only buttons or spacer images.
+Internal: plain layout, no customer security footer, wordmark or customer track
+URL. Classification is by template, not a caller-provided admin flag.
+
+Admin destinations:
+- APPROVAL_PENDING: /admin/approvals#refund-case-{id}
+- GUARANTEE_BREACHED: /admin/approvals#refund-case-{id}
+- CONNECTION_BROKEN: /admin/approvals#refund-case-{id}
+  The currently implemented connection event is specifically a failed refund.
+  Its error and retry controls live on that exact refund row. A generic
+  integration-monitoring/connection-repair screen is not implemented.
+- SUPPLIER_OVERRIDE: /admin/applications/{reference}, the affected order.
+- LICENCE_EXPIRY: /admin/company-settings.
+Fallback section anchors exist when the synthetic preview lacks a case id.
+The last two templates did not previously exist. Their bilingual renderers,
+internal classification and additive enum migration065 are now included, but
+automatic event producers/scheduling for them are NOT implemented or activated.
+Do not describe the overall Phase2 alert inventory as complete.
+
+Arabic correction applied exactly:
+يمكنك متابعة حالة طلبك ورفع مستنداتك من صفحة طلبك الآمنة
+
+HTML links now have named anchors, including تابع طلبك and عرض الفاتورة.
+Plain text retains usable addresses because plain text cannot contain anchors.
+Authorized invoice/recovery/deposit URL validation remains in force.
+
+PREFIX FINDING
+
+The original [Staging template test ...] prefix was a literal in the separate
+temporary test sender, never a template conditional. It was NOT a setting.
+Corrected: TRANSACTIONAL_EMAIL_TEST_SUBJECT_PREFIX is now a staging setting,
+read by staging/email-template-test-config.mjs with an explicit environment
+exception and strict staging-origin/approved-recipient checks. The application
+transport uses TRANSACTIONAL_EMAIL_SUBJECT_PREFIX only for staging. A test
+proves the configured staging prefix cannot leak into production transport.
+No application template reads environment variables or includes test prefixes.
+Private configuration backup:
+/var/backups/tashira-staging/2026-10-04T16-42-49-212Z-email-findings
+
+ACTUAL MAIL-TESTER RESULT (reopened and inspected this turn)
+
+https://mail-tester.com/test-hz8sq5plo
+Score: 5.6/10
+
+SPF, verbatim:
+[SPF] Your server 23.251.234.51 is authorized to use 010601a107bea22f-9cee5436-f371-4073-8da4-445909e3c621-000000@send.tashiraev.com
+
+DKIM, verbatim:
+Your DKIM signature is valid
+
+DMARC, verbatim:
+Your DMARC record is set correctly and your message passed the DMARC test
+"v=DMARC1; p=none"
+mail-tester.com; dmarc=pass (p=none dis=none) header.from=tashiraev.com
+
+Alignment, verbatim:
+From Domain: tashiraev.com
+DKIM Domain: tashiraev.com
+
+DKIM exactly aligns; SPF send.tashiraev.com aligns under default relaxed DMARC.
+The overall score is not a clean deliverability result: shared SES sending IP
+was on Hostkarma (-1), plus SpamAssassin penalties for short image-heavy copy
+and uppercase synthetic subject/reference. Removing the remote logo addresses
+the image dependency, but no new score is claimed for the corrected templates.
+No DMARC policy change and no assertion that provider Delivered equals Inbox.
+
+VALIDATION / DELIVERY STATUS
+
+Local package-equivalent check, lint, test and complete client/SSR/server build
+passed. 1297 tests passed; the26 MySQL tests run separately in hosted CI.
+Migration065 has been added to that disposable-MySQL rehearsal with assertions
+that all five internal template keys exist. It is not yet applied to staging.
+
+Eight corrected synthetic messages sent to admin@tashiraev.com: application
+received plus the three existing operational alerts, each EN/AR. All eight
+provider sends accepted; SENT events retained with distinct stable idempotency
+keys. No repeated old batch. Evidence:
+/var/lib/tashira-maintenance/email-findings-template-results.json
+New samples' Inbox/Spam placement and plaintext client rendering remain for
+owner confirmation. The earlier batch's confirmed Inbox/RTL result is retained.
+
+The Phase2 application is NOT deployed: staging runtime remains Phase1 d57a699.
+Thus the new approvals routes cannot yet be accepted against the live runtime.
+Named-account UAT is still blocked by the earlier automatic-review rejection;
+no account created and no workaround. Production remains CLOSED and unchanged.

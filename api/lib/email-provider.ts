@@ -18,7 +18,7 @@ export function transactionalEmailProvider(): TransactionalEmailProvider {
     replyTo,
     allowedRecipients,
     restrictRecipients: staging,
-    subjectPrefix: staging ? "[STAGING] " : "",
+    subjectPrefix: staging ? (process.env.TRANSACTIONAL_EMAIL_SUBJECT_PREFIX || "[STAGING] ") : "",
     enabled: staging || productionExplicitlyEnabled,
   });
 }

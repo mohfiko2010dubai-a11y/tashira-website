@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EMAIL_TEMPLATES, renderTransactionalEmail } from './transactional-email';
 import { verifyEmailSignature } from './email-webhook-signature';
 import { createHmac, randomBytes } from 'node:crypto';
+import { adminEmailActionUrl, isAdminEmail } from './email-audience';
 
 beforeEach(() => vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com'));
 afterEach(() => vi.unstubAllEnvs());
@@ -16,8 +17,18 @@ describe('transactional mail in the customer language', () => {
       const result = renderTransactionalEmail(template, { ...variables, language });
       expect(result.subject).toContain(variables.referenceNumber);
       expect(result.body.length).toBeGreaterThan(60);
-      expect(result.html).toContain(language === 'ar' ? 'لن نطلب منك' : 'We never ask you');
-      expect(result.body).toContain(language === 'ar' ? 'لن نطلب منك' : 'We never ask you');
+      const footer = language === 'ar' ? 'لن نطلب منك' : 'We never ask you';
+      if (isAdminEmail(template)) {
+        expect(result.html).not.toContain(footer);
+        expect(result.body).not.toContain(footer);
+        expect(result.html).not.toContain('/track');
+        expect(result.html).toContain(`href="${adminEmailActionUrl(template, variables)}"`);
+      } else {
+        expect(result.html).toContain(footer);
+        expect(result.body).toContain(footer);
+      }
+      expect(result.html).not.toContain('<img');
+      expect(result.subject).not.toContain('Staging template test');
       expect(result.body).not.toMatch(/outside working hours|خارج ساعات العمل/);
       if (language === 'ar') { expect(result.html).toContain('dir="rtl"'); expect(result.subject).toMatch(/[\u0600-\u06ff]/); }
       if (template === 'PAYMENT_SUCCESS') expect(result.body).toContain('185.00 USD');
@@ -25,6 +36,20 @@ describe('transactional mail in the customer language', () => {
   });
   it('does not allow Arabic rendering to bypass invoice URL authorization', () => {
     expect(() => renderTransactionalEmail('PAYMENT_SUCCESS', { ...variables, language: 'ar', invoiceUrl: 'https://evil.example/invoice' })).toThrow();
+  });
+  it('uses the approved Arabic copy and named HTML links without remote images', () => {
+    const result = renderTransactionalEmail('APPLICATION_RECEIVED', { ...variables, language: 'ar' });
+    expect(result.body).toContain('يمكنك متابعة حالة طلبك ورفع مستنداتك من صفحة طلبك الآمنة');
+    expect(result.html).toContain('>تابع طلبك</a>');
+    expect(result.html).not.toMatch(/>https:\/\//);
+    const invoice = renderTransactionalEmail('PAYMENT_SUCCESS', { ...variables, language: 'ar' });
+    expect(invoice.html).toContain('>عرض الفاتورة</a>');
+    expect(invoice.html).not.toMatch(/>https:\/\//);
+  });
+  it.each(['APPROVAL_PENDING', 'GUARANTEE_BREACHED', 'CONNECTION_BROKEN'] as const)('routes %s to the exact refund case despite a supplied customer URL', template => {
+    const result = renderTransactionalEmail(template, { ...variables, refundCaseId: '42' });
+    expect(result.html).toContain('href="https://staging.tashiraev.com/admin/approvals#refund-case-42"');
+    expect(result.body).not.toContain('/track');
   });
   it('blocks an external action link and escapes untrusted strings', () => {
     expect(() => renderTransactionalEmail('REJECTED', { ...variables, actionUrl: 'https://evil.example' })).toThrow();

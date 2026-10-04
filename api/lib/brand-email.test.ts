@@ -1,8 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { EMAIL_TEMPLATES, renderTransactionalEmail } from './transactional-email';
+import { isAdminEmail } from './email-audience';
 
 afterEach(() => vi.unstubAllEnvs());
-it('brands every transactional template with the same sized PNG and escapes plain text', () => {
+it('uses a text wordmark for customers and plain internal notices with images disabled', () => {
   vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com');
   const variables = {
     referenceNumber: 'TSH-TEST', invoiceNumber: 'INV-TEST', amountPaid: '185', currency: 'USD',
@@ -15,8 +16,9 @@ it('brands every transactional template with the same sized PNG and escapes plai
   };
   for (const template of EMAIL_TEMPLATES) {
     const email = renderTransactionalEmail(template, variables);
-    expect(email.html).toContain('/icons/mark-1024-transparent.png" width="64" height="64"');
-    expect(email.html).toContain('alt="TASHIRA — UAE E-Visa Services"');
+    expect(email.html).not.toContain('<img');
+    if (!isAdminEmail(template)) expect(email.html).toContain('>TASHIRA</p>');
+    else expect(email.html).not.toContain('>TASHIRA</p>');
     expect(email.html).not.toContain('<svg');
     expect(email.html).not.toContain('<not approval>');
   }
