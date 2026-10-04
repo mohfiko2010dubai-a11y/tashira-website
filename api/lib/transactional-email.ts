@@ -83,7 +83,7 @@ function renderEmailContent(template: EmailTemplate, variables: Record<string, s
     APPROVAL_PENDING: { subject: `Refund approval pending — ${reference}`, body: `A refund for ${reference} is awaiting a different named administrator's decision. Review the original charge, remaining balance and request in the approvals dashboard.` },
     GUARANTEE_BREACHED: { subject: `Express deadline exceeded — ${reference}`, body: `The paid Express submission deadline for ${reference} has passed. Review the automatic refund result and address any execution error in the approvals dashboard.` },
     CONNECTION_BROKEN: { subject: `Service connection needs attention — ${reference}`, body: `A required service connection could not complete its operation for ${reference}. Open the dashboard, inspect the failure and restore the connection.` },
-    SUPPLIER_OVERRIDE: { subject: `Supplier override requires review — ${reference}`, body: `Review the supplier override for ${reference} in supplier administration before taking further action.` },
+    SUPPLIER_OVERRIDE: { subject: `Supplier override requires review — ${reference}`, body: `Review the supplier override for ${reference} in the affected application before taking further action.` },
     LICENCE_EXPIRY: { subject: `Company licence expiry requires review — ${reference}`, body: `Review the company licence expiry and supporting record in company settings, then update the verified renewal details.` },
   };
   const rendered = content[template];
