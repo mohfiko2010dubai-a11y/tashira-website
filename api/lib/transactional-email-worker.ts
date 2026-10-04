@@ -58,12 +58,18 @@ async function seedJobs() {
 
 async function dispatch(job: RowDataPacket): Promise<boolean> {
   const pool = defaultOperationsPool();
-  const [rows] = await pool.execute<RowDataPacket[]>('SELECT reference_number,contact_email,preferred_language,payment_status,status FROM applications WHERE id=?', [job.application_id]);
+  const [rows] = await pool.execute<RowDataPacket[]>('SELECT reference_number,contact_email,preferred_language,payment_status,status,visa_type,submitted_product,substitution_version,substitution_acknowledged_version FROM applications WHERE id=?', [job.application_id]);
   const application = rows[0];
   if (!application) throw new Error('Email owner is missing');
   const variables: Record<string, string> = typeof job.variables_json === 'string' ? JSON.parse(job.variables_json) : job.variables_json;
   const template = EMAIL_TEMPLATES.find(value => value === job.template);
   if (!template) throw new Error('Unknown mail template');
+  // A queued proposal must never describe a replaced or already accepted version.
+  if (template === 'PRODUCT_SUBSTITUTED' && (
+    job.job_key !== `substitution:${job.application_id}:${application.substitution_version}` ||
+    application.substitution_acknowledged_version === application.substitution_version ||
+    variables.originalProduct !== application.visa_type || variables.replacementProduct !== application.submitted_product
+  )) return true;
   if (template === 'RESUME_REMINDER' && (application.payment_status !== 'pending' || ['cancelled','rejected','completed'].includes(application.status))) return true;
   if (template === 'PAYMENT_SUCCESS') {
     const [invoices] = await pool.execute<RowDataPacket[]>(`SELECT i.invoice_number,i.amount,i.pdf_path,i.payment_id,p.currency FROM invoices i JOIN payments p ON p.id=i.payment_id WHERE i.application_id=? ORDER BY i.id DESC LIMIT 1`, [job.application_id]);
