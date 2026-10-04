@@ -53,11 +53,11 @@ export async function prepareExpressGuaranteeRefund(connection: PoolConnection, 
     const [reserved] = await connection.execute<RowDataPacket[]>("SELECT COALESCE(SUM(refund_amount),0) total FROM refund_items WHERE payment_id=? AND refund_item_status IN ('PENDING','PROCESSING','SUCCEEDED')", [payment.id]);
     if (Math.round((Number(payment.amount) - Number(reserved[0].total)) * 100) < Math.round(fee * 100)) throw new TRPCError({ code: "CONFLICT", message: "An existing refund already reserves these funds. Review that refund before continuing." });
     const id = randomUUID(), db = drizzle(connection), amount = fee.toFixed(2), currency = String(payment.currency).toUpperCase();
-    await db.insert(refundCases).values({ id, applicationId, status: "PENDING_APPROVAL", reason: "Express submission exceeded 24 continuous hours; refund the full paid Express component.", policyVersion: PROCESSING_GUARANTEE_VERSION, requestedBy: actor });
+    await db.insert(refundCases).values({ id, applicationId, status: "APPROVED", reason: "Express submission exceeded 24 continuous hours; refund the full paid Express component.", policyVersion: PROCESSING_GUARANTEE_VERSION, requestedBy: actor, approvedBy: 'SYSTEM:EXPRESS_GUARANTEE', approvedAt: new Date() });
     await db.insert(refundItems).values({ id: randomUUID(), refundCaseId: id, sourceType: "VISA_SERVICE", paymentId: Number(payment.id), originalAmount: String(payment.amount), requestedAmount: amount,
       deductionType: "NONE", deductionValue: "0", refundAmount: amount, currency, idempotencyKey: `express-guarantee-${applicationId}-${PROCESSING_GUARANTEE_VERSION}` });
     await db.insert(financialEvents).values({ id: randomUUID(), applicationId, paymentId: Number(payment.id), eventType: "REFUND_REQUESTED", amount, currency, sourceReference: id, actorReference: actor });
-    await db.insert(applicationTimelineEvents).values({ id: randomUUID(), applicationId, eventName: "REFUND_REQUESTED", eventSource: "EXPRESS_GUARANTEE", actorType: "ADMIN", actorReference: actor, resultingState: "PENDING_APPROVAL", summary: "Full Express fee refund requested after the submission guarantee deadline" });
+    await db.insert(applicationTimelineEvents).values({ id: randomUUID(), applicationId, eventName: "REFUND_APPROVED", eventSource: "EXPRESS_GUARANTEE", actorType: "SYSTEM", actorReference: 'SYSTEM:EXPRESS_GUARANTEE', resultingState: "APPROVED", summary: "Full paid Express component automatically approved after the objective submission deadline" });
     await connection.execute("UPDATE application_service_clocks SET express_refund_case_id=? WHERE application_id=?", [id, applicationId]);
     return { refundCaseId: id, replayed: false };
 }

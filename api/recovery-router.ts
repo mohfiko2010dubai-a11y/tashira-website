@@ -19,7 +19,7 @@ export const recoveryRouter = createRouter({
     .mutation(async ({ input }) => {
       const email = input.email.trim().toLowerCase();
       const db = getDb();
-      const [application] = await db.select({ id: applications.id, referenceNumber: applications.referenceNumber })
+      const [application] = await db.select({ id: applications.id, referenceNumber: applications.referenceNumber, language: applications.preferredLanguage })
         .from(applications).where(eq(applications.contactEmail, email)).orderBy(desc(applications.updatedAt)).limit(1);
       if (!application) {
         auditLog("customer.recovery_requested", "success", "anonymous");
@@ -43,6 +43,7 @@ export const recoveryRouter = createRouter({
         ? { referenceNumber: application.referenceNumber, resumeUrl: `${publicAppOrigin()}/recover?token=${encodeURIComponent(challenge.secret)}` }
         : { referenceNumber: application.referenceNumber, otp: challenge.secret, expiresMinutes: "10" };
       try {
+        variables.language = application.language;
         const sent = await provider.send({ recipient: email, template, variables, idempotencyKey: `recovery/${challenge.id}` });
         await db.insert(outboundEmailEvents).values({
           id: randomUUID(), applicationId: application.id, template, recipientHash: recipientHash(email),

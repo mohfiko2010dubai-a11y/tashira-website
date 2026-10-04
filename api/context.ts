@@ -1,8 +1,7 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { staffUsers, type users } from "@db/schema";
 import { authenticateRequest } from "./kimi/auth";
-import { verifyAdminSessionAsync } from "./lib/admin-session";
-import { getStaffSession } from "./lib/staff-session";
+import { getStaffSession, staffTokenFromHeaders } from "./lib/staff-session";
 import { getDb } from "./queries/connection";
 import { eq } from "drizzle-orm";
 import { getCustomerApplicationReferences } from "./lib/customer-session";
@@ -17,27 +16,30 @@ export type TrpcContext = {
 };
 
 export async function createContext(
-  opts: FetchCreateContextFnOptions,
+  opts: Pick<FetchCreateContextFnOptions, 'req' | 'resHeaders'>,
 ): Promise<TrpcContext> {
+  opts.resHeaders.set('cache-control', 'private, no-store');
   const ctx: TrpcContext = {
     req: opts.req,
     resHeaders: opts.resHeaders,
-    isAdmin: await verifyAdminSessionAsync(opts.req.headers),
+    isAdmin: false,
     customerApplicationReferences: getCustomerApplicationReferences(opts.req.headers),
   };
   try {
-    ctx.user = await authenticateRequest(opts.req.headers);
+    const user = await authenticateRequest(opts.req.headers);
+    // Back-office privileges require a named account and completed MFA.
+    ctx.user = user ? { ...user, role: 'user' } : undefined;
   } catch {
     // Authentication is optional here
   }
-  const staffToken = opts.req.headers.get("x-staff-token") || "";
-  const staffSession = staffToken ? getStaffSession(staffToken) : null;
+  const staffToken = staffTokenFromHeaders(opts.req.headers);
+  const staffSession = staffToken ? getStaffSession(staffToken, opts.req.headers.get('x-staff-active') === '1') : null;
   if (staffSession) {
-    const [staff] = await getDb().select({ id: staffUsers.id, isActive: staffUsers.isActive })
+    const [staff] = await getDb().select({ id: staffUsers.id, isActive: staffUsers.isActive, role: staffUsers.role })
       .from(staffUsers)
       .where(eq(staffUsers.id, staffSession.staffId))
       .limit(1);
-    if (staff?.isActive === "active") ctx.staffId = staff.id;
+    if (staff?.isActive === "active") { ctx.staffId = staff.id; ctx.isAdmin = staff.role === 'admin'; }
   }
   return ctx;
 }

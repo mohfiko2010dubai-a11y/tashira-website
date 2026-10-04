@@ -7,14 +7,23 @@ import type { AppRouter } from "../../api/router";
 export const trpc = createTRPCReact<AppRouter>();
 
 export const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000 } } });
+let lastInteraction = 0;
+let activityInstalled = false;
+function staffActivityHeader(): Record<string, string> {
+  if (typeof document === 'undefined') return {};
+  if (!activityInstalled) {
+    activityInstalled = true;
+    for (const event of ['pointerdown', 'keydown', 'touchstart']) document.addEventListener(event, () => { lastInteraction = Date.now(); }, { passive: true });
+  }
+  return Date.now() - lastInteraction < 60_000 ? { 'x-staff-active': '1' } : {};
+}
 export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
       headers() {
-        const staffToken = globalThis.localStorage?.getItem("tashira_staff_auth");
-        return staffToken ? { "x-staff-token": staffToken } : {};
+        return staffActivityHeader();
       },
       fetch(input, init) {
         return globalThis.fetch(input, {

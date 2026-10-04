@@ -9,8 +9,7 @@ export function documentUploadClient(onProgress: (progress: DocumentUploadProgre
   return createTRPCClient<AppRouter>({ links: [httpLink({
     url: "/api/trpc", transformer: superjson,
     headers() {
-      const token = globalThis.localStorage?.getItem("tashira_staff_auth");
-      return token ? { "x-staff-token": token } : {};
+      return { 'x-staff-active': '1' }; // Upload is an explicit user action; authentication uses HttpOnly cookies.
     },
     fetch(input, init) {
       return new Promise<Response>((resolve, reject) => {

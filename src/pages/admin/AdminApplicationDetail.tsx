@@ -145,6 +145,7 @@ export default function AdminApplicationDetail() {
         </div>
       </header>
       <DocumentValidityReview referenceNumber={app.referenceNumber} />
+      {app.emailDeliveryIssue && <p role="alert" className="m-4 rounded border border-red-300 bg-red-50 p-4 text-red-900">Email delivery failed or bounced. Confirm the customer's contact address through an approved support channel and review the email events before relying on another notification.</p>}
       <section className="my-4 rounded border bg-white p-4"><h2 className="font-bold">Actual Stripe fees</h2>
         {fees.data?.filter(payment => payment.status === "succeeded").map(payment => <div key={payment.paymentId} className="mt-2">
           Payment {payment.paymentId}: {payment.feeMinor === null ? "Not yet reconciled" : `${payment.feeMinor} minor units (${payment.currency})`} · {payment.balanceTransaction}

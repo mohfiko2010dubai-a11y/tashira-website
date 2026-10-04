@@ -10,6 +10,20 @@ function getSessionSecret(): string {
   return secret;
 }
 
+// Authenticator secrets are encrypted at rest with a domain-separated key.
+export function encryptStaffMfaSecret(secret: string): string {
+  const key = crypto.createHash('sha256').update(`staff-mfa-v1:${getSessionSecret()}`).digest();
+  const iv = crypto.randomBytes(12), cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(secret, 'utf8'), cipher.final()]);
+  return [iv, cipher.getAuthTag(), encrypted].map(value => value.toString('base64url')).join('.');
+}
+export function decryptStaffMfaSecret(stored: string): string {
+  const [iv, tag, encrypted] = stored.split('.').map(value => Buffer.from(value, 'base64url'));
+  const key = crypto.createHash('sha256').update(`staff-mfa-v1:${getSessionSecret()}`).digest();
+  const cipher = crypto.createDecipheriv('aes-256-gcm', key, iv); cipher.setAuthTag(tag);
+  return Buffer.concat([cipher.update(encrypted), cipher.final()]).toString('utf8');
+}
+
 function sign(value: string): string {
   return crypto.createHmac("sha256", getSessionSecret()).update(value).digest("base64url");
 }

@@ -2,7 +2,7 @@ import { trpc } from '@/providers/trpc-client';
 
 export function useAdminAuth() {
   const utils = trpc.useUtils();
-  const adminState = trpc.auth.adminMe.useQuery(undefined, { retry: false });
+  const adminState = trpc.auth.adminMe.useQuery(undefined, { retry: false, refetchInterval: 60_000 });
   const loginMutation = trpc.auth.adminLogin.useMutation();
   const logoutMutation = trpc.auth.adminLogout.useMutation();
 

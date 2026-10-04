@@ -101,6 +101,26 @@ export type StripeRefundResult = {
   currency: string;
   status: "pending" | "requires_action" | "succeeded" | "failed" | "canceled";
 };
+export class StripeRefundRejected extends Error {}
+
+/** Recover an uncertain POST even after Stripe's idempotency retention window. */
+export async function findStripeRefund(paymentIntentId: string, itemId: string): Promise<StripeRefundResult | null> {
+  if (!/^pi_[A-Za-z0-9_]+$/.test(paymentIntentId)) throw new Error('Invalid PaymentIntent identifier');
+  let cursor = '';
+  for (let page = 0; page < 10; page++) {
+    const query = new URLSearchParams({ payment_intent: paymentIntentId, limit: '100', ...(cursor ? { starting_after: cursor } : {}) });
+    const response = await fetch(`https://api.stripe.com/v1/refunds?${query}`, { headers: { Authorization: `Bearer ${stripeSecretKey()}` }, signal: AbortSignal.timeout(15_000) });
+    if (!response.ok) throw new Error('Stripe refund reconciliation is unavailable. Retry the status check.');
+    const result = await response.json() as { data: (StripeRefundResult & { metadata?: Record<string,string> })[]; has_more: boolean };
+    if (!Array.isArray(result.data)) throw new Error('Invalid refund reconciliation response');
+    const found = result.data.find(refund => refund.payment_intent === paymentIntentId && refund.metadata?.refundItemId === itemId);
+    if (found) return found;
+    if (!result.has_more) return null;
+    cursor = result.data.at(-1)?.id || '';
+    if (!cursor) break;
+  }
+  throw new Error('Refund history requires manual reconciliation before retrying.');
+}
 
 export async function createStripeRefund(input: {
   paymentIntentId: string;
@@ -110,7 +130,7 @@ export async function createStripeRefund(input: {
 }): Promise<StripeRefundResult> {
   if (!/^pi_[a-zA-Z0-9_]+$/.test(input.paymentIntentId)) throw new Error("Invalid PaymentIntent identifier");
   if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) throw new Error("Refund amount must be positive cents");
-  if (!/^refund-[0-9a-f-]{36}$/u.test(input.idempotencyKey)) throw new Error("Invalid refund idempotency key");
+  if (!/^(?:refund-[0-9a-f-]{36}|express-guarantee-\d+-[A-Za-z0-9-]+)$/u.test(input.idempotencyKey)) throw new Error("Invalid refund idempotency key");
 
   const response = await fetch("https://api.stripe.com/v1/refunds", {
     method: "POST",
@@ -126,11 +146,13 @@ export async function createStripeRefund(input: {
       "metadata[refundItemId]": input.metadata.refundItemId,
       "metadata[sourceType]": input.metadata.sourceType,
     }),
+    signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
-    const data = await response.json().catch(() => ({})) as { error?: { code?: string; type?: string } };
-    const category = data.error?.code || data.error?.type || `http_${response.status}`;
-    throw new Error(`Stripe refund failed: ${category}`);
+    const data = await response.json().catch(() => ({})) as { error?: { message?: string; code?: string; type?: string } };
+      const message = data.error?.message || data.error?.code || data.error?.type || `Stripe refund failed (HTTP ${response.status})`;
+      if (response.status < 500 && response.status !== 429) throw new StripeRefundRejected(message);
+      throw new Error(message);
   }
   const refund = await response.json() as StripeRefundResult;
   if (!/^re_[a-zA-Z0-9_]+$/.test(refund.id) || refund.payment_intent !== input.paymentIntentId) {

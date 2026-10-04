@@ -121,7 +121,7 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
 
   const handleDownload = async (doc: DocumentListItem) => {
     try {
-      const result = await utils.storage.getSignedUrl.fetch({ documentId: doc.id });
+      const result = await utils.storage.getSignedUrl.fetch({ documentId: doc.id, action: 'DOWNLOAD' });
       if (result?.signedUrl) {
         const a = document.createElement("a");
         a.href = result.signedUrl;

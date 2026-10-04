@@ -12,48 +12,41 @@ interface StaffUser {
 }
 
 export function useStaffAuth() {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(STAFF_AUTH_KEY));
   const [sessionStaff, setSessionStaff] = useState<StaffUser | null>(null);
   const logoutMutation = trpc.staff.logout.useMutation();
 
   const verifyQuery = trpc.staff.verify.useQuery(
-    { token: token || '' },
-    { enabled: !!token, retry: false }
+    undefined,
+    { retry: false, refetchInterval: 60_000 }
   );
 
-  // Keep invalid persisted sessions from surviving the next page load.
+  // Retire the former script-readable token. Authentication uses the HttpOnly cookie.
   useEffect(() => {
-    if (verifyQuery.isError) {
-      localStorage.removeItem(STAFF_AUTH_KEY);
-    }
-  }, [verifyQuery.isError]);
+    localStorage.removeItem(STAFF_AUTH_KEY);
+  }, []);
 
   const staff = sessionStaff ?? verifyQuery.data ?? null;
 
-  const login = (newToken: string, staffData: StaffUser) => {
-    localStorage.setItem(STAFF_AUTH_KEY, newToken);
-    setToken(newToken);
+  const login = (staffData: StaffUser) => {
     setSessionStaff(staffData);
   };
 
   const logout = async () => {
     localStorage.removeItem(STAFF_AUTH_KEY);
-    setToken(null);
     setSessionStaff(null);
     try {
-      if (token) await logoutMutation.mutateAsync({ token });
+      await logoutMutation.mutateAsync();
     } finally {
       window.location.href = '/staff/login';
     }
   };
 
-  const isLoading = verifyQuery.isLoading && !!token && !sessionStaff;
+  const isLoading = verifyQuery.isLoading && !sessionStaff;
 
   return {
     isAuthenticated: !!staff,
     isLoading,
     staff,
-    token,
     login,
     logout,
   };

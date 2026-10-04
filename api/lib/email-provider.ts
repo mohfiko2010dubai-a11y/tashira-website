@@ -4,6 +4,9 @@ import { ResendEmailProvider } from "./resend-email";
 export function transactionalEmailProvider(): TransactionalEmailProvider {
   const mode = process.env.EMAIL_MODE || process.env.STAGING_EMAIL_MODE;
   if (mode !== "resend") return new DisabledEmailProvider();
+  const from = process.env.FROM_EMAIL || '';
+  const replyTo = process.env.EMAIL_REPLY_TO || from;
+  if (![from, replyTo].every(address => /^[a-z0-9._%+-]+@tashiraev\.com$/i.test(address) && !/^no[._-]?reply@/i.test(address))) throw new Error('Configure a monitored TASHIRA sender and reply address before enabling transactional mail.');
   const staging = process.env.APP_ID === "tashira-staging";
   const productionExplicitlyEnabled = process.env.ENABLE_PRODUCTION_EMAIL === "true";
   const allowedRecipients = new Set((process.env.STAGING_EMAIL_ALLOWED_RECIPIENTS || "")
@@ -11,10 +14,13 @@ export function transactionalEmailProvider(): TransactionalEmailProvider {
   return new ResendEmailProvider({
     apiKey: process.env.RESEND_API_KEY || "",
     fromName: process.env.FROM_NAME || "TASHIRA Staging",
-    fromEmail: process.env.FROM_EMAIL || "onboarding@resend.dev",
+    fromEmail: from,
+    replyTo,
     allowedRecipients,
     restrictRecipients: staging,
     subjectPrefix: staging ? "[STAGING] " : "",
     enabled: staging || productionExplicitlyEnabled,
   });
 }
+export function emailWebhookSecret(): string { return process.env.RESEND_WEBHOOK_SECRET || ''; }
+export function adminEmailRecipient(): string { return process.env.TRANSACTIONAL_ADMIN_EMAIL || ''; }

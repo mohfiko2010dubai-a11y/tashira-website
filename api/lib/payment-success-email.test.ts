@@ -27,7 +27,8 @@ describe("payment success email", () => {
     expect(email.html).toContain("https://staging.tashiraev.com/invoice-download/INV-TSH-123456");
     expect(email.html).not.toContain("target=\"_blank\"");
     expect(email.body).toContain("does not mean government submission");
-    expect(email.html).not.toContain("card");
+    expect(email.html).toContain('We never ask you to send documents or card details by email reply.');
+    expect(email.html).not.toMatch(/card number|CVC|4242|passport number/iu);
   });
 
   it("rejects invoice links outside the configured authorized route", () => {

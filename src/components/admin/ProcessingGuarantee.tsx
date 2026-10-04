@@ -19,8 +19,8 @@ export function ProcessingGuarantee({ applicationId }: { applicationId?: number 
       <p>Deadline: {item.deadline ?? "Starts when all required documents are complete"}</p>
       {item.express && <p>Paid Express component: {item.expressFee === null ? "Historical quote — no recorded guarantee component" : `${item.currency} ${item.expressFee.toFixed(2)}`}</p>}
       {item.breached && <p role="status" className="font-semibold">Submission deadline exceeded.{item.express && item.paid ? " Full paid Express fee refund is due." : ""}</p>}
-      {item.refundCaseId ? <p>Express refund case: {item.refundCaseId}. Continue approval and execution in Refund Management below.</p>
-        : item.express && item.breached && item.paid && <button className="min-h-11 rounded border bg-white px-3" disabled={claim.isPending} onClick={() => claim.mutate({ applicationId: item.applicationId })}>Create full Express fee refund</button>}
+      {item.refundCaseId ? <p>Express refund case: {item.refundCaseId}. Automatically approved; see its Stripe result in <Link className="underline" to="/admin/approvals">Approvals</Link>.</p>
+        : item.express && item.breached && item.paid && <><p>The automatic worker checks each minute. A conflicting refund may need review.</p><button className="min-h-11 rounded border bg-white px-3" disabled={claim.isPending} onClick={() => claim.mutate({ applicationId: item.applicationId })}>Retry guarantee evaluation</button></>}
     </div>)}
     {claim.error && <p role="alert" className="mt-2 text-red-700">{claim.error.message}</p>}
   </section>;

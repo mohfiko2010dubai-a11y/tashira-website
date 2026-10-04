@@ -42,6 +42,8 @@ export const applications = mysqlTable("applications", {
   visaType: varchar("visa_type", { length: 50 }).notNull(),
   processingType: mysqlEnum("processing_type", ["regular", "express"]).notNull(),
   contactEmail: varchar("contact_email", { length: 320 }).notNull(),
+  preferredLanguage: mysqlEnum("preferred_language", ["en", "ar"]).notNull().default("en"),
+  emailDeliveryIssue: boolean("email_delivery_issue").notNull().default(false),
   contactPhone: varchar("contact_phone", { length: 50 }).notNull(),
   arrivalDate: varchar("arrival_date", { length: 20 }),
   // Currency fields
@@ -152,6 +154,9 @@ export const staffUsers = mysqlTable("staff_users", {
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 50 }),
   isActive: mysqlEnum("is_active", ["active", "inactive"]).default("active").notNull(),
+  role: mysqlEnum("staff_role", ["staff", "admin"]).default("staff").notNull(),
+  mfaSecret: text("mfa_secret"),
+  mfaLastCounter: bigint("mfa_last_counter", { mode: "number", unsigned: true }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
 });
@@ -397,6 +402,7 @@ export const refundItems = mysqlTable("refund_items", {
   stripeRefundId: varchar("stripe_refund_id", { length: 100 }).unique(),
   idempotencyKey: varchar("idempotency_key", { length: 100 }).notNull().unique(),
   failureCategory: varchar("failure_category", { length: 80 }),
+  failureMessage: text("failure_message"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [
@@ -486,11 +492,11 @@ export const customerRecoveryChallenges = mysqlTable("customer_recovery_challeng
 export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
   applicationId: bigint("email_application_id", { mode: "number", unsigned: true }),
-  template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP", "SECURITY_DEPOSIT_REQUEST", "REFUND_COMPLETED"]).notNull(),
+  template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP", "SECURITY_DEPOSIT_REQUEST", "REFUND_COMPLETED", "DOCUMENTS_COMPLETE", "PRODUCT_SUBSTITUTED", "REJECTED", "RESUME_REMINDER", "REVIEW_REQUEST", "APPROVAL_PENDING", "GUARANTEE_BREACHED", "CONNECTION_BROKEN"]).notNull(),
   sourceReference: varchar("source_reference", { length: 100 }),
   recipientHash: varchar("recipient_hash", { length: 64 }).notNull(),
   provider: varchar("email_provider", { length: 50 }).notNull(),
-  status: mysqlEnum("email_status", ["QUEUED", "SENT", "FAILED", "SUPPRESSED"]).notNull(),
+  status: mysqlEnum("email_status", ["QUEUED", "SENT", "FAILED", "SUPPRESSED", "DELIVERED", "BOUNCED"]).notNull(),
   providerReference: varchar("email_provider_reference", { length: 100 }),
   failureCategory: varchar("email_failure_category", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),

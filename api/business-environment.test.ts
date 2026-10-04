@@ -1,52 +1,38 @@
-import { readdirSync, readFileSync } from "node:fs";
-import path from "node:path";
-import ts from "typescript";
-import { describe, expect, it } from "vitest";
+import { readFileSync, mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { environmentReads, moduleFindings, policyModules } from '../scripts/environment-policy.mjs';
 
-// Domain directories are recursive: a new rule file is covered automatically.
-// Deployment, authentication and synthetic-fixture isolation belong outside them.
-const directories = ["contracts", "api/lib/customer", "api/lib/eligibility"];
-const boundaryFiles = ["api/application-router.ts", "api/dynamic-interview-router.ts",
-  "api/lib/application-readiness.ts", "api/lib/pricing-engine.ts",
-  "api/lib/nationality-availability.ts", "api/lib/product-availability.ts",
-  "api/lib/requirements/mysql-requirement-catalog-provider.ts"];
-
-function sourceFiles(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
-    const file = path.join(directory, entry.name);
-    return entry.isDirectory() ? sourceFiles(file) : /\.tsx?$/.test(file) && !/\.(test|spec)\./.test(file) ? [file] : [];
-  });
-}
-
-function environmentReads(text: string): string[] {
-  const source = ts.createSourceFile("rule.ts", text, ts.ScriptTarget.Latest, true);
-  const failures: string[] = [];
-  function visit(node: ts.Node) {
-    if (ts.isImportDeclaration(node) && node.importClause?.isTypeOnly) return;
-    if (ts.isTypeNode(node)) return;
-    if (ts.isIdentifier(node) && ["process", "Deno", "Bun", "runtimeFlagEnvironment", "isProduction", "isStaging"].includes(node.text)) failures.push(node.text);
-    if (ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword) failures.push("import.meta");
-    if ((ts.isPropertyAccessExpression(node) && ["env", "environment"].includes(node.name.text)) ||
-        (ts.isElementAccessExpression(node) && ts.isStringLiteral(node.argumentExpression) && ["env", "environment"].includes(node.argumentExpression.text))) failures.push(node.getText(source));
-    if (ts.isBindingElement(node) && ["env", "environment"].includes((node.propertyName ?? node.name).getText(source))) failures.push(node.getText(source));
-    if (ts.isStringLiteral(node) && /^(?:node:)?process$|(?:^|\/)env(?:\.[cm]?[jt]s)?$/.test(node.text)) failures.push(node.text);
-    ts.forEachChild(node, visit);
-  }
-  visit(source);
-  return failures;
-}
-
-describe("business policy cannot depend on deployment environment", () => {
+const exceptions: Record<string, string> = JSON.parse(readFileSync('scripts/environment-exceptions.json', 'utf8'));
+describe('all modules deny environment access by default', () => {
   it.each(['process.env.APP_ENV', 'const { env } = process', 'import p from "node:process"; p.env',
     'import.meta.env.PROD', 'context.environment === "STAGING"', 'context["environment"]',
     'const { environment: mode } = context', 'runtimeFlagEnvironment()', 'import { env } from "../env"'])(
-    "rejects environment access: %s", source => expect(environmentReads(source).length).toBeGreaterThan(0));
-  it("allows business settings and type-only transport context", () => {
-    expect(environmentReads('import type { FeatureFlagContext } from "../feature-flags"; const threshold = settings.passportMonths;')).toEqual([]);
+    'rejects environment access: %s', source => expect(environmentReads(source).length).toBeGreaterThan(0));
+  it('allows type context and process mechanics, not environment reads', () => {
+    expect(environmentReads('import type { FeatureFlagContext } from "../feature-flags"; const t = settings.passportMonths; process.cwd(); import.meta.dirname;')).toEqual([]);
   });
-  it("checks all policy source, not just the eight fixed instances", () => {
-    const files = [...new Set([...directories.flatMap(sourceFiles), ...boundaryFiles])];
-    const failures = files.flatMap(file => environmentReads(readFileSync(file, "utf8")).map(read => `${file}: ${read}`));
-    expect(failures).toEqual([]);
+  it('discovers a new module in a new directory without adding it to any coverage list', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'tashira-policy-'));
+    try {
+      mkdirSync(path.join(root, 'new-feature'));
+      const file = path.join(root, 'new-feature', 'new-rule.ts');
+      writeFileSync(file, 'export const allowed = process.env.APP_ENV === "STAGING";');
+      expect(policyModules(root)).toContain(file.replaceAll('\\', '/'));
+      expect(exceptions['new-feature/new-rule.ts']).toBeUndefined();
+      expect(environmentReads(readFileSync(file, 'utf8')).length).toBeGreaterThan(0);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+  it('has no unreviewed environment reader anywhere in source or tooling', () => {
+    expect(moduleFindings().filter(({ file }) => !exceptions[file])).toEqual([]);
+  }, 30_000); // Whole-repository AST scan competes with the full suite on Windows.
+  it('requires exact existing exception paths and written reasons; no wildcards', () => {
+    const modules = new Set(policyModules());
+    for (const [file, reason] of Object.entries(exceptions)) {
+      expect(file).not.toMatch(/[?*]/);
+      expect(modules.has(file), file).toBe(true);
+      expect(reason.trim().length, file).toBeGreaterThan(20);
+    }
   });
 });

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { and, eq } from "drizzle-orm";
-import { outboundEmailEvents } from "../../db/schema";
+import { applications, outboundEmailEvents } from "../../db/schema";
 import { getDb } from "../queries/connection";
 import { transactionalEmailProvider } from "./email-provider";
 import { recipientHash } from "./resend-email";
@@ -42,6 +42,7 @@ export async function sendPaymentSuccessEmail(input: PaymentSuccessEmailInput) {
       throw new Error("Invoice attachment is invalid");
     }
     const variables = {
+      language: (await db.select({ language: applications.preferredLanguage }).from(applications).where(eq(applications.id, input.applicationId)).limit(1))[0]?.language || 'en',
       referenceNumber: input.referenceNumber,
       invoiceNumber: input.invoiceNumber,
       amountPaid: input.amountPaid.toFixed(2),

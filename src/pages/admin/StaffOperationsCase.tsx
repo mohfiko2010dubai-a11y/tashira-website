@@ -7,6 +7,7 @@ import OperationsShell from "@/components/operations/OperationsShell";
 import DocumentManager from "@/components/shared/DocumentManager";
 import VisaDeliveryPanel from "@/components/operations/VisaDeliveryPanel";
 import CaseNotePanel from "@/components/operations/CaseNotePanel";
+import RefundRequest from '@/components/operations/RefundRequest';
 
 export default function StaffOperationsCase() {
   const { referenceNumber = "" } = useParams<{ referenceNumber: string }>();
@@ -47,6 +48,7 @@ export default function StaffOperationsCase() {
       <VisaDeliveryPanel applicationId={query.data.summary.applicationId} applicationReference={query.data.summary.reference} applicants={query.data.applicants.map((applicant) => ({ applicantId: applicant.applicantId, displayName: applicant.displayName }))} />
       <CaseNotePanel referenceNumber={query.data.summary.reference} onRecorded={async () => { await query.refetch(); }} />
       <SchedulerAlertPanel applicationId={query.data.summary.applicationId} />
+      <RefundRequest applicationId={query.data.summary.applicationId} />
     </div>
   </OperationsShell>;
 }

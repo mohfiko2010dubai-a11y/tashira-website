@@ -148,6 +148,7 @@ function OpenApplicationStart() {
       visaType,
       processingType,
       contactEmail: email.trim(),
+      language: ar ? 'ar' : 'en',
       contactPhone: phone.trim(),
       journeyMode: "DYNAMIC",
       policyVersion: TERMS_POLICY_VERSION,

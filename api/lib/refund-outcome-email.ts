@@ -13,6 +13,7 @@ export async function sendRefundOutcomeEmail(refundCaseId: string) {
     status: refundCases.status,
     referenceNumber: applications.referenceNumber,
     recipient: applications.contactEmail,
+    language: applications.preferredLanguage,
   }).from(refundCases)
     .innerJoin(applications, eq(applications.id, refundCases.applicationId))
     .where(eq(refundCases.id, refundCaseId)).limit(1);
@@ -45,6 +46,7 @@ export async function sendRefundOutcomeEmail(refundCaseId: string) {
       template: "REFUND_COMPLETED",
       idempotencyKey: sourceReference,
       variables: {
+        language: details.language,
         referenceNumber: details.referenceNumber,
         refundSummary,
         statusLabel: details.status === "REFUNDED" ? "Refunded" : "Partially Refunded",

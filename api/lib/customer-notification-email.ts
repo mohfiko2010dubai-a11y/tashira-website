@@ -1,11 +1,12 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { outboundEmailEvents } from "../../db/schema";
+import { applications, outboundEmailEvents } from "../../db/schema";
 import { getDb } from "../queries/connection";
 import { auditLog } from "./audit-log";
 import { transactionalEmailProvider } from "./email-provider";
 import { recipientHash } from "./resend-email";
 import type { EmailTemplate } from "./transactional-email";
+import { publicAppOrigin } from './public-app-url';
 
 type NotificationResult = { status: "SENT" | "FAILED" | "ALREADY_SENT" };
 
@@ -19,7 +20,7 @@ async function findSentNotification(applicationId: number, template: EmailTempla
   return row;
 }
 
-async function sendCustomerNotification(input: {
+export async function sendCustomerNotification(input: {
   applicationId: number;
   recipient: string;
   template: EmailTemplate;
@@ -28,24 +29,27 @@ async function sendCustomerNotification(input: {
   failureCategory: string;
 }): Promise<NotificationResult> {
   const db = getDb();
+  const sourceReference = createHash('sha256').update(`${input.applicationId}:${input.sourceReference}`).digest('hex');
   let providerName = "unavailable";
   try {
-    if (await findSentNotification(input.applicationId, input.template, input.sourceReference)) {
+    if (await findSentNotification(input.applicationId, input.template, sourceReference)) {
       return { status: "ALREADY_SENT" };
     }
     const provider = transactionalEmailProvider();
     providerName = provider.name;
+    const [application] = await db.select({ language: applications.preferredLanguage }).from(applications).where(eq(applications.id, input.applicationId)).limit(1);
+    if (!application) throw new Error('Email application missing');
     const sent = await provider.send({
       recipient: input.recipient,
       template: input.template,
-      variables: input.variables,
+      variables: { ...input.variables, language: application.language, actionUrl: input.variables.actionUrl || `${publicAppOrigin()}/${application.language}/track` },
       idempotencyKey: `${input.template.toLowerCase()}:${input.applicationId}:${input.sourceReference}`,
     });
     await db.insert(outboundEmailEvents).values({
       id: randomUUID(),
       applicationId: input.applicationId,
       template: input.template,
-      sourceReference: input.sourceReference,
+      sourceReference,
       recipientHash: recipientHash(input.recipient),
       provider: provider.name,
       status: "SENT",
@@ -59,7 +63,7 @@ async function sendCustomerNotification(input: {
         id: randomUUID(),
         applicationId: input.applicationId,
         template: input.template,
-        sourceReference: input.sourceReference,
+        sourceReference,
         recipientHash: recipientHash(input.recipient),
         provider: providerName,
         status: "FAILED",
@@ -93,7 +97,7 @@ export function sendStatusChangeNotification(input: {
   referenceNumber: string;
   newStatus: string;
 }) {
-  const template: EmailTemplate = input.newStatus === "visa_received" ? "VISA_ISSUED" : "STATUS_CHANGED";
+  const template: EmailTemplate = input.newStatus === "visa_received" ? "VISA_ISSUED" : input.newStatus === 'rejected' ? 'REJECTED' : input.newStatus === 'visa_processing' ? 'SUBMITTED' : "STATUS_CHANGED";
   return sendCustomerNotification({
     applicationId: input.applicationId,
     recipient: input.recipient,

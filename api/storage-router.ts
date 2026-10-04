@@ -3,9 +3,7 @@ import { applicationUploadQuery, createRouter, staffOrAdminQuery } from "./middl
 import {
   storageUpload,
   storageDelete,
-  storageCreateSignedUrl,
   STORAGE_BUCKET,
-  SIGNED_URL_EXPIRY,
   isStorageConfigured,
 } from "./lib/local-storage";
 import { TRPCError } from "@trpc/server";
@@ -19,12 +17,13 @@ import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
 import { documents } from "@db/schema";
 import { getDb } from "./queries/connection";
 import { eq } from "drizzle-orm";
+import { issueStaffDocumentGrant, STAFF_DOCUMENT_TTL_SECONDS } from './lib/staff-document-access';
 
 export const storageRouter = createRouter({
   // Get signed URL for viewing/downloading
   getSignedUrl: staffOrAdminQuery
-    .input(z.object({ documentId: z.number().positive() }))
-    .query(async ({ input }) => {
+    .input(z.object({ documentId: z.number().positive(), action: z.enum(['VIEW', 'DOWNLOAD']).default('VIEW') }))
+    .query(async ({ input, ctx }) => {
       try {
         if (!isStorageConfigured()) {
           throw new TRPCError({
@@ -41,9 +40,8 @@ export const storageRouter = createRouter({
         if (!document || document.uploadStatus === "replaced") {
           throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
         }
-        const { signedUrl } = await storageCreateSignedUrl(document.storagePath);
-
-        return { signedUrl, expiresIn: SIGNED_URL_EXPIRY };
+        if (!ctx.staffId) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Sign in with your named account to open this document.' });
+        return { signedUrl: issueStaffDocumentGrant(input.documentId, ctx.staffId, input.action), expiresIn: STAFF_DOCUMENT_TTL_SECONDS };
       } catch (err: unknown) {
         const message = getErrorMessage(err);
         console.error("[Storage] getSignedUrl error:", message);

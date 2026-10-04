@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./stripe-runtime", () => ({ stripeSecretKey: () => "sk_test_fixture" }));
 
-import { createStripeRefund, retrieveStripeRefund } from "./stripe";
+import { createStripeRefund, retrieveStripeRefund, findStripeRefund, StripeRefundRejected } from "./stripe";
 import { reconcileRefundStatus } from "./refund-domain";
 
 describe("Stripe refund request", () => {
@@ -53,5 +53,21 @@ describe("Stripe refund request", () => {
     expect(reconcileRefundStatus("requires_action")).toBe("PROCESSING");
     expect(reconcileRefundStatus("failed")).toBe("FAILED");
     expect(reconcileRefundStatus("canceled")).toBe("FAILED");
+  });
+  it('recovers an uncertain refund by its immutable item metadata across pages', async () => {
+    const request = vi.fn().mockResolvedValueOnce(Response.json({data:[{id:'re_other',payment_intent:'pi_fixture',metadata:{refundItemId:'other'}}],has_more:true}))
+      .mockResolvedValueOnce(Response.json({data:[{id:'re_existing',payment_intent:'pi_fixture',amount:5000,currency:'usd',status:'succeeded',metadata:{refundItemId:'item'}}],has_more:false}));
+    vi.stubGlobal('fetch',request);
+    expect(await findStripeRefund('pi_fixture','item')).toMatchObject({id:'re_existing',amount:5000});
+    expect(request.mock.calls[1][0]).toContain('starting_after=re_other');
+    expect(request.mock.calls.every(([,options]) => !options.method)).toBe(true);
+  });
+  it('distinguishes a definitive rejection from an unknown server outcome and keeps the provider message', async () => {
+    const request=vi.fn().mockResolvedValueOnce(Response.json({error:{message:'Insufficient available balance'}},{status:400}))
+      .mockResolvedValueOnce(Response.json({error:{message:'Temporary server error'}},{status:500}));
+    vi.stubGlobal('fetch',request);
+    const input={paymentIntentId:'pi_fixture',amountCents:5000,idempotencyKey:'express-guarantee-42-processing-v1',metadata:{refundCaseId:'case',refundItemId:'item',sourceType:'VISA_SERVICE'}};
+    await expect(createStripeRefund(input)).rejects.toBeInstanceOf(StripeRefundRejected);
+    await expect(createStripeRefund(input)).rejects.not.toBeInstanceOf(StripeRefundRejected);
   });
 });

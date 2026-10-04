@@ -9,6 +9,7 @@ type ResendConfig = {
   restrictRecipients: boolean;
   subjectPrefix: string;
   enabled: boolean;
+  replyTo?: string;
 };
 
 export class ResendEmailProvider implements TransactionalEmailProvider {
@@ -28,6 +29,7 @@ export class ResendEmailProvider implements TransactionalEmailProvider {
     const rendered = renderTransactionalEmail(input.template, input.variables);
     const response = await this.request("https://api.resend.com/emails", {
       method: "POST",
+      signal: AbortSignal.timeout(15_000),
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
         "Content-Type": "application/json",
@@ -36,6 +38,7 @@ export class ResendEmailProvider implements TransactionalEmailProvider {
       body: JSON.stringify({
         from: `${this.config.fromName} <${this.config.fromEmail}>`,
         to: [recipient],
+        reply_to: this.config.replyTo || this.config.fromEmail,
         subject: `${this.config.subjectPrefix}${rendered.subject}`,
         text: rendered.body,
         ...(rendered.html ? { html: rendered.html } : {}),

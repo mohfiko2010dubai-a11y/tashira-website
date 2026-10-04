@@ -19,7 +19,8 @@ describe("refund outcome email", () => {
     expect(email.subject).toBe("Refund completed — TSH-123456");
     expect(email.body).toContain("AED 2450.00");
     expect(email.body).toContain("Refunded");
-    expect(email.body).not.toMatch(/card|passport|CVC|expiry/iu);
+    expect(email.body).toContain('We never ask you to send documents or card details by email reply.');
+    expect(email.body).not.toMatch(/card number|passport|CVC|expiry|4242/iu);
   });
 
   it("keeps email evidence append-only while deduplicating only successful sends", async () => {

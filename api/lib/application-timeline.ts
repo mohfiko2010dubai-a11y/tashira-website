@@ -5,6 +5,7 @@ import { getDb } from "../queries/connection";
 import { EXPLICIT_POLICY_SOURCE, policyConsentValidity } from "./policy-consent";
 
 export const TIMELINE_EVENT_NAMES = [
+  'VISA_DOWNLOADED',
   "DOCUMENT_REVIEW_DECISION",
   "STRIPE_FEE_RECONCILIATION_PENDING",
   "APPLICATION_CREATED", "APPLICANT_ADDED", "APPLICANT_UPDATED", "APPLICATION_SUBMITTED", "POLICY_ACCEPTED",

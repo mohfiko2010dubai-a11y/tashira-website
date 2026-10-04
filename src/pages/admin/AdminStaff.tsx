@@ -16,9 +16,10 @@ interface StaffForm {
   phone: string;
   password: string;
   isActive: 'active' | 'inactive';
+  role: 'staff' | 'admin';
 }
 
-const emptyForm: StaffForm = { username: '', name: '', email: '', phone: '', password: '', isActive: 'active' };
+const emptyForm: StaffForm = { username: '', name: '', email: '', phone: '', password: '', isActive: 'active', role: 'staff' };
 
 export default function AdminStaff() {
   const { logout } = useAdminAuth();
@@ -39,6 +40,7 @@ export default function AdminStaff() {
   });
   const deleteMut = trpc.staff.delete.useMutation({
     onSuccess: () => utils.staff.list.invalidate(),
+    onError: err => setError(err.message),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -62,6 +64,7 @@ export default function AdminStaff() {
       });
     } else {
       createMut.mutate({
+        role: form.role,
         username: form.username,
         name: form.name,
         password: form.password,
@@ -80,6 +83,7 @@ export default function AdminStaff() {
       phone: s.phone || '',
       password: '',
       isActive: s.isActive || 'active',
+      role: s.role,
     });
     setShowForm(true);
     setError('');
@@ -116,6 +120,7 @@ export default function AdminStaff() {
             {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              {!form.id && <label>Account role<select aria-label="Account role" className="ms-2 rounded border p-2" value={form.role} onChange={e => setForm({ ...form, role: e.target.value === 'admin' ? 'admin' : 'staff' })}><option value="staff">Staff</option><option value="admin">Administrator</option></select></label>}
               <input type="text" placeholder="Username *" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none" required />
               <input type="text" placeholder="Full Name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none" required />
               <input type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none" />
@@ -128,6 +133,7 @@ export default function AdminStaff() {
                   onChange={e => setForm({ ...form, password: e.target.value })}
                   className="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none"
                   required={!form.id}
+                  minLength={12}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -159,7 +165,7 @@ export default function AdminStaff() {
                     <td className="px-4 py-3 text-gray-500">{s.phone || '-'}</td>
                     <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs ${s.isActive === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>{s.isActive}</span></td>
                     <td className="px-4 py-3 text-gray-400 text-xs">{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '-'}</td>
-                    <td className="px-4 py-3"><div className="flex gap-2"><button onClick={() => edit(s)} className="p-1 text-gray-400 hover:text-[#C9A04C]"><Edit2 size={14} /></button><button onClick={() => { if (confirm('Delete this staff user?')) deleteMut.mutate({ id: s.id }); }} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button></div></td>
+                    <td className="px-4 py-3"><div className="flex gap-2"><button onClick={() => edit(s)} className="p-1 text-gray-400 hover:text-[#C9A04C]"><Edit2 size={14} /></button><button onClick={() => { if (confirm('Deactivate this staff account? Access will stop and its audit history will remain.')) deleteMut.mutate({ id: s.id }); }} className="p-1 text-gray-400 hover:text-red-500"><Trash2 size={14} /></button></div></td>
                   </tr>
                 ))}
               </tbody>

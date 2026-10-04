@@ -28,6 +28,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function AdminApplications() {
+  const pendingApprovals = trpc.refundQueue.count.useQuery(undefined, { refetchInterval: 60_000 });
   const { logout } = useAdminAuth();
   const [search, setSearch] = useState('');
   const [includeTest, setIncludeTest] = useState(false);
@@ -113,6 +114,7 @@ export default function AdminApplications() {
             <Building2 size={14} /> Supplier Bills
           </Link>
           <Link to="/admin/company-settings" className="px-3 py-1.5 text-sm text-gray-400 hover:text-white">Company settings</Link>
+          <Link to="/admin/approvals" className="px-3 py-1.5 text-sm text-gray-400 hover:text-white">Approvals ({pendingApprovals.data ?? '…'})</Link>
           <Link to="/admin/vat" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Percent size={14} /> VAT
           </Link>

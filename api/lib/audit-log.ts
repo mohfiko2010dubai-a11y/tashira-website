@@ -25,7 +25,7 @@ export type AuditEvent =
 export function auditLog(
   event: AuditEvent,
   outcome: "success" | "failure",
-  actor: "anonymous" | "admin" | "staff" | "customer" | "system",
+  actor: "anonymous" | "admin" | "staff" | "customer" | "system" | `staff:${number}`,
 ): void {
   console.info(JSON.stringify({
     type: "security_audit",

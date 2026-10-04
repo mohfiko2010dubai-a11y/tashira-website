@@ -15,7 +15,7 @@ import { Paths } from "@contracts/constants";
 import fs from "fs";
 import path from "path";
 import { getDb } from "./queries/connection";
-import { applications } from "@db/schema";
+import { applications, documents } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
@@ -25,10 +25,16 @@ import { isSupportedStripeWebhookEvent, verifyStripeWebhook } from "./lib/stripe
 import { finalizeStripeTestPayment, recordStripeTestPaymentFailure } from "./lib/payment-finalization";
 import { SupersededStripeEvent } from "./lib/payment-state";
 import { auditLog } from "./lib/audit-log";
-import { createAdminSessionCookie, verifyAdminSession } from "./lib/admin-session";
+import { createAdminSessionCookie } from "./lib/admin-session";
 import { BrowserAuthRateLimiter, consumeStagingOwnerBrowserToken } from "./lib/staging-owner-browser-auth";
 import { hasCustomerApplicationAccess } from "./lib/customer-session";
-import { getStaffSession } from "./lib/staff-session";
+import { enforceStaffApplicationScope } from './lib/staff-application-scope';
+import { readStaffDocument } from './lib/staff-document-access';
+import { startExpressRefundWorker } from './lib/express-refund-worker';
+import { startTransactionalEmailWorker } from './lib/transactional-email-worker';
+import { emailWebhookSecret } from './lib/email-provider';
+import { verifyEmailSignature } from './lib/email-webhook-signature';
+import { recordEmailDelivery } from './lib/email-delivery-webhook';
 import { hasTimelineEventReference, recordTimelineEvent } from "./lib/application-timeline";
 import {
   claimStripeWebhookEvent,
@@ -67,6 +73,15 @@ app.get("/staging-owner-auth/:token", (c) => {
   c.header("set-cookie", createAdminSessionCookie(c.req.raw.headers));
   auditLog("staging-owner.login", "success", "admin");
   return c.redirect("/admin");
+});
+
+app.post('/api/email/webhook', bodyLimit({ maxSize: 256 * 1024 }), async c => {
+  const raw = await c.req.text();
+  let id: string;
+  try { id = verifyEmailSignature(raw, c.req.raw.headers, emailWebhookSecret()); }
+  catch { return c.json({ error: 'Invalid signature' }, 400); }
+  try { await recordEmailDelivery(id, raw); return c.json({ received: true }); }
+  catch { console.error('[Email webhook] Delivery evidence could not be recorded; provider must retry'); return c.json({ error: 'Retry delivery' }, 503); }
 });
 
 app.post("/api/stripe/webhook", async (c) => {
@@ -217,17 +232,19 @@ async function getOrGeneratePdf(invoiceNumber: string) {
   return null;
 }
 
-function canAccessInvoice(headers: Headers, referenceNumber: string) {
-  if (verifyAdminSession(headers) || hasCustomerApplicationAccess(headers, referenceNumber)) return true;
-  const staffToken = headers.get("x-staff-token") || "";
-  return Boolean(staffToken && getStaffSession(staffToken));
+async function canAccessInvoice(headers: Headers, referenceNumber: string) {
+  if (hasCustomerApplicationAccess(headers, referenceNumber)) return true;
+  const ctx = await createContext({ req: new Request('https://internal.invalid', { headers }), resHeaders: new Headers() });
+  if (!ctx.staffId) return false;
+  try { await enforceStaffApplicationScope(ctx, 'invoice.download', { referenceNumber }, false); return true; }
+  catch { return false; }
 }
 
 async function authorizeInvoiceRequest(invoiceNumber: string, headers: Headers) {
   if (!/^[A-Za-z0-9_-]+$/.test(invoiceNumber)) return { status: 400 as const, application: null };
   const application = await findApplicationByInvoice(invoiceNumber);
   if (!application) return { status: 404 as const, application: null };
-  if (!canAccessInvoice(headers, application.referenceNumber)) return { status: 401 as const, application: null };
+  if (!(await canAccessInvoice(headers, application.referenceNumber))) return { status: 401 as const, application: null };
   return { status: 200 as const, application };
 }
 
@@ -310,11 +327,28 @@ app.get("/invoices/:invoiceNumber/download", async (c) => {
 });
 
 // ===== LOCAL FILE STORAGE ROUTES =====
+app.get('/staff-document/:token', async c => {
+  try {
+    const ctx = await createContext({ req: c.req.raw, resHeaders: new Headers() });
+    const document = await readStaffDocument(ctx, c.req.param('token'), c.req.query('signature') || '');
+    if (!document) return c.json({ error: 'Document link expired or unauthorized. Sign in and open the document again.' }, 401);
+    c.header('Content-Type', document.mime);
+    c.header('Cache-Control', 'private, no-store');
+    c.header('X-Content-Type-Options', 'nosniff');
+    c.header('Content-Disposition', `${document.action === 'DOWNLOAD' ? 'attachment' : 'inline'}; filename="document.${document.mime === 'application/pdf' ? 'pdf' : 'jpg'}"`);
+    return c.body(new Uint8Array(document.bytes));
+  } catch { return c.json({ error: 'Document could not be opened. Refresh the order and try again.' }, 403); }
+});
 app.get("/storage/*", async (c) => {
   const filePath = c.req.path.replace("/storage/", "");
   if (!verifyStorageSignedUrl(filePath, c.req.query("expires") || "", c.req.query("signature") || "")) {
     return c.json({ error: "Unauthorized" }, 401);
   }
+  // Original, unwatermarked files are only for the owning customer's issued visa.
+  // Staff use the named, logged and watermarked endpoint above.
+  const [owned] = await getDb().select({ applicationId: applications.id, documentId: documents.id, reference: applications.referenceNumber, type: documents.documentType })
+    .from(documents).innerJoin(applications, eq(applications.id, documents.applicationId)).where(eq(documents.storagePath, filePath)).limit(1);
+  if (!owned || owned.type !== 'visa' || !hasCustomerApplicationAccess(c.req.raw.headers, owned.reference)) return c.json({ error: 'Unauthorized' }, 401);
   let fullPath: string;
   try {
     fullPath = resolveStoragePath(filePath);
@@ -336,8 +370,9 @@ app.get("/storage/*", async (c) => {
   const contentType = mimeTypes[ext] || "application/octet-stream";
 
   const fileBuffer = fs.readFileSync(fullPath);
+  if (!await hasTimelineEventReference(owned.applicationId, 'VISA_DOWNLOADED', `document:${owned.documentId}`)) await recordTimelineEvent({ applicationId: owned.applicationId, eventName: 'VISA_DOWNLOADED', eventSource: 'SECURE_DELIVERY', actorType: 'CUSTOMER', actorReference: `document:${owned.documentId}`, summary: 'Issued visa served to the authenticated owning customer' });
   c.header("Content-Type", contentType);
-  c.header("Cache-Control", "public, max-age=3600");
+  c.header("Cache-Control", "private, no-store");
   return c.body(fileBuffer);
 });
 
@@ -429,5 +464,7 @@ if (env.isProduction) {
   const hostname = process.env.HOST || "0.0.0.0";
   serve({ fetch: app.fetch, port, hostname }, () => {
     console.log(`Server listening on ${hostname}:${port}`);
+    startExpressRefundWorker();
+    startTransactionalEmailWorker();
   });
 }
