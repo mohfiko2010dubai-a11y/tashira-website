@@ -464,7 +464,7 @@ export default function PaymentPage() {
 
       {/* Save & continue via email */}
       <div className="mt-6 flex justify-center">
-        <SaveContinueButton email={(app as { contactEmail?: string }).contactEmail} />
+        <SaveContinueButton email={(app as { contactEmail?: string }).contactEmail} referenceNumber={referenceNumber} />
       </div>
 
       {/* Support */}

@@ -37,6 +37,12 @@ describe('transactional mail in the customer language', () => {
   it('does not allow Arabic rendering to bypass invoice URL authorization', () => {
     expect(() => renderTransactionalEmail('PAYMENT_SUCCESS', { ...variables, language: 'ar', invoiceUrl: 'https://evil.example/invoice' })).toThrow();
   });
+  it.each(['en', 'ar'])('unpaid document completion requests payment without claiming receipt in %s', language => {
+    const result = renderTransactionalEmail('DOCUMENTS_COMPLETE', { ...variables, language, paymentStatus: 'pending', actionUrl: 'https://staging.tashiraev.com/ar/pay/TSH-SYNTHETIC' });
+    expect(result.body).toContain(language === 'ar' ? 'لم نستلم الدفع بعد' : 'Payment has not been received');
+    expect(result.html).toContain('/ar/pay/TSH-SYNTHETIC');
+    expect(result.body).not.toContain(language === 'ar' ? 'تم التحقق من الدفع' : 'Your payment was verified');
+  });
   it.each(['en','ar'])('documents complete states the correct continuous service window in %s', language => {
     const regular = renderTransactionalEmail('DOCUMENTS_COMPLETE', { ...variables, language, processingType: 'regular' });
     const express = renderTransactionalEmail('DOCUMENTS_COMPLETE', { ...variables, language, processingType: 'express' });

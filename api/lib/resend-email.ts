@@ -10,6 +10,7 @@ type ResendConfig = {
   subjectPrefix: string;
   enabled: boolean;
   replyTo?: string;
+  allowedApplicationReferences?: ReadonlySet<string>;
 };
 
 export class ResendEmailProvider implements TransactionalEmailProvider {
@@ -26,6 +27,7 @@ export class ResendEmailProvider implements TransactionalEmailProvider {
   async send(input: { recipient: string; template: EmailTemplate; variables: Record<string, string>; idempotencyKey?: string; attachments?: readonly TransactionalEmailAttachment[] }) {
     const recipient = input.recipient.trim().toLowerCase();
     if (this.config.restrictRecipients && !this.config.allowedRecipients.has(recipient)) throw new Error("Recipient is not approved for staging email UAT");
+    if (this.config.restrictRecipients && this.config.allowedApplicationReferences?.size && !this.config.allowedApplicationReferences.has(input.variables.referenceNumber)) throw new Error("Application is not approved for staging email UAT");
     const rendered = renderTransactionalEmail(input.template, input.variables);
     const response = await this.request("https://api.resend.com/emails", {
       method: "POST",

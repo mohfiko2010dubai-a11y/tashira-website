@@ -12,7 +12,7 @@ import { trpc } from '@/providers/trpc-client';
  * If the email is already known it is used directly; otherwise a small
  * inline email field is rendered next to the button.
  */
-export function SaveContinueButton({ email }: { email?: string }) {
+export function SaveContinueButton({ email, referenceNumber }: { email?: string; referenceNumber?: string }) {
   const { t } = useTranslation('wizard');
   const [emailInput, setEmailInput] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -30,7 +30,7 @@ export function SaveContinueButton({ email }: { email?: string }) {
   return (
     <form noValidate className="flex flex-wrap items-center gap-3" onSubmit={event => {
       event.preventDefault();
-      if (feedback.validate(event.currentTarget) && canSend) request.mutate({ email: effectiveEmail.toLowerCase(), channel: 'MAGIC_LINK' });
+      if (feedback.validate(event.currentTarget) && canSend) request.mutate({ email: effectiveEmail.toLowerCase(), channel: 'MAGIC_LINK', referenceNumber });
     }}>
       <button
         type="submit"

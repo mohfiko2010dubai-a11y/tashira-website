@@ -88,9 +88,11 @@ async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRE
   const recipient = isAdminEmail(template) ? adminEmailRecipient() : String(application.contact_email);
   if (!recipient) throw new Error('Configure the monitored administrator notification address, then retry this message.');
   const refundCaseId = isAdminEmail(template) ? String(job.job_key).split(':').at(-1) || '' : '';
-  const actionUrl = isAdminEmail(template) ? adminEmailActionUrl(template, { ...variables, refundCaseId }) : `${publicAppOrigin()}/${application.preferred_language}/track`;
+  const customerPath = template === 'DOCUMENTS_COMPLETE' && application.payment_status === 'pending'
+    ? `pay/${encodeURIComponent(application.reference_number)}` : `track?ref=${encodeURIComponent(application.reference_number)}`;
+  const actionUrl = isAdminEmail(template) ? adminEmailActionUrl(template, { ...variables, refundCaseId }) : `${publicAppOrigin()}/${application.preferred_language}/${customerPath}`;
   const result = await sendCustomerNotification({ applicationId: Number(job.application_id), recipient, template,
-    variables: { ...variables, refundCaseId, processingType: application.processing_type, referenceNumber: application.reference_number, actionUrl }, sourceReference: template === 'VISA_ISSUED' ? 'status:visa_received' : template === 'REJECTED' ? 'status:rejected' : template === 'SUBMITTED' ? 'status:visa_processing' : String(job.job_key), failureCategory: 'transactional_delivery_failed' });
+    variables: { ...variables, refundCaseId, paymentStatus: application.payment_status, processingType: application.processing_type, referenceNumber: application.reference_number, actionUrl }, sourceReference: template === 'VISA_ISSUED' ? 'status:visa_received' : template === 'REJECTED' ? 'status:rejected' : template === 'SUBMITTED' ? 'status:visa_processing' : String(job.job_key), failureCategory: 'transactional_delivery_failed' });
   return result.status !== 'FAILED' ? 'SENT' : 'FAILED';
 }
 let running = false;

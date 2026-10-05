@@ -29,7 +29,7 @@ process.env.STRIPE_MODE = "TEST";
 process.env.STRIPE_SECRET_KEY = readSecret("stripe_secret_key");
 process.env.STRIPE_WEBHOOK_SECRET = readSecret("stripe_webhook_secret");
 process.env.STAGING_BROWSER_AUTH_DIR = "/var/lib/tashira-staging/browser-auth";
-for (const name of ["STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "FROM_NAME", "FROM_EMAIL", "PUBLIC_APP_URL"]) {
+for (const name of ["STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "STAGING_EMAIL_ALLOWED_APPLICATION_REFERENCES", "FROM_NAME", "FROM_EMAIL", "EMAIL_REPLY_TO", "TRANSACTIONAL_ADMIN_EMAIL", "PUBLIC_APP_URL"]) {
   if (stagingConfig[name]) process.env[name] = stagingConfig[name];
 }
 const resendSecretPath = path.join(expectedDirectory, "staging", "secrets", "resend_api_key");
@@ -45,7 +45,12 @@ if (!process.env.STRIPE_WEBHOOK_SECRET.startsWith("whsec_")) {
   throw new Error("Staging requires a Stripe webhook signing secret");
 }
 
-// Launch Master B15: staging must never deliver mail to real recipients.
-process.env.EMAIL_MODE = "disabled";
-process.env.STAGING_EMAIL_MODE = "disabled";
+// Default remains disabled. Owner-authorized UAT is restricted by the provider's recipient allowlist.
+const mailUatEnabled = stagingConfig.STAGING_EMAIL_UAT_ENABLED === "true";
+if (mailUatEnabled && (!stagingConfig.STAGING_EMAIL_ALLOWED_RECIPIENTS?.trim() || stagingConfig.STAGING_EMAIL_MODE !== "resend")) {
+  throw new Error("Staging email UAT requires Resend and an explicit recipient allowlist");
+}
+process.env.APP_ID = "tashira-staging";
+process.env.EMAIL_MODE = mailUatEnabled ? "resend" : "disabled";
+process.env.STAGING_EMAIL_MODE = process.env.EMAIL_MODE;
 await import("../dist/boot.js");

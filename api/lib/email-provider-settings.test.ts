@@ -33,3 +33,21 @@ it('retains staging recipient isolation', async () => {
   await expect(transactionalEmailProvider().send({ ...input, recipient: 'unapproved@example.invalid' })).rejects.toThrow('not approved');
   expect(request).not.toHaveBeenCalled();
 });
+it('allows only individually approved customer and company test recipients', async () => {
+  vi.stubEnv('STAGING_EMAIL_ALLOWED_RECIPIENTS', 'admin@tashiraev.com, customer@example.invalid');
+  await transactionalEmailProvider().send({ ...input, recipient: 'customer@example.invalid' });
+  expect(JSON.parse(request.mock.calls[0][1].body).to).toEqual(['customer@example.invalid']);
+  await expect(transactionalEmailProvider().send({ ...input, recipient: 'other@example.invalid' })).rejects.toThrow('not approved');
+  expect(request).toHaveBeenCalledTimes(1);
+});
+it.each(['', '*', '*@example.invalid'])('rejects missing or wildcard staging recipients: %s', recipients => {
+  vi.stubEnv('STAGING_EMAIL_ALLOWED_RECIPIENTS', recipients);
+  expect(() => transactionalEmailProvider()).toThrow('explicit list');
+  expect(request).not.toHaveBeenCalled();
+});
+it('can scope UAT to one order without replaying other customer jobs', async () => {
+  vi.stubEnv('STAGING_EMAIL_ALLOWED_APPLICATION_REFERENCES', 'TSH-SYNTHETIC');
+  await transactionalEmailProvider().send(input);
+  await expect(transactionalEmailProvider().send({ ...input, variables: { referenceNumber: 'TSH-OLDER-ORDER' } })).rejects.toThrow('Application is not approved');
+  expect(request).toHaveBeenCalledTimes(1);
+});

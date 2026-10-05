@@ -15,12 +15,12 @@ const genericResponse = { accepted: true, message: "If a matching application ex
 
 export const recoveryRouter = createRouter({
   request: recoveryRequestQuery
-    .input(z.object({ email: z.string().email(), channel: z.enum(["MAGIC_LINK", "EMAIL_OTP"]) }))
+    .input(z.object({ email: z.string().email(), channel: z.enum(["MAGIC_LINK", "EMAIL_OTP"]), referenceNumber: z.string().min(3).max(100).optional() }))
     .mutation(async ({ input }) => {
       const email = input.email.trim().toLowerCase();
       const db = getDb();
       const [application] = await db.select({ id: applications.id, referenceNumber: applications.referenceNumber, language: applications.preferredLanguage })
-        .from(applications).where(eq(applications.contactEmail, email)).orderBy(desc(applications.updatedAt)).limit(1);
+        .from(applications).where(and(eq(applications.contactEmail, email), input.referenceNumber ? eq(applications.referenceNumber, input.referenceNumber) : undefined)).orderBy(desc(applications.updatedAt)).limit(1);
       if (!application) {
         auditLog("customer.recovery_requested", "success", "anonymous");
         return genericResponse;

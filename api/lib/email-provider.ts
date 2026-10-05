@@ -11,12 +11,16 @@ export function transactionalEmailProvider(): TransactionalEmailProvider {
   const productionExplicitlyEnabled = process.env.ENABLE_PRODUCTION_EMAIL === "true";
   const allowedRecipients = new Set((process.env.STAGING_EMAIL_ALLOWED_RECIPIENTS || "")
     .split(",").map((value) => value.trim().toLowerCase()).filter(Boolean));
+  if (staging && (!allowedRecipients.size || [...allowedRecipients].some(address => !/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(address)))) {
+    throw new Error('Staging mail requires an explicit list of approved email addresses.');
+  }
   return new ResendEmailProvider({
     apiKey: process.env.RESEND_API_KEY || "",
     fromName: process.env.FROM_NAME || "TASHIRA Staging",
     fromEmail: from,
     replyTo,
     allowedRecipients,
+    allowedApplicationReferences: new Set((process.env.STAGING_EMAIL_ALLOWED_APPLICATION_REFERENCES || '').split(',').map(value => value.trim()).filter(Boolean)),
     restrictRecipients: staging,
     subjectPrefix: staging ? (process.env.TRANSACTIONAL_EMAIL_SUBJECT_PREFIX || "[STAGING] ") : "",
     enabled: staging || productionExplicitlyEnabled,

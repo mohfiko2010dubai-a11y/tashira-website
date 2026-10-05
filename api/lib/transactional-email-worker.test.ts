@@ -39,7 +39,7 @@ describe('durable transactional email dispatch', () => {
   });
   it('sends the current proposal with the stored customer-language route', async () => {
     await runTransactionalEmails();
-    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ template: 'PRODUCT_SUBSTITUTED', sourceReference: 'substitution:91:2', variables: expect.objectContaining({ actionUrl: 'https://staging.tashiraev.com/ar/track' }) }));
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ template: 'PRODUCT_SUBSTITUTED', sourceReference: 'substitution:91:2', variables: expect.objectContaining({ actionUrl: 'https://staging.tashiraev.com/ar/track?ref=TSH-SYNTHETIC' }) }));
   });
   it.each(['new-version','accepted','product-changed'] as const)('does not send a stale proposal: %s', async scenario => {
     if (scenario === 'new-version') current.substitution_version = 3;
