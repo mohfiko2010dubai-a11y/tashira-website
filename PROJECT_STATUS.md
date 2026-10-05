@@ -1,3 +1,5 @@
+Verified staging deployment: 472df55fbd91da73a0bd56dc7a28c6b5fe06b967. Local/server check, lint,1334 tests and build pass; CI37274491111 both jobs successful, including26 MySQL tests without skips. Health and routes200. Existing shown refund remains PENDING_APPROVAL, approved_by null; no refund executed. Administrator self-decision policy is now active on staging only.
+
 # Owner revised administrator authority — 2026-10-05
 
 Owner explicitly overrides the earlier different-person approval restriction: named ADMIN may decide requests they created, without another administrator. Removed self-decision blocks from refund approval and rejection; agent role remains forbidden, named identity/re-authentication/audit and explicit Stripe execution remain. Tests cover own-admin approval/rejection and both agents' refusal. Candidate validation/deployment in progress; no actual refund executed. Owner ADMIN MFA enrollment and successful named login verified; agents not yet MFA-enrolled. Production unchanged.
