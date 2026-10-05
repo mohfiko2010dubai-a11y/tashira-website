@@ -1,3 +1,11 @@
+# Owner revised administrator authority — 2026-10-05
+
+Owner explicitly overrides the earlier different-person approval restriction: named ADMIN may decide requests they created, without another administrator. Removed self-decision blocks from refund approval and rejection; agent role remains forbidden, named identity/re-authentication/audit and explicit Stripe execution remain. Tests cover own-admin approval/rejection and both agents' refusal. Candidate validation/deployment in progress; no actual refund executed. Owner ADMIN MFA enrollment and successful named login verified; agents not yet MFA-enrolled. Production unchanged.
+
+# Setup invitation delivery follow-up — 2026-10-05
+
+Owner reported no receipt at plus-addresses. Send-only provider key cannot query delivery (401). Following explicit owner approval after automatic-review rejection, expired old unused links and sent three replacements directly to admin@tashiraev.com for the same authorized staging accounts. All three provider-accepted,24-hour expiry, no generated passwords. Inbox receipt/password setup/MFA still pending; legacy login remains enabled and production unchanged.
+
 # Phase2 staging deployed; owner setup invitations sent — 2026-10-04
 
 Runtime 1c838f26071a8e50710f5e916e1dbc7113d4e42a is deployed on isolated staging. Local/public health200; browser confirms usable setup page, named login and retained legacy login. /admin/approvals redirects anonymous visitors to login instead of404. Three authorized setup invitations accepted by provider,24-hour expiry, no generated passwords. Await owner-selected passwords and MFA enrolment on all three accounts; old login remains enabled until owner ADMIN + MFA proof. Migrations065–067 applied with private backup. Full local1330 tests/check/lint/build and CI37222260401 pass;26 MySQL integrations have zero skips. Initial f497b41 startup failed and automatically rolled back;1c838f2 fixes createRequire collision, externalizes native sharp and adds node --check before build success. Phase2 remains incomplete pending eight named-user UAT checks, customer journey and mail webhook acceptance. Production untouched/CLOSED. Earlier candidate entries are historical.

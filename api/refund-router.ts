@@ -251,7 +251,7 @@ export const refundRouter = createRouter({
       const [refundCase] = await tx.select({ applicationId: refundCases.applicationId, requestedBy: refundCases.requestedBy }).from(refundCases)
         .where(and(eq(refundCases.id, input.refundCaseId), eq(refundCases.status, "PENDING_APPROVAL"))).limit(1);
       if (!refundCase) throw new TRPCError({ code: "CONFLICT", message: "Refund case is not awaiting approval" });
-      if (refundCase.requestedBy === actorReference(ctx)) throw new TRPCError({ code: 'FORBIDDEN', message: 'A different named administrator must approve this request.' });
+      // Owner policy: a named administrator may decide their own request; agents may not approve any.
       const result = await tx.update(refundCases).set({
         status: "APPROVED",
         approvedBy: actorReference(ctx),

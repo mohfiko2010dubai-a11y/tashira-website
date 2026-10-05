@@ -23,7 +23,7 @@ beforeEach(() => {
   mocks.rows.mockResolvedValue([{ applicationId: 91, requestedBy: 'staff:17' }]);
   mocks.event.mockResolvedValue(undefined);
 });
-describe('named refund maker/checker through the actual router', () => {
+describe('named administrator refund authority through the actual router', () => {
   it.each([17, 19])('rejects agent %i regardless of whether they made this refund request', async staffId => {
     await expect(caller(staffId, false).approveCase(input)).rejects.toMatchObject({ code: 'FORBIDDEN' });
     expect(mocks.change).not.toHaveBeenCalled();
@@ -33,9 +33,10 @@ describe('named refund maker/checker through the actual router', () => {
     expect(mocks.change).toHaveBeenCalledWith(expect.objectContaining({ approvedBy: 'staff:18' }));
     expect(mocks.event).toHaveBeenCalledWith(expect.objectContaining({ actorReference: 'staff:18' }));
   });
-  it('rejects self approval without changing the request', async () => {
-    await expect(caller(17).approveCase(input)).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    expect(mocks.change).not.toHaveBeenCalled();
+  it('allows an administrator to approve their own request and records their identity', async () => {
+    await expect(caller(17).approveCase(input)).resolves.toEqual({ status: 'APPROVED' });
+    expect(mocks.change).toHaveBeenCalledWith(expect.objectContaining({ approvedBy: 'staff:17' }));
+    expect(mocks.event).toHaveBeenCalledWith(expect.objectContaining({ actorReference: 'staff:17' }));
   });
   it('rejects a legacy shared administrator without a named identity', async () => {
     await expect(caller().approveCase(input)).rejects.toMatchObject({ code: 'UNAUTHORIZED' });

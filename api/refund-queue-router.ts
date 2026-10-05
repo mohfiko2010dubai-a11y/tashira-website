@@ -34,7 +34,7 @@ export const refundQueueRouter = createRouter({
     await getDb().transaction(async tx => {
       const [entry] = await tx.select().from(refundCases).where(eq(refundCases.id, input.refundCaseId)).limit(1).for('update');
       if (!entry || !['PENDING_APPROVAL', 'FAILED'].includes(entry.status)) throw new TRPCError({ code: 'CONFLICT', message: 'This refund cannot be rejected now. Refresh its status.' });
-      if (entry.requestedBy === `staff:${ctx.staffId}`) throw new TRPCError({ code: 'FORBIDDEN', message: 'A different named administrator must decide this request.' });
+      // Named administrators may also reject requests they created.
       await tx.update(refundCases).set({ status: 'CANCELLED', completedAt: new Date() }).where(eq(refundCases.id, entry.id));
       await tx.update(refundItems).set({ status: 'CANCELLED' }).where(and(eq(refundItems.refundCaseId, entry.id), inArray(refundItems.status, ['PENDING','FAILED'])));
       await tx.insert(applicationTimelineEvents).values({ id: crypto.randomUUID(), applicationId: entry.applicationId, eventName: 'REFUND_FAILED', eventSource: 'APPROVAL_QUEUE', actorType: 'ADMIN', actorReference: `staff:${ctx.staffId}`, resultingState: 'CANCELLED', summary: `Refund rejected: ${input.reason}` });
