@@ -1,5 +1,5 @@
 import Logo from '@/components/shared/Logo';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MailCheck, Save } from 'lucide-react';
 import { useValidationFeedback } from './useValidationFeedback';
@@ -12,10 +12,13 @@ import { trpc } from '@/providers/trpc-client';
  * If the email is already known it is used directly; otherwise a small
  * inline email field is rendered next to the button.
  */
-export function SaveContinueButton({ email, referenceNumber }: { email?: string; referenceNumber?: string }) {
+export function SaveContinueButton({ email, referenceNumber, beforeSend, disabled = false }: { email?: string; referenceNumber?: string; beforeSend?: () => Promise<void>; disabled?: boolean }) {
   const { t } = useTranslation('wizard');
   const [emailInput, setEmailInput] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const inFlight = useRef(false);
   const request = trpc.recovery.request.useMutation({
     onSuccess: () => setSent(true),
   });
@@ -28,18 +31,24 @@ export function SaveContinueButton({ email, referenceNumber }: { email?: string;
   });
 
   return (
-    <form noValidate className="flex flex-wrap items-center gap-3" onSubmit={event => {
+    <form noValidate className="flex flex-wrap items-center gap-3" onSubmit={async event => {
       event.preventDefault();
-      if (feedback.validate(event.currentTarget) && canSend) request.mutate({ email: effectiveEmail.toLowerCase(), channel: 'MAGIC_LINK', referenceNumber });
+      if (!feedback.validate(event.currentTarget) || !canSend || inFlight.current || disabled) return;
+      inFlight.current = true;
+      setSaving(true); setSaveFailed(false);
+      try {
+        await beforeSend?.();
+        await request.mutateAsync({ email: effectiveEmail.toLowerCase(), channel: 'MAGIC_LINK', referenceNumber });
+      } catch { setSaveFailed(true); } finally { inFlight.current = false; setSaving(false); }
     }}>
       <button
         type="submit"
         onMouseDown={event => event.preventDefault()}
-        disabled={request.isPending || sent}
+        disabled={disabled || saving || request.isPending || sent}
         className="rounded-xl bg-white border-[1.5px] border-[#0A1628] px-6 py-3 font-bold text-[#0A1628] hover:bg-[#0A1628] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
       >
         {sent ? <MailCheck size={16} className="text-emerald-600" /> : <Save size={16} />}
-        {request.isPending ? t('save.sending') : t('save.button')}
+        {saving || request.isPending ? t('save.sending') : t('save.button')}
       </button>
       {(!email || !/^\S+@\S+\.\S+$/.test(email.trim())) && !sent && (
         <div>
@@ -54,8 +63,8 @@ export function SaveContinueButton({ email, referenceNumber }: { email?: string;
         </div>
       )}
       {sent && <Logo variant="mark-only" size={24} />}
-      <span className="text-xs text-gray-500 leading-snug max-w-[17rem]">
-        {sent ? t('save.sent') : request.isError ? t('save.error') : t('save.note')}
+      <span role="status" aria-live="polite" className="text-xs text-gray-500 leading-snug max-w-[17rem]">
+        {sent ? t('save.sent') : request.isError || saveFailed ? t('save.error') : t('save.note')}
       </span>
       <p aria-live="polite" aria-atomic="true" className="w-full text-sm text-red-700">{feedback.count > 0 ? t("validation.summary", { count: feedback.count }) : ""}</p>
     </form>

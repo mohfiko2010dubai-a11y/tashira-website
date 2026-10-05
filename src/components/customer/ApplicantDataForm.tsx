@@ -1,7 +1,7 @@
 import { GCC_COUNTRIES, type TripPurpose } from "@contracts/document-requirement-engine";
 import { validPassportName } from "@contracts/traveller-details";
 import { assessDocumentValidity, isCalendarDate, RESIDENCE_REVIEW_NOTICE, type DocumentValidityPolicy } from "@contracts/document-validity";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useValidationFeedback } from "./useValidationFeedback";
 import NationalitySelect from "./NationalitySelect";
@@ -12,11 +12,13 @@ export type FormQuestion = { code: string; applicantId: number | null; label: st
   answerType: "TEXT" | "SELECT" | "BOOLEAN" | "NUMBER" | "DATE"; allowedValues: readonly string[] | null };
 export type FormAnswer = { code: string; applicantId: number | null; answer: Value };
 export type ApplicantFormSubmission = { arrivalDate?: string; residenceExpiry?: string; dateOfBirth?: string; passportNumber: string; passportExpiry: string; profession: string; residenceType: string; profile: { fullName: string; nationality: string | null; residenceCountry: string | null; tripPurpose?: TripPurpose }; answers: FormAnswer[] };
+export type ApplicantDraft = { fullName: string; passportNumber: string; passportExpiry: string; profession: string; arrivalDate: string; residenceExpiry: string; dateOfBirth: string; answers: FormAnswer[] };
 const countryCodes = new Set(["NATIONALITY", "PASSPORT_COUNTRY", "RESIDENCE_COUNTRY", "GCC_COUNTRY"]);
 const keyOf = (field: { applicantId: number | null; code: string }) => `${field.applicantId}:${field.code}`;
 
 /** Drafts live only in this application/applicant instance; never in browser storage. */
-export function ApplicantDataForm({ applicant, questions, saved, onSave, residenceType = "non-gcc", arrivalDate, visaType = "", onEdit, formId, onValidationCount, validityPolicy }: {
+export function ApplicantDataForm({ applicant, questions, saved, onSave, onDraftChange, residenceType = "non-gcc", arrivalDate, visaType = "", onEdit, formId, onValidationCount, validityPolicy }: {
+  onDraftChange?: (applicantId: number, draft: ApplicantDraft | undefined) => void;
   validityPolicy?: DocumentValidityPolicy;
   onValidationCount?: (applicantId: number, count: number) => void;
   formId?: string;
@@ -47,6 +49,12 @@ export function ApplicantDataForm({ applicant, questions, saved, onSave, residen
   };
   const visibleQuestions = questions.filter(field => !["RESIDENCE_EXPIRY", "DATE_OF_BIRTH", "PROFESSION", "PASSPORT_NUMBER", "PASSPORT_EXPIRY", "GCC_RESIDENT", "GCC_COUNTRY", "RESIDENCE_COUNTRY", "HAS_CONFIRMED_TICKETS", "PLANNED_ARRIVAL_DATE", "TRAVELLING_TOGETHER"].includes(field.code) && (isGcc || field.code !== "RESIDENCE_EXPIRY"));
   const fullName = name ?? (/^Applicant\s+\d+$/i.test(applicant.fullName) ? "" : applicant.fullName);
+  const draftAnswers = useMemo(() => questions.filter(field => draft[keyOf(field)] !== undefined)
+    .map(field => ({ code: field.code, applicantId: field.applicantId, answer: draft[keyOf(field)] })), [questions, draft]);
+  useEffect(() => {
+    onDraftChange?.(applicant.applicantId, { fullName, passportNumber, passportExpiry, profession, arrivalDate: entryDate, residenceExpiry: residenceDate, dateOfBirth: birthDate, answers: draftAnswers });
+    return () => onDraftChange?.(applicant.applicantId, undefined);
+  }, [onDraftChange, applicant.applicantId, fullName, passportNumber, passportExpiry, profession, entryDate, residenceDate, birthDate, draftAnswers]);
   const profile = { fullName: fullName.trim(), nationality: applicant.nationality, residenceCountry: applicant.residenceCountry };
   const complete = profile.fullName.length >= 2 && validPassportName(profile.fullName) && profile.nationality && profile.residenceCountry
     && passportNumber.trim().length >= 3 && profession.trim().length >= 2 && isCalendarDate(passportExpiry)

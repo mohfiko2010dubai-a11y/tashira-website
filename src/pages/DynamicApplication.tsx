@@ -7,7 +7,7 @@ import { ownerRequiredDocumentCodes } from "../../contracts/owner-document-requi
 import OptionalFlightNotice from "@/components/customer/OptionalFlightNotice";
 import { customerFileCount } from "@contracts/customer-count";
 import { ApplicationSupplements } from "@/components/customer/ApplicationSupplements";
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TravellerContext } from "@/components/customer/TravellerContext";
@@ -22,7 +22,7 @@ import { reviewDocumentStatus } from "@/components/customer/review-document-stat
 import { canVisitCheckout } from "@/lib/checkout-preflight";
 import WizardShell, { StepHeader } from "@/components/customer/WizardShell";
 import { SaveContinueButton } from "@/components/customer/SaveContinueButton";
-import { ApplicantDataForm, type ApplicantFormSubmission, type FormAnswer } from "@/components/customer/ApplicantDataForm";
+import { ApplicantDataForm, type ApplicantDraft, type ApplicantFormSubmission, type FormAnswer } from "@/components/customer/ApplicantDataForm";
 
 const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();
@@ -42,6 +42,10 @@ export default function DynamicApplication() {
   const { t, i18n } = useTranslation("wizard");
   useEffect(() => { if (!domScope) document.title = interviewTitle(i18n.language); }, [domScope, i18n.language]);
   const { referenceNumber = "" } = useParams();
+  const applicantDrafts = useRef(new Map<number, ApplicantDraft>());
+  const onDraftChange = useCallback((id: number, draft: ApplicantDraft | undefined) => {
+    if (draft) applicantDrafts.current.set(id, draft); else applicantDrafts.current.delete(id);
+  }, []);
   const validityPolicy = trpc.business.documentValidityPolicy.useQuery();
   const query = trpc.dynamicInterview.current.useQuery({ referenceNumber }, { enabled: referenceNumber.length >= 3, retry: false });
   const [phase, updatePhase] = useState<3 | 4 | 5 | null>(null);
@@ -272,7 +276,7 @@ export default function DynamicApplication() {
       {state.partySetup?.applicants.map((applicant, index) => <div key={applicant.applicantId} hidden={currentStep === 5 || applicant.applicantId !== activeId}>
         <ApplicantDataForm applicant={applicant} validityPolicy={validityPolicy.data} onValidationCount={onValidationCount} formId={`traveller-form-${applicant.applicantId}`} visaType={state.applicationContext.visaType} onEdit={() => setPhase(3)} arrivalDate={state.applicationContext.arrivalDate} residenceType={state.applicationContext.residenceType ?? "non-gcc"}
           questions={Array.from(new Map([...(state.formQuestions ?? []), ...state.currentQuestions].map(field => [`${field.applicantId}:${field.code}`, field])).values()).filter(field => field.applicantId === applicant.applicantId || (field.applicantId === null && index === 0))}
-          saved={state.knownAnswers} onSave={(submission, continueAfter) => saveApplicantForm(applicant.applicantId, submission, continueAfter)} />
+          saved={state.knownAnswers} onDraftChange={onDraftChange} onSave={(submission, continueAfter) => saveApplicantForm(applicant.applicantId, submission, continueAfter)} />
       </div>)}
 
       {currentStep !== 5 && !/transit|96hours/i.test(state.applicationContext.visaType) && <OptionalFlightNotice ar={i18n.language.startsWith("ar")} />}
@@ -359,7 +363,25 @@ export default function DynamicApplication() {
             className="min-h-12 rounded-xl bg-[#0A1628] px-6 py-3 font-bold text-white disabled:opacity-50">
             {t(activeIndex < travellers.length - 1 ? "simple.saveNextTraveller" : "simple.saveContinue")}</button>
         </>}
-        <SaveContinueButton email={state.applicationContext.contactEmail} referenceNumber={referenceNumber} />
+        <SaveContinueButton email={state.applicationContext.contactEmail} referenceNumber={referenceNumber} disabled={formSaving || docsBusy} beforeSend={async () => {
+          if (currentStep === 5) return;
+          const draft = applicantDrafts.current.get(activeId);
+          const applicant = state.partySetup?.applicants.find(item => item.applicantId === activeId);
+          if (!draft || !applicant) throw new Error("Applicant draft is unavailable. Reload the saved application and try again.");
+          const { answers, ...details } = draft;
+          await updateApplicationMutation.mutateAsync({ referenceNumber, applicantIndex: applicant.applicantIndex, ...details });
+          const refreshed = (await query.refetch()).data;
+          if (!refreshed) throw new Error("Application unavailable");
+          let latest: NonNullable<typeof query.data> = refreshed;
+          for (const field of answers) {
+            if (![...(latest.formQuestions ?? []), ...latest.currentQuestions].some(item => item.code === field.code && item.applicantId === field.applicantId)) continue;
+            const previous: FormAnswer | undefined = latest.knownAnswers.find(item => item.code === field.code && item.applicantId === field.applicantId);
+            if (previous?.answer === field.answer) continue;
+            const input = { referenceNumber, applicantId: field.applicantId, questionCode: field.code, answer: field.answer, changeReason: "CUSTOMER_DRAFT_SAVE", fromForm: true };
+            latest = previous ? await editMutation.mutateAsync(input) : await answerMutation.mutateAsync(input);
+          }
+          await refreshState();
+        }} />
         {currentStep === 5 && <button type="button" className="min-h-11 rounded-xl border px-6 py-3" onClick={() => setPhase(4)}>{t("step2.back")}</button>}
         {currentStep === 5 && !canOpenCheckout && <p role="status">{t("flow.notReady")}</p>}
       </div>
