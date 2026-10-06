@@ -1,3 +1,9 @@
+# Final run-to-launch staging receipt — 2026-10-07
+
+Staging now runs d4b769a399dc80b525e48a486c3a2afd21724276, built on the server and deployed after hosted CI37538246088 succeeded including all26 MySQL tests, zero skips. Final local check/lint/build passed;1398 unit tests passed. Migration068 remains applied with12 triggers and unchanged activation. Rollback backup: /var/backups/tashira-staging/run-launch-staff-1791324706049. Health200; synthetic draft228 retained saved details and3 documents on reload; unpaid service deadline hidden. Anonymous application/quote/clock denied401 and manual queue403. Production intake remains closed; original15 dirty files unchanged.
+
+Current blocker: agent1/agent2 MFA enrollment by owner, already requested. Live named-account assertions, rejected-first dashboard refund, breached/paused Express and full bilingual journey/email acceptance are NOT complete. Owner company/policy/reopen checks also remain. No launch acceptance, production change, new financial movement or new email in this deployment. Full evidence: staging/RUN_TO_LAUNCH_EVIDENCE.md. Entries below are historical.
+
 # Run-to-launch staging milestone — 2026-10-07
 
 3768365 deployed from e018c38 after hosted CI37536454106 passed both jobs. Migration068 applied to verified tashira_staging only;12 triggers verified; backup /var/backups/tashira-staging/run-launch-1791323706932; clock activated2026-10-06T21:55:12.041Z,24h overdue threshold. Health200 and browser synthetic draft reload passed. Production read-only closure check still true.

@@ -2,6 +2,15 @@
 
 This is an evidence ledger, not launch acceptance. Production remains closed.
 
+## Final staging follow-up receipt
+
+- Deployed source `d4b769a399dc80b525e48a486c3a2afd21724276` on 7 October 2026. Hosted CI `37538246088` passed both jobs, including all 26 mandatory MySQL tests with zero skips. Local final check/lint/build passed and 1398 unit tests passed; the guarded database tests were verified separately rather than counted as local unit passes.
+- Server built that exact commit before switching. Rollback backup: `/var/backups/tashira-staging/run-launch-staff-1791324706049`. Local and public health returned 200. Migration and clock activation were not rerun; mail allowlist unchanged.
+- Final browser reload preserved synthetic draft 228's name, passport, expiry, profession and all three uploaded documents. The unpaid application no longer displays a service deadline.
+- Anonymous staging calls returned 401 for application details, visa-change quote and service clock, and 403 for the manual decision queue. Production intake read-only response remains `closed: true`.
+- All 15 unrelated dirty files remain unchanged. No payment/refund or new email was sent during this deployment.
+- Named live permission and refund acceptance remain blocked by the two agent accounts' incomplete MFA enrollment. The pending launch gates below remain pending.
+
 ## Verified candidate and deployment
 
 - Source3768365ee5c5568ea05f2ab57254eade2cae6d57; hosted CI37536454106 succeeded in both jobs, including26 MySQL integrations, zero skips. The runner fails on skips.
