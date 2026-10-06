@@ -1,3 +1,5 @@
+import { ManualChangeApproval } from "@/components/admin/ManualChangeApproval";
+import { OverdueCustomerWaits } from "@/components/admin/OverdueCustomerWaits";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
@@ -41,18 +43,24 @@ function ApprovalRow({ row, refresh }: { row: QueueRow; refresh: () => void }) {
 }
 export default function AdminApprovals() {
   const query = trpc.refundQueue.list.useQuery(undefined, { retry: false });
+  const manual = trpc.application.manualChangeQueue.useQuery(undefined, { retry: false });
   const emailFailures = trpc.emailOperations.failures.useQuery(undefined, { retry: false });
   const retryEmail = trpc.emailOperations.retry.useMutation({ onSuccess: () => { void emailFailures.refetch(); } });
   const totals = new Map<string, number>();
   for (const row of query.data?.rows || []) if (row.refundCase.status !== 'REFUNDED') for (const item of row.items) if (!['SUCCEEDED', 'CANCELLED'].includes(item.status)) totals.set(item.currency, (totals.get(item.currency) || 0) + Number(item.refundAmount));
-  const refresh = () => { void query.refetch(); };
-  return <main className="mx-auto max-w-4xl p-4 space-y-4"><Link to="/admin/applications">← Administration</Link><h1 className="text-2xl font-bold">Refund approvals</h1><p>Oldest requests first. The requester cannot approve their own request.</p>
+  const refresh = () => { void query.refetch(); void manual.refetch(); };
+  const decisions = [
+    ...(query.data?.rows || []).map(row => ({ id: row.refundCase.id, time: new Date(row.refundCase.createdAt).getTime(), node: <ApprovalRow key={row.refundCase.id} row={row} refresh={refresh} /> })),
+    ...(manual.data || []).map(row => ({ id: row.id, time: new Date(row.createdAt).getTime(), node: <ManualChangeApproval key={row.id} row={row} refresh={refresh} /> })),
+  ].sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
+  return <main className="mx-auto max-w-4xl p-4 space-y-4"><Link to="/admin/applications">← Administration</Link><h1 className="text-2xl font-bold">Approvals</h1><p>Oldest requests first. Only named administrators can approve; every decision is recorded.</p>
     <section className="rounded-xl border bg-amber-50 p-4"><h2 className="font-bold">Stripe balance and pending refunds</h2>{query.data?.balance.error && <p role="alert">{query.data.balance.error}</p>}{query.data?.balance.available.map(entry => <p key={entry.currency}>Available: {(entry.amountMinor/100).toFixed(2)} {entry.currency}</p>)}{[...totals].map(([currency, amount]) => <p key={currency}>Pending: {amount.toFixed(2)} {currency}</p>)}<p>Balances may use a different settlement currency; these figures are not assumed equivalent.</p></section>
     <button className="min-h-11 rounded border px-4" onClick={refresh}>Refresh</button>
     {query.error && <p role="alert">Unable to load approvals. Refresh to try again.</p>}
-    <div id="refund-failures" className="space-y-4">{query.data?.rows.map(row => <ApprovalRow key={row.refundCase.id} row={row} refresh={refresh} />)}</div>
-    {query.data?.rows.length === 0 && <p>No refunds awaiting review.</p>}
-    <div id="processing-guarantee"><ProcessingGuarantee /></div>
+    <div id="refund-failures" className="space-y-4">{decisions.map(entry => entry.node)}</div>
+    {manual.error && <p role="alert">Amendment decisions unavailable. Refresh before reviewing the queue.</p>}
+    {query.data && manual.data && decisions.length === 0 && <p>No decisions awaiting review.</p>}
+    <div id="processing-guarantee"><ProcessingGuarantee /><OverdueCustomerWaits /></div>
     <section className="rounded-xl border bg-white p-4 space-y-3"><h2 className="font-bold">Email delivery needs attention</h2>
       {emailFailures.error && <p role="alert">Could not load the email queue. Refresh to retry.</p>}
       {emailFailures.data?.length === 0 && <p>No failed queued messages. Inbox placement still requires a real delivery check.</p>}

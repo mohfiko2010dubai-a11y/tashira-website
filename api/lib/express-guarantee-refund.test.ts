@@ -1,21 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PROCESSING_GUARANTEE_VERSION } from "../../contracts/processing-guarantee";
-const mocks = vi.hoisted(() => ({ execute: vi.fn(), insert: vi.fn(), values: vi.fn() }));
+const mocks = vi.hoisted(() => ({ execute: vi.fn(), insert: vi.fn(), values: vi.fn(), waits: vi.fn() }));
 vi.mock("./checkout-quote", () => ({ withCheckoutLock: (_id: number, work: (c: object) => Promise<unknown>) => work({ execute: mocks.execute }) }));
 vi.mock("drizzle-orm/mysql2", () => ({ drizzle: () => ({ insert: mocks.insert }) }));
 vi.mock("./operations/mysql-query-client", () => ({ defaultOperationsPool: () => ({ execute: mocks.execute }) }));
+vi.mock("./customer-wait-log", () => ({ customerWaitLog: mocks.waits }));
 import { createExpressGuaranteeRefund } from "./express-guarantee-refund";
 
 describe("Express guarantee refund claim", () => {
   const row = () => ({ payment_status: "paid", processing_type: "express", documents_completed_at: (Date.now() - 25 * 3_600_000) / 1000,
     authority_submitted_at: null, quote_json: { processingGuaranteeVersion: PROCESSING_GUARANTEE_VERSION, expressFeeTotal: 112.5, totalPrice: 667.5, currency: "USD" } });
-  beforeEach(() => { vi.clearAllMocks(); mocks.insert.mockReturnValue({ values: mocks.values }); mocks.values.mockResolvedValue(undefined); });
+  beforeEach(() => { vi.clearAllMocks(); mocks.waits.mockResolvedValue({ intervals: [], open: [] }); mocks.insert.mockReturnValue({ values: mocks.values }); mocks.values.mockResolvedValue(undefined); });
   it("creates a separate full-fee case with no deduction, not the base price", async () => {
     mocks.execute.mockResolvedValueOnce([[row()]]).mockResolvedValueOnce([[{ id: 7, amount: "667.50", currency: "usd" }]])
       .mockResolvedValueOnce([[{ total: 0 }]]).mockResolvedValueOnce([{}]);
     const result = await createExpressGuaranteeRefund(1, "admin-session");
     expect(result.replayed).toBe(false);
     expect(mocks.values).toHaveBeenCalledWith(expect.objectContaining({ requestedAmount: "112.50", refundAmount: "112.50", deductionType: "NONE", paymentId: 7, idempotencyKey: `express-guarantee-1-${PROCESSING_GUARANTEE_VERSION}` }));
+  });
+  it("does not refund while 11 of 25 elapsed hours belonged to the customer", async () => {
+    mocks.execute.mockResolvedValueOnce([[row()]]);
+    mocks.waits.mockResolvedValue({ intervals: [{ startedAt: new Date(Date.now() - 11 * 3_600_000), resumedAt: null }], open: [{}] });
+    await expect(createExpressGuaranteeRefund(1, "staff:7")).rejects.toThrow("no overdue paid Express guarantee");
+    expect(mocks.insert).not.toHaveBeenCalled();
   });
   it("returns the existing case on a repeated click without inserting a second refund", async () => {
     mocks.execute.mockResolvedValueOnce([[{ ...row(), express_refund_case_id: "saved-case" }]]);

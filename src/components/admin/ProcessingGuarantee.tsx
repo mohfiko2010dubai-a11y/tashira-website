@@ -16,7 +16,8 @@ export function ProcessingGuarantee({ applicationId }: { applicationId?: number 
       {!applicationId && <Link className="underline" to={`/admin/applications/${item.referenceNumber}`}>{item.referenceNumber}</Link>}
       <p>Documents complete: {item.documentsCompletedAt ?? "Not yet recorded"}</p>
       <p>Submitted to authority: {item.submittedAt ?? "Not yet recorded — record the actual submission using the controlled Visa Processing transition"}</p>
-      <p>Deadline: {item.deadline ?? "Starts when all required documents are complete"}</p>
+      <p>Deadline{item.paused ? " (paused; will be restated after response)" : ""}: {item.deadline ?? "Starts when all required documents are complete"}</p>
+      {item.paused && <p role="status">Waiting on customer: {item.pauseReasons.join(", ")}. Customer-held time is excluded.</p>}
       {item.express && <p>Paid Express component: {item.expressFee === null ? "Historical quote — no recorded guarantee component" : `${item.currency} ${item.expressFee.toFixed(2)}`}</p>}
       {item.breached && <p role="status" className="font-semibold">Submission deadline exceeded.{item.express && item.paid ? " Full paid Express fee refund is due." : ""}</p>}
       {item.refundCaseId ? <p>Express refund case: {item.refundCaseId}. Automatically approved; see its Stripe result in <Link className="underline" to="/admin/approvals">Approvals</Link>.</p>

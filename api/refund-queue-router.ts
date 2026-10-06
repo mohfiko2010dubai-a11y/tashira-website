@@ -1,3 +1,5 @@
+import { defaultOperationsPool } from "./lib/operations/mysql-query-client";
+import type { RowDataPacket } from "mysql2/promise";
 import crypto from 'node:crypto';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -11,7 +13,8 @@ const queued = ['PENDING_APPROVAL', 'APPROVED', 'FAILED', 'PROCESSING', 'PARTIAL
 export const refundQueueRouter = createRouter({
   count: adminQuery.query(async () => {
     const [row] = await getDb().select({ count: sql<number>`COUNT(*)` }).from(refundCases).where(inArray(refundCases.status, [...queued]));
-    return Number(row.count);
+    const [manual] = await defaultOperationsPool().execute<RowDataPacket[]>("SELECT COUNT(*) AS count FROM visa_change_decisions WHERE state='PENDING'");
+    return Number(row.count) + Number(manual[0].count);
   }),
   list: adminQuery.query(async () => {
     const db = getDb();

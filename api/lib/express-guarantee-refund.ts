@@ -1,3 +1,4 @@
+import { customerWaitLog } from "./customer-wait-log";
 import { randomUUID } from "node:crypto";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
@@ -16,18 +17,21 @@ const guaranteeSelect = `SELECT a.id,a.reference_number,a.processing_type,a.paym
 
 export async function processingGuarantees(applicationId?: number) {
   const [rows] = await defaultOperationsPool().execute<RowDataPacket[]>(guaranteeSelect + (applicationId ? " WHERE a.id=?" : " WHERE a.payment_status='paid' AND a.processing_type='express'") + " ORDER BY c.documents_completed_at,a.id", applicationId ? [applicationId] : []);
-  return rows.map(row => {
+  return Promise.all(rows.map(async row => {
     const quote = typeof row.quote_json === "string" ? JSON.parse(row.quote_json) : row.quote_json;
     const completed = date(row.documents_completed_at), submitted = date(row.authority_submitted_at);
+    const now = new Date();
+    const waits = await customerWaitLog(Number(row.id), submitted ?? now);
     const express = row.processing_type === "express";
     const covered = quote?.processingGuaranteeVersion === PROCESSING_GUARANTEE_VERSION;
     return { applicationId: Number(row.id), referenceNumber: String(row.reference_number), express, covered,
       documentsCompletedAt: completed?.toISOString() ?? null, submittedAt: submitted?.toISOString() ?? null,
-      deadline: completed ? submissionDeadline(completed, express).toISOString() : null,
-      breached: covered && submissionBreached(completed, submitted, express),
+      deadline: completed ? submissionDeadline(completed, express, waits.intervals, submitted ?? now).toISOString() : null,
+      breached: covered && submissionBreached(completed, submitted, express, now, waits.intervals),
       expressFee: covered ? Number(quote.expressFeeTotal ?? 0) : null, currency: String(quote?.currency ?? "USD"),
+      paused: waits.open.length > 0, pauseReasons: waits.open.map(wait => wait.reason),
       paid: row.payment_status === "paid", refundCaseId: row.express_refund_case_id ? String(row.express_refund_case_id) : null };
-  });
+  }));
 }
 
 /** No editable amount/deduction: refund precisely the frozen paid Express component. */
@@ -42,7 +46,9 @@ export async function prepareExpressGuaranteeRefund(connection: PoolConnection, 
     if (row?.express_refund_case_id) return { refundCaseId: String(row.express_refund_case_id), replayed: true };
     const quote = typeof row?.quote_json === "string" ? JSON.parse(row.quote_json) : row?.quote_json;
     const fee = Number(quote?.expressFeeTotal);
-    if (row?.payment_status !== "paid" || row.processing_type !== "express" || quote?.processingGuaranteeVersion !== PROCESSING_GUARANTEE_VERSION || !Number.isFinite(fee) || fee <= 0 || !submissionBreached(date(row.documents_completed_at), date(row.authority_submitted_at), true)) {
+    const now = new Date();
+    const waits = await customerWaitLog(applicationId, date(row?.authority_submitted_at) ?? now, connection);
+    if (row?.payment_status !== "paid" || row.processing_type !== "express" || quote?.processingGuaranteeVersion !== PROCESSING_GUARANTEE_VERSION || !Number.isFinite(fee) || fee <= 0 || !submissionBreached(date(row.documents_completed_at), date(row.authority_submitted_at), true, now, waits.intervals)) {
       throw new TRPCError({ code: "PRECONDITION_FAILED", message: "This order has no overdue paid Express guarantee. Check its timestamps and payment before requesting a refund." });
     }
     const [paid] = await connection.execute<RowDataPacket[]>(`SELECT p.id,p.amount,p.currency FROM payments p JOIN checkout_payment_attempts a

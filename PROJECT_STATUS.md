@@ -1,3 +1,11 @@
+# Run-to-launch checkpoint — 2026-10-07
+
+Owner standing order: complete the launch gate in codex-RUN-TO-LAUNCH.txt, not intermediate completion claims. Current candidate binds the customer-wait clock to SENT document/amendment evidence, payment-link issuance and matching response events; immutable timelines, configurable overdue list, customer date/time explanation, REFUSED outcome approvals and exact referenced manual settlement are implemented. Queue combines refunds and amendment decisions oldest-first with named-admin reauthentication. Automatic amendment charges/refunds remain deferred. Corrected physical email-column names in paymentEmailRecord and exercised its SQL on real MySQL.
+
+Validation: check/lint/build pass;1397 unit tests pass. The26 guarded integration cases pass separately on isolated MySQL (zero skips), including migration068 and extra real-SQL assertions for quote/decision immutability, reference-required settlement, agent refusal/admin approval, filing before settlement, REFUSED preservation/original-at-written-insistence, activation/idempotency and document replacement pause/resume. Hosted CI and staging migration/deployment still pending. Staging remains e018c38; production untouched. Generated dist/boot.js is excluded from the source commit;15 preserved unrelated dirty files verified unchanged.
+
+Read-only account check: all three authorized accounts are active; owner ADMIN has enrolled/verified MFA, agent1 and agent2 have not. Owner asked to complete their authenticator enrollment without sharing passwords/secrets. Eight real named-account assertions and bilingual customer journeys remain unverified and block launch acceptance. Existing recovery procedure retained; no legacy-login cutoff performed. Historical mail-tester alignment evidence exists (score5.6/10), but full verbatim Authentication-Results and exact new journey inbox evidence remain outstanding.
+
 # Clock/settlement binding rules — 2026-10-07
 
 Owner source: C:/Users/ADMIN/Downloads/codex-CLOCK-AND-SETTLEMENT.txt.

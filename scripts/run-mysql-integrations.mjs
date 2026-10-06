@@ -1,3 +1,4 @@
+import { verifyVisaChangeMysql } from './verify-visa-change-mysql.mjs';
 import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -17,7 +18,7 @@ const {parseMysqlClientScript}=await import('data:text/javascript;base64,'+Buffe
 const db=await mysql.createConnection(raw);
 try {
   await db.query('ALTER TABLE applications ADD COLUMN invoice_pdf_url varchar(500) NULL');
-  await db.query('ALTER TABLE invoices ADD COLUMN vat_rate decimal(7,4) NOT NULL DEFAULT 0');
+  await db.query('ALTER TABLE invoices ADD COLUMN vat_rate decimal(7,4) NOT NULL DEFAULT 0, ADD COLUMN pdf_path varchar(255) NULL');
   await db.query('ALTER TABLE applicants ADD COLUMN gcc_residence_country varchar(100) NULL');
   await db.query('ALTER TABLE applicants ADD COLUMN sponsor_name varchar(255) NULL, ADD COLUMN sponsor_relation varchar(100) NULL');
   await db.query("ALTER TABLE documents ADD COLUMN storage_provider varchar(50) NOT NULL DEFAULT 'filesystem', ADD COLUMN storage_bucket varchar(100) NULL");
@@ -31,6 +32,8 @@ try {
     if (!templateColumn.Type.includes(`'${template}'`)) throw new Error('Missing internal email audit template: ' + template);
   }
   for (const statement of parseMysqlClientScript(readFileSync('migrations/067_staff_setup_links.sql', 'utf8'))) await db.query(statement);
+  for (const statement of parseMysqlClientScript(readFileSync('migrations/068_visa_change_quotes.sql', 'utf8'))) await db.query(statement);
+  await verifyVisaChangeMysql(db);
   await verifyPhase2Mysql(db);
   // Exercise the real trigger in the disposable database, then restore fixtures.
   await db.beginTransaction();

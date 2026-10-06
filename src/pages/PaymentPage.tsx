@@ -1,3 +1,4 @@
+import { CustomerServiceClock } from "@/components/customer/CustomerServiceClock";
 import { ProductSubstitutionNotice } from "@/components/customer/ProductSubstitutionNotice";
 import IntakeNotice from "@/components/shared/IntakeNotice";
 import { RESIDENCE_REVIEW_NOTICE } from "@contracts/document-validity";
@@ -336,6 +337,7 @@ export default function PaymentPage() {
 
   return (
     <WizardShell currentStep={3}>
+      <CustomerServiceClock referenceNumber={referenceNumber || ""} />
       <ProductSubstitutionNotice referenceNumber={referenceNumber || ""} />
         <StepHeader step={3} title={t('step3.title')} subtitle={t('step3.subtitle')} />
 

@@ -6,8 +6,8 @@ export async function paymentEmailRecord(applicationId: number, paymentId: numbe
   const [rows] = await defaultOperationsPool().execute<RowDataPacket[]>(`
     SELECT a.contact_email,a.reference_number,a.preferred_language,
       i.invoice_number,i.amount,i.pdf_path,p.currency,
-      EXISTS(SELECT 1 FROM outbound_email_events e WHERE e.application_id=a.id
-        AND e.template='PAYMENT_SUCCESS' AND e.status='SENT'
+      EXISTS(SELECT 1 FROM outbound_email_events e WHERE e.email_application_id=a.id
+        AND e.email_template='PAYMENT_SUCCESS' AND e.email_status='SENT'
         AND (e.source_reference=CONCAT('payment:',p.id) OR
           (e.source_reference IS NULL AND i.id=(SELECT MIN(first_invoice.id)
             FROM invoices first_invoice WHERE first_invoice.application_id=a.id)))) AS already_sent

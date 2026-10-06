@@ -1,3 +1,6 @@
+import { customerServiceClock } from "./lib/customer-wait-log";
+import { refuseVisaChange, requestManualChange, decideManualChange, manualChangeQueue, refusalOutcomes, recordDifferenceLink } from "./lib/manual-visa-change";
+import { verifyNamedStaffPassword } from "./lib/named-staff-password";
 import { MysqlCustomerInterviewWriteRepository } from "./lib/customer/mysql-customer-interview-write-repository";
 import { applicantName } from "../contracts/applicant-name";
 import { assessDocumentValidity } from "../contracts/document-validity";
@@ -40,6 +43,12 @@ export const applicationRouter = createRouter({
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
     return proposeSubmittedProduct(application.id, input.product, String(ctx.user?.id ?? ctx.staffId ?? "admin-session"), input.reason);
   }),
+  serviceClock: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3) })).query(async ({ input, ctx }) => {
+    assertApplicationReferenceAccess(ctx, input.referenceNumber);
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+    return customerServiceClock(application.id);
+  }),
   visaChangeQuote: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3) })).query(async ({ input, ctx }) => {
     assertApplicationReferenceAccess(ctx, input.referenceNumber);
     const application = await getCanonicalApplicationByReference(input.referenceNumber);
@@ -52,6 +61,35 @@ export const applicationRouter = createRouter({
     const application = await getCanonicalApplicationByReference(input.referenceNumber);
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
     return acknowledgeSubmittedProduct(application.id, input.version, input.quoteId);
+  }),
+  refuseVisaChange: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3), quoteId: z.string().uuid(), version: z.number().int().positive(), reason: z.string().trim().min(5).max(500) })).mutation(async ({ input, ctx }) => {
+    if (!ctx.customerApplicationReferences.has(input.referenceNumber)) throw new TRPCError({ code: "FORBIDDEN", message: "Open your secure application link to refuse this proposal." });
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+    return refuseVisaChange(application.id, input.quoteId, input.version, input.reason);
+  }),
+  manualChangeQueue: adminQuery.query(() => manualChangeQueue()),
+  requestManualChange: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), quoteId: z.string().uuid(), version: z.number().int().positive(),
+    kind: z.enum(["SETTLEMENT", "REFUSAL_OUTCOME"]), outcome: z.enum(refusalOutcomes).optional(), direction: z.enum(["TOP_UP", "REFUND"]).optional(),
+    amountMinor: z.number().int().positive().optional(), currency: z.literal("USD").optional(), stripeReference: z.string().max(150).optional(),
+    reason: z.string().trim().min(5).max(500), writtenInsistence: z.string().trim().max(1000).optional(), riskRecord: z.string().trim().max(1000).optional(),
+  }).strict()).mutation(async ({ input, ctx }) => {
+    if (!ctx.staffId) throw new TRPCError({ code: "FORBIDDEN", message: "Use your named staff account." });
+    assertApplicationReferenceAccess(ctx, input.referenceNumber);
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+    return requestManualChange(application.id, ctx.staffId, input);
+  }),
+  decideManualChange: adminQuery.input(z.object({ id: z.string().uuid(), approve: z.boolean(), reason: z.string().trim().min(5).max(500), password: z.string().min(1) }).strict()).mutation(async ({ input, ctx }) => {
+    if (!ctx.staffId || !await verifyNamedStaffPassword(ctx.staffId, input.password)) throw new TRPCError({ code: "FORBIDDEN", message: "Verify your named administrator password before deciding." });
+    return decideManualChange(input.id, ctx.staffId, input.approve, input.reason);
+  }),
+  recordDifferenceLink: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), quoteId: z.string().uuid(), version: z.number().int().positive(), url: z.string().url().max(450) }).strict()).mutation(async ({ input, ctx }) => {
+    if (!ctx.staffId) throw new TRPCError({ code: "FORBIDDEN", message: "Use your named staff account." });
+    assertApplicationReferenceAccess(ctx, input.referenceNumber);
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+    return recordDifferenceLink(application.id, input.quoteId, input.version, ctx.staffId, input.url);
   }),
   documentReviewFacts: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3) })).query(async ({ input, ctx }) => {
     assertApplicationReferenceAccess(ctx, input.referenceNumber);

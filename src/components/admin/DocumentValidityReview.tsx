@@ -1,3 +1,4 @@
+import { ManualVisaChange } from "./ManualVisaChange";
 import { useState } from "react";
 import { trpc } from "@/providers/trpc-client";
 
@@ -47,5 +48,6 @@ export function DocumentValidityReview({ referenceNumber }: { referenceNumber: s
       </form>
     </article>)}
     <p role="status">{result}</p>
+    <ManualVisaChange referenceNumber={referenceNumber} />
   </section>;
 }

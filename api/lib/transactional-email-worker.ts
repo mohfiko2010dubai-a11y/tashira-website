@@ -88,7 +88,7 @@ async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRE
   const recipient = isAdminEmail(template) ? adminEmailRecipient() : String(application.contact_email);
   if (!recipient) throw new Error('Configure the monitored administrator notification address, then retry this message.');
   const refundCaseId = isAdminEmail(template) ? String(job.job_key).split(':').at(-1) || '' : '';
-  const customerPath = template === 'PRODUCT_SUBSTITUTED'
+  const customerPath = template === 'PRODUCT_SUBSTITUTED' || variables.sourceEvent === 'adjustment_payment_requested'
     ? `apply/${encodeURIComponent(application.reference_number)}/interview`
     : template === 'DOCUMENTS_COMPLETE' && application.payment_status === 'pending'
     ? `pay/${encodeURIComponent(application.reference_number)}` : `track?ref=${encodeURIComponent(application.reference_number)}`;

@@ -1,3 +1,4 @@
+import { CustomerServiceClock } from "@/components/customer/CustomerServiceClock";
 import { ProductSubstitutionNotice } from "@/components/customer/ProductSubstitutionNotice";
 import NationalityAvailabilityNotice from "@/components/customer/NationalityAvailabilityNotice";
 import { ApplicationDomScope } from "@/components/customer/ApplicationDomScope";
@@ -199,6 +200,7 @@ export default function DynamicApplication() {
   const canOpenCheckout = canVisitCheckout(readiness.data);
   return <WizardShell compactContent currentStep={currentStep === 5 ? 3 : 2}>
     <div className="mx-auto w-full max-w-[680px]">
+      <CustomerServiceClock referenceNumber={referenceNumber} />
       <ProductSubstitutionNotice referenceNumber={referenceNumber} />
       <StepHeader
         step={currentStep === 5 ? 3 : 2}

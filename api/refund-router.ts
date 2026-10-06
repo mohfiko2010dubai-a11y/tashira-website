@@ -1,3 +1,4 @@
+import { overdueWaitingOrders } from "./lib/customer-wait-log";
 import crypto from "node:crypto";
 import { createExpressGuaranteeRefund, processingGuarantees } from "./lib/express-guarantee-refund";
 import { TRPCError } from "@trpc/server";
@@ -51,6 +52,7 @@ function actorReference(ctx: { staffId?: number }) {
 }
 
 export const refundRouter = createRouter({
+  overdueWaitingOrders: adminQuery.query(() => overdueWaitingOrders()),
   processingGuarantees: adminQuery.input(z.object({ applicationId: z.number().int().positive().optional() }).optional())
     .query(({ input }) => processingGuarantees(input?.applicationId)),
   claimExpressGuarantee: adminQuery.input(z.object({ applicationId: z.number().int().positive() }).strict())
