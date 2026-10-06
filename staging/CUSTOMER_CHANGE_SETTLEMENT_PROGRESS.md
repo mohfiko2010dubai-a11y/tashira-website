@@ -1,3 +1,16 @@
+# Latest candidate — 2026-10-07
+
+Owner decision: a paid increase gets its own numbered invoice for ONLY the difference; original invoice remains unchanged. For decreases retain the existing refund/credit-note accounting model.
+
+Implemented in the local candidate after the earlier mail checkpoint:
+- Migration068: immutable visa_change_quotes, monetary checks, one payment/refund reference per quote, explicit lifecycle states and filing guard. NOT applied or MySQL-tested yet.
+- Server proposal snapshot: original paid checkout amount and frozen traveller count, current replacement catalogue price, signed difference; latest settled proposal is the basis for later changes. Existing accepted unsettled proposal blocks a second proposal. Unpaid orders are directed to editing the original form.
+- API and EN/AR UI: show previous/new totals and exact price difference; customer consent requires exact quote UUID plus version. Missing historical price evidence requires a fresh proposal. Equal-price consent settles without charging; nonzero consent remains ACCEPTED.
+- Separate invoice issuer verifies succeeded linked payment equals positive difference, reuses its invoice on replay, uses canonical financial series and never updates original application invoice pointers. It is not yet wired to a finalizer.
+- Final local check/lint/build pass;1372 tests pass and26 existing MySQL integration skips. Initial lint issue in test formatting fixed, rerun clean.
+
+NOT READY TO DEPLOY: accepted nonzero differences have no collection/refund execution path yet. Continue with Stripe payment, webhook/finalization, invoice snapshot (label explicitly as visa-change difference), refund reservation/reconciliation, financial-status email copy, DB integration and staging UAT. No migration, deployment, Stripe operation or provider send in this phase. Staging remains e018c38. Previous checkpoint follows for context.
+
 # Customer change settlement checkpoint â€” 2026-10-07
 
 ## Implemented locally

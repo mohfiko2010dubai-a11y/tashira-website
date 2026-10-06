@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const hooks = vi.hoisted(() => ({ execute: vi.fn() }));
 vi.mock("./checkout-quote", () => ({ withCheckoutLock: async (_id: number, action: (connection: { execute: typeof hooks.execute }) => unknown) => action({ execute: hooks.execute }) }));
+vi.mock("./visa-change-quotes", () => ({ prepareVisaChangeQuote: vi.fn(), acceptVisaChangeQuote: vi.fn() }));
 import { acknowledgeSubmittedProduct, proposeSubmittedProduct } from "./product-substitution";
 
 beforeEach(() => hooks.execute.mockReset());

@@ -2,6 +2,7 @@ import { MysqlCustomerInterviewWriteRepository } from "./lib/customer/mysql-cust
 import { applicantName } from "../contracts/applicant-name";
 import { assessDocumentValidity } from "../contracts/document-validity";
 import { acknowledgeSubmittedProduct, proposeSubmittedProduct } from "./lib/product-substitution";
+import { currentVisaChangeQuote } from "./lib/visa-change-quotes";
 import { evaluateDocumentRequirements, tripPurposeSchema } from "../contracts/document-requirement-engine";
 import { loadTripPurposes } from "./lib/customer/trip-purpose";
 import { defaultOperationsSqlClient, defaultOperationsPool } from "./lib/operations/mysql-query-client";
@@ -39,12 +40,18 @@ export const applicationRouter = createRouter({
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
     return proposeSubmittedProduct(application.id, input.product, String(ctx.user?.id ?? ctx.staffId ?? "admin-session"), input.reason);
   }),
-  acknowledgeSubmittedProduct: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3), version: z.number().int().positive() })).mutation(async ({ input, ctx }) => {
+  visaChangeQuote: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3) })).query(async ({ input, ctx }) => {
+    assertApplicationReferenceAccess(ctx, input.referenceNumber);
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
+    return currentVisaChangeQuote(application.id);
+  }),
+  acknowledgeSubmittedProduct: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3), version: z.number().int().positive(), quoteId: z.string().uuid() })).mutation(async ({ input, ctx }) => {
     // Staff privilege is deliberately insufficient to provide customer consent.
     if (!ctx.customerApplicationReferences.has(input.referenceNumber)) throw new TRPCError({ code: "FORBIDDEN", message: "Open your secure application link to acknowledge this change." });
     const application = await getCanonicalApplicationByReference(input.referenceNumber);
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
-    return acknowledgeSubmittedProduct(application.id, input.version);
+    return acknowledgeSubmittedProduct(application.id, input.version, input.quoteId);
   }),
   documentReviewFacts: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3) })).query(async ({ input, ctx }) => {
     assertApplicationReferenceAccess(ctx, input.referenceNumber);
