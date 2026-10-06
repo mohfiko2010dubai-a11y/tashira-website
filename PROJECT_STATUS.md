@@ -1,3 +1,9 @@
+# Customer payment email identity — 2026-10-07
+
+Local candidate only; staging remains e018c381be9eb7cfa5e8e5c330460c1de72e90b9. Fixed a prerequisite for visa-change settlement: PAYMENT_SUCCESS now resolves the succeeded payment, exact invoice, amount and customer email together from the database. SENT deduplication is payment-scoped; legacy unscoped receipts apply only to the earliest invoice. Durable timeline dispatch no longer chooses the latest invoice on an application. Product-substitution email links now target the existing consent screen, retaining customer ownership checks. No migration, provider send, Stripe operation or deployment was performed in this phase. Final local check/lint/build pass; 1351 tests pass with 26 existing MySQL integration skips (not exercised this phase). Existing generated dist/boot.js change stays uncommitted.
+
+Outstanding: immutable server-priced visa-change proposal, explicit customer price consent, supplemental TEST payment and invoice, cheaper-product difference refund through the existing auditable flow, verified settlement emails and end-to-end staging UAT. These are NOT implemented or complete. Owner previously confirmed resume, unpaid-payment link, and original payment invoice emails. Production unchanged.
+
 Verified staging deployment: 472df55fbd91da73a0bd56dc7a28c6b5fe06b967. Local/server check, lint,1334 tests and build pass; CI37274491111 both jobs successful, including26 MySQL tests without skips. Health and routes200. Existing shown refund remains PENDING_APPROVAL, approved_by null; no refund executed. Administrator self-decision policy is now active on staging only.
 
 # Owner revised administrator authority — 2026-10-05

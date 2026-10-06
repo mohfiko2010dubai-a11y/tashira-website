@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ execute: vi.fn(), send: vi.fn(), claim: vi.fn(), admin: vi.fn() }));
+const mocks = vi.hoisted(() => ({ execute: vi.fn(), send: vi.fn(), claim: vi.fn(), admin: vi.fn(), payment: vi.fn() }));
 vi.mock('./operations/mysql-query-client', () => ({ defaultOperationsPool: () => ({ execute: mocks.execute,
   getConnection: async () => ({ beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release: () => {}, execute: mocks.claim }),
 }) }));
 vi.mock('./customer-notification-email', () => ({ sendCustomerNotification: mocks.send }));
-vi.mock('./payment-success-email', () => ({ sendPaymentSuccessEmail: vi.fn() }));
+vi.mock('./payment-success-email', () => ({ sendPaymentSuccessEmail: mocks.payment }));
 vi.mock('./refund-outcome-email', () => ({ sendRefundOutcomeEmail: vi.fn() }));
 vi.mock('./email-provider', () => ({ adminEmailRecipient: mocks.admin }));
 import { runTransactionalEmails } from './transactional-email-worker';
@@ -39,7 +39,7 @@ describe('durable transactional email dispatch', () => {
   });
   it('sends the current proposal with the stored customer-language route', async () => {
     await runTransactionalEmails();
-    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ template: 'PRODUCT_SUBSTITUTED', sourceReference: 'substitution:91:2', variables: expect.objectContaining({ actionUrl: 'https://staging.tashiraev.com/ar/track?ref=TSH-SYNTHETIC' }) }));
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ template: 'PRODUCT_SUBSTITUTED', sourceReference: 'substitution:91:2', variables: expect.objectContaining({ actionUrl: 'https://staging.tashiraev.com/ar/apply/TSH-SYNTHETIC/interview' }) }));
   });
   it.each(['new-version','accepted','product-changed'] as const)('does not send a stale proposal: %s', async scenario => {
     if (scenario === 'new-version') current.substitution_version = 3;
@@ -55,3 +55,29 @@ describe('durable transactional email dispatch', () => {
   });
 });
 
+
+
+describe('payment timeline email identity', () => {
+  it('selects the event payment instead of the newest invoice on the application', async () => {
+    let pending = true;
+    mocks.claim.mockImplementation(async (sql: string) => {
+      if (!sql.startsWith('SELECT *')) return [{}];
+      const rows = pending ? [{ ...job(), template: 'PAYMENT_SUCCESS', job_key: 'timeline:event-original', variables_json: {} }] : [];
+      pending = false; return [rows];
+    });
+    mocks.execute.mockImplementation(async (sql: string, params: unknown[]) => {
+      if (sql.startsWith('SELECT reference_number')) return [[current]];
+      if (sql.startsWith('SELECT i.invoice_number')) {
+        expect(params).toEqual([91, 'event-original']);
+        expect(sql).toContain('p.id=e.payment_id AND p.application_id=e.application_id');
+        expect(sql).toContain("e.event_name='PAYMENT_CONFIRMED'");
+        expect(sql).not.toContain('ORDER BY i.id DESC');
+        return [[{ invoice_number: 'TEST-INV-1', amount: '185.00', pdf_path: 'archive:TEST-INV-1', payment_id: 5, currency: 'USD' }]];
+      }
+      return [{}];
+    });
+    mocks.payment.mockResolvedValue({ status: 'SENT' });
+    await runTransactionalEmails();
+    expect(mocks.payment).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 91, paymentId: 5, invoiceNumber: 'TEST-INV-1', amountPaid: 185 }));
+  });
+});

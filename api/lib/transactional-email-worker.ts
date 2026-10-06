@@ -73,8 +73,8 @@ async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRE
   )) return 'SUPPRESSED';
   if (template === 'RESUME_REMINDER' && (application.payment_status !== 'pending' || ['cancelled','rejected','completed'].includes(application.status))) return 'SUPPRESSED';
   if (template === 'PAYMENT_SUCCESS') {
-    const [invoices] = await pool.execute<RowDataPacket[]>(`SELECT i.invoice_number,i.amount,i.pdf_path,i.payment_id,p.currency FROM invoices i JOIN payments p ON p.id=i.payment_id WHERE i.application_id=? ORDER BY i.id DESC LIMIT 1`, [job.application_id]);
-    if (!invoices[0]) return 'FAILED';
+    const [invoices] = await pool.execute<RowDataPacket[]>(`SELECT i.invoice_number,i.amount,i.pdf_path,i.payment_id,p.currency FROM application_timeline_events e JOIN payments p ON p.id=e.payment_id AND p.application_id=e.application_id JOIN invoices i ON i.payment_id=p.id AND i.application_id=e.application_id WHERE e.application_id=? AND e.id=? AND e.event_name='PAYMENT_CONFIRMED' AND p.status='succeeded'`, [job.application_id, String(job.job_key).replace(/^timeline:/, '')]);
+    if (invoices.length !== 1) return 'FAILED';
     const invoice = invoices[0];
     const result = await sendPaymentSuccessEmail({ applicationId: Number(job.application_id), paymentId: Number(invoice.payment_id), recipient: application.contact_email, referenceNumber: application.reference_number, invoiceNumber: invoice.invoice_number, amountPaid: Number(invoice.amount), currency: invoice.currency, invoicePdfPath: invoice.pdf_path });
     return result.status === 'SENT' || result.status === 'ALREADY_SENT' ? 'SENT' : 'FAILED';
@@ -88,7 +88,9 @@ async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRE
   const recipient = isAdminEmail(template) ? adminEmailRecipient() : String(application.contact_email);
   if (!recipient) throw new Error('Configure the monitored administrator notification address, then retry this message.');
   const refundCaseId = isAdminEmail(template) ? String(job.job_key).split(':').at(-1) || '' : '';
-  const customerPath = template === 'DOCUMENTS_COMPLETE' && application.payment_status === 'pending'
+  const customerPath = template === 'PRODUCT_SUBSTITUTED'
+    ? `apply/${encodeURIComponent(application.reference_number)}/interview`
+    : template === 'DOCUMENTS_COMPLETE' && application.payment_status === 'pending'
     ? `pay/${encodeURIComponent(application.reference_number)}` : `track?ref=${encodeURIComponent(application.reference_number)}`;
   const actionUrl = isAdminEmail(template) ? adminEmailActionUrl(template, { ...variables, refundCaseId }) : `${publicAppOrigin()}/${application.preferred_language}/${customerPath}`;
   const result = await sendCustomerNotification({ applicationId: Number(job.application_id), recipient, template,
