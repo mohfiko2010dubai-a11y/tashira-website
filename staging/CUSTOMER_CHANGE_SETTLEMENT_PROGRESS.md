@@ -1,3 +1,18 @@
+# Owner scope supersedes automatic settlement plan — 2026-10-07
+
+Source: C:/Users/ADMIN/Downloads/codex-VISA-CHANGE-SCOPE.txt. Stop automated amendment collection/refund/webhook work until post-launch Phase5/TASK22. Keep quote/acknowledgement and unused separate invoice function; it uses the next number of the existing canonical invoice series, never a suffix.
+
+Pre-launch remaining scope:
+1. Customer refusal -> REFUSED (not settled), filing stays blocked. Queue a reasoned agent decision: full refund/cancel; refund less processing fee; keep open/another product; original product only with written customer insistence and recorded risk. Every outcome passes the approvals queue. Do not silently permit original-product filing just because the quote was refused.
+2. Manual difference settlement with payment/refund reference recorded on order and auditable actor. No automatic new Stripe integration. Do not mark settled merely from acknowledgement.
+3. Pause submission clock for requested documents, amendment acknowledgement and customer payment; resume on response. Persist each pause/resume with reason on timeline. Customer-holding time is excluded; overlapping reasons must not be double-counted; a pre-existing breach must not be erased by a late pause.
+4. Test migration068 on MySQL and run all26 guarded MySQL tests with mandatory no-skip CI before staging deployment. Staging remains e018c38 until verified replacement deployment.
+5. Return to Phase2: three named accounts/eight assertions, mobile approvals with Stripe balance and remaining refundable amount, paused-clock Express auto-refund, logged/watermarked/short-lived document access, real-delivery SPF/DKIM/DMARC and mail-tester evidence. Full customer journey only after these.
+
+Local validation: check/lint/build passed;1379 tests passed and26 MySQL integration tests skipped (not exercised in this phase). No claim of database-gate completion.
+
+Current new code is only the backward-compatible clock calculation accepting explicit wait intervals and seven edge-case tests. Existing runtime does not pass pause intervals yet, so the pause requirement is NOT implemented end-to-end. Refusal/approvals/manual settlement/timeline persistence and DB gates remain pending. No deployment/migration/Stripe operation/provider send. Older automation next-step lists below are superseded.
+
 # Latest candidate — 2026-10-07
 
 Owner decision: a paid increase gets its own numbered invoice for ONLY the difference; original invoice remains unchanged. For decreases retain the existing refund/credit-note accounting model.
