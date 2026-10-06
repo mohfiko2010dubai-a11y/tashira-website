@@ -18,11 +18,11 @@ async function quoteFor(connection: PoolConnection, applicationId: number, quote
   if (!rows[0]) conflict("This proposal is no longer current. Refresh the order before continuing.");
   return rows[0];
 }
-async function event(connection: PoolConnection, quote: RowDataPacket, action: string, actor: string, reason: string) {
+async function event(connection: PoolConnection, quote: RowDataPacket, action: string, actor: string, reason: string, actorType: "STAFF" | "ADMIN" = "STAFF") {
   await connection.execute("INSERT INTO product_substitution_events(application_id,version,product,action,actor,reason) VALUES(?,?,?,?,?,?)",
     [quote.application_id, quote.version, quote.replacement_product, action, actor, reason]);
   await connection.execute("INSERT INTO application_timeline_events(id,application_id,event_name,event_source,actor_type,actor_reference,resulting_state,summary) VALUES(UUID(),?,?,'VISA_CHANGE',?,?,?,?)",
-    [quote.application_id, `AMENDMENT_${action}`, actor === "CUSTOMER" ? "CUSTOMER" : "STAFF", actor, action, reason]);
+    [quote.application_id, `AMENDMENT_${action}`, actor === "CUSTOMER" ? "CUSTOMER" : actorType, actor, action, reason.slice(0, 255)]);
 }
 export async function refuseVisaChange(applicationId: number, quoteId: string, version: number, reason: string) {
   return withCheckoutLock(applicationId, async connection => {
@@ -115,11 +115,11 @@ export async function decideManualChange(id: string, actorId: number, approve: b
     const quote = await quoteFor(connection, Number(decision.application_id), String(decision.quote_id), Number(decision.quote_version));
     await connection.execute("UPDATE visa_change_decisions SET state=?,decided_by=?,decided_at=NOW(3),decision_reason=? WHERE id=?",
       [approve ? "APPROVED" : "REJECTED", actorId, reason, id]);
-    if (!approve) { await event(connection, quote, "DECISION_REJECTED", `staff:${actorId}`, reason); return { approved: false }; }
+    if (!approve) { await event(connection, quote, "DECISION_REJECTED", `staff:${actorId}`, reason, "ADMIN"); return { approved: false }; }
     if (decision.kind === "SETTLEMENT") {
       if (!["ACCEPTED", "PAYMENT_PENDING", "REFUND_PENDING"].includes(quote.state) || !decision.stripe_reference) conflict("Settlement evidence is incomplete or no longer current.");
       await connection.execute("UPDATE visa_change_quotes SET state='SETTLED' WHERE id=?", [quote.id]);
-      await event(connection, quote, "SETTLED", `staff:${actorId}`, `${decision.direction} ${decision.amount_minor} ${decision.currency}; ${decision.stripe_reference}; ${reason}`.slice(0, 500));
+      await event(connection, quote, "SETTLED", `staff:${actorId}`, `${decision.direction} ${decision.amount_minor} ${decision.currency}; ${decision.stripe_reference}; ${reason}`.slice(0, 500), "ADMIN");
     } else {
       if (quote.state !== "REFUSED") conflict("This refusal was already resolved.");
       if (decision.outcome === "ORIGINAL_AT_CUSTOMER_REQUEST") {
@@ -128,7 +128,7 @@ export async function decideManualChange(id: string, actorId: number, approve: b
       } else if (["FULL_REFUND_CANCEL", "REFUND_LESS_FEE"].includes(decision.outcome)) {
         await connection.execute("UPDATE applications SET status='cancelled' WHERE id=?", [quote.application_id]);
       }
-      await event(connection, quote, "REFUSAL_RESOLVED", `staff:${actorId}`, `${decision.outcome}: ${reason}`.slice(0, 500));
+      await event(connection, quote, "REFUSAL_RESOLVED", `staff:${actorId}`, `${decision.outcome}: ${reason}`.slice(0, 500), "ADMIN");
     }
     const amount = `${(Number(decision.amount_minor) / 100).toFixed(2)} ${decision.currency}`;
     const outcomes: Record<string, [string, string]> = {

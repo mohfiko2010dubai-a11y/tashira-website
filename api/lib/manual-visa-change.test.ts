@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-vi.mock("./checkout-quote", () => ({ withCheckoutLock: vi.fn() }));
+const db = vi.hoisted(() => ({ execute: vi.fn() }));
+vi.mock("./checkout-quote", () => ({ withCheckoutLock: async (_id: number, fn: (connection: typeof db) => unknown) => fn(db) }));
 vi.mock("./operations/mysql-query-client", () => ({ defaultOperationsPool: vi.fn() }));
-import { validateManualChange, type ManualChangeRequest } from "./manual-visa-change";
+import { refuseVisaChange, validateManualChange, type ManualChangeRequest } from "./manual-visa-change";
 const quote = { state: "ACCEPTED", difference_minor: 3000, old_total_minor: 18500 };
 const settlement: ManualChangeRequest = { quoteId: "synthetic", version: 1, kind: "SETTLEMENT", direction: "TOP_UP", amountMinor: 3000, currency: "USD", stripeReference: "pi_synthetic", reason: "Checked completed payment" };
 describe("manual amendment settlement evidence", () => {
@@ -22,4 +23,12 @@ describe("manual amendment settlement evidence", () => {
     expect(() => validateManualChange({ ...quote, state: "REFUSED" }, request)).toThrow();
     expect(() => validateManualChange({ ...quote, state: "REFUSED" }, { ...request, amountMinor: 18500 })).not.toThrow();
   });
+});
+
+it("preserves a long refusal reason while bounding the timeline summary", async () => {
+  const reason = "x".repeat(500);
+  db.execute.mockResolvedValueOnce([[{ id: "quote", application_id: 2, version: 1, replacement_product: "NEW", state: "PROPOSED" }]]).mockResolvedValue([[]]);
+  await refuseVisaChange(2, "quote", 1, reason);
+  expect(db.execute.mock.calls[2][1].at(-1)).toBe(reason);
+  expect(db.execute.mock.calls[3][1].at(-1)).toHaveLength(255);
 });
