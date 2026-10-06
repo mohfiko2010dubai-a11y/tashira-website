@@ -1,3 +1,4 @@
+import { ManualVisaChange } from "@/components/admin/ManualVisaChange";
 import Logo from '@/components/shared/Logo';
 import { useParams, Link } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
@@ -103,6 +104,7 @@ export default function StaffApplicationDetail() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        <ManualVisaChange referenceNumber={app.referenceNumber} />
         {/* Status Bar */}
         <div className="bg-white rounded-lg border border-gray-100 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">

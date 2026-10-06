@@ -1,3 +1,4 @@
+import { ManualVisaChange } from "@/components/admin/ManualVisaChange";
 import { Link, useParams } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
 import OperationsCaseWorkspace from "@/components/operations/OperationsCaseWorkspace";
@@ -49,6 +50,7 @@ export default function StaffOperationsCase() {
       <CaseNotePanel referenceNumber={query.data.summary.reference} onRecorded={async () => { await query.refetch(); }} />
       <SchedulerAlertPanel applicationId={query.data.summary.applicationId} />
       <RefundRequest applicationId={query.data.summary.applicationId} />
+      <ManualVisaChange referenceNumber={query.data.summary.reference} />
     </div>
   </OperationsShell>;
 }

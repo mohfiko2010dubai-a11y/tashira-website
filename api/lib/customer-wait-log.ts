@@ -35,11 +35,11 @@ export async function overdueWaitingOrders() {
 }
 
 export async function customerServiceClock(applicationId: number) {
-  const [rows] = await defaultOperationsPool().execute<RowDataPacket[]>(`SELECT a.processing_type,
+  const [rows] = await defaultOperationsPool().execute<RowDataPacket[]>(`SELECT a.processing_type,a.payment_status,
     UNIX_TIMESTAMP(c.documents_completed_at) completed,UNIX_TIMESTAMP(c.authority_submitted_at) submitted
     FROM applications a LEFT JOIN application_service_clocks c ON c.application_id=a.id WHERE a.id=?`, [applicationId]);
   const row = rows[0];
-  if (!row || row.completed === null) return { deadline: null, paused: false, submitted: false };
+  if (!row || row.payment_status !== "paid" || row.completed === null) return { deadline: null, paused: false, submitted: false };
   const asOf = row.submitted === null ? new Date() : new Date(Number(row.submitted) * 1000);
   const waits = await customerWaitLog(applicationId, asOf);
   return { deadline: submissionDeadline(new Date(Number(row.completed) * 1000), row.processing_type === "express", waits.intervals, asOf).toISOString(),

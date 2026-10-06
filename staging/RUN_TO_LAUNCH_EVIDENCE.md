@@ -1,0 +1,37 @@
+# Run-to-launch evidence — 7 October 2026
+
+This is an evidence ledger, not launch acceptance. Production remains closed.
+
+## Verified candidate and deployment
+
+- Source3768365ee5c5568ea05f2ab57254eade2cae6d57; hosted CI37536454106 succeeded in both jobs, including26 MySQL integrations, zero skips. The runner fails on skips.
+- Local and staging candidate check/lint/test/build passed:1397 unit tests; guarded26 DB tests run separately.
+- Migration068 passed on isolated MySQL with immutable quote/decision guards, reference-required exact settlement, agent refusal/named-admin decision, filing guard, refusal preserved after original-product exception, document request/response and activation/idempotency tests.
+- Deployed from e018c38 to isolated staging only. Backup `/var/backups/tashira-staging/run-launch-1791323706932`; schema has all12 new triggers; clock activation2026-10-06T21:55:12.041Z; overdue threshold24 hours. No historical pauses inferred. Local/public health200.
+- Browser reload of the owner's synthetic draft retained its saved traveller data and all3 documents and showed the Arabic service-clock explanation. This is a smoke check, not the required PK/SA bilingual journey.
+- Production closure configuration read-only check returned `{"closed":true}`. This alone does not prove every reopen guard or company-policy prerequisite.
+
+## Named-account dependency
+
+Read-only exact-account query: owner ADMIN active/MFA enrolled/verified; agent1 and agent2 active but MFA not enrolled or verified. Owner asked to complete enrollment. Passwords and secrets were not generated/read/displayed. Legacy access unchanged; written recovery remains in STAFF_ACCESS_RECOVERY.md. Live8-assertion account UAT and financial-dashboard journey are pending, not passed.
+
+## Real-delivery authentication evidence
+
+Read from the already-open mail-tester result and expanded Source view, not inferred from DNS. Message received4 October2026 at16:28:18UTC. Test URL: https://mail-tester.com/test-hz8sq5plo. Score5.6/10. This historical message predates the corrected image-free template; it proves sending-domain authentication, not current-template scoring or the new journey's inbox delivery.
+
+Verbatim received headers:
+
+```text
+Authentication-Results: mail-tester.com; dmarc=pass (p=none dis=none) header.from=tashiraev.com
+Authentication-Results: dkim.mail-tester.com;
+	dkim=pass (1024-bit key; unprotected) header.d=tashiraev.com  header.i=@tashiraev.com  header.a=rsa-sha256 header.s=resend header.b=c2F9pWRz;
+	dkim=pass (1024-bit key; unprotected) header.d=amazonses.com  header.i=@amazonses.com  header.a=rsa-sha256 header.s=zh4gjftm6etwoq6afzugpky45synznly header.b=jjYzK/+7;
+	dkim-atps=neutral
+Received-SPF: Pass (mailfrom) identity=mailfrom; client-ip=23.251.234.51; helo=e234-51.smtp-out.ap-northeast-1.amazonses.com; envelope-from=010601a107bea22f-9cee5436-f371-4073-8da4-445909e3c621-000000@send.tashiraev.com; receiver=<UNKNOWN>
+```
+
+From domain tashiraev.com exactly matches the first DKIM signing domain. Envelope send.tashiraev.com aligns with tashiraev.com under relaxed SPF alignment. DMARC passed. Score penalties include the old image-heavy test body, uppercase test markers and a shared-IP blocklist finding; do not turn this into an inbox guarantee.
+
+## Still required before gate report
+
+Live named-account assertions; rejected-first then executed TEST refund by agent/admin through UI; live breached versus paused Express cases; both complete PK/SA customer journeys with exactly-once language/amount/invoice mail evidence; filing rejection before customer acknowledgement in the live journey; owner company/policy/reopen checks. No launch-complete claim.

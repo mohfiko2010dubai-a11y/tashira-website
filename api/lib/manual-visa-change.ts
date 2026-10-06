@@ -130,9 +130,21 @@ export async function decideManualChange(id: string, actorId: number, approve: b
       }
       await event(connection, quote, "REFUSAL_RESOLVED", `staff:${actorId}`, `${decision.outcome}: ${reason}`.slice(0, 500));
     }
+    const amount = `${(Number(decision.amount_minor) / 100).toFixed(2)} ${decision.currency}`;
+    const outcomes: Record<string, [string, string]> = {
+      FULL_REFUND_CANCEL: [`Your order was cancelled and a full refund was recorded: ${amount}`, `تم إلغاء طلبك وتسجيل رد المبلغ كاملًا: ${amount}`],
+      REFUND_LESS_FEE: [`A refund after the documented processing fee was recorded: ${amount}`, `تم تسجيل رد المبلغ بعد خصم رسوم المعالجة الموضحة: ${amount}`],
+      TRY_ANOTHER_PRODUCT: ["Your order remains open while we discuss another visa option", "طلبك ما زال مفتوحًا لمراجعة خيار تأشيرة آخر معك"],
+      ORIGINAL_AT_CUSTOMER_REQUEST: ["Your written request to proceed with the original visa was recorded", "تم تسجيل طلبك الكتابي بالاستمرار بالتأشيرة الأصلية"],
+    };
+    const labels = decision.kind === "SETTLEMENT"
+      ? decision.direction === "TOP_UP" ? [`Additional visa-change payment received: ${amount}`, `تم استلام فرق تعديل التأشيرة: ${amount}`]
+        : [`Visa-change difference refunded: ${amount}`, `تم رد فرق تعديل التأشيرة: ${amount}`]
+      : outcomes[String(decision.outcome)];
+    if (!labels) conflict("Outcome notification is unavailable. Review the recorded decision.");
     await connection.execute(`INSERT INTO transactional_email_jobs(job_key,application_id,template,variables_json)
-      SELECT ?,a.id,'STATUS_CHANGED',JSON_OBJECT('statusLabel',CONCAT(IF(a.preferred_language='ar','تمت مراجعة تعديل التأشيرة: ','Visa amendment reviewed: '),?, ' — ',?), 'sourceEvent','adjustment_issued')
-      FROM applications a WHERE a.id=?`, [`adjustment:${id}`, decision.kind === "SETTLEMENT" ? `${decision.direction} ${(Number(decision.amount_minor) / 100).toFixed(2)} ${decision.currency}` : decision.outcome, reason, quote.application_id]);
+      SELECT ?,a.id,'STATUS_CHANGED',JSON_OBJECT('statusLabel',CONCAT(IF(a.preferred_language='ar',?,?), ' — ',?), 'sourceEvent','adjustment_issued')
+      FROM applications a WHERE a.id=?`, [`adjustment:${id}`, labels[1], labels[0], reason, quote.application_id]);
     return { approved: true };
   });
 }

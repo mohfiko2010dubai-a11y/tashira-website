@@ -1,3 +1,11 @@
+# Run-to-launch staging milestone — 2026-10-07
+
+3768365 deployed from e018c38 after hosted CI37536454106 passed both jobs. Migration068 applied to verified tashira_staging only;12 triggers verified; backup /var/backups/tashira-staging/run-launch-1791323706932; clock activated2026-10-06T21:55:12.041Z,24h overdue threshold. Health200 and browser synthetic draft reload passed. Production read-only closure check still true.
+
+Follow-up candidate adds the manual-outcome request control to BOTH staff detail/workspace pages, retains admin-only decisions, localizes customer settlement outcomes, and avoids displaying a service deadline on unpaid applications. Required local check/lint/test/build pass (1397 unit tests); same schema already exercised with26 no-skip MySQL tests, hosted verification for this follow-up pending. Evidence including verbatim real-delivery Authentication-Results is in staging/RUN_TO_LAUNCH_EVIDENCE.md.
+
+Launch is NOT accepted: two authorized agents still need owner MFA enrollment, then named-account8-assertion UAT, rejected-first dashboard refund, breached/paused live Express cases, and exact bilingual journey/email evidence. Do not replace these with unit-test claims. Owner company/policy/reopen gates remain separately required. Do not disable legacy login, create credentials or open production to bypass any gate.
+
 # Run-to-launch checkpoint — 2026-10-07
 
 Owner standing order: complete the launch gate in codex-RUN-TO-LAUNCH.txt, not intermediate completion claims. Current candidate binds the customer-wait clock to SENT document/amendment evidence, payment-link issuance and matching response events; immutable timelines, configurable overdue list, customer date/time explanation, REFUSED outcome approvals and exact referenced manual settlement are implemented. Queue combines refunds and amendment decisions oldest-first with named-admin reauthentication. Automatic amendment charges/refunds remain deferred. Corrected physical email-column names in paymentEmailRecord and exercised its SQL on real MySQL.
