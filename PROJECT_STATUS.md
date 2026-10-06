@@ -1,3 +1,15 @@
+# Clock/settlement binding rules — 2026-10-07
+
+Owner source: C:/Users/ADMIN/Downloads/codex-CLOCK-AND-SETTLEMENT.txt.
+- Derive elapsed time from timestamped pause/resume events; never persist a running elapsed counter.
+- Pause on successful documents-request/quote SENT or difference payment-link ISSUED, not a later status write. Correlate each wait with a unique request/version key; resume retries are no-ops.
+- Existing orders retain prior elapsed time. New pause rule applies from a recorded deployment activation timestamp forward; never infer historic pauses from creation/status.
+- Surface waits older than configurable threshold in admin, oldest first. No customer live countdown; show date/time and explain deadline changes.
+- REFUSED remains filing-blocking, never treated as SETTLED; keep paused until approved outcome resolution. All four owner-defined outcomes go through approvals with reason and written insistence/risk evidence when choosing original product.
+- Manual settlement requires direction, exact amount/currency, quote/version, Stripe reference, named actor/time and approvals. Payment-link creation alone is not evidence that funds arrived. On approved completed settlement unblock/resume and send adjustment_issued naming what/why. Automated charge/refund work stays deferred.
+
+Implemented this round: pure event-log projection with duplicate/out-of-order resume handling, activation filtering, and configurable oldest-first overdue-wait projection. Six added tests. Local check/lint/build pass;1385 tests pass with26 existing MySQL integration skips (not exercised). This is NOT bound to database events/mail receipts/admin UI yet; no operational clock/settlement completion claim. Migration068 and26 no-skip MySQL CI remain prerequisites to any deployment. Staging and production unchanged.
+
 # Owner scope supersedes automatic settlement plan — 2026-10-07
 
 Source: C:/Users/ADMIN/Downloads/codex-VISA-CHANGE-SCOPE.txt. Stop automated amendment collection/refund/webhook work until post-launch Phase5/TASK22. Keep quote/acknowledgement and unused separate invoice function; it uses the next number of the existing canonical invoice series, never a suffix.
