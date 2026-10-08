@@ -30,7 +30,7 @@ export default function StaffDashboard() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const { data: applications, isLoading, refetch } = trpc.application.list.useQuery({
+  const { data: applications, isLoading, isError, refetch } = trpc.application.list.useQuery({
     includeTest,
     status: statusFilter || undefined,
     dateFrom: dateFrom || undefined,
@@ -60,6 +60,7 @@ export default function StaffDashboard() {
     <OperationsShell title="Applications" subtitle={`Welcome ${staff?.name ?? ''}. Search, triage and open the complete Operations case workspace.`}>
       <div>
         <div className="mb-4 flex justify-end"><button onClick={() => refetch()} className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw size={14} /> Refresh</button></div>
+        {isError && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">Applications could not be loaded. Click Refresh to try again; if the problem continues, ask your administrator to check your access.</div>}
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-3 mb-6 lg:grid-cols-5">
           <div className="bg-white rounded-lg p-4 border border-gray-100">
@@ -159,7 +160,7 @@ export default function StaffDashboard() {
                 </tbody>
               </table>
             </div>
-            {filtered.length === 0 && <div className="text-center py-12 text-gray-400">No applications found.</div>}
+            {!isError && filtered.length === 0 && <div className="text-center py-12 text-gray-400">No applications found.</div>}
           </div>
         )}
       </div>

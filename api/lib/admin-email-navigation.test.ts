@@ -8,5 +8,8 @@ it.each(['https://evil.example', '//evil.example', '/admin/approvals?next=https:
   expect(adminLoginDestination('admin', { returnTo })).toBe('/admin/applications');
 });
 it('does not send a staff account into an administrator destination', () => {
-  expect(adminLoginDestination('staff', { returnTo: '/admin/approvals' })).toBe('/staff/operations/dashboard');
+  expect(adminLoginDestination('staff', { returnTo: '/admin/approvals' })).toBe('/staff/dashboard');
+});
+it('lands agents on applications without requiring manager analytics access', () => {
+  expect(adminLoginDestination('staff', null)).toBe('/staff/dashboard');
 });
