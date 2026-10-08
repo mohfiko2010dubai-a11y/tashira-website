@@ -24,5 +24,6 @@ describe("legacy staff application boundaries", () => {
     expect(staffResourceTargets("application.getByReference", { referenceNumber: "TSH-X" })).toEqual([{ kind: "reference", value: "TSH-X" }]);
     expect(staffResourceTargets("document.create", { applicationId: 2, documentId: 13 })).toHaveLength(2);
     expect(staffResourceTargets("staff.update", { id: 7 })).toEqual([]);
+    expect(staffResourceTargets("emailOperations.history", { referenceNumber: "TSH-X" })).toEqual([{ kind: "reference", value: "TSH-X" }]);
   });
 });

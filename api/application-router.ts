@@ -29,7 +29,7 @@ import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/prici
 import { activeBusinessSettings } from "./lib/pricing-engine";
 import { canEnterApplicationState } from "./lib/processing-gate";
 import { TRPCError } from "@trpc/server";
-import { staffApplicationListCondition } from "./lib/staff-application-scope";
+import { needsStaffScope, staffApplicationListCondition } from "./lib/staff-application-scope";
 import { financialApplicationScope } from "./lib/financial-application-scope";
 import { withCheckoutLock } from "./lib/checkout-quote";
 import { recordAuthoritySubmission } from "./lib/processing-guarantee";
@@ -38,10 +38,10 @@ const STATUS_ENUM = ["submitted","payment_received","documents_pending","documen
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
 const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
 export const applicationRouter = createRouter({
-  proposeSubmittedProduct: adminQuery.input(z.object({ referenceNumber: z.string().min(3), product: z.string().min(1).max(80), reason: z.string().trim().min(1).max(500) })).mutation(async ({ input, ctx }) => {
+  proposeSubmittedProduct: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), product: z.string().min(1).max(80), reason: z.string().trim().min(1).max(500) }).strict()).mutation(async ({ input, ctx }) => {
     const application = await getCanonicalApplicationByReference(input.referenceNumber);
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
-    return proposeSubmittedProduct(application.id, input.product, String(ctx.user?.id ?? ctx.staffId ?? "admin-session"), input.reason);
+    return proposeSubmittedProduct(application.id, input.product, ctx.staffId ? `staff:${ctx.staffId}` : ctx.user?.id ? `user:${ctx.user.id}` : 'admin-session', input.reason, needsStaffScope(ctx) ? ctx.staffId : undefined);
   }),
   serviceClock: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3) })).query(async ({ input, ctx }) => {
     assertApplicationReferenceAccess(ctx, input.referenceNumber);

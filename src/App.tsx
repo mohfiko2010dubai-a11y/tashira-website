@@ -43,7 +43,7 @@ const StaffLogin = lazy(() => importWithStaleChunkRecovery(() => import('@/pages
 const StaffSetup = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffSetup')));
 const StaffDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffDashboard')));
 const StaffApplicationDetail = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffApplicationDetail')));
-const StaffOperationsCase = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationsCase')));
+const StaffOperationsCase = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/UnifiedOperationsCase')));
 const StaffUpcomingSubmissions = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffUpcomingSubmissions')));
 const StaffOperationsDashboard = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationsDashboard')));
 const StaffSupportInbox = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffSupportInbox')));

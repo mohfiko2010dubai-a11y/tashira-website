@@ -17,7 +17,7 @@ export function DocumentValidityReview({ referenceNumber, mode = 'review' }: { r
   const facts = trpc.application.documentReviewFacts.useQuery({ referenceNumber });
   const record = trpc.application.recordDocumentReview.useMutation();
   const propose = trpc.application.proposeSubmittedProduct.useMutation();
-  const products = trpc.catalog.adminProducts.useQuery(undefined, { enabled: mode === 'change' });
+  const products = trpc.catalog.listActiveProducts.useQuery(undefined, { enabled: mode === 'change' });
   const application = trpc.application.getByReference.useQuery({ referenceNumber });
   const [result, setResult] = useState('');
   const control = 'mt-2 block min-h-11 w-full rounded-xl border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-[#C9A04C]';
@@ -32,7 +32,7 @@ export function DocumentValidityReview({ referenceNumber, mode = 'review' }: { r
         try { await propose.mutateAsync({ referenceNumber, product: String(data.get('product')), reason: String(data.get('reason')) }); await application.refetch(); setResult('تم حفظ المقترح. يظل التقديم متوقفًا حتى موافقة العميل واستيفاء متطلبات التسوية.'); }
         catch (error) { setResult(error instanceof Error ? error.message : 'تعذر حفظ المقترح. حاول مرة أخرى.'); }
       }}>
-        <label className="block font-medium">١. اختر التأشيرة المقترحة<select name="product" required className={control}><option value="">اختر نوع التأشيرة</option>{products.data?.filter(product => product.isActive).map(product => <option key={product.serviceCode} value={product.serviceCode}>{visaLabel(product.serviceCode)}</option>)}</select></label>
+        <label className="block font-medium">١. اختر التأشيرة المقترحة<select name="product" required className={control}><option value="">اختر نوع التأشيرة</option>{products.data?.map(product => <option key={product.id} value={product.id}>{visaLabel(product.id)}</option>)}</select></label>
         {products.error && <p role="alert" className="text-red-700">تعذر تحميل أنواع التأشيرات. حدّث الصفحة قبل اقتراح التعديل.</p>}
         <label className="block font-medium">٢. اشرح سبب التغيير<textarea name="reason" required maxLength={500} rows={3} placeholder="اكتب سببًا واضحًا خاصًا بهذا الطلب" className={control} /></label>
         <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">هذا الإجراء يحفظ مقترح تعديل. لا يخصم أموالًا ولا ينفّذ استردادًا.</p>

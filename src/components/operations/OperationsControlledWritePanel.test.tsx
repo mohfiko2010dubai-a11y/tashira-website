@@ -21,6 +21,17 @@ function capabilities(overrides:Partial<OperationsWriteCapabilities>={}):Operati
 }
 
 describe("Operations Controlled Write UI",()=>{
+  it('separates document and status actions without widening server capabilities', () => {
+    const documents = renderToStaticMarkup(<OperationsControlledWritePanel enabled group="documents" model={fixture()} capabilities={capabilities()} execute={execute} />);
+    expect(documents).toContain('حفظ نتيجة المراجعة');
+    expect(documents).not.toContain('حفظ حالة الطلب');
+    expect(documents).not.toContain('Assignment');
+    const status = renderToStaticMarkup(<OperationsControlledWritePanel enabled group="status" model={fixture()} capabilities={capabilities()} execute={execute} />);
+    expect(status).toContain('حفظ حالة الطلب');
+    expect(status).not.toContain('حفظ نتيجة المراجعة');
+    const denied = renderToStaticMarkup(<OperationsControlledWritePanel enabled group="documents" model={fixture()} capabilities={capabilities({ documentReview: false })} execute={execute} />);
+    expect(denied).not.toContain('حفظ نتيجة المراجعة');
+  });
   it("renders no controls while the flag is off",()=>expect(renderToStaticMarkup(<OperationsControlledWritePanel enabled={false} model={fixture()} capabilities={capabilities()} execute={execute}/>)).toBe(""));
 
   it("renders only server-authorized actions and transitions",()=>{

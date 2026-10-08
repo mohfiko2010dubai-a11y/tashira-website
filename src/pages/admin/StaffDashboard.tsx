@@ -58,9 +58,11 @@ export default function StaffDashboard() {
   const readyOrPaid = filtered.filter((app) => app.status === 'documents_received' || app.paymentStatus === 'paid').length;
 
   return (
-    <OperationsShell title="Applications" subtitle={`Welcome ${staff?.name ?? ''}. Search, triage and open the complete Operations case workspace.`}>
+    <OperationsShell title="مكتب الطلبات" subtitle={`مرحبًا ${staff?.name ?? ''} — اختر قائمة ثم افتح الطلب لمتابعة إجراءاته.`}>
       <div>
+        <label className="mb-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={includeTest} onChange={event => setIncludeTest(event.target.checked)} />عرض طلبات الاختبار</label>
         <WorkQueuePanel includeTest={includeTest} />
+        <details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-semibold">البحث في جميع الطلبات المسندة إليّ والفواتير</summary><div className="mt-4">
         <div className="mb-4 flex justify-end"><button onClick={() => refetch()} className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw size={14} /> Refresh</button></div>
         {isError && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">Applications could not be loaded. Click Refresh to try again; if the problem continues, ask your administrator to check your access.</div>}
         {/* Summary Cards */}
@@ -79,10 +81,6 @@ export default function StaffDashboard() {
         </div>
 
         {/* Filters */}
-        <label className="mb-3 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={includeTest} onChange={event => setIncludeTest(event.target.checked)} />
-          Show test orders
-        </label>
         <div className="bg-white rounded-lg border border-gray-100 p-4 mb-6">
           <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
@@ -165,6 +163,7 @@ export default function StaffDashboard() {
             {!isError && filtered.length === 0 && <div className="text-center py-12 text-gray-400">No applications found.</div>}
           </div>
         )}
+        </div></details>
       </div>
     </OperationsShell>
   );

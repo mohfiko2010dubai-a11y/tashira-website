@@ -19,6 +19,7 @@ import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
 import { RefundManager } from "@/components/admin/RefundManager";
 import { ProcessingGuarantee } from "@/components/admin/ProcessingGuarantee";
 import { SecurityDepositManager } from "@/components/admin/SecurityDepositManager";
+import CustomerProgressPanel from '@/components/operations/CustomerProgressPanel';
 
 const statusColors: Record<string, string> = {
   submitted: "bg-gray-100 text-gray-700",
@@ -39,6 +40,7 @@ const TABS = [
   { key: "documents", label: "المستندات والمراجعة", icon: FolderOpen },
   { key: "change", label: "تعديل التأشيرة", icon: RefreshCw },
   { key: "payments", label: "المدفوعات والاسترداد", icon: DollarSign },
+  { key: "messages", label: "حالة العميل والإيميلات", icon: History },
   { key: "timeline", label: "سجل العمليات", icon: History },
   { key: "notes", label: "ملاحظات العميل", icon: StickyNote },
 ];
@@ -192,6 +194,7 @@ export default function AdminApplicationDetail() {
 
         {/* Tab Content */}
         <div className="space-y-6">
+          {activeTab === 'messages' && <CustomerProgressPanel referenceNumber={app.referenceNumber} />}
           {activeTab === 'change' && <><DocumentValidityReview referenceNumber={app.referenceNumber} mode="change" /><ManualVisaChange referenceNumber={app.referenceNumber} /></>}
           {/* Overview Tab */}
           {activeTab === "overview" && (

@@ -6,6 +6,17 @@ import { acknowledgeSubmittedProduct, proposeSubmittedProduct } from "./product-
 
 beforeEach(() => hooks.execute.mockReset());
 describe("versioned product acknowledgement", () => {
+  it('rejects a proposal if assignment changed after request authorization', async () => {
+    hooks.execute.mockResolvedValueOnce([[{ status: 'under_review', substitution_version: 2 }]])
+      .mockResolvedValueOnce([[{ assigned_staff_user_id: 8 }]]);
+    await expect(proposeSubmittedProduct(1, '14days-single', 'staff:7', 'Review evidence', 7)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(hooks.execute).toHaveBeenCalledTimes(2);
+  });
+  it.each(['cancelled', 'rejected'])('keeps %s cases closed', async status => {
+    hooks.execute.mockResolvedValueOnce([[{ status }]]);
+    await expect(proposeSubmittedProduct(1, '14days-single', 'staff:7', 'Review evidence', 7)).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(hooks.execute).toHaveBeenCalledTimes(1);
+  });
   it("invalidates old consent without changing the product sold", async () => {
     hooks.execute.mockResolvedValueOnce([[{ status: "under_review", visa_type: "30days-single", substitution_version: 2 }]])
       .mockResolvedValueOnce([[{ service_code: "14days-single" }]]).mockResolvedValue([[]]);

@@ -64,6 +64,8 @@ suite('atomic staff work dispatch', () => {
     expect(Number(audit[0].n)).toBe(2);
     const mine = await queue.overview(context(staff[0]), true);
     expect(mine.mine.map(row => row.applicationId)).toEqual([result[0].applicationId]);
+    expect(mine.available.every(row => row.reference !== result[0].reference && row.reference !== result[1].reference)).toBe(true);
+    for (const row of mine.available) expect(Object.keys(row).sort()).toEqual(['createdAt', 'processingType', 'reference', 'visaType']);
     expect(JSON.stringify(mine)).not.toMatch(/queue@example|total_amount|supplier_cost|password/);
   });
   it('denies another employee work changes and requires reason/date/version; waiting does not change visa/payment', async () => {

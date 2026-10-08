@@ -66,6 +66,16 @@ export class MysqlWorkQueue {
       AND a.status IN ('submitted','payment_received','documents_pending','documents_received','under_review')
       AND (? OR (a.is_test=0 AND a.data_classification='LIVE')) AND ${scope.sql}`, [includeTest, ...scope.values]);
     const [availability] = await this.pool.execute<RowDataPacket[]>('SELECT availability FROM operations_staff_availability WHERE staff_user_id=?', [staffId]);
+    // Queue preview only. Contact information, documents and finance remain
+    // assigned-only; opening a preview never assigns the case.
+    const [available] = await this.pool.execute<RowDataPacket[]>(`SELECT a.reference_number AS reference,
+      a.visa_type AS visaType,a.processing_type AS processingType,
+      DATE_FORMAT(a.created_at,'%Y-%m-%dT%H:%i:%s.000Z') AS createdAt
+      FROM applications a LEFT JOIN operations_case_controls c ON c.application_id=a.id
+      WHERE c.assigned_staff_user_id IS NULL AND a.payment_status='paid'
+      AND a.status IN ('submitted','payment_received','documents_pending','documents_received','under_review')
+      AND (? OR (a.is_test=0 AND a.data_classification='LIVE')) AND ${scope.sql}
+      ORDER BY (a.processing_type='express') DESC,a.created_at,a.id LIMIT 100`, [includeTest, ...scope.values]);
     const [mine] = await this.pool.execute<CaseRow[]>(`SELECT a.id,a.reference_number AS reference,a.visa_type AS visaType,a.processing_type AS processingType,
       c.assigned_staff_user_id AS ownerId,c.team_id AS teamId,a.status,
       CASE WHEN a.status IN ('completed','cancelled','rejected') THEN 'DONE'
@@ -78,6 +88,7 @@ export class MysqlWorkQueue {
       WHERE c.assigned_staff_user_id=? AND (? OR (a.is_test=0 AND a.data_classification='LIVE'))
       ORDER BY w.follow_up_at IS NULL,w.follow_up_at,a.created_at,a.id LIMIT 500`, [staffId, includeTest]);
     return { asOf: Date.now(), availableCount: Number(counts[0]?.count ?? 0), availability: z.enum(AVAILABILITY).parse(availability[0]?.availability ?? 'OFF_DUTY'),
+      available: available.map(row => ({ reference: String(row.reference), visaType: String(row.visaType), processingType: String(row.processingType), createdAt: String(row.createdAt) })),
       mine: mine.map(row => ({ applicationId: Number(row.id), reference: row.reference, visaType: row.visaType,
         processingType: row.processingType, state: z.enum(WORK_STATES).parse(row.state), version: Number(row.version),
         reason: row.reason, dueAt: row.dueAt, changedAt: row.changedAt })) };
