@@ -1,3 +1,10 @@
+# ERP staff screen deployed to staging — 2026-10-09
+
+Runtime 8b2d20e64b11e5ad85c040d7e46186a49ec3ef9d is now deployed to staging, replacing 5d7b069. This resolves the stale deployment that kept showing the old technical Operations case page. The staff route now loads UnifiedOperationsCase, with RTL shell, compact work lists and unified case sections. Existing endpoint ownership, financial controls and consent remain in place.
+
+Verified exact staging PM2 cwd/name and database/user before deployment. Clean isolated candidate passed check, lint, test and build on the server; CI37842469536 passed Verify and mandatory integration jobs. Backup: /var/backups/tashira-staging/erp-desk-1791495234543. Health200. Public staff page200, served entry loads UnifiedOperationsCase-Dp4ZlDKQ.js200 with Arabic sections, anonymous case read403. No production, schema, account, payment, refund or email-send mutation.
+
+Browser automation could not initialize because of Windows sandbox helper failure. open_in_codex queued the staff dashboard in the current thread. Authenticated visual/interaction verification is still outstanding; do not claim visual acceptance or launch completion. Supplier rates/VAT snapshots, supplier submission/proof and automatic workflow movement plus provider integration remain outstanding as previously recorded. Pre-existing dirty dist/boot.js remains untouched locally.
 # Unified case desk — local implementation checkpoint, 2026-10-09
 
 Implementation5990df87de6ca07453e308fbcb0dcfe753d71a07 is pushed to origin/devops/deployment-safety. Hosted CI37842053540 passed Verify and the mandatory32-test MySQL integration job. Staging remains5d7b069; this is a validated implementation group, not a deployment or full ERP acceptance. Complete the supplier execution/cost and event-linkage work below before presenting the entire workflow as finished.
