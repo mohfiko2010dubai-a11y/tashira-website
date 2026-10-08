@@ -82,3 +82,11 @@ Open decisions: do not silently defer new integrations to meet today's target; i
 - Browser session returned to staff login after runtime restart. No authenticated post-deploy UAT is claimed; no password handling or reset was performed. Owner asked to collect needs at the end.
 - Production remains closed and untouched. Inbox provider routing and official WhatsApp onboarding are not verified; no claim of live two-way messaging.
 
+# 2026-10-08 final queue/inbox release receipt
+
+Runtime5d7b069b09ebf90fe8dc4a5edc5a377ed570c89a, CI37778101393 SUCCESS (32/32 database tests, no skips),1420 unit tests and all four local/server gates passed. Rollback /var/backups/tashira-staging/work-owner-1791463237957. STAFF-only feature rollout owner54/agents55/56 backup /var/backups/tashira-staging/named-work-flags-1791463314681/before.json; no grants/password/global/production changes. Existing common and team assignment routes both covered; linked conversation ownership and named manager audit covered.
+
+Live read-only services: queue/inbox PASS for54,55,56; managerReport PASS54. Current assigned count0 for each, OFF_DUTY. Test-inclusive open count50. This is direct read-only service verification, NOT authenticated browser UAT. No case claimed or financial/customer-mail action performed. Browser remains staff/login. Anonymous application/quote/clock401; manual queue403; production intake CLOSED.15 preserved files unchanged.
+
+Not closed: actual8-assertion named UI acceptance, mobile refund/guarantee/bilingual journeys, provider inbox/WhatsApp onboarding and implementation, full performance/profit attribution. Outbound Resend secret exists in private staging file. No receiving-signature/mailbox/WhatsApp API configuration found in inspected runtime configuration; do not confuse successful outbound mail with an inbound integration. Owner asked to collect needs at end rather than pause for questions.
+
