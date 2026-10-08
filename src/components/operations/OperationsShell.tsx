@@ -1,6 +1,6 @@
 import Logo from '@/components/shared/Logo';
 import type { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useStaffAuth } from "@/hooks/useStaffAuth";
 import {
   BarChart3, BriefcaseBusiness, CalendarClock, FileSearch, LogOut,
@@ -30,6 +30,14 @@ export default function OperationsShell({ title, subtitle, children }: { title: 
           className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? "bg-amber-400 font-semibold text-slate-950" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}>
           <Icon size={17}/><span>{label}</span>
         </NavLink>)}
+      </nav>
+      <nav aria-label="قوائم عملي" dir="rtl" className="mt-5 grid gap-1 border-t border-white/10 pt-4 text-sm">
+        <p className="px-3 py-2 font-semibold text-amber-300">عملي والمتابعة</p>
+        {[
+          ['ACTIVE', 'أعمل عليه الآن'], ['READY', 'متابعة جاهزة'], ['DUE', 'متابعة مستحقة'],
+          ['WAIT_CUSTOMER', 'بانتظار العميل'], ['WAIT_AUTHORITY', 'متابعة الهجرة'],
+          ['WAIT_SUPPLIER', 'بانتظار المورد'], ['DONE', 'أنهيت العمل عليها'],
+        ].map(([state,label]) => <Link key={state} to={`/staff/dashboard?work=${state}`} className="rounded-lg px-3 py-2 text-slate-300 hover:bg-white/10 hover:text-white">{label}</Link>)}
       </nav>
       <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
         <p className="font-semibold">{staff?.name ?? "Operations user"}</p>

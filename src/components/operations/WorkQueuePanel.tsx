@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
 import { AVAILABILITY, WORK_STATES, availabilityLabels, workStateLabels, workBucket, type WorkState } from '../../../contracts/work-queue';
 
@@ -7,7 +7,10 @@ export default function WorkQueuePanel({ includeTest }: { includeTest: boolean }
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   const queue = trpc.operationsWork.overview.useQuery({ includeTest }, { refetchInterval: 30000 });
-  const [tab, setTab] = useState<WorkState | 'DUE'>('ACTIVE');
+  const [search, setSearch] = useSearchParams();
+  const selectedTab = search.get('work');
+  const tab = selectedTab === 'DUE' ? 'DUE' : WORK_STATES.find(value => value === selectedTab) ?? 'ACTIVE';
+  const setTab = (value: WorkState | 'DUE') => { const next = new URLSearchParams(search); next.set('work', value); setSearch(next, { replace: true }); };
   const [notice, setNotice] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
   const [state, setState] = useState<WorkState>('READY');
