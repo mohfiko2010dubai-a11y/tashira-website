@@ -20,6 +20,17 @@ type SqlValue = string | number | bigint | boolean | Date | null | Buffer | Uint
 type Action = ControlledAuditEvent["action"];
 type CommonInput = { applicationId: number; expectedVersion: number; idempotencyKey: string; reason: string };
 
+// Only existing assigned-case operators (or named managers) can receive shared work.
+const commonQueueEligibility = `(s.staff_role='admin' OR (
+  EXISTS (SELECT 1 FROM operations_scope_grants g WHERE g.staff_user_id=s.id AND g.revoked_at IS NULL AND g.scope_type='ASSIGNED')
+  AND 2=(SELECT COUNT(DISTINCT p.code) FROM operations_staff_roles sr
+    JOIN operations_roles r ON r.id=sr.role_id AND r.is_active='ACTIVE'
+    JOIN operations_role_permissions rp ON rp.role_id=r.id
+    JOIN operations_permissions p ON p.id=rp.permission_id
+    WHERE sr.staff_user_id=s.id AND sr.revoked_at IS NULL AND sr.valid_from<=UTC_TIMESTAMP()
+      AND (sr.valid_to IS NULL OR sr.valid_to>UTC_TIMESTAMP())
+      AND p.code IN ('case.read_assigned','case.transition'))))`;
+
 const applicationStatusSchema = z.enum([
   "submitted", "payment_received", "documents_pending", "documents_received", "under_review",
   "visa_processing", "visa_received", "completed", "rejected", "cancelled",
@@ -198,10 +209,9 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
           WHERE s.is_active='active' AND (SELECT COUNT(*) FROM operations_case_controls c WHERE c.assigned_staff_user_id=s.id)<wl.workload_limit
           ORDER BY s.name,s.id`,[teamId]):trustedActor.scopes.includes("ALL")?await rows(connection,
         `SELECT s.id,s.name FROM staff_users s
-           JOIN operations_scope_grants sg ON sg.staff_user_id=s.id AND sg.team_id IS NOT NULL AND sg.revoked_at IS NULL
-           JOIN operations_staff_workload_limits wl ON wl.staff_user_id=s.id
-          WHERE s.is_active='active' AND (SELECT COUNT(*) FROM operations_case_controls c WHERE c.assigned_staff_user_id=s.id)<wl.workload_limit
-          GROUP BY s.id,s.name HAVING COUNT(DISTINCT sg.team_id)=1
+           LEFT JOIN operations_staff_workload_limits wl ON wl.staff_user_id=s.id
+          WHERE s.is_active='active' AND ${commonQueueEligibility}
+            AND (wl.workload_limit IS NULL OR (SELECT COUNT(*) FROM operations_case_controls c WHERE c.assigned_staff_user_id=s.id)<wl.workload_limit)
           ORDER BY s.name,s.id`):[];
       return {
         applicationId,version,status:status.data,currentActorId:trustedActor.id,
@@ -265,12 +275,12 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
     return this.execute(input.mode, input, actor, async ({ connection, repository, trustedActor, flags, now }) => {
       const assigneeId = this.staffId(input.assigneeId);
       const assigneeRows = await rows(connection,
-        `SELECT s.is_active AS active, wl.workload_limit AS workloadLimit
+        `SELECT s.is_active AS active, wl.workload_limit AS workloadLimit, ${commonQueueEligibility} AS commonEligible
            FROM staff_users s LEFT JOIN operations_staff_workload_limits wl ON wl.staff_user_id=s.id
           WHERE s.id=? FOR UPDATE`, [assigneeId]);
       const assignee = assigneeRows[0];
       const workloadLimit = assignee ? numberField(assignee, "workloadLimit") : null;
-      if (!assignee || stringField(assignee, "active") !== "active" || workloadLimit === null) throw new Error("ASSIGNEE_CONFIGURATION_REQUIRED");
+      if (!assignee || stringField(assignee, "active") !== "active") throw new Error("ASSIGNEE_CONFIGURATION_REQUIRED");
       const scopes = await rows(connection, `SELECT DISTINCT sg.team_id AS teamId,t.department_id AS departmentId
         FROM operations_scope_grants sg JOIN operations_teams t ON t.id=sg.team_id
         WHERE sg.staff_user_id=? AND sg.revoked_at IS NULL AND sg.team_id IS NOT NULL`, [assigneeId]);
@@ -278,12 +288,13 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
       const current = repository.get(input.applicationId);
       if (!current) throw new Error("CONTROLLED_CASE_NOT_FOUND");
       const initialRoute = current.teamId === undefined && input.mode === "ASSIGN" && trustedActor.scopes.includes("ALL") && teamIds.size === 1;
+      const commonQueue = current.teamId === undefined && !initialRoute && trustedActor.scopes.includes("ALL") && numberField(assignee, "commonEligible") === 1;
       const routingTeamId = initialRoute ? [...teamIds][0] : undefined;
       const routingDepartmentId = initialRoute ? numberField(scopes[0] ?? {}, "departmentId") ?? undefined : undefined;
       const workloadRows = await rows(connection, "SELECT COUNT(*) AS count FROM operations_case_controls WHERE assigned_staff_user_id=?", [assigneeId]);
       repository.seedWorkload(input.assigneeId, numberField(workloadRows[0] ?? {}, "count") ?? 0);
       return assignCase({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository,
-        assignee: { id: input.assigneeId, active: true, teamIds, workloadLimit }, routingTeamId, routingDepartmentId }, { now: () => now, newId: randomUUID });
+        assignee: { id: input.assigneeId, active: true, teamIds, workloadLimit }, routingTeamId, routingDepartmentId, commonQueue }, { now: () => now, newId: randomUUID });
     });
   }
 

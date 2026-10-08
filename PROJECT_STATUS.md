@@ -848,3 +848,7 @@ Staging now runs bd4ff2808300646b40412e9c791b7c16c053b471. CI37775532364 passed 
 
 Next candidate reuses Support Inbox and makes linked conversation visibility follow operations_case_controls ownership. Former owner loses access after reassignment; team membership does not grant access to another owner's linked thread; linked threads cannot maintain a conflicting second assignment. History stays intact. Admin commands retain named staff identity. Retry hashing excludes server-generated timestamps. Local four gates passed:1418 unit tests;31 database tests await mandatory CI. No provider inbound/outbound or WhatsApp connection is claimed. Manager reassignment for common cases without team/workload configuration remains the next implementation item.
 
+# Common-queue manager reassignment candidate — 2026-10-08
+
+Managers can assign/reassign a common (no-team) case to an active named admin or an existing ASSIGNED operator with case.read_assigned and case.transition. Eligibility is derived from stored grants, never a client flag; no new grants or fabricated workload cap. Configured limits and existing team restrictions remain. Manager audit uses staff identity; write refresh rechecks stored active/admin role. Local check/lint/test/build passed1420 unit tests;32 mandatory MySQL tests pending CI. Inbox ownership predecessor82ffda1 CI37777091449 passed31 DB tests. Both candidates await deployment after this commit's CI.
+

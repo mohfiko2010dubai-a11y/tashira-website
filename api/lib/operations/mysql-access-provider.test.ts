@@ -61,6 +61,14 @@ describe("MysqlOperationsAccessProvider", () => {
     expect(actor.permissions.has("role.manage")).toBe(true);
   });
 
+  it("retains named manager identity and rechecks active stored authority on writes", async () => {
+    const provider = new MysqlOperationsAccessProvider(client([[{ active: "active", role: "admin" }], [{ active: "inactive", role: "admin" }]]));
+    const actor = await provider.actorForContext(context({ isAdmin: true, staffId: 42 }));
+    expect(actor.id).toBe("staff:42");
+    expect((await provider.refreshTrustedActor(actor.id)).scopes).toEqual(["ALL"]);
+    await expect(provider.refreshTrustedActor(actor.id)).rejects.toMatchObject({ code: "ACTOR_ACCESS_DENIED" });
+  });
+
   it("loads only valid feature flags and fails malformed records closed", async () => {
     const provider = new MysqlOperationsAccessProvider(client([[
       { flagKey: "OPERATIONS_CONTROLLED_WRITES", environment: "TEST", enabled: "YES", scopeType: "TEAM", scopeReference: "7" },

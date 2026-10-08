@@ -92,7 +92,7 @@ export class MysqlOperationsAccessProvider {
 
   async actorForContext(ctx: TrpcContext): Promise<AuthorizationActor> {
     if (isAdminContext(ctx)) {
-      return this.adminActor();
+      return this.adminActor(ctx.staffId);
     }
     if (!ctx.staffId) throw new OperationsAccessError("ACTOR_REQUIRED");
     return this.staffActor(ctx.staffId);
@@ -104,12 +104,15 @@ export class MysqlOperationsAccessProvider {
     if (!match) throw new OperationsAccessError("ACTOR_REQUIRED");
     const staffId = Number(match[1]);
     if (!Number.isSafeInteger(staffId)) throw new OperationsAccessError("ACTOR_REQUIRED");
+    const accounts = await this.sql.query("SELECT is_active AS active, staff_role AS role FROM staff_users WHERE id=?", [staffId]);
+    if (!accounts[0] || stringField(accounts[0], "active") !== "active") throw new OperationsAccessError("ACTOR_ACCESS_DENIED");
+    if (stringField(accounts[0], "role") === "admin") return this.adminActor(staffId);
     return this.staffActor(staffId);
   }
 
-  private adminActor(): AuthorizationActor {
+  private adminActor(staffId?: number): AuthorizationActor {
     return {
-      id: "admin",
+      id: staffId ? `staff:${staffId}` : "admin",
       permissions: new Set(PERMISSIONS),
       scopes: ["ALL"],
       teamIds: new Set(),

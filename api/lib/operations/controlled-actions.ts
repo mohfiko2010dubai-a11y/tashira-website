@@ -83,13 +83,15 @@ export function reviewDocument(input: Common & {
   });
 }
 
-type Assignee = { id: string; active: boolean; teamIds: ReadonlySet<number>; workloadLimit: number };
+type Assignee = { id: string; active: boolean; teamIds: ReadonlySet<number>; workloadLimit: number | null };
 
 export function assignCase(input: Common & {
   mode: "ASSIGN" | "CLAIM" | "REASSIGN";
   assignee: Assignee;
   routingTeamId?: number;
   routingDepartmentId?: number;
+  /** Server-derived eligibility for an unscoped shared queue; never accepted from the client. */
+  commonQueue?: boolean;
   reason: string;
 }, deps: Dependencies): WriteResult {
   gate(input, input.mode === "CLAIM" ? "case.read_assigned" : "case.assign");
@@ -101,7 +103,8 @@ export function assignCase(input: Common & {
       assertNonTerminal(draft.status);
       if (!input.assignee.active) throw new Error("ASSIGNEE_INACTIVE");
       if (input.mode === "CLAIM" && input.assignee.id !== input.actor.id) throw new Error("CLAIM_MUST_TARGET_ACTOR");
-      if (draft.teamId === undefined) {
+      const commonQueue = draft.teamId === undefined && input.commonQueue === true && input.actor.scopes.includes("ALL") && input.mode !== "CLAIM";
+      if (draft.teamId === undefined && !commonQueue) {
         if (input.mode !== "ASSIGN" || !input.actor.scopes.includes("ALL")) throw new Error("CASE_ROUTING_REQUIRED");
         if (!Number.isSafeInteger(input.routingTeamId) || !input.routingTeamId || !input.assignee.teamIds.has(input.routingTeamId)) {
           throw new Error("CASE_ROUTING_TEAM_INVALID");
@@ -109,8 +112,9 @@ export function assignCase(input: Common & {
         draft.teamId = input.routingTeamId;
         if (Number.isSafeInteger(input.routingDepartmentId) && input.routingDepartmentId) draft.departmentId = input.routingDepartmentId;
       }
-      if (draft.teamId === undefined || !input.assignee.teamIds.has(draft.teamId)) throw new Error("ASSIGNEE_TEAM_SCOPE_MISMATCH");
-      if (input.repository.workload(input.assignee.id) >= input.assignee.workloadLimit) throw new Error("ASSIGNEE_WORKLOAD_LIMIT_REACHED");
+      if (!commonQueue && (draft.teamId === undefined || !input.assignee.teamIds.has(draft.teamId))) throw new Error("ASSIGNEE_TEAM_SCOPE_MISMATCH");
+      if (input.assignee.workloadLimit === null && !commonQueue) throw new Error("ASSIGNEE_CONFIGURATION_REQUIRED");
+      if (input.assignee.workloadLimit !== null && input.repository.workload(input.assignee.id) >= input.assignee.workloadLimit) throw new Error("ASSIGNEE_WORKLOAD_LIMIT_REACHED");
       if (draft.assignedActorId === input.assignee.id) throw new Error("ASSIGNEE_ALREADY_ASSIGNED");
       if (input.mode === "ASSIGN" && draft.assignedActorId) throw new Error("CASE_ALREADY_ASSIGNED");
       if (input.mode === "CLAIM" && draft.assignedActorId && draft.assignedActorId !== input.actor.id) throw new Error("ASSIGNMENT_COLLISION");

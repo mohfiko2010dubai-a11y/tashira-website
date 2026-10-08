@@ -12,6 +12,8 @@ const suite = url ? describe.sequential : describe.skip;
 suite('atomic staff work dispatch', () => {
   let pool: Pool;
   let queue: MysqlWorkQueue;
+  let access: MysqlOperationsAccessProvider;
+  let writes: MysqlControlledWriteExecutor;
   const staff: number[] = [];
   const cases: number[] = [];
   const tag = randomUUID().slice(0, 8);
@@ -21,8 +23,9 @@ suite('atomic staff work dispatch', () => {
     const target = new URL(url!);
     if (!['localhost','127.0.0.1'].includes(target.hostname) || !target.pathname.startsWith('/tashira_ops_rehearsal_')) throw new Error('Synthetic rehearsal database required');
     pool = createPool({ uri: url, connectionLimit: 8 });
-    const access = new MysqlOperationsAccessProvider(new MysqlOperationsSqlClient(pool));
-    queue = new MysqlWorkQueue(pool, access, new MysqlControlledWriteExecutor(pool, access));
+    access = new MysqlOperationsAccessProvider(new MysqlOperationsSqlClient(pool));
+    writes = new MysqlControlledWriteExecutor(pool, access);
+    queue = new MysqlWorkQueue(pool, access, writes);
     const [role] = await pool.execute<ResultSetHeader>("INSERT INTO operations_roles (code,name) VALUES (?,?)", [`Q_${tag}`, `Queue ${tag}`]);
     for (const code of ['case.read_assigned','case.transition']) {
       await pool.execute('INSERT INTO operations_role_permissions (role_id,permission_id,granted_by) SELECT ?,id,\'synthetic\' FROM operations_permissions WHERE code=?', [role.insertId, code]);
@@ -74,6 +77,22 @@ suite('atomic staff work dispatch', () => {
     expect(saved[0]).toMatchObject({ status: 'documents_received', payment_status: 'paid' });
     expect((await queue.overview(context(staff[0]), true)).mine[0].state).toBe('WAIT_CUSTOMER');
   });
+  it('manager reassigns common work to an eligible named employee without a team or workload setting', async () => {
+    const own = (await queue.overview(context(staff[0]), true)).mine[0];
+    const manager = await access.actorForContext({ ...context(staff[2]), isAdmin: true });
+    const capabilities = await writes.capabilities(own.applicationId, manager);
+    expect(capabilities.permittedAssignees).toEqual(expect.arrayContaining([expect.objectContaining({ actorId: `staff:${staff[1]}` })]));
+    const command = { applicationId: own.applicationId, expectedVersion: capabilities.version, idempotencyKey: key(), reason: 'Synthetic manager coverage', mode: 'REASSIGN' as const, assigneeId: `staff:${staff[1]}` };
+    await writes.assignment(command, manager);
+    const [events] = await pool.execute<RowDataPacket[]>("SELECT actor_reference FROM operations_action_events WHERE application_id=? AND action_type='REASSIGN'", [own.applicationId]);
+    expect(events[0].actor_reference).toBe(`staff:${staff[2]}`);
+    expect((await queue.overview(context(staff[0]), true)).mine).toHaveLength(0);
+    expect((await queue.overview(context(staff[1]), true)).mine.map(item => item.applicationId)).toContain(own.applicationId);
+    const [saved] = await pool.execute<RowDataPacket[]>('SELECT team_id,assigned_staff_user_id FROM operations_case_controls WHERE application_id=?', [own.applicationId]);
+    expect(saved[0]).toMatchObject({ team_id: null, assigned_staff_user_id: staff[1] });
+    await expect(writes.assignment({ ...command, idempotencyKey: key(), expectedVersion: capabilities.version + 1, assigneeId: `staff:${staff[0]}` }, await access.actorForContext(context(staff[1])))).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
+
   it('named manager can participate; history is append-only and deactivation blocks actions', async () => {
     await queue.command(context(staff[2]), { kind: 'AVAILABILITY', availability: 'AVAILABLE', key: key() });
     const claimed = await queue.command(context(staff[2]), { kind: 'CLAIM', includeTest: true, key: key() });

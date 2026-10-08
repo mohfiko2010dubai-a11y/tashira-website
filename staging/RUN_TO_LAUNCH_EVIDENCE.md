@@ -72,3 +72,13 @@ Delivery sequence:
 
 Open decisions: do not silently defer new integrations to meet today's target; if external onboarding prevents completion, ask owner about launch scope. No production deployment or launch-complete claim. This checkpoint records reconciliation/read-only evidence, not new runtime feature completion.
 
+# 2026-10-08 priority pickup / communication ownership checkpoint
+
+- Staging bd4ff2808300646b40412e9c791b7c16c053b471; CI37775532364 green,30 database tests executed without skips. Migration069 verified4 tables and2 immutable-event triggers.
+- DB backup: /var/backups/tashira-staging/work-queue-schema-1791462024843/staging.sql. Runtime rollback: /var/backups/tashira-staging/work-queue-1791462094865.
+- Simultaneous synthetic claims select distinct Express/oldest cases; replay does not assign twice. Assigned-only accounts cannot inspect another owner's case. Wait states require reason and future follow-up; no visa/payment state is changed by a work-state update.
+- Explicit availability and active-time intervals are recorded. Available-without-active is not labelled proven idle. Case waiting totals are case-minutes and may overlap. Types/profit/quality/complete close-time attribution remain unfinished.
+- Linked Support Inbox candidate82ffda1: current application owner governs access, former owner loses access, history persists. CI37777091449 passed all31 required database tests; local1418 tests plus check/lint/build passed. Not yet deployed at this checkpoint.
+- Browser session returned to staff login after runtime restart. No authenticated post-deploy UAT is claimed; no password handling or reset was performed. Owner asked to collect needs at the end.
+- Production remains closed and untouched. Inbox provider routing and official WhatsApp onboarding are not verified; no claim of live two-way messaging.
+

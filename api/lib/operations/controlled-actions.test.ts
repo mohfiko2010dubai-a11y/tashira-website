@@ -125,6 +125,18 @@ describe("controlled Operations write layer", () => {
     expect(() => assignCase({ ...input, repository: denied, actor: actor(["case.assign"], [7], ["TEAM"]) }, dependencies())).toThrow("OPERATIONS_WRITE_ACCESS_DENIED");
   });
 
+  it("allows a manager to reassign a common case without granting team access or inventing a workload cap", () => {
+    const repo = new InMemoryControlledWriteRepository();
+    repo.seed({ applicationId: 1, version: 0, status: "under_review", assignedActorId: "staff:7", applicantIds: [], documents: [], finance: {} });
+    const input = { ...common(repo, ["case.assign"], 0), actor: actor(["case.assign"], [], ["ALL"]), mode: "REASSIGN" as const,
+      commonQueue: true, assignee: { id: "staff:9", active: true, teamIds: new Set<number>(), workloadLimit: null }, reason: "Cover absent colleague" };
+    expect(assignCase(input, dependencies())).toMatchObject({ status: "APPLIED", version: 1 });
+    expect(repo.get(1)?.assignedActorId).toBe("staff:9");
+    expect(repo.get(1)?.teamId).toBeUndefined();
+    expect(repo.audit(1)[0]).toMatchObject({ details: { previousAssigneeId: "staff:7", assigneeId: "staff:9" } });
+    expect(() => assignCase({ ...input, expectedVersion: 1, idempotencyKey: "employee-attempt", actor: actor(["case.assign"], [], ["ASSIGNED"]) }, dependencies())).toThrow("OPERATIONS_WRITE_ACCESS_DENIED");
+  });
+
   it("allows only controlled status transitions", () => {
     const valid = repository();
     expect(transitionCaseStatus({ ...common(valid, ["case.transition"]), to: "under_review", reason: "Documents complete" }, dependencies()).status).toBe("APPLIED");
