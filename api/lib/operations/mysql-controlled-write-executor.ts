@@ -210,7 +210,9 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
           ORDER BY s.name,s.id`,[teamId]):trustedActor.scopes.includes("ALL")?await rows(connection,
         `SELECT s.id,s.name FROM staff_users s
            LEFT JOIN operations_staff_workload_limits wl ON wl.staff_user_id=s.id
-          WHERE s.is_active='active' AND ${commonQueueEligibility}
+          WHERE s.is_active='active' AND (${commonQueueEligibility} OR
+            (wl.workload_limit IS NOT NULL AND 1=(SELECT COUNT(DISTINCT g.team_id) FROM operations_scope_grants g
+              WHERE g.staff_user_id=s.id AND g.revoked_at IS NULL AND g.team_id IS NOT NULL)))
             AND (wl.workload_limit IS NULL OR (SELECT COUNT(*) FROM operations_case_controls c WHERE c.assigned_staff_user_id=s.id)<wl.workload_limit)
           ORDER BY s.name,s.id`):[];
       return {

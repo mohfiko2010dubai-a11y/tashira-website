@@ -90,7 +90,7 @@ suite('atomic staff work dispatch', () => {
     expect((await queue.overview(context(staff[1]), true)).mine.map(item => item.applicationId)).toContain(own.applicationId);
     const [saved] = await pool.execute<RowDataPacket[]>('SELECT team_id,assigned_staff_user_id FROM operations_case_controls WHERE application_id=?', [own.applicationId]);
     expect(saved[0]).toMatchObject({ team_id: null, assigned_staff_user_id: staff[1] });
-    await expect(writes.assignment({ ...command, idempotencyKey: key(), expectedVersion: capabilities.version + 1, assigneeId: `staff:${staff[0]}` }, await access.actorForContext(context(staff[1])))).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(writes.assignment({ ...command, idempotencyKey: key(), expectedVersion: capabilities.version + 1, assigneeId: `staff:${staff[0]}` }, await access.actorForContext(context(staff[1])))).rejects.toMatchObject({ code: 'OUT_OF_SCOPE' });
   });
 
   it('named manager can participate; history is append-only and deactivation blocks actions', async () => {
