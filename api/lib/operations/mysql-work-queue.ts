@@ -136,7 +136,8 @@ export class MysqlWorkQueue {
           LEFT JOIN operations_case_work w ON w.application_id=a.id
           WHERE a.payment_status='paid' AND a.status NOT IN ('completed','rejected','cancelled')
           AND ((c.assigned_staff_user_id IS NULL AND a.status IN ('submitted','payment_received','documents_pending','documents_received','under_review'))
-            OR (c.assigned_staff_user_id=? AND (w.work_state IN ('ACTIVE','READY') OR w.follow_up_at<=UTC_TIMESTAMP(3))))
+            OR (c.assigned_staff_user_id=? AND (w.work_state IN ('ACTIVE','READY') OR w.follow_up_at<=UTC_TIMESTAMP(3)
+              OR (w.application_id IS NULL AND a.status NOT IN ('visa_processing','documents_pending')))))
           AND (? OR (a.is_test=0 AND a.data_classification='LIVE')) AND (c.assigned_staff_user_id=? OR ${scope.sql})
           ORDER BY (c.assigned_staff_user_id=? AND w.work_state='ACTIVE') DESC,
             (w.follow_up_at<=UTC_TIMESTAMP(3)) DESC,(a.processing_type='express') DESC,
@@ -150,7 +151,8 @@ export class MysqlWorkQueue {
             const [state] = await connection.execute<RowDataPacket[]>('SELECT work_state FROM operations_case_work WHERE application_id=?', [selected.id]);
             previous = String(state[0]?.work_state ?? 'READY');
             reason = 'Resume assigned work';
-            await connection.execute("UPDATE operations_case_work SET work_state='ACTIVE',version=version+1,follow_up_at=NULL,reason=?,changed_at=UTC_TIMESTAMP(3) WHERE application_id=?", [reason, selected.id]);
+            await connection.execute(`INSERT INTO operations_case_work (application_id,work_state,reason) VALUES (?,'ACTIVE',?)
+              ON DUPLICATE KEY UPDATE work_state='ACTIVE',version=version+1,follow_up_at=NULL,reason=VALUES(reason),changed_at=UTC_TIMESTAMP(3)`, [selected.id, reason]);
           } else {
           // Respect configured workload limits; absent limits do not invent a cap.
           const [limits] = await connection.execute<RowDataPacket[]>(`SELECT wl.workload_limit AS maximum,
