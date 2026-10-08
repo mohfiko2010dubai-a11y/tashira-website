@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { trpc } from "@/providers/trpc-client";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
 
-const stateLabels: Record<string, string> = { PENDING_APPROVAL: "بانتظار اعتماد المدير", APPROVED: "معتمد — بانتظار التنفيذ", PROCESSING: "جارٍ المعالجة", SUCCEEDED: "تم الاسترداد", COMPLETED: "مكتمل", FAILED: "فشل — راجع النتيجة", REJECTED: "مرفوض", PENDING: "قيد الانتظار", SENT: "تم الإرسال", NOT_SENT: "لم يُرسل", QUEUED: "في قائمة الإرسال", SUPPRESSED: "الإرسال موقوف", succeeded: "نجح", failed: "فشل", pending: "قيد الانتظار" };
+const stateLabels: Record<string, string> = { REFUNDED: "تم الاسترداد", PARTIALLY_REFUNDED: "استرداد جزئي", CANCELLED: "ملغى", PENDING_APPROVAL: "بانتظار اعتماد المدير", APPROVED: "معتمد — بانتظار التنفيذ", PROCESSING: "جارٍ المعالجة", SUCCEEDED: "تم الاسترداد", COMPLETED: "مكتمل", FAILED: "فشل — راجع النتيجة", REJECTED: "مرفوض", PENDING: "قيد الانتظار", SENT: "تم الإرسال", NOT_SENT: "لم يُرسل", QUEUED: "في قائمة الإرسال", SUPPRESSED: "الإرسال موقوف", succeeded: "نجح", failed: "فشل", pending: "قيد الانتظار" };
 const stateLabel = (value: string) => stateLabels[value] || value;
 type DeductionType = "NONE" | "PERCENTAGE" | "FIXED" | "ACTUAL_COSTS";
 

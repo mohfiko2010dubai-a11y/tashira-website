@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Download, History, Plus } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
+import { formatOperationDate } from '@/components/admin/application-display';
 
 const OPERATIONAL_EVENTS = [
   "DOCUMENTS_VALIDATED", "ADDITIONAL_DOCUMENTS_REQUESTED", "GOVERNMENT_PROCESSING",
@@ -9,6 +10,11 @@ const OPERATIONAL_EVENTS = [
 ] as const;
 
 const eventLabels: Record<string, string> = {
+ VISA_DOWNLOADED: "تنزيل التأشيرة", DOCUMENT_REVIEW_DECISION: "تسجيل قرار مراجعة المستندات", STRIPE_FEE_RECONCILIATION_PENDING: "بانتظار مطابقة رسوم Stripe",
+ APPLICANT_ADDED: "إضافة مسافر", APPLICANT_UPDATED: "تعديل بيانات مسافر", APPLICATION_SUBMITTED: "إرسال الطلب", POLICY_ACCEPTED: "قبول الشروط والسياسات",
+ PASSPORT_UPLOADED: "رفع جواز السفر", PHOTO_UPLOADED: "رفع الصورة الشخصية", SUPPORTING_DOCUMENT_UPLOADED: "رفع مستند داعم", DOCUMENT_REPLACED: "استبدال مستند", DOCUMENT_DELETED: "حذف مستند", DOCUMENT_REPLACEMENT_REQUESTED: "طلب استبدال مستند",
+ CHECKOUT_OPENED: "فتح صفحة الدفع", PAYMENT_ELEMENT_LOADED: "تحميل نموذج الدفع", PAYMENT_STARTED: "بدء الدفع", PAYMENT_INTENT_CREATED: "إنشاء عملية الدفع", THREE_DS_REQUIRED: "طلب التحقق البنكي", THREE_DS_COMPLETED: "اكتمال التحقق البنكي", PAYMENT_FAILED: "فشل الدفع", PAYMENT_RETRIED: "إعادة محاولة الدفع", PAYMENT_CONFIRMED: "تأكيد الدفع", CHECKOUT_ABANDONED: "مغادرة الدفع دون إكماله", PAYMENT_PAGE_CLOSED: "إغلاق صفحة الدفع",
+ WEBHOOK_RECEIVED: "استلام إشعار Stripe", WEBHOOK_VERIFIED: "التحقق من إشعار Stripe", INVOICE_GENERATED: "إصدار الفاتورة", INVOICE_DOWNLOAD_LINK_CREATED: "إنشاء رابط تنزيل الفاتورة", INVOICE_DOWNLOADED: "تنزيل الفاتورة", PROCESSING_STARTED: "بدء معالجة الطلب", EVIDENCE_PACKAGE_GENERATED: "إنشاء ملف الأدلة", EVIDENCE_PACKAGE_DOWNLOADED: "تنزيل ملف الأدلة", EMAIL_FAILED: "تعذر إرسال البريد", EMAIL_DELIVERED: "توصيل البريد", EMAIL_QUEUED: "إضافة البريد لقائمة الإرسال",
  DOCUMENTS_VALIDATED: "تمت مراجعة المستندات", ADDITIONAL_DOCUMENTS_REQUESTED: "طلب مستندات إضافية", GOVERNMENT_PROCESSING: "قيد المعالجة لدى الجهة", VISA_APPROVED: "الموافقة على التأشيرة", VISA_ISSUED: "صدور التأشيرة", APPLICATION_COMPLETED: "اكتمال الطلب", APPLICATION_CANCELLED: "إلغاء الطلب", APPLICATION_REJECTED: "رفض الطلب", DISPUTE_NOTE_ADDED: "إضافة ملاحظة نزاع", MANUAL_REVIEW_REQUESTED: "طلب مراجعة يدوية", PAYMENT_RECEIVED: "استلام الدفع", PAYMENT_SUCCEEDED: "نجاح الدفع", DOCUMENT_UPLOADED: "رفع مستند", APPLICATION_CREATED: "إنشاء الطلب", EMAIL_SENT: "إرسال بريد", REFUND_REQUESTED: "طلب استرداد", REFUND_SUCCEEDED: "نجاح الاسترداد", CUSTOMER_CONSENT_ACCEPTED: "موافقة العميل", PAYER_AUTHORIZATION_ACCEPTED: "قبول تفويض الدفع"
 };
 function eventLabel(value: string, ar = false) {
@@ -78,7 +84,7 @@ export default function ApplicationTimeline({ referenceNumber, admin = false, la
                   {event.consentValidity === "INVALID" && <p role="note" className="mt-1 text-sm font-semibold text-red-700">{ar ? "هذه الموافقة التاريخية غير صالحة لإثبات قبول العميل." : "Not valid consent — this historical record is not evidence of customer acceptance."}</p>}
                   {event.summary && <p className="mt-1 text-sm text-gray-500">{event.summary}</p>}
                 </div>
-                <time className="text-sm text-slate-500">{new Date(event.createdAt).toLocaleString()}</time>
+                <time className="text-sm text-slate-500">{ar ? formatOperationDate(event.createdAt) : new Date(event.createdAt).toLocaleString()}</time>
               </div>
               <details className="mt-2 text-sm text-slate-500"><summary className="cursor-pointer">{ar ? "تفاصيل العملية التقنية" : "Technical event details"}</summary><div dir="ltr" className="mt-2 flex flex-wrap gap-2">
                 <span>{event.actorType}</span><span>•</span><span>{event.eventSource}</span>

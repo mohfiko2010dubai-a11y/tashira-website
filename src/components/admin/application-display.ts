@@ -16,3 +16,10 @@ export function formatFeeMinor(amount: number, currency: string) {
   const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
   return formatter.format(amount / 10 ** digits);
 }
+
+export function formatOperationDate(value: string | Date | null | undefined): string {
+  if (!value) return 'غير مسجّل بعد';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'تاريخ غير واضح — راجع السجل';
+  return new Intl.DateTimeFormat('ar-AE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Dubai' }).format(date) + ' (بتوقيت الإمارات)';
+}

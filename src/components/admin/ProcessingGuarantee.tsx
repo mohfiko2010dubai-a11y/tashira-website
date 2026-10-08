@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
+import { formatOperationDate } from './application-display';
 
 export function ProcessingGuarantee({ applicationId }: { applicationId?: number }) {
   const utils = trpc.useUtils();
@@ -15,9 +16,9 @@ export function ProcessingGuarantee({ applicationId }: { applicationId?: number 
     {query.isLoading && <p role="status">جارٍ تحميل الضمان…</p>}
     {entries.map(item => <div key={item.applicationId} className="mt-3 space-y-2">
       {!applicationId && <Link className="underline" to={`/admin/applications/${item.referenceNumber}`}>{item.referenceNumber}</Link>}
-      <p>اكتمال المستندات: {item.documentsCompletedAt ?? "غير مسجّل بعد"}</p>
-      <p>الإرسال إلى الجهة: {item.submittedAt ?? "غير مسجّل — بعد الإرسال الفعلي، احفظ حالة «قيد المعالجة لدى الجهة»"}</p>
-      <p>الموعد النهائي{item.paused ? " (معلّق؛ يُعاد احتسابه بعد الرد)" : ""}: {item.deadline ?? "يبدأ عند اكتمال كل المستندات المطلوبة"}</p>
+      <p>اكتمال المستندات: {formatOperationDate(item.documentsCompletedAt)}</p>
+      <p>الإرسال إلى الجهة: {item.submittedAt ? formatOperationDate(item.submittedAt) : "غير مسجّل — بعد الإرسال الفعلي، احفظ حالة «قيد المعالجة لدى الجهة»"}</p>
+      <p>الموعد النهائي{item.paused ? " (معلّق؛ يُعاد احتسابه بعد الرد)" : ""}: {item.deadline ? formatOperationDate(item.deadline) : "يبدأ عند اكتمال كل المستندات المطلوبة"}</p>
       {item.paused && <p role="status">بانتظار العميل: {item.pauseReasons.join(", ")}. مدة انتظار العميل لا تُحتسب.</p>}
       {item.express && <p>رسوم المستعجل المدفوعة: {item.expressFee === null ? "عرض قديم — لا توجد رسوم ضمان مسجّلة" : `${item.currency} ${item.expressFee.toFixed(2)}`}</p>}
       {item.breached && <p role="status" className="font-semibold">تم تجاوز موعد الإرسال.{item.express && item.paid ? " يستحق العميل استرداد رسوم المستعجل المدفوعة كاملة." : ""}</p>}
