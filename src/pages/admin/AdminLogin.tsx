@@ -11,11 +11,11 @@ export default function AdminLogin() {
   return <section className="min-h-screen p-6 bg-slate-100 text-slate-900">
     <h1>Existing administrator access — temporary migration access</h1>
       <form className="max-w-md space-y-3 mt-4" onSubmit={event => { event.preventDefault(); login.mutate({ password }); }}>
-        <p>This sign-in remains available until the named administrator has completed password setup and MFA.</p>
+        <p>This sign-in remains available until the named administrator has completed password setup and signed in.</p>
         <label className="block">Existing administrator password<input className="block border p-3 w-full" autoComplete="current-password" required type="password" value={password} onChange={event => setPassword(event.target.value)} /></label>
         {login.error && <p role="alert">{login.error.message}</p>}
         <button disabled={login.isPending} className="rounded bg-slate-900 text-white p-3">Sign in with existing access</button>
       </form>
-    <button className="underline mt-4" onClick={() => setShowLegacy(false)}>Use named account and authenticator</button>
+    <button className="underline mt-4" onClick={() => setShowLegacy(false)}>Use username and password</button>
   </section>;
 }

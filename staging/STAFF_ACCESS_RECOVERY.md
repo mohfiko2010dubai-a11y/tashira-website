@@ -1,5 +1,13 @@
 # Named access transition and recovery
 
+## Owner decision — 8 October 2026 (supersedes MFA instructions below)
+
+The owner explicitly requested username/password-only sign-in for named staff and administrators. Authenticator enrollment and codes are no longer required. Existing encrypted MFA records are preserved but not read during login. Password validation, active-account checks, named roles/audits, login rate limits, secure HttpOnly cookies and idle expiry remain enforced. A successful named administrator password login records the transition verification. Legacy login cutover still requires its existing separate authorization; this change does not disable it.
+
+A lost phone no longer prevents sign-in. For a lost password, verify the owner's identity through the trusted recovery channel and obtain specific recovery authorization; do not create or send a password on their behalf. Keep the same account ID and audit history. Existing invitations must not reset an established account. The historical MFA reset/enrollment procedure below is not applicable while password-only policy is in force. Deployment remains staging-only; production is unchanged.
+
+## Historical MFA transition procedure
+
 Applies to isolated staging only. Production accounts are created manually by the owner; never copy these seed identities or credentials into production.
 
 The three owner-authorized identities are admin+staging-owner@tashiraev.com (admin), admin+staging-agent1@tashiraev.com and admin+staging-agent2@tashiraev.com (staff/AGENT). Accounts start inactive with the unusable marker `!SETUP_REQUIRED!`. No password is generated. Setup capabilities contain 256 random bits; only SHA256 hashes are stored, expire after24 hours, and are consumed transactionally. Password creation activates the account but grants no session: successful authenticator enrolment and verification is still mandatory.

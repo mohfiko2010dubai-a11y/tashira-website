@@ -1,3 +1,7 @@
+# Owner-requested password-only sign-in — 2026-10-08
+
+Owner explicitly superseded the mandatory MFA requirement: named staff and admin sign in with username/password only. Candidate removes the enrollment/challenge step and endpoint, retains active-account/password checks, named roles/audit, HttpOnly cookie, rate limiting and idle timeout. No password, MFA record, role or production setting changed. Recovery instructions updated. Live named-account UAT remains required; missing MFA enrollment is no longer an acceptance prerequisite under this decision. Candidate validation/deployment in progress; prior verified staging source remains d4b769a until the deployment receipt is recorded.
+
 # Final run-to-launch staging receipt — 2026-10-07
 
 Staging now runs d4b769a399dc80b525e48a486c3a2afd21724276, built on the server and deployed after hosted CI37538246088 succeeded including all26 MySQL tests, zero skips. Final local check/lint/build passed;1398 unit tests passed. Migration068 remains applied with12 triggers and unchanged activation. Rollback backup: /var/backups/tashira-staging/run-launch-staff-1791324706049. Health200; synthetic draft228 retained saved details and3 documents on reload; unpaid service deadline hidden. Anonymous application/quote/clock denied401 and manual queue403. Production intake remains closed; original15 dirty files unchanged.

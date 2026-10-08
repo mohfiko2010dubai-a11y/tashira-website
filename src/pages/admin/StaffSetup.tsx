@@ -19,7 +19,7 @@ export default function StaffSetup() {
   return <main className="min-h-screen flex items-center justify-center p-6 bg-slate-950 text-white">
     <section className="w-full max-w-md space-y-4">
       <h1 className="text-2xl font-bold">Set up your TASHIRA account</h1>
-      {username ? <><p>Password saved for {username}. Sign in and enrol your authenticator to finish setup.</p><a className="underline" href="/staff/login">Continue to secure sign-in</a></> :
+      {username ? <><p>Password saved for {username}. Sign in with your username and password.</p><a className="underline" href="/staff/login">Continue to secure sign-in</a></> :
         <form className="space-y-4" onSubmit={event => {
           event.preventDefault(); setError('');
           if (password !== confirmation) { setError('Passwords do not match. Enter the same password in both fields.'); return; }

@@ -13,16 +13,7 @@ export default function StaffLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { login } = useStaffAuth();
-  const [challenge, setChallenge] = useState<{ challenge: string; setupSecret: string | null } | null>(null);
-  const [code, setCode] = useState('');
-
   const loginMutation = trpc.staff.login.useMutation({
-    onSuccess: (data) => {
-      setChallenge(data); setPassword('');
-    },
-    onError: err => setError(err.message),
-  });
-  const mfaMutation = trpc.staff.completeLogin.useMutation({
     onSuccess: (data) => {
       login(data.staff);
       // Reload to consume the issued cookie, preserving only an approved internal destination.
@@ -36,7 +27,6 @@ export default function StaffLogin() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (challenge) { mfaMutation.mutate({ challenge: challenge.challenge, code }); return; }
     if (!username.trim() || !password.trim()) {
       setError('Please enter both username and password');
       return;
@@ -52,11 +42,10 @@ export default function StaffLogin() {
             <Logo variant="mark-only" theme="dark" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-white">Team sign-in</h1>
-          <p className="text-gray-400 text-sm mt-1">Use your named account and authenticator</p>
+          <p className="text-gray-400 text-sm mt-1">Use your username and password</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-xl p-6">
-          {!challenge && <>
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Username
           </label>
@@ -89,27 +78,16 @@ export default function StaffLogin() {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          </>}
-          {challenge && <div className="mb-4 text-white">
-            {challenge.setupSecret && <div className="mb-4 rounded border border-white/20 p-3">
-              <p>Add this account to your authenticator app using this setup key. Keep it private.</p>
-              <code className="mt-2 block break-all select-all">{challenge.setupSecret}</code>
-            </div>}
-            <label htmlFor="auth-code">Six-digit authenticator code</label>
-            <input id="auth-code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={e => setCode(e.target.value)} maxLength={6} className="mt-2 w-full rounded border border-white/20 bg-white/5 p-3" />
-            <button type="button" className="mt-2 underline" onClick={() => { setChallenge(null); setCode(''); setError(''); }}>Start sign-in again</button>
-          </div>}
-
           {error && (
             <p className="text-red-400 text-sm mb-4">{error}</p>
           )}
 
           <button
             type="submit"
-            disabled={loginMutation.isPending || mfaMutation.isPending}
+            disabled={loginMutation.isPending}
             className="w-full py-3 bg-gradient-to-r from-[#C9A04C] to-[#DDBB7A] text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {loginMutation.isPending || mfaMutation.isPending ? (
+            {loginMutation.isPending ? (
               'Logging in...'
             ) : (
               <>

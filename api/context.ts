@@ -29,7 +29,7 @@ export async function createContext(
   };
   try {
     const user = await authenticateRequest(opts.req.headers);
-    // Back-office privileges require a named account and completed MFA.
+    // Back-office privileges require a authenticated named account.
     ctx.user = user ? { ...user, role: 'user' } : undefined;
   } catch {
     // Authentication is optional here

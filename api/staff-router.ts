@@ -2,10 +2,9 @@ import { z } from "zod";
 import { adminQuery, createRouter, loginQuery, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { staffUsers } from "@db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { createStaffSession, deleteStaffSession, getStaffSession, revokeStaffSessions, staffSessionCookie, staffTokenFromHeaders } from "./lib/staff-session";
-import { createMfaChallenge, consumeMfaAttempt, deleteMfaChallenge, revokeMfaChallenges, newTotpSecret, verifyTotp } from "./lib/staff-mfa";
-import { encryptStaffMfaSecret, decryptStaffMfaSecret } from "./lib/admin-session";
+import { revokeMfaChallenges } from "./lib/staff-mfa";
 import { TRPCError } from '@trpc/server';
 import { auditLog } from "./lib/audit-log";
 import { hashPassword, verifyPassword } from "./lib/password";
@@ -26,7 +25,7 @@ async function saveStaffChanges(id: number, update: Partial<typeof staffUsers.$i
 export const staffRouter = createRouter({
   completeSetup: loginQuery.input(z.object({ token: z.string().regex(/^[a-f0-9]{64}$/), password: z.string().min(12).max(500) }).strict())
     .mutation(({ input }) => completeStaffSetup(input.token, input.password)),
-  // Staff login - returns token
+  // Named staff login - issues an HttpOnly session cookie.
   login: loginQuery
     .input(
       z.object({
@@ -34,7 +33,7 @@ export const staffRouter = createRouter({
         password: z.string().min(1),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const [staff] = await db
         .select()
@@ -44,13 +43,13 @@ export const staffRouter = createRouter({
 
       if (!staff || staff.isActive !== "active") {
         auditLog("staff.login", "failure", "anonymous");
-        throw new Error("Invalid username or password");
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'The username or password is incorrect. Check your details and try again.' });
       }
 
       const passwordResult = await verifyPassword(input.password, staff.passwordHash);
       if (!passwordResult.valid) {
         auditLog("staff.login", "failure", "anonymous");
-        throw new Error("Invalid username or password");
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'The username or password is incorrect. Check your details and try again.' });
       }
       let currentHash = staff.passwordHash;
       if (passwordResult.needsUpgrade) {
@@ -60,30 +59,10 @@ export const staffRouter = createRouter({
           .where(eq(staffUsers.id, staff.id));
       }
 
-      const enrolling = !staff.mfaSecret;
-      const secret = staff.mfaSecret ? decryptStaffMfaSecret(staff.mfaSecret) : newTotpSecret();
-      return {
-        challenge: createMfaChallenge({ staffId: staff.id, secret, enrolling, passwordHash: currentHash }),
-        setupSecret: enrolling ? secret : null,
-      };
-    }),
-
-  completeLogin: loginQuery.input(z.object({ challenge: z.string().length(64), code: z.string().regex(/^\d{6}$/) }).strict())
-    .mutation(async ({ input, ctx }) => {
-      const challenge = consumeMfaAttempt(input.challenge);
-      const reject = () => new TRPCError({ code: 'UNAUTHORIZED', message: 'The authenticator code or sign-in session is invalid. Check the current code, or sign in again.' });
-      if (!challenge) throw reject();
-      const db = getDb();
-      const [staff] = await db.select().from(staffUsers).where(eq(staffUsers.id, challenge.staffId)).limit(1);
-      if (!staff || staff.isActive !== 'active' || staff.passwordHash !== challenge.passwordHash || Boolean(staff.mfaSecret) === challenge.enrolling) throw reject();
-      const secret = staff.mfaSecret ? decryptStaffMfaSecret(staff.mfaSecret) : challenge.secret;
-      const counter = verifyTotp(secret, input.code, staff.mfaLastCounter);
-      if (counter === null) throw reject();
-      const [result] = await db.update(staffUsers).set({ mfaSecret: encryptStaffMfaSecret(secret), mfaLastCounter: counter })
-        .where(and(eq(staffUsers.id, staff.id), eq(staffUsers.isActive, 'active'), eq(staffUsers.passwordHash, challenge.passwordHash),
-          sql`${staffUsers.mfaLastCounter} <=> ${staff.mfaLastCounter}`));
-      if (result.affectedRows !== 1) throw reject();
-      deleteMfaChallenge(input.challenge);
+      // Owner-approved password-only named-account sign-in (8 October 2026).
+      const [active] = await db.select({ id: staffUsers.id }).from(staffUsers)
+        .where(and(eq(staffUsers.id, staff.id), eq(staffUsers.isActive, 'active'), eq(staffUsers.passwordHash, currentHash))).limit(1);
+      if (!active) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Your account changed during sign-in. Sign in again with your current details.' });
       await recordNamedAdminVerification(staff.id, staff.role);
       const token = createStaffSession(staff.id);
       ctx.resHeaders.append('set-cookie', staffSessionCookie(ctx.req.headers, token));
