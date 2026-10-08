@@ -47,6 +47,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 interface DocumentManagerProps {
   applicationId: number;
+  language?: "en" | "ar";
   readOnly?: boolean;
   allowUpload?: boolean;
   applicants?: readonly { applicantId: number; displayName: string }[];
@@ -65,7 +66,10 @@ const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) =
   reader.readAsDataURL(file);
 });
 
-export default function DocumentManager({ applicationId, readOnly = false, allowUpload = false, applicants = [] }: DocumentManagerProps) {
+export default function DocumentManager({ applicationId, language = "en", readOnly = false, allowUpload = false, applicants = [] }: DocumentManagerProps) {
+  const ar = language === "ar";
+  const labels: Record<string, string> = ar ? { passport: "جواز السفر", photo: "الصورة الشخصية", national_id: "الهوية الوطنية", supporting: "مستند إضافي", visa: "التأشيرة", invoice: "الفاتورة", gcc_residence: "الإقامة الخليجية", sponsor_id: "هوية الكفيل" } : TYPE_LABELS;
+  const statuses: Record<string, string> = { uploaded: "تم الرفع", pending: "بانتظار الرفع", failed: "فشل الرفع", replaced: "تم الاستبدال" };
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"" | DocumentListItem["documentType"]>("");
   const [previewDoc, setPreviewDoc] = useState<DocumentListItem | null>(null);
@@ -76,7 +80,7 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
   const [uploadMessage, setUploadMessage] = useState("");
 
   const utils = trpc.useUtils();
-  const { data: docs, isLoading } = trpc.document.listByApplication.useQuery({
+  const { data: docs, isLoading, error } = trpc.document.listByApplication.useQuery({
     applicationId,
     search: search || undefined,
     documentType: typeFilter || undefined,
@@ -114,7 +118,7 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
   };
 
   const handleDelete = (doc: DocumentListItem) => {
-    if (!confirm(`Delete "${doc.originalFileName}"? This cannot be undone.`)) return;
+    if (!confirm(ar ? `حذف "${doc.originalFileName}"؟ لا يمكن التراجع عن الحذف.` : `Delete "${doc.originalFileName}"? This cannot be undone.`)) return;
     setDeletingId(doc.id);
     deleteDoc.mutate({ id: doc.id });
   };
@@ -132,7 +136,7 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
       }
     } catch (err) {
       console.error("Download failed:", err);
-      alert("Download failed. Please try again.");
+      alert(ar ? "تعذر تنزيل الملف. حاول مرة أخرى." : "Download failed. Please try again.");
     }
   };
 
@@ -147,35 +151,36 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
     <div className="space-y-4">
       {allowUpload && applicants.length > 0 && <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
         <h3 className="font-semibold text-slate-900">Upload a case document</h3>
-        <p className="mt-1 text-xs text-slate-600">The file is attached only to the selected applicant. Visa files remain subject to review and secure delivery controls.</p>
+        <p className="mt-1 text-sm text-slate-600">The file is attached only to the selected applicant. Visa files remain subject to review and secure delivery controls.</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <select aria-label="Document applicant" value={uploadApplicantId} onChange={(event) => setUploadApplicantId(event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">Select applicant</option>{applicants.map((applicant) => <option key={applicant.applicantId} value={applicant.applicantId}>{applicant.displayName}</option>)}</select>
-          <select aria-label="Document type" value={uploadType} onChange={(event) => setUploadType(event.target.value as typeof uploadType)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">{uploadTypes.map((type) => <option key={type} value={type}>{TYPE_LABELS[type] ?? type}</option>)}</select>
+          <select aria-label="Document type" value={uploadType} onChange={(event) => setUploadType(event.target.value as typeof uploadType)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">{uploadTypes.map((type) => <option key={type} value={type}>{labels[type] ?? type}</option>)}</select>
           <input aria-label="Choose document" type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
         </div>
         <button type="button" disabled={!uploadFile || !uploadApplicantId || uploadStorage.isPending || createDocument.isPending} onClick={() => void handleUpload()} className="mt-3 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{uploadStorage.isPending || createDocument.isPending ? "Uploading…" : "Upload to selected applicant"}</button>
         {uploadMessage && <p role="status" className="mt-2 text-sm text-slate-700">{uploadMessage}</p>}
       </section>}
+      {deleteDoc.error && <p role="alert" className="text-red-700">{ar ? "تعذر حذف المستند. حدّث الصفحة وحاول مرة أخرى." : "Document could not be deleted. Refresh and retry."}</p>}
       {/* Stats Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="bg-[#C9A04C]/10 text-[#C9A04C] px-3 py-1 rounded-full text-sm font-semibold">
-            {countData?.count || 0} Documents
+            {countData?.count || 0} {ar ? "مستندات" : "Documents"}
           </div>
           {countData && countData.totalSize > 0 && (
-            <span className="text-xs text-gray-400">
-              Total: {formatSize(countData.totalSize)}
+            <span className="text-sm text-slate-500">
+              {ar ? "الحجم الإجمالي:" : "Total:"} {formatSize(countData.totalSize)}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">
-            {docs?.filter((d) => d.uploadStatus === "uploaded").length || 0} uploaded
+          <span className="text-sm text-slate-500">
+            {docs?.filter((d) => d.uploadStatus === "uploaded").length || 0} {ar ? "تم رفعها" : "uploaded"}
           </span>
           {docs && docs.some((d) => d.uploadStatus === "failed") && (
-            <span className="text-xs text-red-400 flex items-center gap-1">
+            <span className="text-sm text-red-400 flex items-center gap-1">
               <AlertCircle size={10} />
-              {docs.filter((d) => d.uploadStatus === "failed").length} failed
+              {docs.filter((d) => d.uploadStatus === "failed").length} {ar ? "فشل رفعها" : "failed"}
             </span>
           )}
         </div>
@@ -184,16 +189,16 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
       {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by filename..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none"
+            aria-label={ar ? "ابحث باسم الملف" : "Search by filename"} placeholder={ar ? "ابحث باسم الملف…" : "Search by filename..."}
+            className="w-full ps-9 pe-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button onClick={() => setSearch("")} className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-gray-600">
               <X size={12} />
             </button>
           )}
@@ -203,8 +208,8 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
           onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#C9A04C] focus:outline-none bg-white min-w-[150px]"
         >
-          <option value="">All Types</option>
-          {Object.entries(TYPE_LABELS).map(([key, label]) => (
+          <option value="">{ar ? "كل أنواع المستندات" : "All Types"}</option>
+          {Object.entries(labels).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
@@ -212,12 +217,12 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
 
       {/* Documents List */}
       {isLoading ? (
-        <div className="text-center py-10 text-gray-400 text-sm">Loading documents...</div>
-      ) : !docs || docs.length === 0 ? (
+        <div className="text-center py-10 text-slate-500 text-sm">{ar ? "جارٍ تحميل المستندات…" : "Loading documents..."}</div>
+      ) : error ? <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">{ar ? "تعذر تحميل المستندات. حدّث الصفحة للمحاولة مرة أخرى." : "Documents could not load. Refresh to try again."}</p> : !docs || docs.length === 0 ? (
         <div className="border border-dashed border-gray-200 rounded-lg p-8 text-center">
           <FileText size={24} className="text-gray-300 mx-auto mb-2" />
-          <p className="text-gray-400 text-sm">No documents found.</p>
-          <p className="text-gray-300 text-xs mt-1">Documents will appear here after customer upload.</p>
+          <p className="text-slate-500 text-sm">{ar ? "لا توجد مستندات مطابقة." : "No documents found."}</p>
+          <p className="text-slate-500 text-sm mt-1">{ar ? "تظهر المستندات بعد رفعها. إذا كنت تستخدم البحث، جرّب مسح الفلاتر." : "Documents will appear here after customer upload."}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -227,7 +232,7 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
             return (
               <div
                 key={doc.id}
-                className="flex items-center gap-3 bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-colors"
+                className="flex flex-wrap items-center gap-3 bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-colors"
               >
                 {/* Icon */}
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
@@ -237,17 +242,17 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
                 </div>
 
                 {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{doc.originalFileName}</p>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex-1 min-w-[160px]">
+                  <p className="text-sm font-medium text-gray-900 break-all">{doc.originalFileName}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                     <span className={`px-1.5 py-0.5 rounded-full ${TYPE_COLORS[doc.documentType] || "bg-gray-50 text-gray-600"}`}>
-                      {TYPE_LABELS[doc.documentType] || doc.documentType}
+                      {labels[doc.documentType] || doc.documentType}
                     </span>
                     <span>{formatSize(doc.fileSize)}</span>
                     <span>{doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : "-"}</span>
                     <span className={`flex items-center gap-0.5 ${STATUS_COLORS[doc.uploadStatus] || "text-gray-500"}`}>
                       <StatusIcon size={10} />
-                      {doc.uploadStatus}
+                      {ar ? statuses[doc.uploadStatus] || doc.uploadStatus : doc.uploadStatus}
                     </span>
                   </div>
                 </div>
@@ -256,25 +261,25 @@ export default function DocumentManager({ applicationId, readOnly = false, allow
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setPreviewDoc(doc)}
-                    className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="Preview"
+                    className="inline-flex min-h-11 items-center gap-2 px-3 py-2 text-slate-500 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                    title={ar ? "معاينة" : "Preview"}
                   >
-                    <Eye size={14} />
+                    <Eye size={14} />{ar && <span>معاينة</span>}
                   </button>
                   <button
                     onClick={() => handleDownload(doc)}
-                    className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
-                    title="Download"
+                    className="inline-flex min-h-11 items-center gap-2 px-3 py-2 text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
+                    title={ar ? "تنزيل" : "Download"}
                   >
-                    <Download size={14} />
+                    <Download size={14} />{ar && <span>تنزيل</span>}
                   </button>
                     {!readOnly && <button
                       onClick={() => handleDelete(doc)}
                     disabled={deleteDoc.isPending && deletingId === doc.id}
-                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                    title="Delete"
+                    className="inline-flex min-h-11 items-center gap-2 px-3 py-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                    title={ar ? "حذف" : "Delete"}
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={14} />{ar && <span>حذف</span>}
                     </button>}
                 </div>
               </div>

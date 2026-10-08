@@ -1,3 +1,7 @@
+# Full request-detail usability pass — 2026-10-08
+
+Owner expanded the request to the entire request-detail screen. Arabic RTL summary and seven clear sections now group review, visa changes, financial actions, timeline and customer notes. Technical diagnostics are collapsed; Stripe minor-unit fees use the settlement currency scale; status changes require explicit Save. Shared document/timeline/invoice widgets keep English defaults outside this Arabic detail screen. Backend policy, roles, prices, email and Stripe execution unchanged. Local check/lint/build pass;1410 tests pass,26 database tests await hosted CI. Not yet deployed or visually accepted. Generated dist/boot.js excluded. Prior password-only owner login succeeded; production remains closed.
+
 # Owner-requested password-only sign-in — 2026-10-08
 
 DEPLOYED:7401e941c5e45f19c2f376ba9cd7b8650964132c to staging only. check/lint/build and1405 unit tests passed locally and in candidate verification; hosted CI37757519614 passed including26 mandatory MySQL tests with zero skips. Backup /var/backups/tashira-staging/password-login-1791452342849; health200. Browser verified Username/Password and 'Use your username and password', no authenticator UI. Anonymous application/quote/clock return401 and decision queue403; production intake remains closed. Owner passwords unchanged; successful sign-in using the owner's actual credentials remains for the owner to perform. Earlier candidate wording below is historical.

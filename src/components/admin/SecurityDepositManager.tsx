@@ -10,52 +10,52 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
   const [message, setMessage] = useState("");
   const createRequest = trpc.securityDeposit.createAndSend.useMutation({
     onSuccess: async (result) => {
-      setMessage(result.status === "SENT" ? "Security-deposit request sent successfully." : "Request saved, but email delivery failed. Do not create a duplicate until reviewed.");
+      setMessage(result.status === "SENT" ? "تم إرسال طلب التأمين بنجاح." : "تم حفظ الطلب لكن تعذر إرسال البريد. راجع حالة الإرسال قبل إنشاء طلب آخر.");
       await Promise.all([
         utils.securityDeposit.listByApplication.invalidate({ applicationId }),
         utils.timeline.list.invalidate(),
       ]);
     },
-    onError: () => setMessage("Security-deposit request was not created. Review the values and try again."),
+    onError: () => setMessage("لم يُنشأ الطلب. راجع البيانات وحاول مرة أخرى."),
   });
   const resendRequest = trpc.securityDeposit.resend.useMutation({
     onSuccess: async (result) => {
-      setMessage(result.status === "SENT" ? "Security-deposit request resent with a new secure link." : "Email delivery failed again. The request remains safe to retry.");
+      setMessage(result.status === "SENT" ? "أعيد إرسال طلب التأمين برابط آمن جديد." : "تعذر إرسال البريد مجددًا. يمكنك إعادة محاولة إرسال الطلب نفسه.");
       await Promise.all([
         utils.securityDeposit.listByApplication.invalidate({ applicationId }),
         utils.timeline.list.invalidate(),
       ]);
     },
-    onError: () => setMessage("The request could not be resent. Refresh its status before retrying."),
+    onError: () => setMessage("تعذرت إعادة الإرسال. حدّث الحالة قبل المحاولة."),
   });
 
   return (
-    <section className="border-t border-gray-100 pt-5 space-y-4">
+    <section dir="rtl" className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
       <div>
-        <h3 className="text-sm font-semibold text-gray-900">Refundable Security Deposit</h3>
-        <p className="text-xs text-gray-500">Set the amount per application. The customer receives an expiring, single-purpose payment link by email.</p>
+        <h3 className="text-sm font-semibold text-gray-900">التأمين المسترد</h3>
+        <p className="text-sm text-gray-500">حدد قيمة التأمين لهذا الطلب. سيتلقى العميل بريدًا به رابط دفع مخصص للتأمين بمدة صلاحية محددة.</p>
       </div>
-      {message && <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">{message}</p>}
+      {message && <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">{message}</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <label className="text-xs text-gray-600">Amount (AED)
+        <label className="text-sm text-gray-600">المبلغ بالدرهم
           <input className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm" type="number" min="1" max="1000000" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} />
         </label>
-        <label className="text-xs text-gray-600 md:col-span-2">Purpose
+        <label className="text-sm text-gray-600 md:col-span-2">سبب طلب التأمين
           <input className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm" maxLength={255} value={purpose} onChange={(event) => setPurpose(event.target.value)} />
         </label>
-        <label className="text-xs text-gray-600">Link validity (days)
+        <label className="text-sm text-gray-600">صلاحية الرابط بالأيام
           <input className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm" type="number" min="1" max="30" value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)} />
         </label>
       </div>
-      <button className="rounded-lg bg-[#C9A04C] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50" disabled={createRequest.isPending || Number(amount) <= 0 || purpose.trim().length < 5} onClick={() => createRequest.mutate({
+      <button className="rounded-lg bg-[#C9A04C] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={createRequest.isPending || Number(amount) <= 0 || purpose.trim().length < 5} onClick={() => createRequest.mutate({
         applicationId,
         amount: Number(amount),
         purpose,
         expiresInDays: Number(expiresInDays),
-      })}>Send security-deposit request</button>
+      })}>إرسال طلب التأمين بالبريد</button>
       <div className="space-y-2">
         {requests.data?.map((request) => (
-          <div key={request.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 p-3 text-xs">
+          <div key={request.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 p-3 text-sm">
             <span>{request.currency} {Number(request.amount).toFixed(2)} — {request.purpose}</span>
             <div className="flex items-center gap-2">
               <span className="font-semibold">{request.status}</span>
@@ -63,7 +63,7 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
                 <button className="rounded border border-[#C9A04C] px-2 py-1 font-semibold text-[#8B6B2E] disabled:opacity-50" disabled={resendRequest.isPending} onClick={() => resendRequest.mutate({
                   requestId: request.id,
                   expiresInDays: Number(expiresInDays),
-                })}>Retry email</button>
+                })}>إعادة إرسال البريد</button>
               )}
             </div>
           </div>

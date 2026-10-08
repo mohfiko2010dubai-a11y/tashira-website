@@ -2,6 +2,7 @@ import { FileText, Download } from 'lucide-react';
 
 interface InvoiceButtonProps {
   invoiceNumber: string;
+  language?: "en" | "ar";
   referenceNumber: string;
   totalAmountUsd: number;
   exchangeRate: number;
@@ -25,7 +26,7 @@ export function ViewInvoiceButton(props: InvoiceButtonProps) {
       className="inline-flex items-center gap-2 px-4 py-2 bg-[#C9A04C] text-white text-sm rounded-lg hover:shadow-md transition-all"
     >
       <FileText size={14} />
-      View Invoice
+      {props.language === "ar" ? "عرض الفاتورة" : "View Invoice"}
     </button>
   );
 }
@@ -37,7 +38,7 @@ export function DownloadInvoiceButton(props: InvoiceButtonProps) {
       className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 text-sm rounded-lg hover:bg-gray-50 transition-all"
     >
       <Download size={14} />
-      Download
+      {props.language === "ar" ? "تنزيل الفاتورة" : "Download"}
     </a>
   );
 }

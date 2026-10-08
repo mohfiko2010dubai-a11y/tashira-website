@@ -90,7 +90,7 @@ describe("payer authorization evidence", () => {
     expect(evidence).toContain("payerAuthorization");
     expect(evidence).toContain("leadApplicant");
     expect(admin).toContain("PAYER_AUTHORIZATION_ACCEPTED");
-    expect(admin).toContain("Accepted ✓");
+    expect(admin).toContain("تمت الموافقة ✓");
     expect(legal).toContain("Payment may be made by an authorized third party");
     expect(invoice).toContain("payerName");
     expect(paymentSuccess).not.toContain("payerName");
