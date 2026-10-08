@@ -15,6 +15,18 @@ function repository(): SupportInboxRepository & { applied: unknown[] } { const a
 const context = (repo: SupportInboxRepository, currentActor = actor(), flags = [flag]) => ({ actor: currentActor, context: { environment: "TEST" as const, staffId: 4, teamIds: currentActor.teamIds }, flags, repository: repo });
 
 describe("Support Inbox service gate", () => {
+  it('linked conversations follow the case owner rather than an old thread assignee or team', async () => {
+    let owner = 'staff:4';
+    const thread = () => ({ ...detail(7), applicationOwnerActorId: owner, assignedActorId: owner, assignedStaffId: Number(owner.split(':')[1]) });
+    const repo: SupportInboxRepository = { list: async () => [thread()], get: async () => thread(), apply: async () => thread() };
+    const employee: AuthorizationActor = { id: 'staff:4', permissions: new Set(['case.read_assigned','case.transition']), scopes: ['ASSIGNED'], teamIds: new Set(), departmentIds: new Set() };
+    expect(await listSupportThreads(context(repo, employee, [globalFlag]))).toHaveLength(1);
+    await expect(executeSupportCommand({ ...context(repo, employee, [globalFlag]), threadId: 'thread-1', command: { action: 'REASSIGN', targetStaffId: 9, expectedVersion: 0, commandId: 'reassign-123' }, now: new Date() })).rejects.toThrow('SUPPORT_USE_CASE_ASSIGNMENT');
+    owner = 'staff:9';
+    expect(await listSupportThreads(context(repo, employee, [globalFlag]))).toHaveLength(0);
+    await expect(readSupportThread({ ...context(repo, employee, [globalFlag]), threadId: 'thread-1' })).rejects.toThrow('SUPPORT_ACCESS_DENIED');
+    expect(await listSupportThreads(context(repo, actor(), [globalFlag]))).toHaveLength(0);
+  });
   it("returns only trusted team-scoped threads", async () => expect(await listSupportThreads(context(repository()))).toHaveLength(1));
   it("denies closed flags, missing permissions and wrong teams", async () => {
     await expect(listSupportThreads(context(repository(), actor(), []))).rejects.toThrow("SUPPORT_INBOX_DISABLED");

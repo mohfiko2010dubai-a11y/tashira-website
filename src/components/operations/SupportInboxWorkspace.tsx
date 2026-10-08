@@ -6,7 +6,7 @@ export default function SupportInboxWorkspace({ threads, selected, busy, noteBod
   threads: readonly SupportThreadResource[]; selected: SupportThreadDetail | null; busy: boolean; noteBody: string; targetStaffId: string;
   onNoteBody(value: string): void; onTargetStaffId(value: string): void; onSelect(threadId: string): void; onCommand(command: Command): void;
 }) {
-  const actions: readonly { action: Command["action"]; label: string }[] = selected?.state === "UNASSIGNED" ? [{ action: "CLAIM", label: "Claim thread" }]
+  const actions: readonly { action: Command["action"]; label: string }[] = selected?.state === "UNASSIGNED" ? (selected.applicationOwnerActorId === undefined ? [{ action: "CLAIM", label: "Claim thread" }] : [])
     : selected?.state === "ASSIGNED" ? [{ action: "START", label: "Start work" }]
       : selected?.state === "IN_PROGRESS" ? [{ action: "WAIT_FOR_CUSTOMER", label: "Wait for customer" }, { action: "RESOLVE", label: "Resolve" }]
         : selected?.state === "WAITING_FOR_CUSTOMER" ? [{ action: "RESOLVE", label: "Resolve" }] : [];
@@ -28,10 +28,10 @@ export default function SupportInboxWorkspace({ threads, selected, busy, noteBod
         <textarea aria-label="Internal note" value={noteBody} onChange={(event) => onNoteBody(event.target.value)} maxLength={4000} className="mt-3 min-h-24 w-full rounded-lg border p-3" />
         <button type="button" disabled={busy || !noteBody.trim()} onClick={() => onCommand({ action: "ADD_INTERNAL_NOTE", noteBody })} className="mt-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Add internal note</button>
       </section>
-      <section className="mt-5 border-t pt-4" aria-label="Assignment"><h3 className="font-semibold">Assignment</h3>
+      {selected.applicationOwnerActorId !== undefined ? <p dir="rtl" className="mt-5 rounded-lg bg-slate-50 p-3 text-sm">هذه المحادثة تتبع الموظف المسؤول عن الطلب، وتنتقل معه عند إعادة إسناد الطلب. وصول رد لا يعني اكتمال المستندات أو استلام الدفع.</p> : <section className="mt-5 border-t pt-4" aria-label="Assignment"><h3 className="font-semibold">Assignment</h3>
         <div className="mt-2 flex flex-wrap gap-2"><input aria-label="Target staff ID" inputMode="numeric" value={targetStaffId} onChange={(event) => onTargetStaffId(event.target.value)} className="w-40 rounded-lg border px-3 py-2 text-sm" placeholder="Staff ID" />
           <button type="button" disabled={busy || !/^[1-9]\d*$/.test(targetStaffId)} onClick={() => onCommand({ action: selected.assignedStaffId === null ? "ASSIGN" : "REASSIGN", targetStaffId: Number(targetStaffId) })}
-            className="rounded-lg border border-slate-900 px-4 py-2 text-sm font-semibold disabled:opacity-50">{selected.assignedStaffId === null ? "Assign" : "Reassign"}</button></div></section>
+            className="rounded-lg border border-slate-900 px-4 py-2 text-sm font-semibold disabled:opacity-50">{selected.assignedStaffId === null ? "Assign" : "Reassign"}</button></div></section>}
       <div className="mt-5 flex flex-wrap gap-2">{actions.map(({ action, label }) => <button type="button" key={action} disabled={busy} onClick={() => onCommand({ action })}
         className="rounded-lg border border-slate-900 px-4 py-2 text-sm font-semibold disabled:opacity-50">{label}</button>)}</div>
       <p className="mt-5 text-xs text-slate-500">Outbound email delivery is not enabled from this workspace.</p>

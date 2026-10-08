@@ -842,3 +842,9 @@ Complete the remaining protected owner acceptance on isolated Staging: use the a
 
 
 
+# Queue deployed and linked inbox ownership candidate — 2026-10-08
+
+Staging now runs bd4ff2808300646b40412e9c791b7c16c053b471. CI37775532364 passed both jobs, including all30 mandatory MySQL tests. Local and candidate-server check/lint/test/build passed. Migration069 verified four tables/two append-only triggers. Database backup: /var/backups/tashira-staging/work-queue-schema-1791462024843/staging.sql; runtime rollback: /var/backups/tashira-staging/work-queue-1791462094865. Health200; anonymous protected endpoints denied; production intake CLOSED. Browser restarted to staff login, so authenticated post-deploy queue UAT is pending, not claimed complete.
+
+Next candidate reuses Support Inbox and makes linked conversation visibility follow operations_case_controls ownership. Former owner loses access after reassignment; team membership does not grant access to another owner's linked thread; linked threads cannot maintain a conflicting second assignment. History stays intact. Admin commands retain named staff identity. Retry hashing excludes server-generated timestamps. Local four gates passed:1418 unit tests;31 database tests await mandatory CI. No provider inbound/outbound or WhatsApp connection is claimed. Manager reassignment for common cases without team/workload configuration remains the next implementation item.
+

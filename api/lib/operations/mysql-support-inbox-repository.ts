@@ -5,7 +5,7 @@ import { SupportThreadWorkflow } from "./support-workflow";
 import type { SupportMessage, SupportChannel, SupportDirection } from "./support-inbox";
 
 type SqlValue = string | number | Date | null;
-export type SupportThreadResource = SupportThread & { teamId: number; assignedActorId?: string; departmentId?: number };
+export type SupportThreadResource = SupportThread & { teamId: number; assignedActorId?: string; departmentId?: number; applicationOwnerActorId?: string | null };
 export type SupportThreadDetail = SupportThreadResource & { messages: readonly SupportMessage[] };
 
 function value(row: object, key: string): unknown { return Reflect.get(row, key); }
@@ -17,12 +17,15 @@ async function rows(connection: PoolConnection, sql: string, values: readonly Sq
 function digest(value: object): string { return createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
 
 function threadFromRow(row: object, notes: SupportThread["internalNotes"] = []): SupportThreadResource {
-  const assignedStaffId = optionalNumber(row, "assignedStaffId");
+  const linked = optionalNumber(row, 'applicationId') !== null;
+  const assignedStaffId = linked ? optionalNumber(row, 'applicationOwnerId') : optionalNumber(row, "assignedStaffId");
+  const state = text(row, 'state') as SupportThreadState;
   return { threadId: text(row, "threadId"), applicationId: optionalNumber(row, "applicationId"), customerReference: text(row, "customerReference"),
-    state: text(row, "state") as SupportThreadState, priority: text(row, "priority") as SupportPriority, assignedStaffId,
+    state: linked && assignedStaffId !== null && state === 'UNASSIGNED' ? 'ASSIGNED' : state, priority: text(row, "priority") as SupportPriority, assignedStaffId,
     unreadCount: number(row, "unreadCount"), slaDueAt: dateTime(row, "slaDueAt"), version: number(row, "version"), updatedAt: dateTime(row, "updatedAt"),
     internalNotes: notes, teamId: number(row, "teamId"), assignedActorId: assignedStaffId === null ? undefined : `staff:${assignedStaffId}`,
-    departmentId: optionalNumber(row, "departmentId") ?? undefined };
+    departmentId: optionalNumber(row, "departmentId") ?? undefined,
+    ...(linked ? { applicationOwnerActorId: assignedStaffId === null ? null : `staff:${assignedStaffId}` } : {}) };
 }
 
 export class MysqlSupportInboxRepository {
@@ -33,8 +36,9 @@ export class MysqlSupportInboxRepository {
     const connection = await this.pool.getConnection();
     try { return (await rows(connection, `SELECT st.id threadId,st.application_id applicationId,st.customer_reference customerReference,
       st.state,st.priority,st.assigned_staff_user_id assignedStaffId,st.team_id teamId,t.department_id departmentId,
-      st.unread_count unreadCount,st.sla_due_at slaDueAt,st.version,st.updated_at updatedAt
+      st.unread_count unreadCount,st.sla_due_at slaDueAt,st.version,st.updated_at updatedAt,c.assigned_staff_user_id applicationOwnerId
       FROM operations_support_threads st JOIN operations_teams t ON t.id=st.team_id
+      LEFT JOIN operations_case_controls c ON c.application_id=st.application_id
       ORDER BY FIELD(st.priority,'URGENT','HIGH','NORMAL'),st.sla_due_at,st.updated_at DESC`)).map((row) => threadFromRow(row)); }
     finally { connection.release(); }
   }
@@ -48,8 +52,16 @@ export class MysqlSupportInboxRepository {
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
-      const commandSha256 = digest(command);
+      const commandSha256 = digest({ ...command, occurredAt: undefined });
+      const link = await rows(connection, 'SELECT application_id applicationId FROM operations_support_threads WHERE id=?', [threadId]);
+      const applicationId = link[0] ? optionalNumber(link[0], 'applicationId') : null;
+      if (applicationId !== null) await rows(connection, 'SELECT id FROM applications WHERE id=? FOR UPDATE', [applicationId]);
       const current = await this.loadDetail(connection, threadId, true); if (!current) throw new Error("SUPPORT_THREAD_NOT_FOUND");
+      if (current.applicationOwnerActorId !== undefined) {
+        const accounts = await rows(connection, "SELECT staff_role FROM staff_users WHERE id=? AND is_active='active'", [command.actorStaffId]);
+        if (!accounts[0] || (text(accounts[0], 'staff_role') !== 'admin' && current.applicationOwnerActorId !== `staff:${command.actorStaffId}`)) throw new Error('SUPPORT_ACCESS_DENIED');
+        if (['ASSIGN','REASSIGN','CLAIM'].includes(command.action)) throw new Error('SUPPORT_USE_CASE_ASSIGNMENT');
+      }
       const prior = await rows(connection, "SELECT command_sha256 commandSha256,result_json resultJson FROM operations_support_command_events WHERE thread_id=? AND command_id=?", [threadId, command.commandId]);
       if (prior[0]) {
         if (text(prior[0], "commandSha256") !== commandSha256) throw new Error("SUPPORT_COMMAND_IDEMPOTENCY_CONFLICT");
@@ -90,8 +102,9 @@ export class MysqlSupportInboxRepository {
   private async loadDetail(connection: PoolConnection, threadId: string, lock: boolean): Promise<SupportThreadDetail | null> {
     const found = await rows(connection, `SELECT st.id threadId,st.application_id applicationId,st.customer_reference customerReference,
       st.state,st.priority,st.assigned_staff_user_id assignedStaffId,st.team_id teamId,t.department_id departmentId,
-      st.unread_count unreadCount,st.sla_due_at slaDueAt,st.version,st.updated_at updatedAt
-      FROM operations_support_threads st JOIN operations_teams t ON t.id=st.team_id WHERE st.id=?${lock ? " FOR UPDATE" : ""}`, [threadId]);
+      st.unread_count unreadCount,st.sla_due_at slaDueAt,st.version,st.updated_at updatedAt,c.assigned_staff_user_id applicationOwnerId
+      FROM operations_support_threads st JOIN operations_teams t ON t.id=st.team_id
+      LEFT JOIN operations_case_controls c ON c.application_id=st.application_id WHERE st.id=?${lock ? " FOR UPDATE" : ""}`, [threadId]);
     if (!found[0]) return null;
     const noteRows = await rows(connection, "SELECT id noteId,staff_user_id staffId,body,occurred_at occurredAt FROM operations_support_internal_notes WHERE thread_id=? ORDER BY occurred_at,id", [threadId]);
     const notes = noteRows.map((row) => ({ noteId: text(row, "noteId"), staffId: number(row, "staffId"), body: text(row, "body"), occurredAt: dateTime(row, "occurredAt") }));

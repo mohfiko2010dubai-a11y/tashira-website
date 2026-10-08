@@ -13,11 +13,13 @@ const command = z.object({ commandId: z.string().min(8).max(100), expectedVersio
 type Access = Pick<MysqlOperationsAccessProvider, "actorForContext" | "flagContextForContext" | "featureFlags">;
 type Dependencies = { access: Access; repository: SupportInboxRepository; now(): Date };
 async function gate(deps: Dependencies, ctx: TrpcContext) { if (!ctx.staffId) throw new TRPCError({ code: "FORBIDDEN", message: "Support access denied" });
-  const [actor, context, flags] = await Promise.all([deps.access.actorForContext(ctx), deps.access.flagContextForContext(ctx), deps.access.featureFlags()]); return { actor, context, flags, repository: deps.repository }; }
+  const [actor, context, flags] = await Promise.all([deps.access.actorForContext(ctx), deps.access.flagContextForContext(ctx), deps.access.featureFlags()]);
+  return { actor: actor.id === 'admin' ? { ...actor, id: `staff:${ctx.staffId}` } : actor, context, flags, repository: deps.repository }; }
 function safe(error: unknown): never { if (error instanceof OperationsAccessError || error instanceof Error && ["SUPPORT_INBOX_DISABLED","SUPPORT_ACCESS_DENIED","SUPPORT_STAFF_ACTOR_REQUIRED"].includes(error.message))
   throw new TRPCError({ code: "FORBIDDEN", message: "Support access denied" });
   if (error instanceof Error && ["SUPPORT_THREAD_VERSION_CONFLICT","SUPPORT_COMMAND_IDEMPOTENCY_CONFLICT"].includes(error.message)) throw new TRPCError({ code: "CONFLICT", message: "Support thread changed; refresh and retry" });
   if (error instanceof Error && error.message === "SUPPORT_THREAD_NOT_FOUND") throw new TRPCError({ code: "NOT_FOUND", message: "Support thread not found" });
+  if (error instanceof Error && error.message === 'SUPPORT_USE_CASE_ASSIGNMENT') throw new TRPCError({ code: 'BAD_REQUEST', message: 'This conversation follows the application owner. Reassign the application instead.' });
   throw new TRPCError({ code: "BAD_REQUEST", message: "Support action could not be completed" }); }
 
 export function createOperationsSupportRouter(deps: Dependencies) { return createRouter({
