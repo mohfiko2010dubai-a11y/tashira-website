@@ -1,4 +1,5 @@
 import { authRouter } from "./auth-router";
+import { operationsWorkRouter } from './operations-work-router';
 import { applicationSupplementsRouter } from "./application-supplements-router";
 import { applicationRouter } from "./application-router";
 import { paymentRouter } from "./payment-router";
@@ -47,6 +48,7 @@ export const appRouter = createRouter({
     return effectiveApplicationIntake();
   }),
   auth: authRouter,
+  operationsWork: operationsWorkRouter,
   application: applicationRouter,
   payment: paymentRouter,
   chat: chatRouter,

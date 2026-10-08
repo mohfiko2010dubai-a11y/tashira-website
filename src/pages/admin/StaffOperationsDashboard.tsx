@@ -2,6 +2,7 @@ import OperationsManagerDashboard from "@/components/operations/OperationsManage
 import { trpc } from "@/providers/trpc-client";
 import { Link } from "react-router-dom";
 import OperationsShell from "@/components/operations/OperationsShell";
+import WorkTimeReport from '@/components/operations/WorkTimeReport';
 
 export default function StaffOperationsDashboard() {
   const query = trpc.operationsRead.managerDashboard.useQuery({}, { retry: false });
@@ -19,6 +20,7 @@ export default function StaffOperationsDashboard() {
   return <OperationsShell title="Operations Dashboard" subtitle="Live scoped workload, readiness, deadlines and review signals.">
     <div className="mb-5 flex flex-wrap gap-2"><Link to="/staff/dashboard" className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Open applications</Link>
       <Link to="/staff/operations" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Submission queue</Link></div>
+    <WorkTimeReport />
     <OperationsManagerDashboard model={query.data} />
   </OperationsShell>;
 }

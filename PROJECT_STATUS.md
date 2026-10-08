@@ -1,3 +1,11 @@
+# Work dispatch implementation candidate — 2026-10-08
+
+Implemented into existing Operations workspace: next-by-priority/oldest pickup, explicit availability, assigned work and due/customer/authority/supplier follow-up lists, mandatory reason/future follow-up, optimistic work-state versioning and retry evidence. Migration069 adds work state/events but keeps operations_case_controls as the sole assignment source; queue claims use the existing executor's case lock/version/assignment/audit persistence. Shared queue exposes only counts before claim. No ALL/TEAM grant added. Named managers can participate. Existing active work resumes before new claims; due assigned follow-up precedes fresh intake; otherwise Express then oldest. Moving to another active item marks the previous active work READY without releasing ownership. Work states do not change visa/payment/guarantee state.
+
+Manager-only declared-time report separates active time, ready follow-up, external case wait and available time without active work; clips to Dubai day, prevents overlapping active-time double count, closes transferred ownership intervals. This is not keystroke monitoring or proof of employee idleness. Profit/type/quality and complete close-duration attribution still need integration with financial evidence; do not claim those finished.
+
+Local candidate check/lint passed;1417 tests passed,30 database tests skipped locally. Four new mandatory MySQL tests cover simultaneous pickup/order/replay, assigned-only isolation, waits/version guards, named admin participation/deactivation/append-only history; CI inventory updated from26 to30. Final build/CI/staging migration and browser acceptance pending. No production changes. Existing dist/boot.js is generated/unrelated and excluded. Inbox/provider and launch UAT remain outstanding; owner requests continuation without interim questions.
+
 # Integrated launch scope and newest owner decisions — 2026-10-08
 
 Authority: latest direct owner instructions override conflicting older task text. Preserve compatible earlier Claude requirements and existing implementation; do not build duplicate dashboards, assignment engines or message stores. Owner requested completion toward launch today, not an unverified launch declaration. Production remains closed pending a concrete passing gate and explicit transfer authorization.

@@ -224,6 +224,38 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
       recordHumanReview({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository }, { now: () => now, newId: randomUUID }));
   }
 
+  /** Called inside the dispatcher's transaction, after it locks the dispatch row.
+   * Shares case versioning and both existing assignment audit streams. No scope
+   * grant is added: assigned-only access starts only after this transaction commits.
+   */
+  async claimQueuedCase(connection: PoolConnection, applicationId: number, staffId: number,
+    actor: AuthorizationActor, idempotencyKey: string, flags: readonly FeatureFlagRecord[]): Promise<WriteResult> {
+    if (!isOperationsFlagEnabled("OPERATIONS_CONTROLLED_WRITES", this.flagContext(actor), flags)) throw new OperationsWriteError("FEATURE_DISABLED");
+    if (!actor.permissions.has("case.read_assigned") || !actor.permissions.has("case.transition")) throw new OperationsWriteError("FORBIDDEN");
+    if (actor.id !== `staff:${staffId}` && actor.id !== "admin") throw new OperationsWriteError("FORBIDDEN");
+    const locked = await this.lockCase(connection, applicationId);
+    const before = locked.repository.get(applicationId);
+    if (!before || before.assignedActorId || ['completed', 'rejected', 'cancelled'].includes(before.status)) throw new OperationsWriteError("CONCURRENCY_CONFLICT");
+    if (before.teamId !== undefined && !actor.scopes.includes('ALL') && !actor.teamIds.has(before.teamId)) throw new OperationsWriteError("OUT_OF_SCOPE");
+    if (locked.paymentStatus !== 'paid') throw new OperationsWriteError("PRECONDITION_FAILED");
+    const input = { applicationId, expectedVersion: before.version, idempotencyKey, reason: 'Next available case by priority then age' };
+    const assigneeId = `staff:${staffId}`;
+    const result = locked.repository.apply({ ...input, fingerprint: hashCommand('CLAIM', input),
+      action: 'CLAIM', actorId: assigneeId, auditEventId: randomUUID(), occurredAt: new Date().toISOString(),
+      mutate: draft => {
+        draft.assignedActorId = assigneeId;
+        return { details: { previousAssigneeId: null, assigneeId }, workloadChange: { to: assigneeId } };
+      },
+    });
+    const after = locked.repository.get(applicationId);
+    const event = locked.repository.audit(applicationId)[0];
+    if (!after || !event) throw new OperationsWriteError('PERSISTENCE_FAILURE');
+    await this.persistMutation(connection, 'CLAIM', input, before, after, event);
+    await affected(connection, 'INSERT INTO operations_idempotency_records (application_id,idempotency_key,command_hash,action_event_id,result_json) VALUES (?,?,?,?,?)',
+      [applicationId, idempotencyKey, hashCommand('CLAIM', input), event.id, JSON.stringify(result)]);
+    return result;
+  }
+
   documentReview(input: Parameters<OperationsWriteExecutor["documentReview"]>[0], actor: AuthorizationActor): Promise<WriteResult> {
     return this.execute("DOCUMENT_REVIEW", input, actor, async ({ repository, trustedActor, flags, now }) =>
       reviewDocument({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository }, { now: () => now, newId: randomUUID }));

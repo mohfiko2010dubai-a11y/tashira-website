@@ -8,6 +8,7 @@ import {
   Users, FileText, AlertTriangle, Clock3, CheckCircle2,
 } from 'lucide-react';
 import OperationsShell from '@/components/operations/OperationsShell';
+import WorkQueuePanel from '@/components/operations/WorkQueuePanel';
 
 const statusColors: Record<string, string> = {
   submitted: 'bg-gray-100 text-gray-700',
@@ -59,6 +60,7 @@ export default function StaffDashboard() {
   return (
     <OperationsShell title="Applications" subtitle={`Welcome ${staff?.name ?? ''}. Search, triage and open the complete Operations case workspace.`}>
       <div>
+        <WorkQueuePanel includeTest={includeTest} />
         <div className="mb-4 flex justify-end"><button onClick={() => refetch()} className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw size={14} /> Refresh</button></div>
         {isError && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">Applications could not be loaded. Click Refresh to try again; if the problem continues, ask your administrator to check your access.</div>}
         {/* Summary Cards */}
