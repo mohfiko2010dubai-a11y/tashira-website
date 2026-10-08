@@ -1,3 +1,12 @@
+# Request-detail screen redesign deployed — 2026-10-08
+
+Staging runtime:445823d80a3f985c32ee53a5f87a9ddf8439fe33 (base UI1babf48). CI37764359654 SUCCESS, including26 guarded MySQL tests with no skips. Local/server check,lint,test,build passed;1411 local tests,26 integrations exercised in hosted CI. Rollback:/var/backups/tashira-staging/admin-detail-1791455901120. No schema/env/role/financial policy changes.
+
+Owner asked for clarity across the whole request-detail screen. Arabic RTL sections: overview,travellers,documents/review,visa change,payments/refunds,timeline,customer notes. Explicit Save Status; action wording distinguishes recorded decisions,approval and actual Stripe execution. Fee68 now displays36.00 AED instead of3600 minor units. Guarantees show Arabic Dubai-time dates. Technical rule diagnostics are collapsed. Original APIs and permissions retained.
+
+Live read-only UI review on synthetic TSH-0C5EA78E3B6E494A9BF06E20CDF2D08E: all seven sections opened; desktop1274px and phone390px (384px content viewport) had no page overflow; three documents listed with labelled actions; recorded refund visible; proposal controls and notes displayed. Selecting a new status enabled Save and restoring the original disabled it; no status save,document deletion,refund/payment or email was triggered. Console error log empty. Final screen open in browser. Screenshot:root tmp/admin-request-redesign.jpg.
+
+Anonymous application/quote/clock endpoints401;manual queue403. Production intake still CLOSED. Fifteen original dirty files unchanged; generated dist/boot.js excluded. This completes this UI revision, not the outstanding role/journey launch UAT. Owner login is working under approved password-only policy.
 # Full request-detail usability pass — 2026-10-08
 
 Owner expanded the request to the entire request-detail screen. Arabic RTL summary and seven clear sections now group review, visa changes, financial actions, timeline and customer notes. Technical diagnostics are collapsed; Stripe minor-unit fees use the settlement currency scale; status changes require explicit Save. Shared document/timeline/invoice widgets keep English defaults outside this Arabic detail screen. Backend policy, roles, prices, email and Stripe execution unchanged. Local check/lint/build pass;1410 tests pass,26 database tests await hosted CI. Not yet deployed or visually accepted. Generated dist/boot.js excluded. Prior password-only owner login succeeded; production remains closed.
