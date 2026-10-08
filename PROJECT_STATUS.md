@@ -1,3 +1,8 @@
+# Supplier selector candidate — 2026-10-09
+
+Adds assigned-staff supplier selection to the unified case Supplier and Submission section. Read endpoint projects only active supplier IDs/names; strict mutation takes no cost/VAT input, rechecks assignment under the application lock, checks the expected previous supplier, retains financial records and refuses replacement on filed/closed or financially booked cases. Same-choice retry is a no-op; audit insert shares the transaction. No automatic supplier-specific pricing exists yet; do not infer it from generic product costs. No document send/status/payment/email change.
+
+Local check/lint/test/build passed (1444 tests). Added guarded MySQL concurrent-save/idempotency test and increased enforced inventory to 13 suites/33 tests; hosted verification and deployment pending. Existing dirty dist/boot.js excluded.
 # ERP staff screen deployed to staging — 2026-10-09
 
 Runtime 8b2d20e64b11e5ad85c040d7e46186a49ec3ef9d is now deployed to staging, replacing 5d7b069. This resolves the stale deployment that kept showing the old technical Operations case page. The staff route now loads UnifiedOperationsCase, with RTL shell, compact work lists and unified case sections. Existing endpoint ownership, financial controls and consent remain in place.

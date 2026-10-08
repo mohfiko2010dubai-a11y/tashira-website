@@ -3,7 +3,8 @@ import type { TrpcContext } from './context';
 import { createRouter } from './middleware';
 import { applicationRouter } from './application-router';
 
-const mocks = vi.hoisted(() => ({ scope: vi.fn(), propose: vi.fn(), application: vi.fn(), consent: vi.fn() }));
+const mocks = vi.hoisted(() => ({ scope: vi.fn(), propose: vi.fn(), application: vi.fn(), consent: vi.fn(), supplier: vi.fn() }));
+vi.mock('./lib/supplier-selection', () => ({ selectCaseSupplier: mocks.supplier }));
 vi.mock('./lib/operations/mysql-query-client', () => ({
   defaultOperationsSqlClient: () => ({ query: mocks.scope }),
   defaultOperationsPool: () => ({}),
@@ -27,6 +28,17 @@ describe('staff visa-change proposal', () => {
     mocks.scope.mockResolvedValue([{ assignedStaffId: 7 }]);
     mocks.application.mockResolvedValue({ id: 42 });
     mocks.propose.mockResolvedValue({ version: 3 });
+  });
+  it('restricts supplier selection to the assigned employee and rejects financial fields', async () => {
+    const selection = { referenceNumber: input.referenceNumber, supplierId: 2, expectedSupplierId: null };
+    await router.createCaller(context(7)).application.selectSupplier(selection);
+    expect(mocks.supplier).toHaveBeenCalledWith(42, 2, null, 'staff:7', 7);
+    await expect(router.createCaller(context(7)).application.selectSupplier({ ...selection, supplierCostAed: 1 } as typeof selection)).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(router.createCaller(context()).application.selectSupplier(selection)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    mocks.scope.mockResolvedValue([{ assignedStaffId: 8 }]);
+    await expect(router.createCaller(context(7)).application.selectSupplier(selection)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(router.createCaller(context(7)).application.supplierOptions({ referenceNumber: input.referenceNumber })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mocks.supplier).toHaveBeenCalledTimes(1);
   });
   it('lets the assigned employee propose with a named audit actor, without granting customer consent', async () => {
     const caller = router.createCaller(context(7));

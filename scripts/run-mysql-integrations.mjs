@@ -73,10 +73,10 @@ function find(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(entry 
   return entry.isDirectory()?find(file):entry.name.endsWith('.integration.test.ts')?[file]:[];
 }); }
 const files=find('api');
-if (files.length !== 12) throw new Error('Integration inventory changed; review the expected suite');
+if (files.length !== 13) throw new Error('Integration inventory changed; review the expected suite');
 const report='mysql-integration-results.json';
 const result=spawnSync(process.execPath,['node_modules/vitest/vitest.mjs','run',...files,'--no-file-parallelism','--reporter=default','--reporter=json','--outputFile='+report],{env,stdio:'inherit'});
 if(result.status!==0)process.exit(result.status??1);
 const summary=JSON.parse(readFileSync(report,'utf8'));
-if(summary.numPassedTests!==32 || summary.numPendingTests!==0 || summary.numFailedTests!==0) throw new Error('All32 integration tests must execute and pass; skips fail CI');
-console.log('All32 guarded MySQL integration tests passed, zero skipped.');
+if(summary.numPassedTests!==33 || summary.numPendingTests!==0 || summary.numFailedTests!==0) throw new Error('All33 integration tests must execute and pass; skips fail CI');
+console.log('All33 guarded MySQL integration tests passed, zero skipped.');

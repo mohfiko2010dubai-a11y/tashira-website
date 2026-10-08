@@ -1,4 +1,5 @@
 import { customerServiceClock } from "./lib/customer-wait-log";
+import { selectCaseSupplier } from './lib/supplier-selection';
 import { refuseVisaChange, requestManualChange, decideManualChange, manualChangeQueue, refusalOutcomes, recordDifferenceLink } from "./lib/manual-visa-change";
 import { verifyNamedStaffPassword } from "./lib/named-staff-password";
 import { MysqlCustomerInterviewWriteRepository } from "./lib/customer/mysql-customer-interview-write-repository";
@@ -38,6 +39,18 @@ const STATUS_ENUM = ["submitted","payment_received","documents_pending","documen
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
 const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
 export const applicationRouter = createRouter({
+  supplierOptions: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3) }).strict()).query(async ({ input }) => {
+    const db = getDb();
+    const [application] = await db.select({ supplierId: applications.supplierId }).from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
+    if (!application) throw new TRPCError({ code: 'NOT_FOUND', message: 'الطلب غير موجود. ارجع إلى قائمة الطلبات.' });
+    const options = await db.select({ id: suppliers.id, name: suppliers.name }).from(suppliers).where(eq(suppliers.isActive, 'active')).orderBy(suppliers.name);
+    return { currentSupplierId: application.supplierId, options };
+  }),
+  selectSupplier: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), supplierId: z.number().int().positive(), expectedSupplierId: z.number().int().positive().nullable() }).strict()).mutation(async ({ input, ctx }) => {
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: 'NOT_FOUND', message: 'الطلب غير موجود. ارجع إلى قائمة الطلبات.' });
+    return selectCaseSupplier(application.id, input.supplierId, input.expectedSupplierId, ctx.staffId ? `staff:${ctx.staffId}` : ctx.user?.id ? `user:${ctx.user.id}` : 'admin-session', needsStaffScope(ctx) ? ctx.staffId : undefined);
+  }),
   proposeSubmittedProduct: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), product: z.string().min(1).max(80), reason: z.string().trim().min(1).max(500) }).strict()).mutation(async ({ input, ctx }) => {
     const application = await getCanonicalApplicationByReference(input.referenceNumber);
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
