@@ -22,7 +22,7 @@ integration('supplier selection MySQL transaction', () => {
   afterAll(async () => { await state.pool?.end(); });
   it('concurrent saves have one winner and exactly one audit event', async () => {
     const results = await Promise.allSettled(supplierIds.map(id => selectCaseSupplier(applicationId, id, null, 'synthetic-admin')));
-    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter(result => result.status === 'fulfilled'), results.filter(result => result.status === 'rejected').map(result => String(result.reason)).join('; ')).toHaveLength(1);
     expect(results.filter(result => result.status === 'rejected')).toHaveLength(1);
     const [rows] = await state.pool!.execute<RowDataPacket[]>('SELECT supplier_id,supplier_cost_aed,status FROM applications WHERE id=?', [applicationId]);
     expect(supplierIds).toContain(Number(rows[0].supplier_id));
