@@ -181,6 +181,7 @@ export class MysqlWorkQueue {
         const [controls] = await connection.execute<RowDataPacket[]>('SELECT assigned_staff_user_id FROM operations_case_controls WHERE application_id=? FOR UPDATE', [input.applicationId]);
         if (!cases[0] || Number(controls[0]?.assigned_staff_user_id) !== staffId) fail('This case is no longer assigned to you. Refresh your queue.', 'FORBIDDEN');
         if (['completed','rejected','cancelled'].includes(cases[0].status)) fail('This application is closed. Open its history instead.');
+        if (input.state === 'DONE') fail('لا يمكن إغلاق الطلب من تحديث المتابعة. أكمل إجراء التسليم أو الإغلاق المعتمد داخل ملف الطلب أولًا.');
         if (!requireFollowUp(input.state, input.followUpAt, Date.now())) fail('Choose a future follow-up date for this waiting case.');
         const [states] = await connection.execute<RowDataPacket[]>('SELECT version,work_state FROM operations_case_work WHERE application_id=? FOR UPDATE', [input.applicationId]);
         if (Number(states[0]?.version ?? 0) !== input.version) fail('The work state changed. Refresh before saving again.', 'CONFLICT');

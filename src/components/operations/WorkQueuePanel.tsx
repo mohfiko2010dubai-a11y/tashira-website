@@ -71,14 +71,14 @@ export default function WorkQueuePanel({ includeTest }: { includeTest: boolean }
             {shown.map(row => <tr key={row.applicationId} className="border-b hover:bg-slate-50">
               <td className="p-3"><Link className="break-all font-semibold underline" to={`/staff/operations/${encodeURIComponent(row.reference)}?work=${tab}`}><bdi>{row.reference}</bdi></Link><p>{visaLabel(row.visaType)} · {row.processingType === 'express' ? 'مستعجل' : 'عادي'}</p></td>
               <td className="p-3"><p>{workStateLabels[row.state]}</p>{row.reason && <p className="text-slate-600">{row.reason}</p>}{row.dueAt && <p>المتابعة: {new Date(row.dueAt).toLocaleString('ar-AE', { timeZone: 'Asia/Dubai' })}</p>}</td>
-              <td className="p-3"><button type="button" className="rounded-lg border px-3 py-2" onClick={() => { setEditing(row.applicationId); setState(row.state); setReason(''); setDue(''); }}>تحديث المتابعة</button></td>
+              <td className="p-3">{row.state !== 'DONE' && <button type="button" className="rounded-lg border px-3 py-2" onClick={() => { setEditing(row.applicationId); setState(row.state); setReason(''); setDue(''); }}>تحديث المتابعة</button>}</td>
             </tr>)}
           </tbody></table>{shown.length === 0 && <p className="p-3 text-slate-500">لا توجد طلبات في هذه القائمة.</p>}
         </>}
       </div>
           {editRow && <form className="mt-4 grid gap-3 rounded-lg border p-4" onSubmit={e => { e.preventDefault(); command.mutate({ kind: 'WORK_STATE', applicationId: editRow.applicationId, version: editRow.version, state, reason,
             followUpAt: state.startsWith('WAIT_') && due ? new Date(due).toISOString() : null, key: crypto.randomUUID() }); }}>
-            <label>الإجراء التالي<select className="ms-3 rounded border p-2" value={state} onChange={e => { const value = WORK_STATES.find(item => item === e.target.value); if (value) setState(value); }}>{WORK_STATES.map(value => <option key={value} value={value}>{workStateLabels[value]}</option>)}</select></label>
+            <label>الإجراء التالي<select className="ms-3 rounded border p-2" value={state} onChange={e => { const value = WORK_STATES.find(item => item === e.target.value); if (value) setState(value); }}>{WORK_STATES.filter(value => value !== 'DONE').map(value => <option key={value} value={value}>{workStateLabels[value]}</option>)}</select></label>
             <label>سبب التحديث أو المطلوب متابعته<textarea required minLength={3} maxLength={500} className="mt-1 w-full rounded border p-2" value={reason} onChange={e => setReason(e.target.value)} /></label>
             {state.startsWith('WAIT_') && <label>موعد المتابعة — بتوقيت جهازك<input type="datetime-local" required className="ms-3 rounded border p-2" value={due} onChange={e => setDue(e.target.value)} /></label>}
             <div><button disabled={command.isPending} className="rounded-lg bg-slate-900 px-4 py-2 text-white">حفظ المتابعة</button><button type="button" className="ms-3 px-3 py-2" onClick={() => setEditing(null)}>إلغاء</button></div>

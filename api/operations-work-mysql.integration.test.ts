@@ -71,7 +71,8 @@ suite('atomic staff work dispatch', () => {
   it('denies another employee work changes and requires reason/date/version; waiting does not change visa/payment', async () => {
     const own = (await queue.overview(context(staff[0]), true)).mine[0];
     const input = { kind: 'WORK_STATE' as const, applicationId: own.applicationId, version: own.version, state: 'WAIT_CUSTOMER' as const, reason: 'Waiting for replacement document', followUpAt: '2040-01-01T00:00:00.000Z', key: key() };
-    await expect(queue.command(context(staff[1]), input)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      await expect(queue.command(context(staff[1]), input)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      await expect(queue.command(context(staff[0]), { ...input, state: 'DONE', key: key() })).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
     await expect(queue.command(context(staff[0]), { ...input, followUpAt: null })).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
     await queue.command(context(staff[0]), input);
     await expect(queue.command(context(staff[0]), { ...input, key: key() })).rejects.toMatchObject({ code: 'CONFLICT' });
