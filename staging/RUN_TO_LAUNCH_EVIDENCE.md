@@ -44,3 +44,13 @@ From domain tashiraev.com exactly matches the first DKIM signing domain. Envelop
 ## Still required before gate report
 
 Live named-account assertions; rejected-first then executed TEST refund by agent/admin through UI; live breached versus paused Express cases; both complete PK/SA customer journeys with exactly-once language/amount/invoice mail evidence; filing rejection before customer acknowledgement in the live journey; owner company/policy/reopen checks. No launch-complete claim.
+# Staff landing and missing role repair — 2026-10-08
+
+Deployed staging runtime 659ef9b4debb7a92896a0f6b621ed803d66e9175. Staff login now lands on /staff/dashboard, not manager-only /staff/operations/dashboard. Operations dashboard loading/error keeps the shell and navigation; forbidden state explains access and offers Applications. Application-list errors no longer masquerade as an empty result.
+
+Root cause verified from staging: both named agent accounts had zero operations roles and zero scope grants. Owner directly approved the exact assigned-only employee permissions in chat after automatic review rejected file-only authorization. The existing synthetic-seed guard verified tashira_staging/tashira_staging_app. Transaction created STAGING_NAMED_AGENT and granted both agents ASSIGNED scope with exactly case.read_assigned, case.transition, applicant.read, document.read, document.review, supplier.read_operational, rule.read. No passwords, admin/finance/approval rights, orders or production changed. Grant records cite owner authorization. Attempt using a historical inactive role rolled back without changes; no old role reactivated.
+
+Validation: check/lint/test/build passed locally and candidate server. 1412 unit tests; local 26 DB skips are covered by mandatory CI37766967023 success including guarded MySQL integration job. Backup /var/backups/tashira-staging/staff-landing-1791457388240. Health200; anonymous application/quote/clock401, manual queue403; production intake remains CLOSED. 15 original dirty files unchanged; dist/boot.js excluded.
+
+Browser: actual agent1 session reached Applications before deployment; no orders assigned. After deployment reload redirected to login; username filled and owner asked to enter password in UI for final live verification. Do NOT claim completed post-deploy login, staff 8-assertion UAT or launch acceptance. No synthetic order assigned this round. Existing training applications226/227/228 have is_test=0 despite their historical synthetic use: review classification before financial UAT rather than silently changing flags or exposing other orders.
+
