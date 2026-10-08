@@ -39,6 +39,12 @@ async function staffActor(ctx: TrpcContext): Promise<AuthorizationActor> {
   catch { throw new TRPCError({ code: "FORBIDDEN", message: "Application access denied" }); }
 }
 
+export async function assertStaffSupplierAccess(ctx: TrpcContext): Promise<void> {
+  if (needsStaffScope(ctx) && !(await staffActor(ctx)).permissions.has('supplier.read_operational')) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'صلاحية الموردين غير مفعلة لحسابك. راجع المدير.' });
+  }
+}
+
 export async function enforceStaffApplicationScope(ctx: TrpcContext, path: string, input: unknown, mutation: boolean): Promise<void> {
   if (!needsStaffScope(ctx)) return;
   const targets = staffResourceTargets(path, input);

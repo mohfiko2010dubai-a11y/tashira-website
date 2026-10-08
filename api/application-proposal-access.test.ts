@@ -3,7 +3,7 @@ import type { TrpcContext } from './context';
 import { createRouter } from './middleware';
 import { applicationRouter } from './application-router';
 
-const mocks = vi.hoisted(() => ({ scope: vi.fn(), propose: vi.fn(), application: vi.fn(), consent: vi.fn(), supplier: vi.fn() }));
+const mocks = vi.hoisted(() => ({ scope: vi.fn(), propose: vi.fn(), application: vi.fn(), consent: vi.fn(), supplier: vi.fn(), supplierAccess: true }));
 vi.mock('./lib/supplier-selection', () => ({ selectCaseSupplier: mocks.supplier }));
 vi.mock('./lib/operations/mysql-query-client', () => ({
   defaultOperationsSqlClient: () => ({ query: mocks.scope }),
@@ -12,7 +12,7 @@ vi.mock('./lib/operations/mysql-query-client', () => ({
 vi.mock('./lib/operations/mysql-access-provider', () => ({
   MysqlOperationsAccessProvider: class {
     async actorForContext() {
-      return { id: 'staff:7', permissions: new Set(['case.read_assigned', 'case.transition']), scopes: ['ASSIGNED'], teamIds: new Set(), departmentIds: new Set() };
+      return { id: 'staff:7', permissions: new Set(['case.read_assigned', 'case.transition', ...(mocks.supplierAccess ? ['supplier.read_operational'] : [])]), scopes: ['ASSIGNED'], teamIds: new Set(), departmentIds: new Set() };
     }
   },
 }));
@@ -25,6 +25,7 @@ const input = { referenceNumber: 'TSH-SYNTHETIC', product: '60days-single', reas
 describe('staff visa-change proposal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.supplierAccess = true;
     mocks.scope.mockResolvedValue([{ assignedStaffId: 7 }]);
     mocks.application.mockResolvedValue({ id: 42 });
     mocks.propose.mockResolvedValue({ version: 3 });
@@ -39,6 +40,13 @@ describe('staff visa-change proposal', () => {
     await expect(router.createCaller(context(7)).application.selectSupplier(selection)).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(router.createCaller(context(7)).application.supplierOptions({ referenceNumber: input.referenceNumber })).rejects.toMatchObject({ code: 'FORBIDDEN' });
     expect(mocks.supplier).toHaveBeenCalledTimes(1);
+  });
+  it('requires supplier operational permission even for an assigned case', async () => {
+    mocks.supplierAccess = false;
+    const caller = router.createCaller(context(7));
+    await expect(caller.application.selectSupplier({ referenceNumber: input.referenceNumber, supplierId: 2, expectedSupplierId: null })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(caller.application.supplierOptions({ referenceNumber: input.referenceNumber })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mocks.supplier).not.toHaveBeenCalled();
   });
   it('lets the assigned employee propose with a named audit actor, without granting customer consent', async () => {
     const caller = router.createCaller(context(7));
