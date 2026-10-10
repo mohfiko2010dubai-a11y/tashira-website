@@ -1,0 +1,27 @@
+[Unit]
+Description=TASHIRA staging local visa file scanner
+After=local-fs.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=tashira-staging
+Group=tashira-staging
+Environment=LD_LIBRARY_PATH=/var/www/tashira-staging/tools/clamav-1.5.4-probe/unpacked/usr/local/lib
+Environment=CVD_CERTS_DIR=/var/www/tashira-staging/tools/clamav-1.5.4-probe/unpacked/usr/local/etc/certs
+ExecStart=/var/www/tashira-staging/tools/clamav-1.5.4-probe/unpacked/usr/local/sbin/clamd --config-file=/var/www/tashira-staging/tools/clamav-1.5.4-probe/clamd.conf
+Restart=on-failure
+RestartSec=10
+MemoryMax=2G
+CPUQuota=100%
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_UNIX
+ReadWritePaths=/var/www/tashira-staging/tools/clamav-1.5.4-probe/run
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { captureScannedVisaFile,readVerifiedVisaFile,discardUncommittedVisaFile } from './lib/operations/visa-file-evidence';
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createPool, type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
 import { MysqlOperationsAccessProvider } from './lib/operations/mysql-access-provider';
 import { MysqlOperationsSqlClient } from './lib/operations/mysql-query-client';
@@ -30,6 +30,11 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
       await pool.execute("INSERT INTO operations_staff_roles(staff_user_id,role_id,granted_by,valid_from) VALUES (?,?,'synthetic',UTC_TIMESTAMP())", [person.insertId, role.insertId]);
       await pool.execute("INSERT INTO operations_scope_grants(staff_user_id,scope_type,granted_by) VALUES (?,'ASSIGNED','synthetic')", [person.insertId]);
     }
+  });
+  beforeEach(async () => {
+    // Restore only these synthetic actors between tests; the revocation assertion
+    // still proves access is refused within the test that revokes it.
+    await pool.execute('UPDATE operations_scope_grants SET revoked_at=NULL WHERE staff_user_id IN (?,?)', staff);
   });
   afterAll(async () => { await pool?.end(); });
   async function fixture() {

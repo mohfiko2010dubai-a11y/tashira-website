@@ -1,0 +1,21 @@
+[Unit]
+Description=Update TASHIRA staging antivirus signatures
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=tashira-staging
+Group=tashira-staging
+Environment=LD_LIBRARY_PATH=/var/www/tashira-staging/tools/clamav-1.5.4-probe/unpacked/usr/local/lib
+Environment=CVD_CERTS_DIR=/var/www/tashira-staging/tools/clamav-1.5.4-probe/unpacked/usr/local/etc/certs
+ExecStart=/var/www/tashira-staging/tools/clamav-1.5.4-probe/unpacked/usr/local/bin/freshclam --config-file=/var/www/tashira-staging/tools/clamav-1.5.4-probe/freshclam.conf --stdout
+MemoryMax=2G
+CPUQuota=50%
+TimeoutStartSec=300
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/www/tashira-staging/tools/clamav-1.5.4-probe/database
+UMask=0077

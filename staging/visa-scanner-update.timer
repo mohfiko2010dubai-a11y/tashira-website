@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep TASHIRA staging scanner signatures current
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=6h
+RandomizedDelaySec=5min
+Unit=tashira-staging-visa-scanner-update.service
+
+[Install]
+WantedBy=timers.target
