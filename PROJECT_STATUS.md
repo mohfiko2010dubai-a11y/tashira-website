@@ -1,3 +1,7 @@
+# ERP-04D2 pagination verification — 2026-10-11
+
+CI38083248347 caught MySQL binary-protocol LIMIT parameter rejection in the new paginated list; all prior59 DB tests passed, the three new board tests failed on query execution. Use mysql2 escaped query placeholders for the paginated SELECT (all client values still bound and escaped), then rerun all62 DB tests. No deployment of failed candidate; staff-redaction assertion remains unchanged.
+
 # ERP-04D1 deployed; supplier board candidate — 2026-10-11
 
 Runtime8825ff4fd4785e05c8c8ab2716503305c7c470f5. CI38082618470 both jobs passed, all59 mandatory MySQL tests with zero skips; exact-server check/lint/test/build passed1471 unit tests. Backup /var/backups/tashira-staging/delivery-final-8825ff4-1791663247790. Health/pages200; anonymous protected APIs403. Delivery permission and idempotency fix deployed, but actual delivery remains blocked by the missing genuine file scanner and authenticated browser UAT. No production changes.

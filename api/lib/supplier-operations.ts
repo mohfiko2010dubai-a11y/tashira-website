@@ -45,7 +45,9 @@ export async function listSupplierOperations(input: SupplierOperationsInput, act
     await connection.beginTransaction();
     const [counts] = await connection.execute<RowDataPacket[]>(`SELECT stage,COUNT(*) total FROM (${classified}) o GROUP BY stage`, parameters);
     const filter = input.stage ? 'WHERE stage=?' : '';
-    const [items] = await connection.execute<RowDataPacket[]>(`SELECT * FROM (${classified}) o ${filter}
+    // mysql2 binary-protocol numeric bindings are rejected for LIMIT by MySQL 8.
+    // query still escapes every bound value; no client text is interpolated.
+    const [items] = await connection.query<RowDataPacket[]>(`SELECT * FROM (${classified}) o ${filter}
       ORDER BY followUpAt IS NULL,followUpAt,applicationId LIMIT ? OFFSET ?`, [...parameters, ...(input.stage ? [input.stage] : []), input.limit, input.offset]);
     await connection.commit();
     const date = (value: unknown): string | null => value == null ? null : value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString();
