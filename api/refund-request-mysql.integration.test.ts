@@ -42,7 +42,7 @@ describe.skipIf(!url).sequential('refund request retries in disposable MySQL', (
     expect(results.filter(r => r.replayed)).toHaveLength(1);
     await expect(caller.createCase({ ...request, reason: 'Changed intent' })).rejects.toMatchObject({ code: 'CONFLICT' });
     const [counts] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM refund_items WHERE refund_case_id=?', [request.commandId]); expect(Number(counts[0].n)).toBe(1);
-    const [events] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM financial_events WHERE source_reference=? AND event_type='REFUND_REQUESTED'", [request.commandId]); expect(Number(events[0].n)).toBe(1);
+    const [events] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM financial_events WHERE source_reference=? AND financial_event_type='REFUND_REQUESTED'", [request.commandId]); expect(Number(events[0].n)).toBe(1);
     const sources = await caller.eligibleSources({ applicationId: f.id }); expect(sources.find(s => s.id === f.payments[0])?.availableAmount).toBe(90);
     await pool.execute('UPDATE payments SET amount=0.30 WHERE id=?', [f.payments[1]]);
     for (const requestedAmount of [0.10, 0.20]) await caller.createCase({ ...request, commandId: randomUUID(), items: [{ ...request.items[0], paymentId: f.payments[1], requestedAmount }] });
