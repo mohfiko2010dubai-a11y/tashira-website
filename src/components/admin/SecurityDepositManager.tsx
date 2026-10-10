@@ -23,13 +23,13 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
   });
   const resendRequest = trpc.securityDeposit.resend.useMutation({
     onSuccess: async (result) => {
-      setMessage(result.status === "SENT" ? "أعيد إرسال طلب التأمين برابط آمن جديد." : "تعذر إرسال البريد مجددًا. يمكنك إعادة محاولة إرسال الطلب نفسه.");
+      setMessage(result.status === "SENT" ? "تم تأكيد إرسال طلب التأمين بنفس الرابط ومدة الصلاحية." : "تعذر إرسال البريد مجددًا. يمكنك إعادة محاولة إرسال الطلب نفسه.");
       await Promise.all([
         utils.securityDeposit.listByApplication.invalidate({ applicationId }),
         utils.timeline.list.invalidate(),
       ]);
     },
-    onError: () => setMessage("تعذرت إعادة الإرسال. حدّث الحالة قبل المحاولة."),
+    onError: (error) => setMessage(error.message),
   });
 
   return (

@@ -5,20 +5,20 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
-  applicationTimelineEvents,
   applications,
-  outboundEmailEvents,
+  securityDepositEmailAttempts,
   securityDepositPayments,
   securityDepositRequests,
 } from "@db/schema";
 import { adminQuery, createRouter, securityDepositQuery, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { transactionalEmailProvider } from "./lib/email-provider";
-import { recipientHash } from "./lib/resend-email";
 import { publicAppOrigin } from "./lib/public-app-url";
 import { createSecurityDepositIntent, retrieveStripeTestIntent } from "./lib/stripe";
-import { newSecurityDepositCapability, securityDepositRetryIdempotencyKey, securityDepositTokenHash, securityDepositTokenPattern } from "./lib/security-deposit-capability";
+import { newSecurityDepositCapability, securityDepositTokenHash, securityDepositTokenPattern } from "./lib/security-deposit-capability";
 import { finalizeSecurityDepositPayment } from "./lib/security-deposit-finalization";
+
+import { sealDepositEmail, depositDeliveryFingerprint } from "./lib/deposit-email-envelope";
+import { deliverDepositEmail } from "./lib/deposit-email-delivery";
 
 function actorReference(ctx: { staffId?: number; user?: { id: number } }) {
   if (ctx.staffId) return `staff:${ctx.staffId}`;
@@ -75,138 +75,24 @@ export const securityDepositRouter = createRouter({
       await tx.insert(securityDepositRequests).values({ id, applicationId: application.id,
         amount: input.amount.toFixed(2), currency: 'AED', status: 'DRAFT', purpose: input.purpose,
         accessTokenHash: capability.hash, expiresAt, requestedBy: requester, creationCommandHash });
-      return { created: true as const, application, capability, expiresAt };
+      const variables = {
+        referenceNumber: application.referenceNumber, amount: input.amount.toFixed(2), currency: 'AED',
+        purpose: input.purpose, depositUrl: `${publicAppOrigin()}/deposit/${capability.token}`, expiresAt: expiresAt.toISOString(),
+      };
+      await tx.insert(securityDepositEmailAttempts).values({ requestId: id, encryptedPayload: sealDepositEmail(id, {
+        recipient: application.contactEmail, variables, deliveryFingerprint: depositDeliveryFingerprint(variables),
+      }) });
+      return { created: true as const };
     });
     if (!prepared.created) return { requestId: id, status: prepared.status, replayed: true };
-    const { application, capability, expiresAt } = prepared;
-
-    let providerName = "unavailable";
-    let sent: { reference: string };
-    try {
-      const provider = transactionalEmailProvider();
-      providerName = provider.name;
-      sent = await provider.send({
-        recipient: application.contactEmail,
-        template: "SECURITY_DEPOSIT_REQUEST",
-        idempotencyKey: `security-deposit/${id}`,
-        variables: {
-          referenceNumber: application.referenceNumber,
-          amount: input.amount.toFixed(2),
-          currency: "AED",
-          purpose: input.purpose,
-          depositUrl: `${publicAppOrigin()}/deposit/${capability.token}`,
-          expiresAt: expiresAt.toISOString(),
-        },
-      });
-      await db.transaction(async (tx) => {
-        await tx.update(securityDepositRequests).set({ status: "SENT", sentAt: new Date() })
-          .where(and(eq(securityDepositRequests.id, id), eq(securityDepositRequests.status, "DRAFT")));
-        await tx.insert(outboundEmailEvents).values({
-          id: crypto.randomUUID(), applicationId: application.id, template: "SECURITY_DEPOSIT_REQUEST",
-          recipientHash: recipientHash(application.contactEmail), provider: provider.name, status: "SENT",
-          providerReference: sent.reference,
-        });
-        await tx.insert(applicationTimelineEvents).values({
-          id: crypto.randomUUID(), applicationId: application.id, eventName: "SECURITY_DEPOSIT_REQUESTED",
-          eventSource: "ADMIN_DASHBOARD", actorType: "ADMIN", actorReference: actorReference(ctx),
-          resultingState: "SENT", summary: "Refundable security-deposit request sent securely",
-        });
-      });
-      return { requestId: id, status: "SENT" as const, replayed: false };
-    } catch {
-      await db.insert(outboundEmailEvents).values({
-        id: crypto.randomUUID(), applicationId: application.id, template: "SECURITY_DEPOSIT_REQUEST",
-        recipientHash: recipientHash(application.contactEmail), provider: providerName, status: "FAILED",
-        failureCategory: "delivery_failed",
-      });
-      return { requestId: id, status: "DRAFT" as const, replayed: false };
-    }
+    return { ...await deliverDepositEmail(id, requester), replayed: false };
   }),
 
   resend: adminQuery.input(z.object({
     requestId: z.string().uuid(),
+    // Retained for old clients; retries must preserve the original expiry and link.
     expiresInDays: z.number().int().min(1).max(30).default(7),
-  })).mutation(async ({ input, ctx }) => {
-    const db = getDb();
-    const [request] = await db.select({
-      id: securityDepositRequests.id,
-      applicationId: securityDepositRequests.applicationId,
-      amount: securityDepositRequests.amount,
-      currency: securityDepositRequests.currency,
-      status: securityDepositRequests.status,
-      purpose: securityDepositRequests.purpose,
-      accessTokenHash: securityDepositRequests.accessTokenHash,
-      referenceNumber: applications.referenceNumber,
-      contactEmail: applications.contactEmail,
-    }).from(securityDepositRequests)
-      .innerJoin(applications, eq(applications.id, securityDepositRequests.applicationId))
-      .where(eq(securityDepositRequests.id, input.requestId)).limit(1);
-    if (!request?.contactEmail || request.status !== "DRAFT") {
-      throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Only an undelivered security-deposit request can be resent" });
-    }
-
-    const capability = newSecurityDepositCapability();
-    const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000);
-    const claimed = await db.update(securityDepositRequests).set({
-      accessTokenHash: capability.hash,
-      expiresAt,
-    }).where(and(
-      eq(securityDepositRequests.id, request.id),
-      eq(securityDepositRequests.status, "DRAFT"),
-      eq(securityDepositRequests.accessTokenHash, request.accessTokenHash),
-    ));
-    if (Number(claimed[0].affectedRows) !== 1) {
-      throw new TRPCError({ code: "CONFLICT", message: "Security-deposit request is already being retried" });
-    }
-
-    let providerName = "unavailable";
-    let sent: { reference: string };
-    try {
-      const provider = transactionalEmailProvider();
-      providerName = provider.name;
-      sent = await provider.send({
-        recipient: request.contactEmail,
-        template: "SECURITY_DEPOSIT_REQUEST",
-        idempotencyKey: securityDepositRetryIdempotencyKey(request.id, capability.hash),
-        variables: {
-          referenceNumber: request.referenceNumber,
-          amount: Number(request.amount).toFixed(2),
-          currency: request.currency,
-          purpose: request.purpose,
-          depositUrl: `${publicAppOrigin()}/deposit/${capability.token}`,
-          expiresAt: expiresAt.toISOString(),
-        },
-      });
-    } catch {
-      await db.insert(outboundEmailEvents).values({
-        id: crypto.randomUUID(), applicationId: request.applicationId, template: "SECURITY_DEPOSIT_REQUEST",
-        recipientHash: recipientHash(request.contactEmail), provider: providerName, status: "FAILED",
-        failureCategory: "delivery_failed",
-      });
-      return { requestId: request.id, status: "DRAFT" as const };
-    }
-
-    const delivered = await db.update(securityDepositRequests).set({ status: "SENT", sentAt: new Date() })
-      .where(and(
-        eq(securityDepositRequests.id, request.id),
-        eq(securityDepositRequests.status, "DRAFT"),
-        eq(securityDepositRequests.accessTokenHash, capability.hash),
-      ));
-    if (Number(delivered[0].affectedRows) !== 1) throw new Error("Security-deposit retry state changed before delivery recording");
-    await db.transaction(async (tx) => {
-      await tx.insert(outboundEmailEvents).values({
-        id: crypto.randomUUID(), applicationId: request.applicationId, template: "SECURITY_DEPOSIT_REQUEST",
-        recipientHash: recipientHash(request.contactEmail), provider: providerName, status: "SENT",
-        providerReference: sent.reference,
-      });
-      await tx.insert(applicationTimelineEvents).values({
-        id: crypto.randomUUID(), applicationId: request.applicationId, eventName: "SECURITY_DEPOSIT_REQUESTED",
-        eventSource: "ADMIN_DASHBOARD", actorType: "ADMIN", actorReference: actorReference(ctx),
-        resultingState: "SENT", summary: "Refundable security-deposit request resent with a rotated secure link",
-      });
-    });
-    return { requestId: request.id, status: "SENT" as const };
-  }),
+  })).mutation(({ input, ctx }) => deliverDepositEmail(input.requestId, actorReference(ctx))),
 
   getByToken: securityDepositQuery.input(z.object({ token: z.string().regex(securityDepositTokenPattern) })).query(async ({ input }) => {
     const [request] = await getDb().select({

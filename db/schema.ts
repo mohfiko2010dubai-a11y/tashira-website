@@ -355,6 +355,15 @@ export const securityDepositRequests = mysqlTable("security_deposit_requests", {
   foreignKey({ name: "security_deposit_application_fk", columns: [table.applicationId], foreignColumns: [applications.id] }).onDelete("restrict"),
 ]);
 
+export const securityDepositEmailAttempts = mysqlTable("security_deposit_email_attempts", {
+  requestId: varchar("request_id", { length: 36 }).primaryKey(),
+  encryptedPayload: text("encrypted_payload"),
+  firstAttemptAt: datetime("first_attempt_at"),
+  leaseId: varchar("lease_id", { length: 36 }),
+  leaseUntil: datetime("lease_until"),
+  providerReference: varchar("provider_reference", { length: 255 }),
+}, table => [foreignKey({ name: "deposit_email_request_fk", columns: [table.requestId], foreignColumns: [securityDepositRequests.id] }).onDelete("restrict")]);
+
 export const securityDepositPayments = mysqlTable("security_deposit_payments", {
   id: varchar("id", { length: 36 }).primaryKey(),
   requestId: varchar("request_id", { length: 36 }).notNull(),

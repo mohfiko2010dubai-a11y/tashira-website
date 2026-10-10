@@ -7,7 +7,7 @@ import { env } from './lib/env';
 import type { TrpcContext } from './context';
 const fakeEmail = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock('./lib/email-provider', () => ({ transactionalEmailProvider: () => ({ name: 'synthetic', send: fakeEmail.send }) }));
-vi.mock('./lib/public-app-url', () => ({ publicAppOrigin: () => 'https://synthetic.example.invalid' }));
+vi.mock('./lib/public-app-url', async importOriginal => ({ ...await importOriginal<typeof import('./lib/public-app-url')>(), publicAppOrigin: () => 'https://synthetic.example.invalid' }));
 const url = process.env.OPS_REHEARSAL_DATABASE_URL;
 describe.skipIf(!url).sequential('refund request retries in disposable MySQL', () => {
   let pool: Pool;
@@ -18,6 +18,8 @@ describe.skipIf(!url).sequential('refund request retries in disposable MySQL', (
     if (!['localhost', '127.0.0.1'].includes(target.hostname) || target.port !== '33306' || !target.pathname.startsWith('/tashira_ops_rehearsal_')) throw new Error('Disposable database required');
     if (env.databaseUrl !== url) throw new Error('Router database must be the same disposable rehearsal database');
     pool = createPool({ uri: url, connectionLimit: 4 });
+    vi.stubEnv('ADMIN_SESSION_SECRET', 'synthetic-deposit-integration-key-1234567890');
+    vi.stubEnv('PUBLIC_APP_URL', 'https://synthetic.example.invalid');
     const tag = randomUUID().slice(0, 8);
     const [role] = await pool.execute<ResultSetHeader>('INSERT INTO operations_roles(code,name) VALUES (?,?)', [`REF_${tag}`, `Refund ${tag}`]);
     for (const code of ['case.read_assigned', 'case.transition']) await pool.execute("INSERT INTO operations_role_permissions(role_id,permission_id,granted_by) SELECT ?,id,'synthetic' FROM operations_permissions WHERE code=?", [role.insertId, code]);
@@ -27,7 +29,7 @@ describe.skipIf(!url).sequential('refund request retries in disposable MySQL', (
       await pool.execute("INSERT INTO operations_scope_grants(staff_user_id,scope_type,granted_by) VALUES (?,'ASSIGNED','synthetic')", [p.insertId]);
     }
   });
-  afterAll(async () => { await pool?.end(); });
+  afterAll(async () => { await pool?.end(); vi.unstubAllEnvs(); });
   async function fixture() {
     const [a] = await pool.execute<ResultSetHeader>(`INSERT INTO applications(reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,total_amount_aed,status,payment_status,data_classification,is_test)
       VALUES (?,'single','non-gcc','ROUTE_TEST','regular','refund@example.invalid','000',1,100,'under_review','paid','TEST',1)`, [`REF-${randomUUID()}`]);
@@ -91,6 +93,70 @@ describe.skipIf(!url).sequential('refund request retries in disposable MySQL', (
     expect(await caller.createAndSend(request)).toMatchObject({ requestId: request.commandId, status: 'DRAFT', replayed: true });
     expect(fakeEmail.send).toHaveBeenCalledTimes(1);
     const [rows] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM security_deposit_requests WHERE application_id=?', [f.id]); expect(Number(rows[0].n)).toBe(1);
+  });
+  it('retries an uncertain provider response with identical email, key, link and expiry', async () => {
+    const f = await fixture(), caller = securityDepositRouter.createCaller({ ...context(staff[0]), isAdmin: true });
+    fakeEmail.send.mockReset().mockRejectedValueOnce(new Error('accepted but response lost')).mockResolvedValue({ reference: 'same-provider-message' });
+    const request = { commandId: randomUUID(), applicationId: f.id, amount: 50, purpose: 'Synthetic uncertain send', expiresInDays: 7 };
+    await caller.createAndSend(request);
+    const original = fakeEmail.send.mock.calls[0][0];
+    const [before] = await pool.execute<RowDataPacket[]>('SELECT encrypted_payload FROM security_deposit_email_attempts WHERE request_id=?', [request.commandId]);
+    expect(before[0].encrypted_payload).not.toContain(original.variables.depositUrl);
+    const originalSender = process.env.FROM_NAME;
+    vi.stubEnv('FROM_NAME', 'changed synthetic sender');
+    await expect(caller.resend({ requestId: request.commandId })).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
+    vi.stubEnv('FROM_NAME', originalSender);
+    expect(fakeEmail.send).toHaveBeenCalledTimes(1);
+    expect(await caller.resend({ requestId: request.commandId, expiresInDays: 30 })).toMatchObject({ status: 'SENT' });
+    expect(fakeEmail.send.mock.calls[1][0]).toEqual(original);
+    expect(await caller.resend({ requestId: request.commandId })).toMatchObject({ status: 'SENT' });
+    expect(fakeEmail.send).toHaveBeenCalledTimes(2);
+    const [after] = await pool.execute<RowDataPacket[]>('SELECT encrypted_payload,provider_reference FROM security_deposit_email_attempts WHERE request_id=?', [request.commandId]);
+    expect(after[0]).toMatchObject({ encrypted_payload: null, provider_reference: 'same-provider-message' });
+    const token = new URL(original.variables.depositUrl).pathname.slice('/deposit/'.length);
+    expect(await caller.getByToken({ token })).toMatchObject({ id: request.commandId, status: 'SENT' });
+  });
+  it('refuses a concurrent resend while the original provider call is in flight', async () => {
+    const f = await fixture(), caller = securityDepositRouter.createCaller({ ...context(staff[0]), isAdmin: true });
+    let release!: (result: { reference: string }) => void;
+    let started!: () => void;
+    const entered = new Promise<void>(resolve => { started = resolve; });
+    fakeEmail.send.mockReset().mockImplementation(() => { started(); return new Promise(resolve => { release = resolve; }); });
+    const request = { commandId: randomUUID(), applicationId: f.id, amount: 50, purpose: 'Synthetic concurrent send' };
+    const first = caller.createAndSend(request);
+    await entered;
+    try { await expect(caller.resend({ requestId: request.commandId })).rejects.toMatchObject({ code: 'CONFLICT' }); }
+    finally { release({ reference: 'single-provider-message' }); }
+    expect(await first).toMatchObject({ status: 'SENT' });
+    expect(fakeEmail.send).toHaveBeenCalledTimes(1);
+  });
+  it('stops unsafe retries after the provider retention window or for legacy drafts', async () => {
+    const f = await fixture(), caller = securityDepositRouter.createCaller({ ...context(staff[0]), isAdmin: true });
+    fakeEmail.send.mockReset().mockRejectedValue(new Error('uncertain outcome'));
+    const request = { commandId: randomUUID(), applicationId: f.id, amount: 50, purpose: 'Synthetic stale send' };
+    await caller.createAndSend(request);
+    await pool.execute('UPDATE security_deposit_email_attempts SET first_attempt_at=DATE_SUB(UTC_TIMESTAMP(), INTERVAL 24 HOUR) WHERE request_id=?', [request.commandId]);
+    await expect(caller.resend({ requestId: request.commandId })).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
+    await pool.execute('UPDATE security_deposit_email_attempts SET first_attempt_at=UTC_TIMESTAMP(),encrypted_payload=NULL WHERE request_id=?', [request.commandId]);
+    await expect(caller.resend({ requestId: request.commandId })).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
+    expect(fakeEmail.send).toHaveBeenCalledTimes(1);
+  });
+  it('recovers provider acceptance after audit transaction failure without changing the send intent', async () => {
+    const f = await fixture(), caller = securityDepositRouter.createCaller({ ...context(staff[0]), isAdmin: true });
+    fakeEmail.send.mockReset().mockResolvedValue({ reference: 'accepted-before-db-error' });
+    const request = { commandId: randomUUID(), applicationId: f.id, amount: 50, purpose: 'Synthetic audit failure' };
+    await pool.query(`CREATE TRIGGER synthetic_deposit_audit_failure BEFORE INSERT ON application_timeline_events FOR EACH ROW BEGIN IF NEW.application_id = ${f.id} THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='synthetic audit failure'; END IF; END`);
+    try { await expect(caller.createAndSend(request)).rejects.toThrow(); }
+    finally { await pool.query('DROP TRIGGER synthetic_deposit_audit_failure'); }
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT security_deposit_status FROM security_deposit_requests WHERE id=?', [request.commandId]);
+    expect(rows[0].security_deposit_status).toBe('DRAFT');
+    const [events] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM outbound_email_events WHERE email_application_id=? AND email_status='SENT'", [f.id]);
+    expect(Number(events[0].n)).toBe(0);
+    await pool.execute('UPDATE security_deposit_email_attempts SET lease_until=DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 SECOND) WHERE request_id=?', [request.commandId]);
+    expect(await caller.resend({ requestId: request.commandId })).toMatchObject({ status: 'SENT' });
+    expect(fakeEmail.send.mock.calls[1][0]).toEqual(fakeEmail.send.mock.calls[0][0]);
+    const [finalEvents] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM outbound_email_events WHERE email_application_id=? AND email_status='SENT'", [f.id]);
+    expect(Number(finalEvents[0].n)).toBe(1);
   });
   it('shows assigned deposit status without capabilities or manager write permissions', async () => {
     const f = await fixture(), id = randomUUID();
