@@ -64,6 +64,7 @@ export function RefundManager({ applicationId }: { applicationId: number }) {
         <h3 className="text-lg font-bold text-gray-900">استرداد المبلغ</h3>
         <p className="text-sm text-gray-500">١. أنشئ طلب الاسترداد. ٢. اعتمده بكلمة سر المدير. ٣. نفّذ الاسترداد في Stripe. إنشاء الطلب والموافقة وحدهما لا يعيدان المبلغ.</p>
       </div>
+      {identity.isError && <p role="alert">تعذر تأكيد جلسة الحساب. حدّث الصفحة قبل إرسال طلب مالي.</p>}
       {message && <p role="status" className="min-h-11 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">{message}</p>}
       {(sources.isLoading || cases.isLoading) && <p role="status">جارٍ تحميل الدفعات وطلبات الاسترداد…</p>}
       {(sources.error || cases.error) && <p role="alert" className="text-red-700">تعذر تحميل بيانات الاسترداد. حدّث الصفحة قبل المتابعة.</p>}

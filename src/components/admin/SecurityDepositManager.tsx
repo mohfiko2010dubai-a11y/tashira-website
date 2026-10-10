@@ -42,6 +42,7 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
         <h3 className="text-sm font-semibold text-gray-900">التأمين المسترد</h3>
         <p className="text-sm text-gray-500">حدد قيمة التأمين لهذا الطلب. سيتلقى العميل بريدًا به رابط دفع مخصص للتأمين بمدة صلاحية محددة.</p>
       </div>
+      {identity.isError && <p role="alert">تعذر تأكيد جلسة الحساب. حدّث الصفحة قبل إرسال طلب مالي.</p>}
       {message && <p aria-live="polite" className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">{message}</p>}
       <fieldset disabled={preparing || identity.isLoading || identity.isError || createRequest.isPending || resendRequest.isPending} className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <label className="text-sm text-gray-600">المبلغ بالدرهم

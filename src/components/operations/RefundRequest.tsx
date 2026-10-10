@@ -20,6 +20,7 @@ export default function RefundRequest({ applicationId, arabic = false }: { appli
   } });
   return <section className="space-y-3 rounded-xl border bg-white p-4"><h2 className="text-lg font-bold">{arabic ? 'طلب استرداد للعميل' : 'Request a refund'}</h2>
     <p>{arabic ? 'اختر الدفعة وحدد المبلغ والسبب. الاعتماد والتنفيذ لدى المدير، ويظهر وضع الطلب أدناه.' : 'Choose a payment, amount and reason. A manager approves and executes the refund; its status appears below.'}</p>
+    {identity.isError && <p role="alert">{arabic ? "تعذر تأكيد جلسة الحساب. حدّث الصفحة قبل إرسال الطلب." : "Your account session could not be verified. Refresh before submitting."}</p>}
     <button type="button" className="rounded border px-3 py-2" onClick={() => { void sources.refetch(); void cases.refetch(); }}>{arabic ? 'تحديث المدفوعات والطلبات' : 'Refresh payments and requests'}</button>
     {sources.isLoading && <p role="status">{arabic ? 'جارٍ تحميل المدفوعات…' : 'Loading payments…'}</p>}
     {(sources.isError || cases.isError) && <p role="alert">{arabic ? 'تعذر تحميل بعض البيانات. اضغط تحديث قبل إرسال طلب جديد.' : 'Some data could not be loaded. Refresh before submitting a new request.'}</p>}
