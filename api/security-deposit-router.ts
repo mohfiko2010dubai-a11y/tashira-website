@@ -20,7 +20,8 @@ import { createSecurityDepositIntent, retrieveStripeTestIntent } from "./lib/str
 import { newSecurityDepositCapability, securityDepositRetryIdempotencyKey, securityDepositTokenHash, securityDepositTokenPattern } from "./lib/security-deposit-capability";
 import { finalizeSecurityDepositPayment } from "./lib/security-deposit-finalization";
 
-function actorReference(ctx: { user?: { id: number } }) {
+function actorReference(ctx: { staffId?: number; user?: { id: number } }) {
+  if (ctx.staffId) return `staff:${ctx.staffId}`;
   return ctx.user?.id ? `user:${ctx.user.id}` : "admin-session";
 }
 
@@ -44,33 +45,40 @@ export const securityDepositRouter = createRouter({
       .orderBy(desc(securityDepositRequests.createdAt))),
 
   createAndSend: adminQuery.input(z.object({
+    commandId: z.string().uuid().optional(),
     applicationId: z.number().int().positive(),
     amount: z.number().min(1).max(1_000_000),
     purpose: z.string().trim().min(5).max(255),
     expiresInDays: z.number().int().min(1).max(30).default(7),
   })).mutation(async ({ input, ctx }) => {
-    const db = getDb();
-    const [application] = await db.select({
-      id: applications.id,
-      referenceNumber: applications.referenceNumber,
-      contactEmail: applications.contactEmail,
-    }).from(applications).where(eq(applications.id, input.applicationId)).limit(1);
-    if (!application?.contactEmail) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Application email is required" });
-
-    const id = crypto.randomUUID();
-    const capability = newSecurityDepositCapability();
-    const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000);
-    await db.insert(securityDepositRequests).values({
-      id,
-      applicationId: application.id,
-      amount: input.amount.toFixed(2),
-      currency: "AED",
-      status: "DRAFT",
-      purpose: input.purpose,
-      accessTokenHash: capability.hash,
-      expiresAt,
-      requestedBy: actorReference(ctx),
+    if (!input.commandId) throw new TRPCError({ code: "BAD_REQUEST", message: "حدّث الصفحة لتحميل نموذج التأمين الجديد وأعد المحاولة. لم يُنشأ طلب." });
+    const db = getDb(), id = input.commandId;
+    const requester = actorReference(ctx);
+    const creationCommandHash = crypto.createHash('sha256').update(JSON.stringify({
+      applicationId: input.applicationId, amount: input.amount.toFixed(2), currency: 'AED',
+      purpose: input.purpose, expiresInDays: input.expiresInDays, requester,
+    })).digest('hex');
+    const prepared = await db.transaction(async tx => {
+      const [application] = await tx.select({ id: applications.id, referenceNumber: applications.referenceNumber,
+        contactEmail: applications.contactEmail }).from(applications).where(eq(applications.id, input.applicationId)).limit(1).for('update');
+      if (!application?.contactEmail) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "أضف بريد العميل إلى الطلب ثم أعد المحاولة." });
+      const [existing] = await tx.select({ applicationId: securityDepositRequests.applicationId,
+        hash: securityDepositRequests.creationCommandHash, status: securityDepositRequests.status })
+        .from(securityDepositRequests).where(eq(securityDepositRequests.id, id)).limit(1);
+      if (existing) {
+        if (existing.applicationId !== input.applicationId || existing.hash !== creationCommandHash)
+          throw new TRPCError({ code: 'CONFLICT', message: 'تختلف البيانات عن طلب التأمين المسجل. حدّث القائمة وراجع الطلب السابق.' });
+        return { created: false as const, status: existing.status };
+      }
+      const capability = newSecurityDepositCapability();
+      const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000);
+      await tx.insert(securityDepositRequests).values({ id, applicationId: application.id,
+        amount: input.amount.toFixed(2), currency: 'AED', status: 'DRAFT', purpose: input.purpose,
+        accessTokenHash: capability.hash, expiresAt, requestedBy: requester, creationCommandHash });
+      return { created: true as const, application, capability, expiresAt };
     });
+    if (!prepared.created) return { requestId: id, status: prepared.status, replayed: true };
+    const { application, capability, expiresAt } = prepared;
 
     let providerName = "unavailable";
     let sent: { reference: string };
@@ -104,14 +112,14 @@ export const securityDepositRouter = createRouter({
           resultingState: "SENT", summary: "Refundable security-deposit request sent securely",
         });
       });
-      return { requestId: id, status: "SENT" as const };
+      return { requestId: id, status: "SENT" as const, replayed: false };
     } catch {
       await db.insert(outboundEmailEvents).values({
         id: crypto.randomUUID(), applicationId: application.id, template: "SECURITY_DEPOSIT_REQUEST",
         recipientHash: recipientHash(application.contactEmail), provider: providerName, status: "FAILED",
         failureCategory: "delivery_failed",
       });
-      return { requestId: id, status: "DRAFT" as const };
+      return { requestId: id, status: "DRAFT" as const, replayed: false };
     }
   }),
 

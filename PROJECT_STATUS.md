@@ -1,3 +1,13 @@
+# ERP-05C deposit creation retry candidate — 2026-10-11
+
+Manager createAndSend now uses a required UUID (actionable refresh error for old clients), application lock, and persisted hash of amount/currency/purpose/validity/actor to return the same request on identical retries. Replay does not send again; changed intent conflicts; status is current. Existing requests keep null creation hash via additive migration073. UI keeps same command for unchanged in-page retries and clears successful inputs. Two additional disposable-DB scenarios use a mocked email provider: concurrent create sends once, and failed provider plus client retry retains one DRAFT request. Inventory68; not yet verified or deployed. No actual mail, Stripe or invoice action. Cross-refresh intent recovery and resend provider ambiguity remain separate open items.
+
+# ERP-05B deposit follow-up deployed — 2026-10-11
+
+Staging runtimeb935df2ca6a57d574ee248062e77b4c01d4e074b. CI38088867802 both jobs successful; all66 mandatory database tests in19 suites passed, zero skipped. Exact server check/lint/test/build passed1472 unit tests. Backup /var/backups/tashira-staging/deposit-final-b935df2-1791669049103. Health/pages200; anonymous deposit status403. Explicit in-handler authorization added after the direct-subrouter test exposed dependence on mounted path names; other-owner denial assertion retained and passed. No schema/production change or emails/payments. Authenticated visual UAT remains open.
+
+Next ERP05C: stable creation identity for manager security-deposit requests, avoiding duplicate obligations on network retry; preserve existing payment links and admin-only send policy. Remaining full financial UAT, genuine visa-file scanner, live provider communications, manager reporting and final acceptance are not complete.
+
 # ERP-05B access test correction — 2026-10-11
 
 CI38088705596 caught direct subrouter calls lacking the mounted path prefix used by generic scoping. Added explicit assigned-case authorization inside operationalStatus as defense in depth, retaining the other-owner denial test unchanged. Candidate not deployed; all66 integrations and exact gates must rerun.

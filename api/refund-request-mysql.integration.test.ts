@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createPool, type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
 import { refundRouter } from './refund-router';
 import { securityDepositRouter } from './security-deposit-router';
 import { env } from './lib/env';
 import type { TrpcContext } from './context';
+const fakeEmail = vi.hoisted(() => ({ send: vi.fn() }));
+vi.mock('./lib/email-provider', () => ({ transactionalEmailProvider: () => ({ name: 'synthetic', send: fakeEmail.send }) }));
+vi.mock('./lib/public-app-url', () => ({ publicAppOrigin: () => 'https://synthetic.example.invalid' }));
 const url = process.env.OPS_REHEARSAL_DATABASE_URL;
 describe.skipIf(!url).sequential('refund request retries in disposable MySQL', () => {
   let pool: Pool;
@@ -62,6 +65,31 @@ describe.skipIf(!url).sequential('refund request retries in disposable MySQL', (
     const cases = await caller.listByApplication({ applicationId: f.id }); expect(cases).toHaveLength(2);
     expect(cases.find(c => c.id === deposit.refundCaseId)?.items[0]).toMatchObject({ sourceType: 'SECURITY_DEPOSIT', securityDepositPaymentId: depositId, status: 'PENDING' });
     const available = await caller.eligibleSources({ applicationId: f.id }); expect(available.find(s => s.id === depositId)?.availableAmount).toBe(30);
+  });
+  it('creates and sends one deposit for concurrent retries and rejects changed intent', async () => {
+    const f = await fixture(), caller = securityDepositRouter.createCaller({ ...context(staff[0]), isAdmin: true });
+    fakeEmail.send.mockReset().mockResolvedValue({ reference: 'synthetic-provider-reference' });
+    const request = { commandId: randomUUID(), applicationId: f.id, amount: 50, purpose: 'Synthetic deposit', expiresInDays: 7 };
+    await expect(caller.createAndSend({ ...request, commandId: undefined })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    const results = await Promise.all([caller.createAndSend(request), caller.createAndSend(request)]);
+    expect(results.map(r => r.requestId)).toEqual([request.commandId, request.commandId]);
+    expect(results.filter(r => r.replayed)).toHaveLength(1);
+    expect(fakeEmail.send).toHaveBeenCalledTimes(1);
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM security_deposit_requests WHERE application_id=?', [f.id]); expect(Number(rows[0].n)).toBe(1);
+    const [events] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM outbound_email_events WHERE application_id=? AND email_template='SECURITY_DEPOSIT_REQUEST'", [f.id]); expect(Number(events[0].n)).toBe(1);
+    for (const change of [{ amount: 60 }, { expiresInDays: 8 }, { purpose: 'Different reason' }]) await expect(caller.createAndSend({ ...request, ...change })).rejects.toMatchObject({ code: 'CONFLICT' });
+    await pool.execute("UPDATE security_deposit_requests SET security_deposit_status='PAID' WHERE id=?", [request.commandId]);
+    expect(await caller.createAndSend(request)).toMatchObject({ requestId: request.commandId, status: 'PAID', replayed: true });
+    expect(fakeEmail.send).toHaveBeenCalledTimes(1);
+  });
+  it('keeps one undelivered deposit after provider failure and a client retry', async () => {
+    const f = await fixture(), caller = securityDepositRouter.createCaller({ ...context(staff[0]), isAdmin: true });
+    fakeEmail.send.mockReset().mockRejectedValue(new Error('synthetic failure'));
+    const request = { commandId: randomUUID(), applicationId: f.id, amount: 50, purpose: 'Synthetic failure', expiresInDays: 7 };
+    expect(await caller.createAndSend(request)).toMatchObject({ requestId: request.commandId, status: 'DRAFT', replayed: false });
+    expect(await caller.createAndSend(request)).toMatchObject({ requestId: request.commandId, status: 'DRAFT', replayed: true });
+    expect(fakeEmail.send).toHaveBeenCalledTimes(1);
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM security_deposit_requests WHERE application_id=?', [f.id]); expect(Number(rows[0].n)).toBe(1);
   });
   it('shows assigned deposit status without capabilities or manager write permissions', async () => {
     const f = await fixture(), id = randomUUID();

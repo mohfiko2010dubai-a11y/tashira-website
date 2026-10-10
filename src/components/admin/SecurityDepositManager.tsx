@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { trpc } from "@/providers/trpc-client";
 
 export function SecurityDepositManager({ applicationId }: { applicationId: number }) {
@@ -8,15 +8,18 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
   const [purpose, setPurpose] = useState("Refundable security deposit requested for this application");
   const [expiresInDays, setExpiresInDays] = useState("7");
   const [message, setMessage] = useState("");
+  const requestKey = useRef<{ payload: string; id: string } | null>(null);
   const createRequest = trpc.securityDeposit.createAndSend.useMutation({
     onSuccess: async (result) => {
-      setMessage(result.status === "SENT" ? "تم إرسال طلب التأمين بنجاح." : "تم حفظ الطلب لكن تعذر إرسال البريد. راجع حالة الإرسال قبل إنشاء طلب آخر.");
+      setMessage(result.status === "DRAFT" ? "طلب التأمين محفوظ، ولم يتأكد إرسال البريد. راجع القائمة وأعد إرسال الطلب نفسه عند الحاجة."
+        : result.replayed ? "هذا طلب التأمين المسجل سابقًا؛ لم ننشئ طلبًا آخر. راجع حالته في القائمة." : "تم إرسال طلب التأمين بنجاح.");
+      setAmount(''); setPurpose('');
       await Promise.all([
         utils.securityDeposit.listByApplication.invalidate({ applicationId }),
         utils.timeline.list.invalidate(),
       ]);
     },
-    onError: () => setMessage("لم يُنشأ الطلب. راجع البيانات وحاول مرة أخرى."),
+    onError: () => setMessage("لم يتأكد إتمام المحاولة. حدّث قائمة التأمين؛ يمكنك إعادة المحاولة بنفس البيانات دون إنشاء طلب مكرر."),
   });
   const resendRequest = trpc.securityDeposit.resend.useMutation({
     onSuccess: async (result) => {
@@ -35,8 +38,8 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
         <h3 className="text-sm font-semibold text-gray-900">التأمين المسترد</h3>
         <p className="text-sm text-gray-500">حدد قيمة التأمين لهذا الطلب. سيتلقى العميل بريدًا به رابط دفع مخصص للتأمين بمدة صلاحية محددة.</p>
       </div>
-      {message && <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">{message}</p>}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      {message && <p aria-live="polite" className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">{message}</p>}
+      <fieldset disabled={createRequest.isPending || resendRequest.isPending} className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <label className="text-sm text-gray-600">المبلغ بالدرهم
           <input className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm" type="number" min="1" max="1000000" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} />
         </label>
@@ -46,13 +49,13 @@ export function SecurityDepositManager({ applicationId }: { applicationId: numbe
         <label className="text-sm text-gray-600">صلاحية الرابط بالأيام
           <input className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm" type="number" min="1" max="30" value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)} />
         </label>
-      </div>
-      <button className="rounded-lg bg-[#C9A04C] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={createRequest.isPending || Number(amount) <= 0 || purpose.trim().length < 5} onClick={() => createRequest.mutate({
-        applicationId,
-        amount: Number(amount),
-        purpose,
-        expiresInDays: Number(expiresInDays),
-      })}>إرسال طلب التأمين بالبريد</button>
+      </fieldset>
+      <button className="rounded-lg bg-[#C9A04C] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={createRequest.isPending || resendRequest.isPending || !Number.isFinite(Number(amount)) || Number(amount) < 1 || Number(amount) > 1_000_000 || !Number.isInteger(Number(expiresInDays)) || Number(expiresInDays) < 1 || Number(expiresInDays) > 30 || purpose.trim().length < 5} onClick={() => {
+        const payload = { applicationId, amount: Number(amount), purpose, expiresInDays: Number(expiresInDays) };
+        const serialized = JSON.stringify(payload);
+        if (requestKey.current?.payload !== serialized) requestKey.current = { payload: serialized, id: crypto.randomUUID() };
+        createRequest.mutate({ ...payload, commandId: requestKey.current.id });
+      }}>إرسال طلب التأمين بالبريد</button>
       <div className="space-y-2">
         {requests.data?.map((request) => (
           <div key={request.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 p-3 text-sm">

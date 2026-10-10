@@ -331,6 +331,7 @@ export const financialEvents = mysqlTable("financial_events", {
 ]);
 
 export const securityDepositRequests = mysqlTable("security_deposit_requests", {
+  creationCommandHash: varchar("creation_command_hash", { length: 64 }),
   id: varchar("id", { length: 36 }).primaryKey(),
   applicationId: bigint("application_id", { mode: "number", unsigned: true }).notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
