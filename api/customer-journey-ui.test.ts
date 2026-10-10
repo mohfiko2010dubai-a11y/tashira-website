@@ -31,7 +31,7 @@ describe("integrated staging customer and Operations journey", () => {
     expect(casePage).toContain("OperationsControlledWritePanelLive");
     expect(writes).toContain("Status Transition");
     expect(documents).toContain("Upload to selected applicant");
-    expect(visa).toContain("Approve & prepare secure delivery");
+    expect(visa).toContain("حفظ وتجهيز التأشيرة للعميل");
     expect(notes).toContain("Add internal note");
   });
 
