@@ -1,3 +1,11 @@
+# Queue destination deployed; ERP-02 implementation in progress — 2026-10-10
+
+Staging runtime c7b8c5363ef613000eb5ae1e60b74d44b9175ef4. Saving follow-up selects its destination list and shows a named link; WAIT_SUPPLIER and WAIT_AUTHORITY share the clearly named supplier/authority follow-up list. Owner-confirmed movement was not deletion. Targeted read of TSH-680472 found documents_received, WAIT_SUPPLIER, same assigned owner, supplier_id NULL; no case mutation was made during diagnosis. Supplier follow-up status does not select an actual supplier.
+
+Local and isolated-server check/lint/test/build passed; 1447 unit tests and CI38073753768 (both jobs successful, all37 MySQL tests, zero database skips). Backup `/var/backups/tashira-staging/queue-destination-c7b8c53-1791655276960`; health and login/dashboard pages200, anonymous protected endpoints403. No production or schema change. Authenticated browser acceptance remains open because browser automation cannot initialize.
+
+Latest owner authorized continuing remaining implementation sequentially despite the browser-tool limitation; keep visual UAT explicit under ERP-08. ERP-02 is now IN PROGRESS, not complete: reusing committed customer-wait events and current amendment quotes to reconcile owned queues, preserving manual follow-up on unchanged evidence, guarding readiness against separate unmet requirements, retaining original guarantee and approved-settlement rules. Candidate automated gates and four new MySQL cases (41 mandatory total) are pending. Not deployed; no claim of completed supplier rates/VAT, notifications, communications or launch readiness.
+
 # Sequential ERP completion tasks — 2026-10-10
 
 Owner instruction: implement one task at a time, review it, test it and establish working acceptance before proceeding. Latest ERP requirements take precedence; retain compatible prior requirements and reuse existing components. No task is complete merely because its UI exists or the build passes.

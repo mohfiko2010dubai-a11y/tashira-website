@@ -7,6 +7,7 @@ import { MysqlOperationsAccessProvider } from './lib/operations/mysql-access-pro
 import { MysqlControlledWriteExecutor } from './lib/operations/mysql-controlled-write-executor';
 import { MysqlOperationsSqlClient } from './lib/operations/mysql-query-client';
 import { syncCaseWorkStatus } from './lib/operations/case-work-status';
+import { reconcileCustomerWork } from './lib/operations/customer-work-reconciliation';
 
 const url = process.env.OPS_EXECUTOR_DATABASE_URL;
 const suite = url ? describe.sequential : describe.skip;
@@ -20,6 +21,19 @@ suite('atomic staff work dispatch', () => {
   const tag = randomUUID().slice(0, 8);
   const context = (id: number): TrpcContext => ({ staffId: id, isAdmin: false, req: new Request('https://example.invalid'), resHeaders: new Headers(), customerApplicationReferences: new Set() });
   const key = () => randomUUID();
+  async function waitingFixture() {
+    await pool.execute("UPDATE customer_wait_policy SET enabled_at='2001-01-01' WHERE singleton=1");
+    const [inserted] = await pool.execute<ResultSetHeader>(`INSERT INTO applications
+      (reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,total_amount_aed,status,payment_status,data_classification,is_test)
+      VALUES (?,'single','non-gcc','ROUTE_TEST','regular','wait@example.invalid','000',1,100,'documents_pending','paid','TEST',1)`, [`WAIT-${key()}`]);
+    await pool.execute('INSERT INTO operations_case_controls(application_id,assigned_staff_user_id) VALUES (?,?)', [inserted.insertId, staff[0]]);
+    await pool.execute("INSERT INTO operations_case_work(application_id,work_state,reason,changed_at) VALUES (?,'READY','Synthetic fixture','2000-01-01')", [inserted.insertId]);
+    return inserted.insertId;
+  }
+  async function waitEvent(id: number, waitKey: string, kind: 'PAUSE' | 'RESUME', reason = 'DOCUMENTS_REQUESTED') {
+    await pool.execute(`INSERT INTO customer_wait_events(id,application_id,wait_key,event_kind,reason,occurred_at,source_reference,actor_reference)
+      VALUES (?,?,?,?,?,UTC_TIMESTAMP(3),?,'SYNTHETIC')`, [key().replaceAll('-', ''), id, waitKey, kind, reason, key()]);
+  }
   beforeAll(async () => {
     const target = new URL(url!);
     if (!['localhost','127.0.0.1'].includes(target.hostname) || !target.pathname.startsWith('/tashira_ops_rehearsal_')) throw new Error('Synthetic rehearsal database required');
@@ -169,6 +183,77 @@ suite('atomic staff work dispatch', () => {
       const [events] = await connection.execute<RowDataPacket[]>('SELECT previous_state,next_state FROM operations_work_events WHERE application_id=? ORDER BY id', [cases[0]]);
       expect(events.map(row => [row.previous_state, row.next_state])).toEqual([['WAIT_AUTHORITY','READY'],['READY','DONE'],['DONE','READY']]);
     } finally { await connection.rollback(); connection.release(); }
+  });
+
+  it('reconciles concurrent document responses once, preserving owner and actual application state', async () => {
+    const id = await waitingFixture();
+    await waitEvent(id, 'document:one', 'PAUSE');
+    await waitEvent(id, 'document:two', 'PAUSE');
+    await Promise.all([reconcileCustomerWork(pool, staff[0], id), reconcileCustomerWork(pool, staff[0], id)]);
+    let row = (await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)!;
+    expect(row.state).toBe('WAIT_CUSTOMER'); expect(row.version).toBe(1); expect(row.dueAt).not.toBeNull();
+    const [audit] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM operations_work_events WHERE application_id=? AND idempotency_key LIKE 'wait:%'", [id]);
+    expect(Number(audit[0].n)).toBe(1);
+    await waitEvent(id, 'document:one', 'RESUME');
+    expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('WAIT_CUSTOMER');
+    await waitEvent(id, 'document:two', 'RESUME');
+    row = (await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)!;
+    expect(row.state).toBe('READY'); expect(row.version).toBe(2); expect(row.dueAt).toBeNull();
+    await expect(queue.command(context(staff[0]), { kind: 'WORK_STATE', applicationId: id, version: 1, state: 'ACTIVE', reason: 'Stale synthetic save', followUpAt: null, key: key() })).rejects.toMatchObject({ code: 'CONFLICT' });
+    const [facts] = await pool.execute<RowDataPacket[]>('SELECT a.status,a.payment_status,c.assigned_staff_user_id owner FROM applications a JOIN operations_case_controls c ON c.application_id=a.id WHERE a.id=?', [id]);
+    expect(facts[0]).toMatchObject({ status: 'documents_pending', payment_status: 'paid', owner: staff[0] });
+  });
+
+  it('does not overwrite manual follow-up from unchanged or historical evidence, or another owner', async () => {
+    const id = await waitingFixture();
+    await waitEvent(id, 'document:old', 'PAUSE');
+    await waitEvent(id, 'document:old', 'RESUME');
+    await pool.execute("UPDATE operations_case_work SET work_state='WAIT_CUSTOMER',changed_at=DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 1 SECOND),follow_up_at='2040-01-01' WHERE application_id=?", [id]);
+    await reconcileCustomerWork(pool, staff[1], id);
+    const [none] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM operations_work_events WHERE application_id=?', [id]);
+    expect(Number(none[0].n)).toBe(0);
+    let row = (await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)!;
+    expect(row.state).toBe('WAIT_CUSTOMER'); expect(row.dueAt).toContain('2040-01-01');
+    await queue.command(context(staff[0]), { kind: 'WORK_STATE', applicationId: id, version: row.version, state: 'ACTIVE', reason: 'Following up with customer', followUpAt: null, key: key() });
+    row = (await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)!;
+    expect(row.state).toBe('ACTIVE');
+    const [closed] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM customer_wait_events WHERE application_id=?', [id]);
+    expect(Number(closed[0].n)).toBe(2);
+  });
+
+  it('routes accepted amendments to staff for a link and waits for approved settlement afterwards', async () => {
+    const id = await waitingFixture(), quoteId = key();
+    await pool.execute('UPDATE applications SET substitution_version=1 WHERE id=?', [id]);
+    await pool.execute(`INSERT INTO visa_change_quotes(id,application_id,version,previous_product,replacement_product,old_total_minor,new_total_minor,difference_minor,currency,quote_json)
+      VALUES (?,?,1,'ROUTE_TEST','ROUTE_TEST',10000,13000,3000,'USD','{}')`, [quoteId, id]);
+    await waitEvent(id, `quote:${quoteId}`, 'PAUSE', 'AMENDMENT_SENT');
+    expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('WAIT_CUSTOMER');
+    await pool.execute("UPDATE visa_change_quotes SET state='ACCEPTED',accepted_at=UTC_TIMESTAMP(3) WHERE id=?", [quoteId]);
+    await pool.execute("INSERT INTO product_substitution_events(application_id,version,product,action,actor) VALUES (?,1,'ROUTE_TEST','ACKNOWLEDGED','SYNTHETIC')", [id]);
+    expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('READY');
+    await pool.execute("INSERT INTO product_substitution_events(application_id,version,product,action,actor) VALUES (?,1,'ROUTE_TEST','PAYMENT_LINK_ISSUED','SYNTHETIC')", [id]);
+    expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('WAIT_CUSTOMER');
+    await waitEvent(id, `payment:${quoteId}`, 'RESUME', 'PAYMENT_LINK_ISSUED');
+    expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('WAIT_CUSTOMER');
+    await expect(pool.execute("UPDATE visa_change_quotes SET state='SETTLED' WHERE id=?", [quoteId])).rejects.toMatchObject({ sqlState: '45000' });
+  });
+
+  it('a documents-received status cannot bypass a separate outstanding requirement', async () => {
+    const id = await waitingFixture();
+    await waitEvent(id, 'document:still-missing', 'PAUSE');
+    await reconcileCustomerWork(pool, staff[0], id);
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.execute('SELECT id FROM applications WHERE id=? FOR UPDATE', [id]);
+      await connection.execute("UPDATE applications SET status='documents_received' WHERE id=?", [id]);
+      await syncCaseWorkStatus(connection, id, 'documents_pending', 'documents_received', key());
+      await connection.commit();
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
+    expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('WAIT_CUSTOMER');
+    await waitEvent(id, 'document:still-missing', 'RESUME');
+    expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('READY');
   });
 
   it('named manager can participate; history is append-only and deactivation blocks actions', async () => {

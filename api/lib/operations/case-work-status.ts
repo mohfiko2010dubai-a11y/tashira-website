@@ -3,6 +3,7 @@ import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { WorkState } from '../../../contracts/work-queue';
 import { WORK_STATES, workStateLabels } from '../../../contracts/work-queue';
 import { z } from 'zod';
+import { guardReadyCustomerWork } from './customer-work-status-guard';
 
 export function workStateAfterStatus(status: string, previous: WorkState): WorkState {
   switch (status) {
@@ -24,7 +25,7 @@ export async function syncCaseWorkStatus(connection: PoolConnection, application
   if (!Number.isSafeInteger(ownerId) || ownerId <= 0) return;
   const [states] = await connection.execute<RowDataPacket[]>('SELECT work_state,follow_up_at FROM operations_case_work WHERE application_id=? FOR UPDATE', [applicationId]);
   const previous = z.enum(WORK_STATES).parse(states[0]?.work_state ?? workStateAfterStatus(from, 'READY'));
-  const next = workStateAfterStatus(to, previous);
+  const next = await guardReadyCustomerWork(connection, applicationId, to, workStateAfterStatus(to, previous));
   const followUpAt = previous === next ? states[0]?.follow_up_at ?? null : null;
   const reason = `تم تحديث المتابعة بعد حفظ حالة الطلب: ${workStateLabels[next]}.`;
   await connection.execute(`INSERT INTO operations_case_work (application_id,work_state,version,reason,follow_up_at) VALUES (?,?,1,?,?)

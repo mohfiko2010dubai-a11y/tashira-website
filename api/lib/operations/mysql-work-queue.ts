@@ -8,6 +8,7 @@ import type { TrpcContext } from '../../context';
 import { isOperationsFlagEnabled } from '../feature-flags/feature-flags';
 import { MysqlOperationsAccessProvider } from './mysql-access-provider';
 import { MysqlControlledWriteExecutor } from './mysql-controlled-write-executor';
+import { reconcileOwnedCustomerWork } from './customer-work-reconciliation';
 
 const retry = z.string().uuid();
 export const workCommand = z.discriminatedUnion('kind', [
@@ -59,6 +60,7 @@ export class MysqlWorkQueue {
 
   async overview(ctx: TrpcContext, includeTest: boolean) {
     const { actor, staffId } = await this.actor(ctx);
+    await reconcileOwnedCustomerWork(this.pool, staffId);
     const scope = this.scope(actor.teamIds, actor.scopes.includes('ALL'));
     const [counts] = await this.pool.execute<RowDataPacket[]>(`SELECT COUNT(*) AS count FROM applications a
       LEFT JOIN operations_case_controls c ON c.application_id=a.id
@@ -98,6 +100,7 @@ export class MysqlWorkQueue {
     const identity = await this.actor(ctx);
     const staffId = identity.staffId;
     let actor = identity.actor;
+    if (input.kind === 'CLAIM') await reconcileOwnedCustomerWork(this.pool, staffId);
     const connection = await this.pool.getConnection();
     const hash = createHash('sha256').update(JSON.stringify(input)).digest('hex');
     try {
