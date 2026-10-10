@@ -1,3 +1,11 @@
+# T2A deployed; remaining completion gates explicit — 2026-10-11
+
+Staging runtime995caae37a9f9c175dd3fcc23eedcf6169a68b0a; CI38095960139 both jobs successful.77 mandatory MySQL tests in20 suites executed, zero skipped, including actual router USD/AED family costs, TEST exclusion, historical different base currency and employee FORBIDDEN. Local check/lint/test/build passed1496 unit tests plus13 build-environment checks; final TypeScript project-reference check passed after final edits. Exact server check/lint/test/build passed for deployed SHA. Original local dist/boot.js hash preserved FD544988685D8C1A81295ACF50D33B4D38494C5E56CDC81F697BDA296CD36EED.
+
+Verified exact staging identity before runtime switch; backup /var/backups/tashira-staging/finance-currency-995caae-1791676113859. No schema migration for T2A. Health, staff login/dashboard and admin login HTTP200; anonymous protected operations403. Application, visa scanner and signature-update timer active. No production or financial transaction/email executed.
+
+T2A corrects and labels pricing estimates; T2B actual settlement/refund/invoice/supplier/fee reconciliation and T2C financial closure attribution remain OPEN. Current Stripe capture persists fees and their currency, not the complete settlement amounts/FX evidence needed for final profit. Do not substitute quoted exchange rates for settlement evidence. T3 genuine mailbox and official WhatsApp connection remains OPEN. T4 browser retry failed before tab inventory (trusted Node process exited unexpectedly); no visual acceptance or launch clearance. See ERP_COMPLETION_TASKS.md.
+
 # T2A pricing currency correction candidate — 2026-10-11
 
 Corrects quote supplier/internal totals into each snapshot base currency once (family totals are already aggregated). Rows with a different historical base currency are explicitly counted and excluded, never summed as though equivalent. Finance cockpit now labels this as a pricing estimate, not settled profit. New guarded disposable-MySQL test covers USD/AED family totals, TEST exclusion, differing base currency and employee denial. Mandatory inventory becomes77 tests/20 suites. Local1496 unit tests passed; build and final exact-candidate checks remain pending. Not deployed. Actual settlement/refund/fee/VAT attribution remains T2B; no claim that T2 is complete.

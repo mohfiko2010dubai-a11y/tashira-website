@@ -9,6 +9,9 @@ Latest owner instruction: finish the remaining work in tested, reviewed logical 
 - T1.4 UI guidance, failed/unavailable retry, multi-traveller completeness, actual synthetic clean/EICAR test on staging. Run check/lint/test/build and mandatory DB integration gates before deployment.
 
 ## T2 — Financial attribution — IN PROGRESS
+- T2A: correct pricing-margin currency, use stored FX once for family totals, explicitly separate historical base currencies and label quote estimates. Deployed995caae on staging; CI38095960139 including77 mandatory MySQL tests and exact-server gates passed. HTTP health/access checks passed; visual check remains T4.
+- T2B: persist/reconcile actual Stripe settlement amounts and currencies (current capture stores fees only), successful service refunds, invoice/credit-note references and supplier invoice costs. Do not estimate settlement FX from invoice FX.
+- T2C: attach reconciled per-case results to the existing manager-only closure attribution; reopen/reassignment must not double-count. Missing evidence stays incomplete, never zero/final profit.
 - Reconcile actual paid invoices and top-ups, successful refunds/credit notes, supplier cost/VAT, actual Stripe fees and currency conversion.
 - Exclude test data; distinguish missing cost or settlement from zero; preserve approved accounting policy.
 - Verify reopened/reassigned case attribution and manager-only visibility. No invented final profit.
