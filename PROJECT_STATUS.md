@@ -1,3 +1,7 @@
+# ERP-04D1 retry verification — 2026-10-11
+
+CI38082435405 reached and passed the timestamp/concurrent replay assertions. The final revoked-grant assertion expected the document-level denial, but the real access provider correctly raises ACTOR_ACCESS_DENIED before document authorization. Corrected that exact expected error, retaining rejection and all ownership/replay assertions. No runtime permission change or suppression. Required full CI rerun pending.
+
 # ERP-04D1 verification corrections — 2026-10-11
 
 CI38081872793 passed Verify but failed 1 of59 mandatory MySQL tests: DATETIME(0) discarded milliseconds while the first delivery response and its integrity hash retained them. Canonicalize to whole UTC seconds before hashing and persistence; regression now fixes a nonzero-millisecond input and checks exact equality across concurrent calls, fresh retry keys and database reads. No test relaxed. Full gates and CI rerun pending; runtime remains529e219. Exact-server tests also detected a leftover submission-evidence-uat.cjs temporary bundle in candidate source: moved that artifact to /var/tmp/submission-evidence-uat-preserved-20261011.cjs, outside the build source, without adding an environment-access exception. No production changes.

@@ -84,6 +84,6 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
     await pool.execute("UPDATE applications SET status='completed' WHERE id=?", [f.applicationId]);
     expect(await repository.prepare(f)).toEqual(result[0]);
     await pool.execute('UPDATE operations_scope_grants SET revoked_at=UTC_TIMESTAMP() WHERE staff_user_id=?', [staff[0]]);
-    await expect(repository.prepare(f)).rejects.toThrow('VISA_DELIVERY_ACCESS_DENIED');
+    await expect(repository.prepare(f)).rejects.toThrow('ACTOR_ACCESS_DENIED');
   });
 });
