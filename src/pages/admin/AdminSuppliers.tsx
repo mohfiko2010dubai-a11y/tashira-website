@@ -1,4 +1,5 @@
 import Logo from '@/components/shared/Logo';
+import SupplierRatesPanel from '@/components/admin/SupplierRatesPanel';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
@@ -23,6 +24,7 @@ export default function AdminSuppliers() {
   const { data: suppliers, isLoading } = trpc.supplier.list.useQuery();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<SupplierForm>(emptyForm);
+  const [rateSupplier, setRateSupplier] = useState<{ id: number; name: string } | null>(null);
 
   const createMut = trpc.supplier.create.useMutation({
     onSuccess: () => { utils.supplier.list.invalidate(); setShowForm(false); setForm(emptyForm); },
@@ -86,6 +88,7 @@ export default function AdminSuppliers() {
           </form>
         )}
 
+        {rateSupplier && <SupplierRatesPanel key={rateSupplier.id} supplierId={rateSupplier.id} name={rateSupplier.name} onClose={() => setRateSupplier(null)} />}
         {isLoading ? (
           <p className="text-gray-400 text-center py-10">Loading...</p>
         ) : (
@@ -95,7 +98,7 @@ export default function AdminSuppliers() {
               <tbody className="divide-y divide-gray-50">
                 {(suppliers || []).map(s => (
                   <tr key={s.id} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-3 font-medium">{s.name}</td>
+                    <td className="px-4 py-3 font-medium">{s.name}<button type="button" className="mt-1 block text-sm text-blue-700 underline" onClick={() => setRateSupplier({ id: s.id, name: s.name })}>قائمة الأسعار</button></td>
                     <td className="px-4 py-3 text-gray-500">{s.contactPerson || '-'}</td>
                     <td className="px-4 py-3 text-gray-500">{s.email || '-'}</td>
                     <td className="px-4 py-3 text-gray-500">{s.phone || '-'}</td>

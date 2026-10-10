@@ -3,8 +3,13 @@ import { adminQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
 import { suppliers } from "@db/schema";
 import { eq } from "drizzle-orm";
+import { supplierRateInput } from '../contracts/supplier-rates';
+import { listSupplierRates, saveSupplierRate } from './lib/supplier-rates';
 
 export const supplierRouter = createRouter({
+  rates: adminQuery.input(z.object({ supplierId: z.number().int().positive() }).strict()).query(({ input }) => listSupplierRates(input.supplierId)),
+  saveRate: adminQuery.input(supplierRateInput).mutation(({ input, ctx }) => saveSupplierRate(input,
+    ctx.staffId ? `staff:${ctx.staffId}` : ctx.user?.id ? `user:${ctx.user.id}` : 'admin-session')),
   list: adminQuery.query(async () => {
     const db = getDb();
     return db.select().from(suppliers).orderBy(suppliers.name);
