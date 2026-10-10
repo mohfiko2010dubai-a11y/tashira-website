@@ -1,5 +1,19 @@
 import { DisabledEmailProvider, type TransactionalEmailProvider } from "./transactional-email";
 import { ResendEmailProvider } from "./resend-email";
+import { createHash } from 'node:crypto';
+
+// Infrastructure credentials stay in this adapter, never in deposit business rules.
+export function depositEmailEncryptionKey() {
+  const secret = process.env.ADMIN_SESSION_SECRET || '';
+  if (secret.length < 32) throw new Error('Deposit email encryption is not configured');
+  return createHash('sha256').update(`deposit-email-v1:${secret}`).digest();
+}
+export function depositEmailConfigurationHash() {
+  return createHash('sha256').update(JSON.stringify(
+    ['EMAIL_MODE', 'STAGING_EMAIL_MODE', 'RESEND_API_KEY', 'FROM_NAME', 'FROM_EMAIL', 'EMAIL_REPLY_TO', 'APP_ID', 'TRANSACTIONAL_EMAIL_SUBJECT_PREFIX']
+      .map(name => process.env[name] || ''),
+  )).digest('hex');
+}
 
 export function transactionalEmailProvider(): TransactionalEmailProvider {
   const mode = process.env.EMAIL_MODE || process.env.STAGING_EMAIL_MODE;

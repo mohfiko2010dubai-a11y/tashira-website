@@ -6,7 +6,7 @@ import { securityDepositRouter } from './security-deposit-router';
 import { env } from './lib/env';
 import type { TrpcContext } from './context';
 const fakeEmail = vi.hoisted(() => ({ send: vi.fn() }));
-vi.mock('./lib/email-provider', () => ({ transactionalEmailProvider: () => ({ name: 'synthetic', send: fakeEmail.send }) }));
+vi.mock('./lib/email-provider', async importOriginal => ({ ...await importOriginal<typeof import('./lib/email-provider')>(), transactionalEmailProvider: () => ({ name: 'synthetic', send: fakeEmail.send }) }));
 vi.mock('./lib/public-app-url', async importOriginal => ({ ...await importOriginal<typeof import('./lib/public-app-url')>(), publicAppOrigin: () => 'https://synthetic.example.invalid' }));
 const url = process.env.OPS_REHEARSAL_DATABASE_URL;
 describe.skipIf(!url).sequential('refund request retries in disposable MySQL', () => {
