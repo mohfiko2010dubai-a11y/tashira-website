@@ -5,6 +5,18 @@ import { visaChangeAmount } from "../../contracts/visa-change-money";
 import { quoteApplicationPrice } from "./pricing-engine";
 import { defaultOperationsPool } from "./operations/mysql-query-client";
 
+/** Caller owns the application transaction. Never backfill historical wait intervals. */
+export async function supersedeUnansweredQuotes(connection: PoolConnection, applicationId: number, replacementQuoteId: string) {
+  const [old] = await connection.execute<RowDataPacket[]>("SELECT id FROM visa_change_quotes WHERE application_id=? AND state='PROPOSED' FOR UPDATE", [applicationId]);
+  await connection.execute("UPDATE visa_change_quotes SET state='SUPERSEDED' WHERE application_id=? AND state='PROPOSED'", [applicationId]);
+  for (const row of old) {
+    // A late email for the replaced proposal must not restart its waiting clock.
+    await connection.execute(`INSERT IGNORE INTO customer_wait_events(id,application_id,wait_key,event_kind,reason,occurred_at,source_reference,actor_reference)
+      SELECT SHA2(CONCAT('quote-superseded:',?),256),?,CONCAT('quote:',?),'RESUME','AMENDMENT_SENT',UTC_TIMESTAMP(3),?,'SYSTEM:SUPERSEDED_PROPOSAL'
+      FROM customer_wait_policy WHERE singleton=1 AND enabled_at IS NOT NULL AND enabled_at<=UTC_TIMESTAMP(3)`, [row.id, applicationId, row.id, replacementQuoteId]);
+  }
+}
+
 /** Caller owns the application transaction. Never modifies the original paid quote. */
 export async function prepareVisaChangeQuote(connection: PoolConnection, applicationId: number, version: number, product: string) {
   const [apps] = await connection.execute<RowDataPacket[]>("SELECT visa_type,processing_type,payment_status FROM applications WHERE id=?", [applicationId]);
@@ -29,7 +41,7 @@ export async function prepareVisaChangeQuote(connection: PoolConnection, applica
   const previousProduct = basis ? String(basis.replacement_product) : String(app.visa_type);
   if (product === previousProduct) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose a different visa product to propose a change." });
   const id = randomUUID();
-  await connection.execute("UPDATE visa_change_quotes SET state='SUPERSEDED' WHERE application_id=? AND state='PROPOSED'", [applicationId]);
+  await supersedeUnansweredQuotes(connection, applicationId, id);
   await connection.execute(`INSERT INTO visa_change_quotes(id,application_id,version,previous_product,replacement_product,old_total_minor,new_total_minor,difference_minor,currency,quote_json)
     VALUES (?,?,?,?,?,?,?,?,?,?)`, [id, applicationId, version, previousProduct, product, amounts.oldTotalMinor, amounts.newTotalMinor, amounts.differenceMinor, amounts.currency, JSON.stringify(quote)]);
   return { id, ...amounts };

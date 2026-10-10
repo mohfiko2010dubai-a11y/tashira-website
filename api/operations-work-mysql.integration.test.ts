@@ -8,6 +8,8 @@ import { MysqlControlledWriteExecutor } from './lib/operations/mysql-controlled-
 import { MysqlOperationsSqlClient } from './lib/operations/mysql-query-client';
 import { syncCaseWorkStatus } from './lib/operations/case-work-status';
 import { reconcileCustomerWork } from './lib/operations/customer-work-reconciliation';
+import { supersedeUnansweredQuotes } from './lib/visa-change-quotes';
+import { customerWaitLog } from './lib/customer-wait-log';
 
 const url = process.env.OPS_EXECUTOR_DATABASE_URL;
 const suite = url ? describe.sequential : describe.skip;
@@ -261,6 +263,32 @@ suite('atomic staff work dispatch', () => {
     expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('WAIT_CUSTOMER');
     await waitEvent(id, 'document:still-missing', 'RESUME');
     expect((await queue.overview(context(staff[0]), true)).mine.find(item => item.applicationId === id)?.state).toBe('READY');
+  });
+
+  it('ends only the superseded proposal wait atomically and cannot reopen it from a late sent event', async () => {
+    const id = await waitingFixture(), quoteId = key();
+    await pool.execute(`INSERT INTO visa_change_quotes(id,application_id,version,previous_product,replacement_product,old_total_minor,new_total_minor,difference_minor,currency,quote_json)
+      VALUES (?,?,1,'ROUTE_TEST','OTHER_TEST',10000,13000,3000,'USD','{}')`, [quoteId, id]);
+    await waitEvent(id, `quote:${quoteId}`, 'PAUSE', 'AMENDMENT_SENT');
+    await waitEvent(id, 'document:still-required', 'PAUSE');
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      await connection.execute('SELECT id FROM applications WHERE id=? FOR UPDATE', [id]);
+      await supersedeUnansweredQuotes(connection, id, key());
+      await connection.rollback();
+      expect((await customerWaitLog(id, new Date(), connection)).open).toHaveLength(2);
+      await connection.beginTransaction();
+      await connection.execute('SELECT id FROM applications WHERE id=? FOR UPDATE', [id]);
+      await supersedeUnansweredQuotes(connection, id, key());
+      await connection.commit();
+      await waitEvent(id, `quote:${quoteId}`, 'PAUSE', 'AMENDMENT_SENT');
+      expect((await customerWaitLog(id, new Date(), connection)).open.map(wait => wait.waitKey)).toEqual(['document:still-required']);
+      const [quoteRows] = await connection.execute<RowDataPacket[]>('SELECT state FROM visa_change_quotes WHERE id=?', [quoteId]);
+      expect(quoteRows[0].state).toBe('SUPERSEDED');
+      const [resumes] = await connection.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM customer_wait_events WHERE application_id=? AND event_kind='RESUME'", [id]);
+      expect(Number(resumes[0].n)).toBe(1);
+    } finally { await connection.rollback(); connection.release(); }
   });
 
   it('named manager can participate; history is append-only and deactivation blocks actions', async () => {
