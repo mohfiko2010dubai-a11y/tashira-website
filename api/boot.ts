@@ -1,3 +1,6 @@
+import { MysqlVisaDeliveryRepository } from "./lib/operations/mysql-visa-delivery-repository";
+import { defaultOperationsPool } from "./lib/operations/mysql-query-client";
+import { readVerifiedVisaFile } from "./lib/operations/visa-file-evidence";
 import { archivedDocumentApplicationId, readArchivedInvoice } from "./lib/invoice-archive";
 import "../contracts/install-safe-console";
 import { languagePath, languageRoute } from "../contracts/language-routes";
@@ -15,12 +18,12 @@ import { Paths } from "@contracts/constants";
 import fs from "fs";
 import path from "path";
 import { getDb } from "./queries/connection";
-import { applications, documents } from "@db/schema";
+import { applications } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { getStorageDir } from "./lib/invoice-pdf";
 import { getErrorMessage } from "./lib/errors";
 import { internalFailure } from "./lib/public-error";
-import { resolveStoragePath, verifyStorageSignedUrl } from "./lib/local-storage";
+import { getStorageRoot, verifyStorageSignedUrl } from "./lib/local-storage";
 import { isSupportedStripeWebhookEvent, verifyStripeWebhook } from "./lib/stripe-webhook";
 import { finalizeStripeTestPayment, recordStripeTestPaymentFailure } from "./lib/payment-finalization";
 import { SupersededStripeEvent } from "./lib/payment-state";
@@ -344,36 +347,17 @@ app.get("/storage/*", async (c) => {
   if (!verifyStorageSignedUrl(filePath, c.req.query("expires") || "", c.req.query("signature") || "")) {
     return c.json({ error: "Unauthorized" }, 401);
   }
-  // Original, unwatermarked files are only for the owning customer's issued visa.
-  // Staff use the named, logged and watermarked endpoint above.
-  const [owned] = await getDb().select({ applicationId: applications.id, documentId: documents.id, reference: applications.referenceNumber, type: documents.documentType })
-    .from(documents).innerJoin(applications, eq(applications.id, documents.applicationId)).where(eq(documents.storagePath, filePath)).limit(1);
-  if (!owned || owned.type !== 'visa' || !hasCustomerApplicationAccess(c.req.raw.headers, owned.reference)) return c.json({ error: 'Unauthorized' }, 401);
-  let fullPath: string;
-  try {
-    fullPath = resolveStoragePath(filePath);
-  } catch {
-    return c.json({ error: "Invalid path" }, 400);
-  }
-
-  if (!fs.existsSync(fullPath)) {
-    return c.json({ error: "File not found" }, 404);
-  }
-
-  const ext = path.extname(fullPath).toLowerCase();
-  const mimeTypes: Record<string, string> = {
-    ".pdf": "application/pdf",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".png": "image/png",
-  };
-  const contentType = mimeTypes[ext] || "application/octet-stream";
-
-  const fileBuffer = fs.readFileSync(fullPath);
+  const record = await new MysqlVisaDeliveryRepository(defaultOperationsPool()).documentByArchivePath(filePath);
+  if (!record || !hasCustomerApplicationAccess(c.req.raw.headers, record.applicationReference)) return c.json({ error: 'This visa link is unavailable. Sign in and open the delivered visa again.' }, 401);
+  let fileBuffer: Buffer;
+  try { fileBuffer = await readVerifiedVisaFile(getStorageRoot(), record.fileEvidence); }
+  catch { return c.json({ error: 'The visa file could not be verified. Contact support for a new verified copy.' }, 409); }
+  const owned = { applicationId: record.delivery.applicationId, documentId: record.delivery.visaDocumentId };
+  const contentType = record.fileEvidence.mimeType;
   if (!await hasTimelineEventReference(owned.applicationId, 'VISA_DOWNLOADED', `document:${owned.documentId}`)) await recordTimelineEvent({ applicationId: owned.applicationId, eventName: 'VISA_DOWNLOADED', eventSource: 'SECURE_DELIVERY', actorType: 'CUSTOMER', actorReference: `document:${owned.documentId}`, summary: 'Issued visa served to the authenticated owning customer' });
   c.header("Content-Type", contentType);
   c.header("Cache-Control", "private, no-store");
-  return c.body(fileBuffer);
+  return c.body(new Uint8Array(fileBuffer));
 });
 
 // ===== tRPC ROUTES =====

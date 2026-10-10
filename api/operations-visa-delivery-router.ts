@@ -1,3 +1,5 @@
+import { createClamdVisaScanner } from "./lib/operations/clamd-visa-scanner";
+import { captureScannedVisaFile,discardUncommittedVisaFile } from "./lib/operations/visa-file-evidence";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { TrpcContext } from "./context";
@@ -6,7 +8,7 @@ import { MysqlOperationsAccessProvider,OperationsAccessError } from "./lib/opera
 import { defaultOperationsPool,defaultOperationsSqlClient } from "./lib/operations/mysql-query-client";
 import { MysqlVisaDeliveryRepository } from "./lib/operations/mysql-visa-delivery-repository";
 import { getCustomerVisaDeliveryDocument,listCustomerVisaDeliveries,prepareSecureVisaDelivery,type VisaDeliveryRepository } from "./lib/operations/visa-delivery-service";
-import { SIGNED_URL_EXPIRY,storageCreateSignedUrl } from "./lib/local-storage";
+import { getStorageRoot,visaScannerSocket,SIGNED_URL_EXPIRY,storageCreateSignedUrl } from "./lib/local-storage";
 import { applicationAccessQuery,createRouter,staffOrAdminQuery } from "./middleware";
 
 type Access=Pick<MysqlOperationsAccessProvider,"actorForContext"|"flagContextForContext"|"featureFlags">;
@@ -20,6 +22,7 @@ function safe(error: unknown): never {
   if (reason === 'VISA_DELIVERY_IDEMPOTENCY_CONFLICT') throw new TRPCError({ code: 'CONFLICT', message: 'توجد نسخة تسليم محفوظة ببيانات مختلفة. حدّث الطلب وراجع النسخة السابقة.' });
   if (reason === 'VISA_DELIVERY_APPLICATION_STATE_REQUIRED') throw new TRPCError({ code: 'BAD_REQUEST', message: 'يلزم استلام الدفع وتسجيل استلام التأشيرة أولًا. راجع حالة الطلب ثم أعد التجهيز.' });
   if (['VISA_DELIVERY_OWNERSHIP_OR_SCAN_REQUIRED', 'VISA_DELIVERY_SCAN_NOT_PASSED'].includes(reason)) throw new TRPCError({ code: 'BAD_REQUEST', message: 'لم يكتمل فحص ملف التأشيرة الأمني أو الملف لا يخص هذا المسافر. راجع الملف المختار واطلب من الإدارة استكمال الفحص؛ لا يلزم إعادة رفعه إذا كان صحيحًا.' });
+  if(reason.startsWith('VISA_FILE_') || reason === 'VISA_DELIVERY_FILE_EVIDENCE_REQUIRED') throw new TRPCError({code:'BAD_REQUEST',message:reason==='VISA_FILE_SCAN_INFECTED' ? 'ملف التأشيرة لم يجتز الفحص الأمني. ارفع نسخة سليمة من المصدر ثم أعد التجهيز.' : 'تعذر التحقق من سلامة ملف التأشيرة الآن. أعد المحاولة، وإذا استمرت المشكلة اطلب من المدير مراجعة خدمة الفحص.'});
   throw new TRPCError({ code: 'BAD_REQUEST', message: 'تعذر حفظ تجهيز التأشيرة. حدّث الطلب ثم أعد المحاولة.' });
 }
 const reference=z.string().trim().min(3).max(50);
@@ -29,4 +32,4 @@ export function createOperationsVisaDeliveryRouter(deps:Dependencies){return cre
   customerDownload:applicationAccessQuery.input(z.object({applicationReference:reference,deliveryId:z.string().uuid()}).strict()).query(async({ctx,input})=>{try{assertApplicationReferenceAccess(ctx,input.applicationReference);const document=await getCustomerVisaDeliveryDocument({...await flags(deps,ctx,input.applicationReference),repository:deps.repository,...input,customerAuthorized:ctx.customerApplicationReferences.has(input.applicationReference)});const {signedUrl}=await storageCreateSignedUrl(document.storagePath);return {delivery:document.delivery,signedUrl,expiresIn:SIGNED_URL_EXPIRY};}catch(error){if(error instanceof TRPCError)throw error;safe(error);}}),
 });}
 const access=new MysqlOperationsAccessProvider(defaultOperationsSqlClient());
-export const operationsVisaDeliveryRouter=createOperationsVisaDeliveryRouter({access,repository:new MysqlVisaDeliveryRepository(defaultOperationsPool()),now:()=>new Date()});
+export const operationsVisaDeliveryRouter=createOperationsVisaDeliveryRouter({access,repository:new MysqlVisaDeliveryRepository(defaultOperationsPool(),sourcePath=>captureScannedVisaFile({storageRoot:getStorageRoot(),sourcePath,scan:createClamdVisaScanner(visaScannerSocket(),()=>new Date()),now:()=>new Date()}),evidence=>discardUncommittedVisaFile(getStorageRoot(),evidence)),now:()=>new Date()});

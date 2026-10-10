@@ -1,3 +1,7 @@
+import { mkdtemp,writeFile,rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { captureScannedVisaFile,readVerifiedVisaFile,discardUncommittedVisaFile } from './lib/operations/visa-file-evidence';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createPool, type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
@@ -45,9 +49,11 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
   async function syntheticScan(f: Awaited<ReturnType<typeof fixture>>, result: 'PASSED' | 'FAILED', time: string) {
     // This is simulated scan evidence ONLY in the disposable database, never a
     // substitute for an installed scanner or real staging acceptance.
+    const scanId=randomUUID();
     await pool.execute(`INSERT INTO operations_document_security_scans
       (id,document_id,application_id,applicant_id,provider_code,provider_reference,engine_version,result,evidence_sha256,scanned_at,recorded_by)
-      VALUES (?,?,?,?,'synthetic-ci',?,'fixture',?,?,?,'synthetic')`, [randomUUID(), f.visaDocumentId, f.applicationId, f.applicantId, randomUUID(), result, 'a'.repeat(64), time]);
+      VALUES (?,?,?,?,'synthetic-ci',?,'fixture',?,?,?,'synthetic')`, [scanId, f.visaDocumentId, f.applicationId, f.applicantId, randomUUID(), result, 'a'.repeat(64), time]);
+    if(result==='PASSED')await pool.execute("INSERT INTO operations_visa_file_evidence(scan_id,storage_path,content_sha256,byte_length,mime_type,engine_version,database_version,scanned_at) VALUES (?,?,?,10,'application/pdf','synthetic','1',?)",[scanId,`.visa-delivery-files/${randomUUID()}.pdf`,'a'.repeat(64),time]);
   }
   it('loads a case without a team and rechecks ownership inside the write transaction after reassignment', async () => {
     const f = await fixture();
@@ -86,4 +92,40 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
     await pool.execute('UPDATE operations_scope_grants SET revoked_at=UTC_TIMESTAMP() WHERE staff_user_id=?', [staff[0]]);
     await expect(repository.prepare(f)).rejects.toThrow('ACTOR_ACCESS_DENIED');
   });
+  it('persists only the scanned byte snapshot and denies later failed scans or another customer', async () => {
+    const f=await fixture(),root=await mkdtemp(path.join(os.tmpdir(),'tsh-db-visa-'));
+    try {
+      const bytes=Buffer.from('%PDF-1.7\nSynthetic CI visa only\n%%EOF');
+      await writeFile(path.join(root,'visa.pdf'),bytes);
+      await pool.execute("UPDATE documents SET storage_path='visa.pdf' WHERE id=?",[f.visaDocumentId]);
+      let scans=0;
+      const captured=new MysqlVisaDeliveryRepository(pool,sourcePath=>captureScannedVisaFile({storageRoot:root,sourcePath,scan:async()=>{scans++;return {outcome:'CLEAN',engineVersion:'synthetic-ci',databaseVersion:'1'};},now:()=>new Date('2026-10-10T00:00:00Z')}),evidence=>discardUncommittedVisaFile(root,evidence));
+      const deliveries=await Promise.all([captured.prepare(f),captured.prepare(f)]);
+      expect(deliveries[0]).toEqual(deliveries[1]);expect(scans).toBe(1);
+      await writeFile(path.join(root,'visa.pdf'),'changed original');
+      const record=await captured.documentForCustomer(f.applicationReference,deliveries[0].deliveryId);
+      expect(record).not.toBeNull();
+      expect(await readVerifiedVisaFile(root,record!.fileEvidence)).toEqual(bytes);
+      expect(await captured.documentForCustomer('OTHER-CUSTOMER',deliveries[0].deliveryId)).toBeNull();
+      expect((await captured.documentByArchivePath(record!.storagePath))?.applicationReference).toBe(f.applicationReference);
+      const [scanRows]=await pool.execute<RowDataPacket[]>('SELECT id FROM operations_document_security_scans WHERE document_id=?',[f.visaDocumentId]);
+      await expect(pool.execute("UPDATE operations_visa_file_evidence SET content_sha256=? WHERE scan_id=?",['b'.repeat(64),scanRows[0].id])).rejects.toMatchObject({sqlState:'45000'});
+      await syntheticScan(f,'FAILED','2026-10-11');
+      expect(await captured.documentForCustomer(f.applicationReference,deliveries[0].deliveryId)).toBeNull();
+      expect(await captured.documentByArchivePath(record!.storagePath)).toBeNull();
+    } finally {await rm(root,{recursive:true,force:true});}
+  });
+  it('never records a passed scan or delivery when the scanner is unavailable', async () => {
+    const f=await fixture();
+    const captured=new MysqlVisaDeliveryRepository(pool,async()=>{throw new Error('VISA_FILE_SCAN_UNAVAILABLE');});
+    await expect(captured.prepare(f)).rejects.toThrow('VISA_FILE_SCAN_UNAVAILABLE');
+    const [scans]=await pool.execute<RowDataPacket[]>('SELECT id FROM operations_document_security_scans WHERE document_id=?',[f.visaDocumentId]);
+    expect(scans).toHaveLength(0);expect(await captured.listForCustomer(f.applicationReference)).toHaveLength(0);
+  });
+  it('refuses a historical passed result without byte-bound file evidence', async () => {
+    const f=await fixture();
+    await pool.execute(`INSERT INTO operations_document_security_scans(id,document_id,application_id,applicant_id,provider_code,provider_reference,engine_version,result,evidence_sha256,scanned_at,recorded_by) VALUES (?,?,?,?,'synthetic-ci',?,'fixture','PASSED',?,'2026-01-01','synthetic')`,[randomUUID(),f.visaDocumentId,f.applicationId,f.applicantId,randomUUID(),'a'.repeat(64)]);
+    await expect(repository.prepare(f)).rejects.toThrow('VISA_DELIVERY_FILE_EVIDENCE_REQUIRED');
+  });
+
 });

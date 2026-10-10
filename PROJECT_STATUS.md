@@ -1,3 +1,13 @@
+# T1 scanned visa delivery candidate — 2026-10-11
+
+Owner requested four explicit completion tasks; see ERP_COMPLETION_TASKS.md. T1 is IN PROGRESS, T2 financial attribution/T3 communications/T4 full acceptance remain OPEN.
+
+Candidate adds an exclusive private snapshot of scanned PDF/JPEG/PNG bytes, hash/size/MIME verification on reads, local ClamD INSTREAM with bounded response/deadline and48h signature freshness limit, immutable scan-file evidence migration075, and customer download restricted to that verified snapshot. Assignment/payment/visa state are rechecked under the existing application transaction lock; retries reuse the recorded delivery. Unknown commit outcome never deletes a possibly committed snapshot. Historical PASSED rows without byte evidence do not authorize delivery. No production change or migration yet.
+
+17 focused byte/scanner tests passed; related router/service/environment subset39 tests passed. Added3 guarded DB scenarios (inventory76/19) covering bound bytes, duplicate preparation, cross-customer denial, later failed scans, immutable evidence, unavailable scanner, and historical unbound evidence. Full gates pending. Initial TypeScript errors were fixed without suppression; do not mark this candidate deployed.
+
+Isolated transient staging ClamD now runs as tashira-staging with a local socket600,1 thread,2GiB memory limit and100% CPU quota; no external file service. Actual application connector tested against ClamAV1.5.4/database28149: synthetic clean accepted in14ms, EICAR rejected in5ms. Persistent restart/update lifecycle is still to be completed before shipping. No customer documents used. Browser UAT remains open.
+
 # ERP-07A manager counts deployed — 2026-10-11
 
 Staging runtime23293efcd1e4800f8ec52b0e6f5f3a785f7d348c; service active and public health/staff/admin200, protected anonymous APIs403. CI38092730176 both jobs passed:73 mandatory MySQL tests in19 suites, zero skipped. Local and exact-server check/lint/test/build passed1479 unit tests; preserved local dist/boot.js hashFD544988685D8C1A81295ACF50D33B4D38494C5E56CDC81F697BDA296CD36EED. Runtime backup /var/backups/tashira-staging/manager-report-23293ef-1791672730770. No migration, production, actual mail or Stripe action.

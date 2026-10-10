@@ -29,7 +29,7 @@ process.env.STRIPE_MODE = "TEST";
 process.env.STRIPE_SECRET_KEY = readSecret("stripe_secret_key");
 process.env.STRIPE_WEBHOOK_SECRET = readSecret("stripe_webhook_secret");
 process.env.STAGING_BROWSER_AUTH_DIR = "/var/lib/tashira-staging/browser-auth";
-for (const name of ["STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "STAGING_EMAIL_ALLOWED_APPLICATION_REFERENCES", "FROM_NAME", "FROM_EMAIL", "EMAIL_REPLY_TO", "TRANSACTIONAL_ADMIN_EMAIL", "PUBLIC_APP_URL"]) {
+for (const name of ["VISA_SCANNER_SOCKET", "STAGING_EMAIL_MODE", "STAGING_EMAIL_ALLOWED_RECIPIENTS", "STAGING_EMAIL_ALLOWED_APPLICATION_REFERENCES", "FROM_NAME", "FROM_EMAIL", "EMAIL_REPLY_TO", "TRANSACTIONAL_ADMIN_EMAIL", "PUBLIC_APP_URL"]) {
   if (stagingConfig[name]) process.env[name] = stagingConfig[name];
 }
 const resendSecretPath = path.join(expectedDirectory, "staging", "secrets", "resend_api_key");

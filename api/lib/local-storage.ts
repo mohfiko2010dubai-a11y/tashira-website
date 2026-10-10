@@ -108,3 +108,10 @@ export const LOCAL_STORAGE_METADATA = {
   storageBucket: STORAGE_BUCKET,
 } as const;
 export const SIGNED_URL_EXPIRY = 15 * 60;
+
+/** Infrastructure setting; missing scanner configuration never implies a clean file. */
+export function visaScannerSocket(): string {
+  const socket = process.env.VISA_SCANNER_SOCKET;
+  if (!socket) throw new Error("VISA_FILE_SCAN_UNAVAILABLE");
+  return socket;
+}

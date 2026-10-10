@@ -18,7 +18,7 @@ export default function VisaDeliveryPanel({ applicationId, applicationReference,
   const availableDocuments = (documents.data ?? []).filter((document) => !applicantId || document.applicantId === Number(applicantId));
   return <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5" id="visa-delivery">
     <h2 className="text-lg font-semibold text-emerald-950">تجهيز التأشيرة للعميل</h2>
-    <p className="mt-1 text-sm text-emerald-900">١. سجّل استلام التأشيرة في حالة الطلب. ٢. ارفع ملف التأشيرة للمسافر الصحيح في المستندات. ٣. بعد اجتياز فحص الملف الأمني، أكمل البيانات أدناه لتجهيزه للتحميل الآمن.</p>
+    <p className="mt-1 text-sm text-emerald-900">١. سجّل استلام التأشيرة في حالة الطلب. ٢. ارفع ملف التأشيرة للمسافر الصحيح في المستندات. ٣. أكمل البيانات واحفظ؛ يفحص النظام الملف ويحفظ نسخة آمنة للعميل. عند فشل الفحص يظهر السبب ولا يُسلّم الملف.</p>
     {documents.isLoading && <p role="status">جارٍ تحميل ملفات التأشيرات…</p>}
     {documents.isError && <p role="alert">تعذر تحميل الملفات. <button type="button" className="underline" onClick={() => void documents.refetch()}>إعادة المحاولة</button></p>}
     {documents.data?.length === 0 && <p className="mt-3">لا توجد تأشيرة مرفوعة. ارفع الملف في قسم المستندات للمسافر الصحيح أولًا.</p>}
