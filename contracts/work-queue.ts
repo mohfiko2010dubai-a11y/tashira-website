@@ -8,6 +8,10 @@ export const workStateLabels: Record<WorkState, string> = {
 };
 export const WORK_LISTS = ['NEW', 'ACTIVE', 'READY', 'DUE', 'WAIT_CUSTOMER', 'WAIT_AUTHORITY', 'DONE'] as const;
 export type WorkList = typeof WORK_LISTS[number];
+export const workListLabels: Record<WorkList, string> = {
+  NEW: 'طلبات جديدة', ACTIVE: 'قيد العمل', READY: 'جاهزة للاستكمال', DUE: 'متابعة مستحقة الآن',
+  WAIT_CUSTOMER: 'بانتظار العميل', WAIT_AUTHORITY: 'متابعة المورد والهجرة', DONE: 'مكتملة',
+};
 export function workList(state: WorkState, dueAt: string | null, now: number): Exclude<WorkList, 'NEW'> {
   const bucket = workBucket(state, dueAt, now);
   // Retain the recorded distinction: a supplier handoff is not proof of filing.

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
-import { AVAILABILITY, WORK_STATES, WORK_LISTS, availabilityLabels, workStateLabels, workList, type WorkList, type WorkState } from '../../../contracts/work-queue';
+import { AVAILABILITY, WORK_STATES, WORK_LISTS, availabilityLabels, workStateLabels, workListLabels, workList, type WorkList, type WorkState } from '../../../contracts/work-queue';
 import { visaLabel } from '@/components/admin/application-display';
 
 export default function WorkQueuePanel({ includeTest }: { includeTest: boolean }) {
@@ -13,6 +13,7 @@ export default function WorkQueuePanel({ includeTest }: { includeTest: boolean }
   const tab = selectedTab === 'WAIT_SUPPLIER' ? 'WAIT_AUTHORITY' : WORK_LISTS.find(value => value === selectedTab) ?? 'ACTIVE';
   const setTab = (value: WorkList) => { const next = new URLSearchParams(search); next.set('work', value); setSearch(next, { replace: true }); };
   const [notice, setNotice] = useState('');
+  const [savedList, setSavedList] = useState<WorkList | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   const [state, setState] = useState<WorkState>('READY');
   const [reason, setReason] = useState('');
@@ -24,9 +25,14 @@ export default function WorkQueuePanel({ includeTest }: { includeTest: boolean }
       if (input.kind === 'CLAIM') {
         if (result.reference) navigate(`/staff/operations/${encodeURIComponent(result.reference)}?work=${tab}`);
         else setNotice('لا توجد طلبات جاهزة للاستلام الآن. راجع المتابعات المستحقة أدناه.');
-      } else setNotice('تم حفظ التحديث.');
+      } else if (input.kind === 'WORK_STATE') {
+        const destination = workList(input.state, input.followUpAt, Date.now());
+        setSavedList(destination);
+        setTab(destination);
+        setNotice(`تم حفظ المتابعة. الطلب موجود الآن في «${workListLabels[destination]}».`);
+      } else { setSavedList(null); setNotice('تم حفظ التحديث.'); }
     },
-    onError: error => setNotice(`لم يتم الحفظ: ${error.message} حدّث القائمة ثم حاول مجددًا.`),
+    onError: error => { setSavedList(null); setNotice(`لم يتم الحفظ: ${error.message} حدّث القائمة ثم حاول مجددًا.`); },
   });
   const rows = queue.data?.mine ?? [];
   const shown = rows.filter(row => workList(row.state, row.dueAt, queue.data?.asOf ?? 0) === tab);
@@ -57,7 +63,7 @@ export default function WorkQueuePanel({ includeTest }: { includeTest: boolean }
       <div className="flex flex-wrap gap-2" aria-label="قوائم العمل">
         {WORK_LISTS.map(value => <button key={value} type="button" aria-pressed={tab === value} onClick={() => { setEditing(null); setTab(value); }}
           className={`rounded-lg border px-3 py-2 text-sm ${tab === value ? 'bg-slate-900 text-white' : 'bg-white'}`}>
-          {value === 'NEW' ? 'طلبات جديدة' : value === 'DUE' ? 'متابعة مستحقة الآن' : workStateLabels[value]} ({value === 'NEW' ? queue.data.availableCount : rows.filter(row => workList(row.state, row.dueAt, queue.data?.asOf ?? 0) === value).length})
+          {workListLabels[value]} ({value === 'NEW' ? queue.data.availableCount : rows.filter(row => workList(row.state, row.dueAt, queue.data?.asOf ?? 0) === value).length})
         </button>)}
       </div>
       <div className="mt-4 overflow-x-auto">
@@ -85,5 +91,6 @@ export default function WorkQueuePanel({ includeTest }: { includeTest: boolean }
           </form>}
     </>}
     <p aria-live="polite" className="mt-3 text-sm">{notice}</p>
+    {savedList && <Link className="mt-2 inline-block underline" to={`/staff/dashboard?work=${savedList}`}>فتح قائمة {workListLabels[savedList]}</Link>}
   </section>;
 }
