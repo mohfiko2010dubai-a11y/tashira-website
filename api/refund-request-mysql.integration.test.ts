@@ -75,8 +75,9 @@ describe.skipIf(!url).sequential('refund request retries in disposable MySQL', (
     expect(results.map(r => r.requestId)).toEqual([request.commandId, request.commandId]);
     expect(results.filter(r => r.replayed)).toHaveLength(1);
     expect(fakeEmail.send).toHaveBeenCalledTimes(1);
+    expect(results.some(result => result.status === 'SENT')).toBe(true);
     const [rows] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM security_deposit_requests WHERE application_id=?', [f.id]); expect(Number(rows[0].n)).toBe(1);
-    const [events] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM outbound_email_events WHERE application_id=? AND email_template='SECURITY_DEPOSIT_REQUEST'", [f.id]); expect(Number(events[0].n)).toBe(1);
+    const [events] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM outbound_email_events WHERE email_application_id=? AND email_template='SECURITY_DEPOSIT_REQUEST' AND email_status='SENT'", [f.id]); expect(Number(events[0].n)).toBe(1);
     for (const change of [{ amount: 60 }, { expiresInDays: 8 }, { purpose: 'Different reason' }]) await expect(caller.createAndSend({ ...request, ...change })).rejects.toMatchObject({ code: 'CONFLICT' });
     await pool.execute("UPDATE security_deposit_requests SET security_deposit_status='PAID' WHERE id=?", [request.commandId]);
     expect(await caller.createAndSend(request)).toMatchObject({ requestId: request.commandId, status: 'PAID', replayed: true });
