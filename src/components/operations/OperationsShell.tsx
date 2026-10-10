@@ -1,3 +1,4 @@
+import { WORK_LISTS, workListLabels } from '../../../contracts/work-queue';
 import Logo from '@/components/shared/Logo';
 import type { ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
@@ -31,10 +32,7 @@ export default function OperationsShell({ title, subtitle, children }: { title: 
       </nav>
       <nav aria-label="قوائم عملي" dir="rtl" className="mt-5 grid gap-1 border-t border-white/10 pt-4 text-sm">
         <p className="px-3 py-2 font-semibold text-amber-300">عملي والمتابعة</p>
-        {[
-          ['NEW', 'طلبات جديدة'], ['ACTIVE', 'قيد العمل'], ['READY', 'جاهزة للاستكمال'], ['DUE', 'متابعة مستحقة'],
-          ['WAIT_CUSTOMER', 'بانتظار العميل'], ['WAIT_AUTHORITY', 'بانتظار قرار الهجرة'], ['DONE', 'مكتملة'],
-        ].map(([state,label]) => <Link key={state} to={`/staff/dashboard?work=${state}`} className="rounded-lg px-3 py-2 text-slate-300 hover:bg-white/10 hover:text-white">{label}</Link>)}
+        {WORK_LISTS.map(state => <Link key={state} to={`/staff/dashboard?work=${state}`} className="rounded-lg px-3 py-2 text-slate-300 hover:bg-white/10 hover:text-white">{workListLabels[state]}</Link>)}
       </nav>
       <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
         <p className="font-semibold">{staff?.name ?? "الموظف"}</p>

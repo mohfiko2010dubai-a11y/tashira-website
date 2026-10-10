@@ -1,3 +1,4 @@
+import SupplierOperationsBoard from '@/components/operations/SupplierOperationsBoard';
 import Logo from '@/components/shared/Logo';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -17,7 +18,7 @@ const VAT_LABELS: Record<string, string> = {
   out_of_scope: 'Out of Scope',
 };
 
-export default function AdminSupplierDashboard() {
+function SupplierBillsLedger() {
   const { logout } = useAdminAuth();
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -183,4 +184,16 @@ export default function AdminSupplierDashboard() {
       </div>
     </div>
   );
+}
+
+export default function AdminSupplierDashboard() {
+  const [ledger, setLedger] = useState(false);
+  return <div className="min-h-screen bg-slate-50">
+    <div dir="rtl" className="flex flex-wrap items-center gap-3 border-b bg-white p-4">
+      <Link className="rounded-lg border px-3 py-2" to="/admin/applications">لوحة الإدارة</Link>
+      <button className="rounded-lg border px-3 py-2" aria-pressed={!ledger} onClick={() => setLedger(false)}>عمليات الموردين</button>
+      <button className="rounded-lg border px-3 py-2" aria-pressed={ledger} onClick={() => setLedger(true)}>دفتر الفواتير والتصدير</button>
+    </div>
+    {ledger ? <SupplierBillsLedger /> : <div className="mx-auto max-w-[1600px] p-4"><SupplierOperationsBoard manager /></div>}
+  </div>;
 }
