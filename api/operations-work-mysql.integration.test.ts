@@ -43,6 +43,8 @@ suite('atomic staff work dispatch', () => {
     queue = new MysqlWorkQueue(pool, access, writes);
     const [role] = await pool.execute<ResultSetHeader>("INSERT INTO operations_roles (code,name) VALUES (?,?)", [`Q_${tag}`, `Queue ${tag}`]);
     for (const code of ['case.read_assigned','case.transition']) {
+      // This suite must pass first as well as after the other disposable suites.
+      await pool.execute("INSERT INTO operations_permissions(code,description,risk_level) VALUES (?,'Synthetic queue permission','HIGH') ON DUPLICATE KEY UPDATE code=VALUES(code)", [code]);
       await pool.execute('INSERT INTO operations_role_permissions (role_id,permission_id,granted_by) SELECT ?,id,\'synthetic\' FROM operations_permissions WHERE code=?', [role.insertId, code]);
     }
     for (let i = 0; i < 3; i++) {
