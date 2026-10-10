@@ -4,15 +4,15 @@ vi.mock('./checkout-quote', () => ({ withCheckoutLock: async (_id: number, work:
 import { selectCaseSupplier } from './supplier-selection';
 beforeEach(() => mocks.execute.mockReset());
 function setup(row: Record<string, unknown> = {}, owner = 7, active = true) {
-  mocks.execute.mockResolvedValueOnce([[{ status: 'under_review', supplier_id: null, ...row }]])
+  mocks.execute.mockResolvedValueOnce([[{ status: 'under_review', supplier_id: null, product: '30days-single', processing_type: 'regular', quantity: 2, ...row }]])
     .mockResolvedValueOnce([[{ assigned_staff_user_id: owner }]])
-    .mockResolvedValueOnce([active ? [{ id: 2 }] : []]).mockResolvedValue([[]]);
+    .mockResolvedValueOnce([active ? [{ id: 2 }] : []]).mockResolvedValueOnce([[{ id: 19, active: 1, cost_aed: '100.10', vat_amount_aed: '5.01', vat_status: 'standard', place_of_supply: 'within_uae' }]]).mockResolvedValue([[]]);
 }
-it('saves only the supplier and a named audit event, never finance or customer status', async () => {
+it('captures supplier unit costs for the family without exposing amounts or changing customer status', async () => {
   setup();
-  await expect(selectCaseSupplier(42, 2, null, 'staff:7', 7)).resolves.toEqual({ saved: true });
-  expect(mocks.execute.mock.calls[3]).toEqual(['UPDATE applications SET supplier_id=? WHERE id=?', [2, 42]]);
-  expect(mocks.execute.mock.calls[4][1]).toEqual([expect.any(String), 42, 'STAFF', 'staff:7', 'Supplier none -> 2']);
+  await expect(selectCaseSupplier(42, 2, null, 'staff:7', 7)).resolves.toEqual({ saved: true, pricingReadiness: 'READY' });
+  expect(mocks.execute.mock.calls[4][1]).toEqual([2, 19, 2, '200.20', '10.02', '210.22', 'standard', 'within_uae', 42]);
+  expect(mocks.execute.mock.calls[5][1]).toEqual([expect.any(String), 42, 'STAFF', 'staff:7', 'Supplier none -> 2']);
 });
 it('rejects a reassignment race before changing the supplier', async () => {
   setup({}, 8);
@@ -25,7 +25,7 @@ it('rejects a stale selection', async () => {
   expect(mocks.execute).toHaveBeenCalledTimes(2);
 });
 it('treats repeated saves as no-ops without duplicate audit entries', async () => {
-  setup({ supplier_id: 2 });
+  setup({ supplier_id: 2, supplier_rate_id: 19, supplier_rate_quantity: 2, captured_product: '30days-single', captured_speed: 'regular' });
   await selectCaseSupplier(42, 2, null, 'staff:7', 7);
   expect(mocks.execute).toHaveBeenCalledTimes(2);
 });

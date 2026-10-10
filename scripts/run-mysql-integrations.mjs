@@ -37,6 +37,7 @@ try {
   await verifyPhase2Mysql(db);
   for (const statement of parseMysqlClientScript(readFileSync('migrations/069_operations_work_queue.sql', 'utf8'))) await db.query(statement);
   for (const statement of parseMysqlClientScript(readFileSync('migrations/070_supplier_product_rates.sql', 'utf8'))) await db.query(statement);
+  for (const statement of parseMysqlClientScript(readFileSync('migrations/071_supplier_rate_snapshot.sql', 'utf8'))) await db.query(statement);
   // Exercise the real trigger in the disposable database, then restore fixtures.
   await db.beginTransaction();
   try {
@@ -79,5 +80,5 @@ const report='mysql-integration-results.json';
 const result=spawnSync(process.execPath,['node_modules/vitest/vitest.mjs','run',...files,'--no-file-parallelism','--reporter=default','--reporter=json','--outputFile='+report],{env,stdio:'inherit'});
 if(result.status!==0)process.exit(result.status??1);
 const summary=JSON.parse(readFileSync(report,'utf8'));
-if(summary.numPassedTests!==47 || summary.numPendingTests!==0 || summary.numFailedTests!==0) throw new Error('All47 integration tests must execute and pass; skips fail CI');
-console.log('All47 guarded MySQL integration tests passed, zero skipped.');
+if(summary.numPassedTests!==50 || summary.numPendingTests!==0 || summary.numFailedTests!==0) throw new Error('All50 integration tests must execute and pass; skips fail CI');
+console.log('All50 guarded MySQL integration tests passed, zero skipped.');

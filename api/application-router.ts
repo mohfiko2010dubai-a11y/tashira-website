@@ -47,8 +47,15 @@ export const applicationRouter = createRouter({
     const db = getDb();
     const [application] = await db.select({ supplierId: applications.supplierId }).from(applications).where(eq(applications.referenceNumber, input.referenceNumber)).limit(1);
     if (!application) throw new TRPCError({ code: 'NOT_FOUND', message: 'الطلب غير موجود. ارجع إلى قائمة الطلبات.' });
+    const [pricing] = await defaultOperationsPool().execute<RowDataPacket[]>(`SELECT CASE
+      WHEN a.supplier_id IS NULL THEN 'NOT_SELECTED'
+      WHEN a.supplier_cost_aed IS NULL OR a.supplier_total_aed IS NULL THEN 'MISSING_RATE'
+      WHEN a.supplier_rate_id IS NULL THEN 'MANUAL'
+      WHEN r.supplier_id<>a.supplier_id OR r.service_code<>COALESCE(a.submitted_product,a.visa_type)
+        OR r.processing_type<>a.processing_type OR a.supplier_rate_quantity<>(SELECT COUNT(*) FROM applicants p WHERE p.application_id=a.id) THEN 'NEEDS_REFRESH'
+      ELSE 'READY' END readiness FROM applications a LEFT JOIN supplier_product_rates r ON r.id=a.supplier_rate_id WHERE a.reference_number=?`, [input.referenceNumber]);
     const options = await db.select({ id: suppliers.id, name: suppliers.name }).from(suppliers).where(eq(suppliers.isActive, 'active')).orderBy(suppliers.name);
-    return { currentSupplierId: application.supplierId, options };
+    return { currentSupplierId: application.supplierId, options, pricingReadiness: String(pricing[0]?.readiness ?? 'NOT_SELECTED') };
   }),
   selectSupplier: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), supplierId: z.number().int().positive(), expectedSupplierId: z.number().int().positive().nullable() }).strict()).mutation(async ({ input, ctx }) => {
     await assertStaffSupplierAccess(ctx);
@@ -365,6 +372,11 @@ export const applicationRouter = createRouter({
       const db = getDb();
       try {
         const update: Partial<typeof applications.$inferInsert> = { supplierId: input.supplierId };
+        // Manual accounting edits must never masquerade as an untouched automatic estimate.
+        if ([input.supplierCostAed, input.supplierVatAmount, input.supplierTotalAed, input.supplierVatStatus, input.supplierPlaceOfSupply].some(value => value !== undefined)) {
+          update.supplierRateId = null;
+          update.supplierRateQuantity = null;
+        }
         if (input.supplierCostAed !== undefined) update.supplierCostAed = String(input.supplierCostAed);
         if (input.supplierVatStatus) update.supplierVatStatus = input.supplierVatStatus;
         if (input.supplierPlaceOfSupply) update.supplierPlaceOfSupply = input.supplierPlaceOfSupply;

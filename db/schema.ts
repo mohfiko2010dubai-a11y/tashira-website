@@ -52,6 +52,8 @@ export const applications = mysqlTable("applications", {
   totalAmountUsd: decimal("total_amount_usd", { precision: 10, scale: 2 }),
   // Supplier fields
   supplierId: bigint("supplier_id", { mode: "number", unsigned: true }),
+  supplierRateId: bigint("supplier_rate_id", { mode: "number", unsigned: true }),
+  supplierRateQuantity: int("supplier_rate_quantity", { unsigned: true }),
   supplierCostAed: decimal("supplier_cost_aed", { precision: 10, scale: 2 }),
   supplierVatStatus: mysqlEnum("supplier_vat_status", ["standard", "zero_rated", "exempt", "out_of_scope"]),
   supplierPlaceOfSupply: mysqlEnum("supplier_place_of_supply", ["within_uae", "outside_uae"]),

@@ -2,11 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createPool, type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
 import { listSupplierRates, saveSupplierRate } from './lib/supplier-rates';
+import { selectCaseSupplier } from './lib/supplier-selection';
 
 const url = process.env.OPS_REHEARSAL_DATABASE_URL;
 describe.skipIf(!url)('supplier rate versions in disposable MySQL', () => {
   let pool: Pool, supplierId: number;
   const serviceCode = `RATE-${randomUUID()}`;
+  let applicationId: number;
   const rate = () => ({ supplierId, serviceCode, processingType: 'regular' as const, expectedVersion: 0, costAed: '100.10', vatAmountAed: '5.01',
     vatStatus: 'standard' as const, placeOfSupply: 'within_uae' as const, active: true, reason: 'Synthetic approved rate' });
   beforeAll(async () => {
@@ -41,5 +43,32 @@ describe.skipIf(!url)('supplier rate versions in disposable MySQL', () => {
     await expect(pool.execute('DELETE FROM supplier_product_rates WHERE supplier_id=?', [supplierId])).rejects.toMatchObject({ sqlState: '45000' });
     const [history] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM supplier_product_rates WHERE supplier_id=?', [supplierId]);
     expect(Number(history[0].n)).toBe(3);
+  });
+  it('captures a two-traveller estimate on selection without changing payment, visa or assignment', async () => {
+    const [created] = await pool.execute<ResultSetHeader>(`INSERT INTO applications
+      (reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,total_amount_aed,status,payment_status,data_classification,is_test)
+      VALUES (?,'family','non-gcc',?,'express','supplier@example.invalid','000',1,900,'under_review','paid','TEST',1)`, [`SUP-${randomUUID()}`, serviceCode]);
+    applicationId = created.insertId;
+    for (let index = 0; index < 2; index++) await pool.execute("INSERT INTO applicants(application_id,applicant_index,full_name) VALUES (?,?,'Synthetic Supplier Traveller')", [applicationId, index]);
+    expect(await selectCaseSupplier(applicationId, supplierId, null, 'synthetic:admin')).toEqual({ saved: true, pricingReadiness: 'READY' });
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT supplier_cost_aed,supplier_total_aed,supplier_rate_quantity,status,payment_status FROM applications WHERE id=?', [applicationId]);
+    expect(rows[0]).toMatchObject({ supplier_cost_aed: '300.00', supplier_total_aed: '300.00', supplier_rate_quantity: 2, status: 'under_review', payment_status: 'paid' });
+  });
+  it('does not reprice or duplicate the audit on retries after a supplier rate update', async () => {
+    await saveSupplierRate({ ...rate(), processingType: 'express', expectedVersion: 1, costAed: '155', vatAmountAed: '0', vatStatus: 'out_of_scope' }, 'synthetic:admin', pool);
+    expect(await selectCaseSupplier(applicationId, supplierId, null, 'synthetic:admin')).toEqual({ saved: true, pricingReadiness: 'READY' });
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT supplier_total_aed FROM applications WHERE id=?', [applicationId]);
+    expect(rows[0].supplier_total_aed).toBe('300.00');
+    const [events] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM application_timeline_events WHERE application_id=? AND event_name='SUPPLIER_SELECTED'", [applicationId]);
+    expect(Number(events[0].n)).toBe(1);
+  });
+  it('refreshes an unbilled automatic estimate when the traveller count changes; never overwrites a booked supplier', async () => {
+    await pool.execute("INSERT INTO applicants(application_id,applicant_index,full_name) VALUES (?,2,'Synthetic Third Traveller')", [applicationId]);
+    await selectCaseSupplier(applicationId, supplierId, supplierId, 'synthetic:admin');
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT supplier_total_aed,supplier_rate_quantity FROM applications WHERE id=?', [applicationId]);
+    expect(rows[0]).toMatchObject({ supplier_total_aed: '465.00', supplier_rate_quantity: 3 });
+    await pool.execute("UPDATE applications SET supplier_invoice_number='SYNTHETIC-BOOKED' WHERE id=?", [applicationId]);
+    const [other] = await pool.execute<ResultSetHeader>("INSERT INTO suppliers(name,is_active) VALUES ('Synthetic other supplier','active')");
+    await expect(selectCaseSupplier(applicationId, other.insertId, supplierId, 'synthetic:admin')).rejects.toMatchObject({ code: 'CONFLICT' });
   });
 });
