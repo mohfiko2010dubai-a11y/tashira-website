@@ -1,3 +1,4 @@
+import { financialCommand } from '@/lib/financial-command';
 import { useRef, useState } from 'react';
 import { trpc } from '@/providers/trpc-client';
 import { TERMS_POLICY_VERSION } from '@contracts/constants';
@@ -9,8 +10,11 @@ export default function RefundRequest({ applicationId, arabic = false }: { appli
   const [sourceKey, setSourceKey] = useState('');
   const source = sources.data?.find(item => item.availableAmount > 0 && `${item.sourceType}:${item.id}` === sourceKey);
   const [amount, setAmount] = useState(''), [reason, setReason] = useState(''), [message, setMessage] = useState('');
-  const requestKey = useRef<{ payload: string; id: string } | null>(null);
+  const requestKey = useRef<Awaited<ReturnType<typeof financialCommand>> | null>(null);
+  const identity = trpc.staff.verify.useQuery(undefined, { retry: false });
+  const [preparing, setPreparing] = useState(false);
   const mutation = trpc.refund.createCase.useMutation({ onError: error => setMessage(error.message), onSuccess: async () => {
+    try { requestKey.current?.complete(); } catch { /* Preserve retry identity if browser cleanup fails. */ }
     requestKey.current = null; setMessage(arabic ? 'تم تسجيل طلب الاسترداد. راجع حالته أدناه؛ التسجيل وحده لا يعيد المبلغ.' : 'Refund request recorded. Check its status below; recording does not move money.');
     setAmount(''); setReason(''); setSourceKey(''); await Promise.all([sources.refetch(), cases.refetch()]);
   } });
@@ -19,17 +23,20 @@ export default function RefundRequest({ applicationId, arabic = false }: { appli
     <button type="button" className="rounded border px-3 py-2" onClick={() => { void sources.refetch(); void cases.refetch(); }}>{arabic ? 'تحديث المدفوعات والطلبات' : 'Refresh payments and requests'}</button>
     {sources.isLoading && <p role="status">{arabic ? 'جارٍ تحميل المدفوعات…' : 'Loading payments…'}</p>}
     {(sources.isError || cases.isError) && <p role="alert">{arabic ? 'تعذر تحميل بعض البيانات. اضغط تحديث قبل إرسال طلب جديد.' : 'Some data could not be loaded. Refresh before submitting a new request.'}</p>}
-    {sources.isSuccess && sources.data.some(item => item.availableAmount > 0) ? <form className="space-y-3" onSubmit={event => {
-      event.preventDefault(); if (!source || mutation.isPending) return;
+    {sources.isSuccess && sources.data.some(item => item.availableAmount > 0) ? <form className="space-y-3" onSubmit={async event => {
+      event.preventDefault(); if (!source || preparing || identity.isLoading || identity.isError || mutation.isPending) return;
       const payload = { applicationId, reason, policyVersion: TERMS_POLICY_VERSION,
         items: [source.sourceType === 'VISA_SERVICE'
           ? { sourceType: 'VISA_SERVICE' as const, paymentId: Number(source.id), requestedAmount: Number(amount), deduction: { type: 'NONE' as const } }
           : { sourceType: 'SECURITY_DEPOSIT' as const, securityDepositPaymentId: String(source.id), requestedAmount: Number(amount), deduction: { type: 'NONE' as const } }],
       };
-      const serialized = JSON.stringify(payload);
-      if (requestKey.current?.payload !== serialized) requestKey.current = { payload: serialized, id: crypto.randomUUID() };
-      mutation.mutate({ ...payload, commandId: requestKey.current.id });
-    }}><fieldset disabled={mutation.isPending} className="space-y-3">
+      setPreparing(true);
+      try {
+        requestKey.current = await financialCommand(window.sessionStorage, `${identity.data?.id ?? 'legacy-admin'}:refund:${applicationId}`, payload);
+        mutation.mutate({ ...payload, commandId: requestKey.current.id });
+      } catch { setMessage(arabic ? 'تعذر حفظ رقم المحاولة. اسمح بتخزين بيانات الموقع وأعد المحاولة؛ لم يُرسل طلب جديد.' : 'The retry ID could not be saved. Allow site storage and try again; no new request was sent.'); }
+      finally { setPreparing(false); }
+    }}><fieldset disabled={preparing || identity.isLoading || identity.isError || mutation.isPending} className="space-y-3">
       <label className="block">{arabic ? 'الدفعة المراد الاسترداد منها' : 'Payment to refund'}<select required className="block w-full rounded border p-3" value={sourceKey} onChange={event => { setSourceKey(event.target.value); setAmount(''); }}>
         <option value="">{arabic ? 'اختر الدفعة' : 'Choose a payment'}</option>
         {sources.data.filter(item => item.availableAmount > 0).map(item => <option key={`${item.sourceType}:${item.id}`} value={`${item.sourceType}:${item.id}`}>{item.sourceType === 'VISA_SERVICE' ? (arabic ? 'دفعة التأشيرة' : 'Visa payment') : (arabic ? 'التأمين المسترد' : 'Security deposit')} #{item.id} — {item.availableAmount.toFixed(2)} {item.currency}</option>)}

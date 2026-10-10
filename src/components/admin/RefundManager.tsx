@@ -1,3 +1,4 @@
+import { financialCommand } from '@/lib/financial-command';
 import { useMemo, useRef, useState } from "react";
 import { trpc } from "@/providers/trpc-client";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
@@ -8,7 +9,9 @@ type DeductionType = "NONE" | "PERCENTAGE" | "FIXED" | "ACTUAL_COSTS";
 
 export function RefundManager({ applicationId }: { applicationId: number }) {
   const utils = trpc.useUtils();
-  const requestKey = useRef<{ payload: string; id: string } | null>(null);
+  const requestKey = useRef<Awaited<ReturnType<typeof financialCommand>> | null>(null);
+  const identity = trpc.staff.verify.useQuery(undefined, { retry: false });
+  const [preparing, setPreparing] = useState(false);
   const sources = trpc.refund.eligibleSources.useQuery({ applicationId });
   const cases = trpc.refund.listByApplication.useQuery({ applicationId });
   const [sourceKey, setSourceKey] = useState("");
@@ -29,6 +32,7 @@ export function RefundManager({ applicationId }: { applicationId: number }) {
   };
   const mutationError = () => setMessage("لم يكتمل إجراء الاسترداد. راجع القيم وحاول مرة أخرى.");
   const createCase = trpc.refund.createCase.useMutation({ onError: mutationError, onSuccess: async () => {
+    try { requestKey.current?.complete(); } catch { /* Preserve retry identity if browser cleanup fails. */ }
     requestKey.current = null;
     setMessage("تم تسجيل طلب الاسترداد. راجع حالته في القائمة أدناه.");
     setReason("");
@@ -97,7 +101,7 @@ export function RefundManager({ applicationId }: { applicationId: number }) {
       <label className="block text-sm text-gray-600">سبب الاسترداد وأساس احتساب الخصم
         <textarea className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm" rows={2} value={reason} onChange={(event) => setReason(event.target.value)} />
       </label>
-      <button className="min-h-11 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={!selected || !reason.trim() || createCase.isPending} onClick={() => {
+      <button className="min-h-11 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={preparing || identity.isLoading || identity.isError || !selected || !reason.trim() || createCase.isPending} onClick={async () => {
         if (!selected) return;
         const payload = {
           applicationId,
@@ -107,9 +111,12 @@ export function RefundManager({ applicationId }: { applicationId: number }) {
             ? { sourceType: "VISA_SERVICE" as const, paymentId: Number(selected.id), requestedAmount: Number(requestedAmount), deduction }
             : { sourceType: "SECURITY_DEPOSIT" as const, securityDepositPaymentId: String(selected.id), requestedAmount: Number(requestedAmount), deduction }],
         };
-        const serialized = JSON.stringify(payload);
-        if (requestKey.current?.payload !== serialized) requestKey.current = { payload: serialized, id: crypto.randomUUID() };
-        createCase.mutate({ ...payload, commandId: requestKey.current.id });
+        setPreparing(true);
+        try {
+          requestKey.current = await financialCommand(window.sessionStorage, `${identity.data?.id ?? 'legacy-admin'}:refund:${applicationId}`, payload);
+          createCase.mutate({ ...payload, commandId: requestKey.current.id });
+        } catch { setMessage('تعذر حفظ رقم المحاولة. اسمح بتخزين بيانات الموقع ثم أعد المحاولة؛ لم نرسل طلبًا جديدًا.'); }
+        finally { setPreparing(false); }
       }}>١. إنشاء طلب استرداد</button>
 
       <div className="space-y-3">
