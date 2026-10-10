@@ -1,3 +1,19 @@
+# T2A pricing currency correction candidate — 2026-10-11
+
+Corrects quote supplier/internal totals into each snapshot base currency once (family totals are already aggregated). Rows with a different historical base currency are explicitly counted and excluded, never summed as though equivalent. Finance cockpit now labels this as a pricing estimate, not settled profit. New guarded disposable-MySQL test covers USD/AED family totals, TEST exclusion, differing base currency and employee denial. Mandatory inventory becomes77 tests/20 suites. Local1496 unit tests passed; build and final exact-candidate checks remain pending. Not deployed. Actual settlement/refund/fee/VAT attribution remains T2B; no claim that T2 is complete.
+
+Browser retry still failed before inventory: trusted Node process exited unexpectedly. T3 real mailbox/official WhatsApp provider connection and T4 authenticated visual journey remain open. Production unchanged.
+
+# T1 server acceptance passed on staging — 2026-10-11
+
+Runtime1c05c8ff4344b734608b04f55d0306299c02d06b. CI38095072240 both jobs successful; all76 MySQL tests/19 suites passed, zero skipped. Local and exact-server gates passed1496 unit tests plus existing post-build13. First CI failure came from a prior test revoking a shared synthetic actor; per-test restoration only for those fixture actors fixed isolation, with the denial assertion retained. No suppression.
+
+Migration075 applied after exact tashira_staging/tashira_staging_app verification; prior scans/deliveries preserved. Schema backup /var/backups/tashira-staging/visa-file-schema-1791675185653; scanner lifecycle backup /var/backups/tashira-staging/visa-scanner-lifecycle-1791675202899; runtime backup /var/backups/tashira-staging/visa-scan-1c05c8f-1791675241433. Local ClamD and6h updater timer enabled; updater Result=success, both active. Missing/stale/error scanner fails closed. No production changes.
+
+Actual HTTP UAT using TEST/is_test1 reference SCAN-UAT-82794298-147c-4e3c-8213- passed: real local ClamAV scan; concurrent retry produced one delivery; own customer200 with exact scanned hash; other customer401; anonymous401; changing source did not change download; signed original/unscanned path401; deliberate archive tamper409; restored archive200. Synthetic actor disabled afterward. No real traveller files, Stripe payment or email. Health/pages200 and anonymous protected operations403. This is backend/HTTP acceptance, not browser visual acceptance; visual employee/customer checks remain T4.
+
+T2 next: correct mixed-currency pricing margin found in business.cockpit (base-currency revenue vs unconverted quote costs), label estimates honestly, then reconcile actual settlements and employee attribution. T3 provider credentials/wiring and T4 authenticated journey remain OPEN. Project is not launch-cleared.
+
 # T1 scanned visa delivery candidate — 2026-10-11
 
 Owner requested four explicit completion tasks; see ERP_COMPLETION_TASKS.md. T1 is IN PROGRESS, T2 financial attribution/T3 communications/T4 full acceptance remain OPEN.

@@ -2,13 +2,13 @@
 
 Latest owner instruction: finish the remaining work in tested, reviewed logical phases on isolated staging. Production is not authorized. Existing compatible workflows remain authoritative.
 
-## T1 — Scanned visa delivery — IN PROGRESS
+## T1 — Scanned visa delivery — SERVER ACCEPTANCE PASSED; VISUAL CHECK IN T4
 - T1.1 Preserve exact scanned bytes and validate their hash on read. Reject changed files and unsafe paths; no personal bytes/paths in logs.
 - T1.2 Bounded local scanner integration with authentic engine/database, clean/infected/error/timeout outcomes, no automatic PASSED. Avoid cold-start work blocking every click.
 - T1.3 Persist byte-bound scan evidence, recheck assignment after scanning, serve the authenticated customer's verified delivery only. Keep retries idempotent.
 - T1.4 UI guidance, failed/unavailable retry, multi-traveller completeness, actual synthetic clean/EICAR test on staging. Run check/lint/test/build and mandatory DB integration gates before deployment.
 
-## T2 — Financial attribution — OPEN
+## T2 — Financial attribution — IN PROGRESS
 - Reconcile actual paid invoices and top-ups, successful refunds/credit notes, supplier cost/VAT, actual Stripe fees and currency conversion.
 - Exclude test data; distinguish missing cost or settlement from zero; preserve approved accounting policy.
 - Verify reopened/reassigned case attribution and manager-only visibility. No invented final profit.

@@ -16,12 +16,14 @@ export default function AdminFinanceCockpit() {
   return <div className="min-h-screen bg-gray-50">
     <header className="flex items-center gap-3 bg-[#1A2332] px-6 py-4 text-white"><Link to="/admin/applications" className="text-gray-400 hover:text-white"><ArrowLeft size={20} /></Link><div><h1 className="font-bold"><Logo variant="mark-only" theme="dark" size={20} /> Finance Cockpit</h1><p className="text-xs text-gray-400">Server-authoritative snapshots and append-only financial events</p></div></header>
     <main className="mx-auto max-w-7xl space-y-6 p-6">
+      <p dir="rtl" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">هذه أرقام تقديرية من تسعير الطلبات، والتكاليف محوّلة بسعر الصرف المحفوظ لكل طلب. الربح الفعلي يحتاج مطابقة التحصيل والاستردادات وفواتير المورد ورسوم الدفع وتسوية الضريبة.</p>
+      {data.excludedOtherBaseCurrencyOrders > 0 && <p dir="rtl" role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">لم تدخل {data.excludedOtherBaseCurrencyOrders} طلبات في هذه الإجماليات لأن عملتها الأساسية مختلفة. تحتاج إلى مطابقة مالية منفصلة قبل جمعها.</p>}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Metric label="Revenue" value={money(data.revenue)} icon={DollarSign} />
-        <Metric label="Gross profit" value={money(data.grossProfit)} icon={TrendingUp} />
-        <Metric label="Gross margin" value={`${data.grossMargin.toFixed(1)}%`} icon={Percent} />
+        <Metric label="قيمة الطلبات حسب التسعير" value={money(data.revenue)} icon={DollarSign} />
+        <Metric label="هامش التسعير التقديري" value={money(data.grossProfit)} icon={TrendingUp} />
+        <Metric label="نسبة الهامش التقديري" value={`${data.grossMargin.toFixed(1)}%`} icon={Percent} />
         <Metric label="Average order" value={money(data.averageOrderValue)} icon={Receipt} />
-        <Metric label="Supplier cost" value={money(data.supplierCost)} icon={DollarSign} />
+        <Metric label="تكلفة المورد في التسعير" value={money(data.supplierCost)} icon={DollarSign} />
         <Metric label="Payment success" value={data.paymentSuccessRate === null ? "No data" : `${data.paymentSuccessRate.toFixed(1)}%`} icon={Activity} />
         <Metric label="Refund requests" value={String(data.refundRequests)} icon={AlertTriangle} />
         <Metric label="Chargebacks" value={String(data.chargebacks)} icon={AlertTriangle} />

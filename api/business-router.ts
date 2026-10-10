@@ -163,16 +163,18 @@ export const businessRouter = createRouter({
     const db = getDb();
     const liveOnly = financialApplicationScope();
     const eventPayment = alias(payments, "event_payment");
+    const settings = await activeBusinessSettings();
     const livePaid = and(liveOnly, eq(applications.paymentStatus, "paid"));
-    const [sales, paymentCounts, eventCounts, settings, abandonmentRows, visaRows, countryRows, monthlyTrend] = await Promise.all([
+    const sameBaseCurrency = and(livePaid, eq(applicationPriceSnapshots.baseCurrency, settings.baseCurrency));
+    const [sales, paymentCounts, eventCounts, otherCurrencyRows, abandonmentRows, visaRows, countryRows, monthlyTrend] = await Promise.all([
       db.select({
         revenue: sql<number>`coalesce(sum(${applicationPriceSnapshots.totalInBaseCurrency}), 0)`,
-        supplierCost: sql<number>`coalesce(sum(${applicationPriceSnapshots.supplierCost}), 0)`,
-        internalCost: sql<number>`coalesce(sum(${applicationPriceSnapshots.internalCost}), 0)`,
+        supplierCost: sql<number>`coalesce(sum(round(${applicationPriceSnapshots.supplierCost} * ${applicationPriceSnapshots.exchangeRateToBase}, 2)), 0)`,
+        internalCost: sql<number>`coalesce(sum(round(${applicationPriceSnapshots.internalCost} * ${applicationPriceSnapshots.exchangeRateToBase}, 2)), 0)`,
         orders: sql<number>`count(*)`,
       }).from(applicationPriceSnapshots)
         .innerJoin(applications, eq(applicationPriceSnapshots.applicationId, applications.id))
-        .where(livePaid).then((rows) => rows[0]),
+        .where(sameBaseCurrency).then((rows) => rows[0]),
       db.select({ status: payments.status, count: sql<number>`count(*)` }).from(payments)
         .innerJoin(applications, eq(payments.applicationId, applications.id))
         .where(liveOnly).groupBy(payments.status),
@@ -180,7 +182,9 @@ export const businessRouter = createRouter({
         .leftJoin(eventPayment, eq(financialEvents.paymentId, eventPayment.id))
         .leftJoin(applications, sql`${applications.id}=coalesce(${financialEvents.applicationId},${eventPayment.applicationId})`)
         .where(or(and(isNull(financialEvents.applicationId), isNull(financialEvents.paymentId)), liveOnly)).groupBy(financialEvents.eventType),
-      activeBusinessSettings(),
+      db.select({ count: sql<number>`count(*)` }).from(applicationPriceSnapshots)
+        .innerJoin(applications, eq(applicationPriceSnapshots.applicationId, applications.id))
+        .where(and(livePaid, sql`${applicationPriceSnapshots.baseCurrency} <> ${settings.baseCurrency}`)),
       db.select({ count: sql<number>`count(*)` }).from(applicationTimelineEvents)
         .innerJoin(applications, eq(applicationTimelineEvents.applicationId, applications.id))
         .where(and(liveOnly, eq(applicationTimelineEvents.eventName, "CHECKOUT_ABANDONED"))),
@@ -195,7 +199,7 @@ export const businessRouter = createRouter({
         orders: sql<number>`count(*)`,
       }).from(applicationPriceSnapshots)
         .innerJoin(applications, eq(applicationPriceSnapshots.applicationId, applications.id))
-        .where(livePaid)
+        .where(sameBaseCurrency)
         .groupBy(sql`date_format(${applications.createdAt}, '%Y-%m')`)
         .orderBy(sql`date_format(${applications.createdAt}, '%Y-%m')`),
     ]);
@@ -225,6 +229,8 @@ export const businessRouter = createRouter({
       : null;
     return {
       currency: settings.baseCurrency,
+      calculationBasis: "PRICING_ESTIMATE" as const,
+      excludedOtherBaseCurrencyOrders: Number(otherCurrencyRows[0]?.count ?? 0),
       revenue,
       supplierCost,
       internalCost,
