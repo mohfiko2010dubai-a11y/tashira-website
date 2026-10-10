@@ -14,7 +14,8 @@ function service() {
   return queue;
 }
 export const operationsWorkRouter = createRouter({
-  managerReport: adminQuery.query(({ ctx }) => service().managerReport(ctx)),
+  managerReport: adminQuery.input(z.object({ includeTest: z.boolean().default(false) }).optional())
+    .query(({ ctx, input }) => service().managerReport(ctx, input?.includeTest ?? false)),
   overview: staffOrAdminQuery.input(z.object({ includeTest: z.boolean() }).strict()).query(({ ctx, input }) => service().overview(ctx, input.includeTest)),
   command: staffOrAdminQuery.input(workCommand).mutation(({ ctx, input }) => service().command(ctx, input)),
 });

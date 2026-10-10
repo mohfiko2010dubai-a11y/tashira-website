@@ -297,6 +297,41 @@ suite('atomic staff work dispatch', () => {
     } finally { await connection.rollback(); connection.release(); }
   });
 
+  it('reports live work separately and attributes only the latest closure after reopening and reassignment', async () => {
+    const ids: number[] = [];
+    for (const [classification, isTest] of [['LIVE', 0], ['TEST', 0], ['LIVE', 1]] as const) {
+      const id = await waitingFixture(); ids.push(id);
+      await pool.execute("UPDATE applications SET data_classification=?,is_test=?,status='completed' WHERE id=?", [classification, isTest, id]);
+      await pool.execute("UPDATE operations_case_work SET work_state='DONE' WHERE application_id=?", [id]);
+    }
+    async function work(applicationId: number, owner: number, next: string) {
+      await pool.execute(`INSERT INTO operations_work_events(staff_user_id,application_id,event_type,next_state,reason,idempotency_key,command_hash,result_json)
+        VALUES (?,?,'WORK_STATE',?,'Synthetic report evidence',?,?,'{}')`, [owner, applicationId, next, key(), 'b'.repeat(64)]);
+    }
+    for (const id of ids) {
+      await work(id, staff[0], 'DONE');
+      await pool.execute(`INSERT INTO operations_action_events(id,application_id,action_type,actor_reference,reason,entity_version_before,entity_version_after,correlation_id)
+        VALUES (?,?,'CLAIM',?,'Synthetic report claim',0,1,?)`, [key(), id, `staff:${staff[0]}`, key()]);
+    }
+    await expect(queue.managerReport(context(staff[0]), true)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    const ordinary = (await queue.managerReport(context(staff[2]))).staff.find(row => row.staffId === staff[0])!;
+    expect(ordinary.closedApplications.filter(row => ids.includes(row.applicationId)).map(row => row.applicationId)).toEqual([ids[0]]);
+    expect(ordinary.claimedToday).toBe(1);
+    const withTests = (await queue.managerReport(context(staff[2]), true)).staff.find(row => row.staffId === staff[0])!;
+    expect(withTests.closedApplications.filter(row => ids.includes(row.applicationId))).toHaveLength(3);
+    expect(withTests.claimedToday).toBeGreaterThanOrEqual(3);
+    await pool.execute("UPDATE applications SET status='under_review' WHERE id=?", [ids[0]]);
+    await pool.execute('UPDATE operations_case_controls SET assigned_staff_user_id=? WHERE application_id=?', [staff[1], ids[0]]);
+    await work(ids[0], staff[1], 'ACTIVE');
+    expect((await queue.managerReport(context(staff[2]))).staff.flatMap(row => row.closedApplications).some(row => row.applicationId === ids[0])).toBe(false);
+    await pool.execute("UPDATE applications SET status='completed' WHERE id=?", [ids[0]]);
+    await work(ids[0], staff[1], 'DONE');
+    const after = await queue.managerReport(context(staff[2]));
+    expect(after.staff.find(row => row.staffId === staff[0])?.closedApplications.some(row => row.applicationId === ids[0])).toBe(false);
+    expect(after.staff.find(row => row.staffId === staff[1])?.closedApplications.filter(row => row.applicationId === ids[0])).toHaveLength(1);
+    expect(JSON.stringify(after)).not.toMatch(/supplier_cost|profit|contact_email|password/);
+  });
+
   it('named manager can participate; history is append-only and deactivation blocks actions', async () => {
     await queue.command(context(staff[2]), { kind: 'AVAILABILITY', availability: 'AVAILABLE', key: key() });
     const claimed = await queue.command(context(staff[2]), { kind: 'CLAIM', includeTest: true, key: key() });

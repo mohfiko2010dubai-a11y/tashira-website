@@ -3,7 +3,7 @@ import { TRPCError } from '@trpc/server';
 import type { Pool, PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { z } from 'zod';
 import { AVAILABILITY, WORK_STATES, requireFollowUp } from '../../../contracts/work-queue';
-import { measureWorkTime } from '../../../contracts/work-time';
+import { currentWorkClosures, measureWorkTime } from '../../../contracts/work-time';
 import type { TrpcContext } from '../../context';
 import { isOperationsFlagEnabled } from '../feature-flags/feature-flags';
 import { MysqlOperationsAccessProvider } from './mysql-access-provider';
@@ -228,32 +228,52 @@ export class MysqlWorkQueue {
       VALUES (?,?,?,?,?,?,?,?,?,?)`, [staffId, result.applicationId, input.kind, previous, next, reason, due ? new Date(due) : null, input.key, hash, JSON.stringify(result)]);
   }
 
-  async managerReport(ctx: TrpcContext) {
+  async managerReport(ctx: TrpcContext, includeTest = false) {
     const { actor } = await this.actor(ctx);
     if (!actor.scopes.includes('ALL') || !actor.permissions.has('case.assign')) fail('Only the manager can open employee reports.', 'FORBIDDEN');
     const now = Date.now();
     const day = new Date(now + 4 * 3600000).toISOString().slice(0,10);
     const start = Date.parse(`${day}T00:00:00+04:00`);
-    const [events] = await this.pool.execute<RowDataPacket[]>(`SELECT e.staff_user_id AS staffId,s.name,
-      e.application_id AS applicationId,e.next_state AS nextState,
-      UNIX_TIMESTAMP(e.created_at)*1000 AS at FROM operations_work_events e JOIN staff_users s ON s.id=e.staff_user_id
-      WHERE e.created_at<=UTC_TIMESTAMP(3) ORDER BY e.created_at,e.id LIMIT 10001`);
-    if (events.length > 10000) fail('This report needs an archived-time summary. Contact support before using the totals.');
-    const [claims] = await this.pool.execute<RowDataPacket[]>(`SELECT actor_reference AS actor,COUNT(DISTINCT application_id) AS count
-      FROM operations_action_events WHERE action_type='CLAIM' AND created_at>=? GROUP BY actor_reference`, [new Date(start)]);
-    // Assignment changes close the previous employee's interval; they must never
-    // make the new owner's work appear as effort by the previous employee.
-    const [handoffs] = await this.pool.execute<RowDataPacket[]>(`SELECT previous_assignee_reference AS previous,application_id AS applicationId,
-      UNIX_TIMESTAMP(created_at)*1000 AS at FROM operations_action_events
-      WHERE action_type='REASSIGN' AND previous_assignee_reference IS NOT NULL ORDER BY created_at,id LIMIT 10001`);
-    if (handoffs.length > 10000) fail('This report needs an archived-time summary. Contact support before using the totals.');
-    const ids = [...new Set(events.map(row => Number(row.staffId)))];
-    return { day, asOf: now, staff: ids.map(id => ({ staffId: id, name: String(events.find(row => Number(row.staffId) === id)?.name ?? ''),
-      claimedToday: Number(claims.find(row => row.actor === `staff:${id}`)?.count ?? 0),
-      ...measureWorkTime([
-        ...events.filter(row => Number(row.staffId) === id).map(row => ({ at: Number(row.at), applicationId: row.applicationId === null ? null : Number(row.applicationId), next: String(row.nextState) })),
-        ...handoffs.filter(row => row.previous === `staff:${id}`).map(row => ({ at: Number(row.at), applicationId: Number(row.applicationId), next: 'TRANSFERRED' })),
-      ], start, now),
-    })) };
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+      await connection.query('START TRANSACTION READ ONLY');
+      const [events] = await connection.execute<RowDataPacket[]>(`SELECT e.staff_user_id AS staffId,s.name,
+        e.application_id AS applicationId,e.next_state AS nextState,a.reference_number AS reference,
+        a.visa_type AS visaType,a.processing_type AS processingType,a.status AS applicationStatus,
+        (? OR (a.is_test=0 AND a.data_classification='LIVE')) AS reportable,
+        UNIX_TIMESTAMP(e.created_at)*1000 AS at FROM operations_work_events e JOIN staff_users s ON s.id=e.staff_user_id
+        LEFT JOIN applications a ON a.id=e.application_id
+        WHERE e.created_at<=? ORDER BY e.created_at,e.id LIMIT 10001`, [includeTest, new Date(now)]);
+      if (events.length > 10000) fail('This report needs an archived-time summary. Contact support before using the totals.');
+      const [claims] = await connection.execute<RowDataPacket[]>(`SELECT e.actor_reference AS actor,COUNT(DISTINCT e.application_id) AS count
+        FROM operations_action_events e JOIN applications a ON a.id=e.application_id
+        WHERE e.action_type='CLAIM' AND e.created_at>=? AND e.created_at<=?
+        AND (? OR (a.is_test=0 AND a.data_classification='LIVE')) GROUP BY e.actor_reference`, [new Date(start), new Date(now), includeTest]);
+      const [handoffs] = await connection.execute<RowDataPacket[]>(`SELECT previous_assignee_reference AS previous,application_id AS applicationId,
+        UNIX_TIMESTAMP(created_at)*1000 AS at FROM operations_action_events
+        WHERE action_type='REASSIGN' AND previous_assignee_reference IS NOT NULL AND created_at<=?
+        ORDER BY created_at,id LIMIT 10001`, [new Date(now)]);
+      if (handoffs.length > 10000) fail('This report needs an archived-time summary. Contact support before using the totals.');
+      await connection.commit();
+      const normalized = events.map(row => ({ staffId: Number(row.staffId), at: Number(row.at),
+        applicationId: row.applicationId === null ? null : Number(row.applicationId), next: String(row.nextState),
+        reportable: row.applicationId === null || Boolean(Number(row.reportable)), reference: String(row.reference ?? ''),
+        visaType: String(row.visaType ?? ''), processingType: String(row.processingType ?? ''), applicationStatus: String(row.applicationStatus ?? ''),
+      }));
+      const closures = currentWorkClosures(normalized, start, now);
+      const ids = [...new Set(events.map(row => Number(row.staffId)))];
+      return { day, asOf: now, includeTest, staff: ids.map(id => ({ staffId: id, name: String(events.find(row => Number(row.staffId) === id)?.name ?? ''),
+        claimedToday: Number(claims.find(row => row.actor === `staff:${id}`)?.count ?? 0),
+        ...measureWorkTime([
+          ...normalized.filter(row => row.staffId === id),
+          ...handoffs.filter(row => row.previous === `staff:${id}`).map(row => ({ at: Number(row.at), applicationId: Number(row.applicationId), next: 'TRANSFERRED' })),
+        ], start, now),
+        completedCount: closures.filter(row => row.staffId === id).length,
+        closedApplications: closures.filter(row => row.staffId === id).map(row => ({ applicationId: row.applicationId!,
+          reference: row.reference, visaType: row.visaType, processingType: row.processingType, status: row.applicationStatus, closedAt: row.at })),
+      })) };
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
   }
 }
