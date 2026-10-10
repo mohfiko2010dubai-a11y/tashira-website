@@ -144,6 +144,10 @@ suite('atomic staff work dispatch', () => {
     expect(overview.available.some(row => row.reference === own.reference)).toBe(false);
     const [events] = await pool.execute<RowDataPacket[]>("SELECT next_state FROM operations_work_events WHERE application_id=? AND idempotency_key LIKE 'status:%' ORDER BY id", [own.applicationId]);
     expect(events.map(row => row.next_state)).toEqual(['WAIT_CUSTOMER', 'READY', 'DONE']);
+    const [mail] = await pool.execute<RowDataPacket[]>(`SELECT j.job_key,e.resulting_state FROM transactional_email_jobs j
+      JOIN application_timeline_events e ON j.job_key=CONCAT('application-status:',e.id) WHERE j.application_id=? ORDER BY e.created_at,e.resulting_state`, [own.applicationId]);
+    expect(mail.map(row => row.resulting_state).sort()).toEqual(['cancelled', 'documents_pending', 'documents_received']);
+    expect(new Set(mail.map(row => row.job_key)).size).toBe(3);
     expect((await queue.overview(context(staff[0]), true)).mine.some(row => row.applicationId === own.applicationId)).toBe(false);
   });
 
@@ -159,6 +163,8 @@ suite('atomic staff work dispatch', () => {
     expect(saved[0].status).toBe('documents_received');
     const [after] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) AS n FROM operations_work_events WHERE application_id=?', [own.applicationId]);
     expect(after[0].n).toBe(before[0].n);
+    const [mail] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) n FROM transactional_email_jobs WHERE application_id=?', [own.applicationId]);
+    expect(Number(mail[0].n)).toBe(0);
   });
 
   it('concurrent status saves apply one transition and one queue event', async () => {

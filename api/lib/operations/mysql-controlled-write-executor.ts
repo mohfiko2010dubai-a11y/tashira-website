@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { recordAuthoritySubmission } from "../processing-guarantee";
 import { syncCaseWorkStatus } from './case-work-status';
+import { enqueueApplicationStatusEmail } from '../application-status-outbox';
 import type { Pool, PoolConnection } from "mysql2/promise";
 import { z } from "zod";
 import type { OperationsWriteExecutor } from "../../operations-write-router";
@@ -469,6 +470,8 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
       if (changed !== 1) throw new OperationsWriteError("CONCURRENCY_CONFLICT");
       if (after.status === "visa_processing") await recordAuthoritySubmission(connection, input.applicationId, event.actorId);
       await syncCaseWorkStatus(connection, input.applicationId, before.status, after.status, event.id);
+      await enqueueApplicationStatusEmail(connection, { applicationId: input.applicationId, from: before.status, to: after.status,
+        eventId: event.id, actor: event.actorId, actorType: event.actorId === 'admin' ? 'ADMIN' : 'STAFF' });
     }
     if (action === "DOCUMENT_REVIEW") {
       const documentId = numberField(event.details, "documentId");

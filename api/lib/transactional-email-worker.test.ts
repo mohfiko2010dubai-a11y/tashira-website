@@ -26,6 +26,22 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 describe('durable transactional email dispatch', () => {
+  it.each(['en', 'ar'])('uses the application recipient, current %s language and stable status-event identity', async language => {
+    current.preferred_language = language;
+    const queued = { ...job(), job_key: 'application-status:source-event-1', template: 'STATUS_CHANGED',
+      variables_json: { statusLabel: 'old language', statusLabelEn: 'Documents received for review', statusLabelAr: 'تم استلام المستندات للمراجعة' } };
+    let pending = true;
+    mocks.claim.mockImplementation(async (sql: string) => {
+      if (!sql.startsWith('SELECT *')) return [{}];
+      const rows = pending ? [queued] : []; pending = false; return [rows];
+    });
+    await runTransactionalEmails();
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ recipient: 'synthetic@example.invalid',
+      sourceReference: queued.job_key, variables: expect.objectContaining({ statusLabel: language === 'ar' ? queued.variables_json.statusLabelAr : queued.variables_json.statusLabelEn }) }));
+    const seeds = mocks.execute.mock.calls.filter(([sql]) => String(sql).includes('FROM application_timeline_events e WHERE e.event_name'));
+    expect(seeds.length).toBeGreaterThan(0);
+    expect(seeds.every(([sql]) => String(sql).includes("e.event_source<>'STATUS_OUTBOX'"))).toBe(true);
+  });
   it.each(['APPROVAL_PENDING', 'GUARANTEE_BREACHED', 'CONNECTION_BROKEN'])('routes %s to the admin inbox and exact case without trusting an admin flag', async template => {
     mocks.admin.mockReturnValue('admin@tashiraev.com');
     let pending = true;

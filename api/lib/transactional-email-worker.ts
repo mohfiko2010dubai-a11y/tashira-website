@@ -1,4 +1,4 @@
-import type { RowDataPacket } from 'mysql2/promise';
+import type { Pool, RowDataPacket } from 'mysql2/promise';
 import { defaultOperationsPool } from './operations/mysql-query-client';
 import { sendCustomerNotification } from './customer-notification-email';
 import { sendPaymentSuccessEmail } from './payment-success-email';
@@ -21,7 +21,7 @@ async function seedJobs() {
   for (const [event, template] of Object.entries(timelineEmailTemplates)) {
     await pool.execute(`INSERT INTO transactional_email_jobs(job_key,application_id,template,variables_json)
       SELECT CONCAT('timeline:',e.id),e.application_id,?,JSON_OBJECT('sourceEvent',e.event_name,'sourceReference',COALESCE(e.actor_reference,''))
-      FROM application_timeline_events e WHERE e.event_name=? AND e.created_at >= (SELECT enabled_at FROM transactional_email_start WHERE singleton=1)
+      FROM application_timeline_events e WHERE e.event_name=? AND e.event_source<>'STATUS_OUTBOX' AND e.created_at >= (SELECT enabled_at FROM transactional_email_start WHERE singleton=1)
       ON DUPLICATE KEY UPDATE job_key=transactional_email_jobs.job_key`, [template, event]);
   }
   await pool.execute(`INSERT INTO transactional_email_jobs(job_key,application_id,template,variables_json)
@@ -63,6 +63,8 @@ async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRE
   const application = rows[0];
   if (!application) throw new Error('Email owner is missing');
   const variables: Record<string, string> = typeof job.variables_json === 'string' ? JSON.parse(job.variables_json) : job.variables_json;
+  const statusOutbox = String(job.job_key).startsWith('application-status:');
+  if (statusOutbox) variables.statusLabel = application.preferred_language === 'ar' ? variables.statusLabelAr : variables.statusLabelEn;
   const template = EMAIL_TEMPLATES.find(value => value === job.template);
   if (!template) throw new Error('Unknown mail template');
   // A queued proposal must never describe a replaced or already accepted version.
@@ -94,10 +96,20 @@ async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRE
     ? `pay/${encodeURIComponent(application.reference_number)}` : `track?ref=${encodeURIComponent(application.reference_number)}`;
   const actionUrl = isAdminEmail(template) ? adminEmailActionUrl(template, { ...variables, refundCaseId }) : `${publicAppOrigin()}/${application.preferred_language}/${customerPath}`;
   const result = await sendCustomerNotification({ applicationId: Number(job.application_id), recipient, template,
-    variables: { ...variables, refundCaseId, paymentStatus: application.payment_status, processingType: application.processing_type, referenceNumber: application.reference_number, actionUrl }, sourceReference: template === 'VISA_ISSUED' ? 'status:visa_received' : template === 'REJECTED' ? 'status:rejected' : template === 'SUBMITTED' ? 'status:visa_processing' : String(job.job_key), failureCategory: 'transactional_delivery_failed' });
+    variables: { ...variables, refundCaseId, paymentStatus: application.payment_status, processingType: application.processing_type, referenceNumber: application.reference_number, actionUrl }, sourceReference: statusOutbox ? String(job.job_key) : template === 'VISA_ISSUED' ? 'status:visa_received' : template === 'REJECTED' ? 'status:rejected' : template === 'SUBMITTED' ? 'status:visa_processing' : String(job.job_key), failureCategory: 'transactional_delivery_failed' });
   return result.status !== 'FAILED' ? 'SENT' : 'FAILED';
 }
 let running = false;
+export async function recoverTransactionalEmailClaims(pool: Pick<Pool, 'execute'>) {
+  // Resend retains idempotency keys for 24h. Conservatively measure from job
+  // creation (never later than first send), with 2h margin; do not replay an
+  // ambiguous old delivery. Unattempted old jobs may still make their first send.
+  // https://resend.com/changelog/idempotency-keys
+  await pool.execute(`UPDATE transactional_email_jobs SET job_status='FAILED',attempts=6,
+    failure_message='Delivery outcome needs review after a long interruption. Check the mail provider before retrying.'
+    WHERE job_status IN ('PENDING','SENDING','FAILED') AND attempts>0 AND created_at<DATE_SUB(NOW(),INTERVAL 22 HOUR)`);
+  await pool.execute("UPDATE transactional_email_jobs SET job_status='PENDING' WHERE job_status='SENDING' AND claimed_at<DATE_SUB(NOW(),INTERVAL 10 MINUTE)");
+}
 export async function runTransactionalEmails(): Promise<void> {
   if (running) return;
   running = true;
@@ -105,7 +117,7 @@ export async function runTransactionalEmails(): Promise<void> {
     await seedJobs();
     const pool = defaultOperationsPool();
     // Recover a crashed worker without assigning a new provider idempotency key.
-    await pool.execute("UPDATE transactional_email_jobs SET job_status='PENDING' WHERE job_status='SENDING' AND claimed_at<DATE_SUB(NOW(),INTERVAL 10 MINUTE)");
+    await recoverTransactionalEmailClaims(pool);
     for (let i = 0; i < 20; i++) {
       const connection = await pool.getConnection();
       let job: RowDataPacket | undefined;

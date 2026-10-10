@@ -1,6 +1,7 @@
 import { customerServiceClock } from "./lib/customer-wait-log";
 import { selectCaseSupplier } from './lib/supplier-selection';
 import { syncCaseWorkStatus } from './lib/operations/case-work-status';
+import { enqueueApplicationStatusEmail } from './lib/application-status-outbox';
 import { randomUUID } from 'node:crypto';
 import type { RowDataPacket } from 'mysql2/promise';
 import { refuseVisaChange, requestManualChange, decideManualChange, manualChangeQueue, refusalOutcomes, recordDifferenceLink } from "./lib/manual-visa-change";
@@ -25,9 +26,8 @@ import { internalFailure } from "./lib/public-error";
 import { auditLog } from "./lib/audit-log";
 import { assertApplicationReferenceAccess } from "./lib/application-access";
 import { getCanonicalApplicationByReference } from "./lib/application-projection";
-import { sendStatusChangeNotification } from "./lib/customer-notification-email";
 import { createCustomerApplicationCookie } from "./lib/customer-session";
-import { recordTimelineEvent, type TimelineEventName } from "./lib/application-timeline";
+import { recordTimelineEvent } from "./lib/application-timeline";
 import { TERMS_POLICY_VERSION } from "@contracts/constants";
 import { quoteApplicationPrice, saveApplicationPriceSnapshot } from "./lib/pricing-engine";
 import { activeBusinessSettings } from "./lib/pricing-engine";
@@ -323,12 +323,10 @@ export const applicationRouter = createRouter({
 
   updateStatus: adminQuery
     .input(z.object({ id: z.number(), status: z.enum(STATUS_ENUM) }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const [application] = await db.select({
         paymentStatus: applications.paymentStatus,
-        referenceNumber: applications.referenceNumber,
-        contactEmail: applications.contactEmail,
       }).from(applications)
         .where(eq(applications.id, input.id)).limit(1);
       if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
@@ -341,37 +339,12 @@ export const applicationRouter = createRouter({
         if (!current[0] || !canEnterApplicationState(current[0].payment_status, input.status)) throw new TRPCError({ code: 'CONFLICT', message: 'Verified payment is required before operational processing' });
         await connection.execute("UPDATE applications SET status=? WHERE id=?", [input.status, input.id]);
         if (input.status === "visa_processing") await recordAuthoritySubmission(connection, input.id, "admin-session");
-        await syncCaseWorkStatus(connection, input.id, String(current[0].status), input.status, randomUUID());
+        const eventId = randomUUID();
+        await syncCaseWorkStatus(connection, input.id, String(current[0].status), input.status, eventId);
+        await enqueueApplicationStatusEmail(connection, { applicationId: input.id, from: String(current[0].status), to: input.status,
+          eventId, actor: ctx.staffId ? `staff:${ctx.staffId}` : 'admin-session', actorType: 'ADMIN' });
       });
-      const eventByStatus: Partial<Record<typeof input.status, TimelineEventName>> = {
-        under_review: "PROCESSING_STARTED",
-        visa_processing: "GOVERNMENT_PROCESSING",
-        visa_received: "VISA_ISSUED",
-        completed: "APPLICATION_COMPLETED",
-        cancelled: "APPLICATION_CANCELLED",
-        rejected: "APPLICATION_REJECTED",
-      };
-      const eventName = eventByStatus[input.status];
-      if (eventName) {
-        await recordTimelineEvent({
-          applicationId: input.id,
-          eventName,
-          eventSource: "ADMIN_STATUS",
-          actorType: "ADMIN",
-          actorReference: "admin",
-          resultingState: input.status,
-          summary: `Application status changed to ${input.status}`,
-        });
-      }
       auditLog("application.status_change", "success", "admin");
-      if (application.contactEmail) {
-        await sendStatusChangeNotification({
-          applicationId: input.id,
-          recipient: application.contactEmail,
-          referenceNumber: application.referenceNumber,
-          newStatus: input.status,
-        });
-      }
       return { success: true };
     }),
 
