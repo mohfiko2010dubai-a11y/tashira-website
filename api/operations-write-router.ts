@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { submissionEvidenceInput } from '../contracts/submission-evidence';
 import type { TrpcContext } from "./context";
 import type { AuthorizationActor } from "./lib/authorization/policy";
 import type { FeatureFlagContext, FeatureFlagRecord } from "./lib/feature-flags/feature-flags";
@@ -20,7 +21,7 @@ const COMMON = {
 const humanReviewInput = z.object({ ...COMMON, outcome: HUMAN_OUTCOME }).strict();
 const documentReviewInput = z.object({ ...COMMON, applicantId: z.number().int().positive(), documentId: z.number().int().positive(), expectedDocumentVersion: z.number().int().nonnegative(), outcome: DOCUMENT_OUTCOME }).strict();
 const assignmentInput = z.object({ ...COMMON, mode: z.enum(["ASSIGN", "CLAIM", "REASSIGN"]), assigneeId: z.string().trim().min(1).max(100) }).strict();
-const statusTransitionInput = z.object({ ...COMMON, to: STATUS }).strict();
+const statusTransitionInput = z.object({ ...COMMON, to: STATUS, submission: submissionEvidenceInput.optional() }).strict();
 const reevaluationInput = z.object({ ...COMMON, applicantId: z.number().int().positive(), expectedCurrentEvaluationId: z.string().trim().min(1).max(36) }).strict();
 
 export type OperationsWriteExecutor = {

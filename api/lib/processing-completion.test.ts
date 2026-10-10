@@ -26,7 +26,15 @@ describe("durable service clocks", () => {
     await recordDocumentCompletion({ execute } as unknown as PoolConnection, 1);expect(execute).toHaveBeenCalledTimes(1);expect(mocks.load).not.toHaveBeenCalled();
   });
   it("records actual authority submission once without replacing the first timestamp", async () => {
-    const execute = vi.fn().mockResolvedValue([{}]);await recordAuthoritySubmission({ execute } as unknown as PoolConnection, 1, "staff:9");
-    expect(execute).toHaveBeenCalledWith(expect.stringContaining("COALESCE(authority_submitted_at"), [1, "staff:9"]);
+    const actualTime = new Date('2026-09-01T10:00:00Z');
+    const execute = vi.fn().mockResolvedValueOnce([[{ occurred_at: actualTime }]]).mockResolvedValue([{}]);await recordAuthoritySubmission({ execute } as unknown as PoolConnection, 1, "staff:9", 'synthetic-proof');
+    expect(execute).toHaveBeenCalledWith(expect.stringContaining("COALESCE(authority_submitted_at"), [1, actualTime, "staff:9"]);
+  });
+  it('refuses to stop the authority clock without a committed proof for this action', async () => {
+    const execute = vi.fn().mockResolvedValue([[]]);
+    await expect(recordAuthoritySubmission({ execute } as unknown as PoolConnection, 1, 'staff:9')).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
+    expect(execute).not.toHaveBeenCalled();
+    await expect(recordAuthoritySubmission({ execute } as unknown as PoolConnection, 1, 'staff:9', 'missing')).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 });

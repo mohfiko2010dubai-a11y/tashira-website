@@ -20,6 +20,8 @@ import { RefundManager } from "@/components/admin/RefundManager";
 import { ProcessingGuarantee } from "@/components/admin/ProcessingGuarantee";
 import { SecurityDepositManager } from "@/components/admin/SecurityDepositManager";
 import CustomerProgressPanel from '@/components/operations/CustomerProgressPanel';
+import SupplierSelectionPanel from '@/components/operations/SupplierSelectionPanel';
+import SubmissionEvidencePanel from '@/components/operations/SubmissionEvidencePanel';
 
 const statusColors: Record<string, string> = {
   submitted: "bg-gray-100 text-gray-700",
@@ -40,6 +42,7 @@ const TABS = [
   { key: "documents", label: "المستندات والمراجعة", icon: FolderOpen },
   { key: "change", label: "تعديل التأشيرة", icon: RefreshCw },
   { key: "payments", label: "المدفوعات والاسترداد", icon: DollarSign },
+  { key: "submission", label: "المورد والتقديم", icon: Building2 },
   { key: "messages", label: "حالة العميل والإيميلات", icon: History },
   { key: "timeline", label: "سجل العمليات", icon: History },
   { key: "notes", label: "ملاحظات العميل", icon: StickyNote },
@@ -89,6 +92,7 @@ export default function AdminApplicationDetail() {
 
   const handleStatusChange = (newStatus: string) => {
     if (!app || !newStatus) return;
+    if (newStatus === 'visa_processing') { setActiveTab('submission'); return; }
     updateStatus.mutate({ id: app.id, status: newStatus as typeof app.status });
   };
 
@@ -197,6 +201,7 @@ export default function AdminApplicationDetail() {
         {/* Tab Content */}
         <div className="space-y-6">
           {activeTab === 'messages' && <CustomerProgressPanel referenceNumber={app.referenceNumber} />}
+          {activeTab === 'submission' && <div className="space-y-5"><SupplierSelectionPanel referenceNumber={app.referenceNumber} onSaved={async () => { await utils.application.getByReference.invalidate(); }} /><SubmissionEvidencePanel applicationId={app.id} referenceNumber={app.referenceNumber} onSaved={async () => { await utils.application.getByReference.invalidate(); await utils.application.list.invalidate(); }} /></div>}
           {activeTab === 'change' && <><DocumentValidityReview referenceNumber={app.referenceNumber} mode="change" /><ManualVisaChange referenceNumber={app.referenceNumber} /></>}
           {/* Overview Tab */}
           {activeTab === "overview" && (

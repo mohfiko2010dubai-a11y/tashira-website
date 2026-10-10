@@ -2,6 +2,7 @@ import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { requiredDocuments, tripPurposeSchema } from "../../contracts/document-requirement-engine";
 import { loadOwnerDocumentEvidence, projectOwnerDocuments } from "./customer/owner-document-evidence";
 import type { OperationsSqlClient } from "./operations/mysql-access-provider";
+import { TRPCError } from '@trpc/server';
 
 /** Caller holds the application row lock; completion and document write commit together. */
 export async function recordDocumentCompletion(connection: PoolConnection, applicationId: number) {
@@ -25,8 +26,11 @@ export async function recordDocumentCompletion(connection: PoolConnection, appli
 }
 
 /** The controlled visa_processing transition means sent to the authority, not customer submission. */
-export async function recordAuthoritySubmission(connection: PoolConnection, applicationId: number, actor: string) {
-  await connection.execute(`INSERT INTO application_service_clocks (application_id,authority_submitted_at,submission_actor) VALUES (?,NOW(3),?)
+export async function recordAuthoritySubmission(connection: PoolConnection, applicationId: number, actor: string, evidenceId?: string) {
+  if (!evidenceId) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'سجّل رقم الطلب وإثبات التقديم من قسم المورد والتقديم قبل تغيير الحالة إلى قيد معالجة الهجرة.' });
+  const [proof] = await connection.execute<RowDataPacket[]>("SELECT occurred_at FROM operations_submission_evidence WHERE id=? AND application_id=? AND evidence_kind='AUTHORITY_FILED'", [evidenceId, applicationId]);
+  if (!proof.length) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'إثبات التقديم غير محفوظ. أرفق الإثبات ورقم الطلب ثم أعد التأكيد.' });
+  await connection.execute(`INSERT INTO application_service_clocks (application_id,authority_submitted_at,submission_actor) VALUES (?,?,?)
     ON DUPLICATE KEY UPDATE submission_actor=IF(authority_submitted_at IS NULL,VALUES(submission_actor),submission_actor),
-      authority_submitted_at=COALESCE(authority_submitted_at,VALUES(authority_submitted_at))`, [applicationId, actor]);
+      authority_submitted_at=COALESCE(authority_submitted_at,VALUES(authority_submitted_at))`, [applicationId, proof[0].occurred_at, actor]);
 }

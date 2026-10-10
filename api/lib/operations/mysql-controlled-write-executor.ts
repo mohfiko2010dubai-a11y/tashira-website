@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { recordAuthoritySubmission } from "../processing-guarantee";
 import { syncCaseWorkStatus } from './case-work-status';
 import { enqueueApplicationStatusEmail } from '../application-status-outbox';
+import { copySubmissionEvidence, cleanupUncommittedSubmissionCopy } from '../submission-evidence';
+import { TRPCError } from '@trpc/server';
 import type { Pool, PoolConnection } from "mysql2/promise";
 import { z } from "zod";
 import type { OperationsWriteExecutor } from "../../operations-write-router";
@@ -303,9 +305,14 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
   }
 
   statusTransition(input: Parameters<OperationsWriteExecutor["statusTransition"]>[0], actor: AuthorizationActor): Promise<WriteResult> {
-    return this.execute("STATUS_TRANSITION", input, actor, async ({ repository, trustedActor, flags, now, locked }) => {
+    return this.execute("STATUS_TRANSITION", input, actor, async ({ connection, repository, trustedActor, flags, now, locked, submissionCopies }) => {
       if (!canEnterApplicationState(locked.paymentStatus, input.to)) throw new Error("PAYMENT_REQUIRED_FOR_APPLICATION_STATE");
-      return transitionCaseStatus({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository }, { now: () => now, newId: randomUUID });
+      const result = transitionCaseStatus({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository }, { now: () => now, newId: randomUUID });
+      if (input.to === 'visa_processing') {
+        if (!input.submission) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'أرفق إثبات التقديم ورقم الطلب من قسم المورد والتقديم ثم أكد الإرسال للهجرة.' });
+        submissionCopies.push(await copySubmissionEvidence(connection, input.applicationId, 'AUTHORITY_FILED', input.submission, trustedActor.id, result.auditEventId));
+      }
+      return result;
     });
   }
 
@@ -345,9 +352,11 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
     action: Action,
     input: CommonInput,
     actor: AuthorizationActor,
-    domain: (context: { connection: PoolConnection; repository: InMemoryControlledWriteRepository; trustedActor: AuthorizationActor; flags: readonly FeatureFlagRecord[]; now: Date; locked: LockedCase }) => Promise<WriteResult>,
+    domain: (context: { connection: PoolConnection; repository: InMemoryControlledWriteRepository; trustedActor: AuthorizationActor; flags: readonly FeatureFlagRecord[]; now: Date; locked: LockedCase; submissionCopies: { id: string; rollbackFile: string }[] }) => Promise<WriteResult>,
   ): Promise<WriteResult> {
     const connection = await this.pool.getConnection();
+    const submissionCopies: { id: string; rollbackFile: string }[] = [];
+    let released = false;
     try {
       const trustedActor = await this.access.refreshTrustedActor(actor.id);
       const flags = await this.access.featureFlags();
@@ -376,7 +385,7 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
       const before = locked.repository.get(input.applicationId);
       if (!before) throw new OperationsWriteError("NOT_FOUND");
       const now = new Date();
-      const result = await domain({ connection, repository: locked.repository, trustedActor, flags, now, locked });
+      const result = await domain({ connection, repository: locked.repository, trustedActor, flags, now, locked, submissionCopies });
       const after = locked.repository.get(input.applicationId);
       const event = locked.repository.audit(input.applicationId)[0];
       if (!after || !event) throw new OperationsWriteError("PERSISTENCE_FAILURE");
@@ -389,9 +398,15 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
       return result;
     } catch (error) {
       try { await connection.rollback(); } catch { /* preserve sanitized original */ }
+      // Cleanup uses a fresh durable read; release this connection first so
+      // simultaneous rollbacks cannot exhaust the pool while waiting on it.
+      connection.release();
+      released = true;
+      for (const copy of submissionCopies) await cleanupUncommittedSubmissionCopy(copy, this.pool);
+      if (error instanceof TRPCError) throw error;
       throw mappedError(error);
     } finally {
-      connection.release();
+      if (!released) connection.release();
     }
   }
 
@@ -468,7 +483,7 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
     if (action === "STATUS_TRANSITION") {
       const changed = await affected(connection, "UPDATE applications SET status=? WHERE id=? AND status=?", [after.status, input.applicationId, before.status]);
       if (changed !== 1) throw new OperationsWriteError("CONCURRENCY_CONFLICT");
-      if (after.status === "visa_processing") await recordAuthoritySubmission(connection, input.applicationId, event.actorId);
+      if (after.status === "visa_processing") await recordAuthoritySubmission(connection, input.applicationId, event.actorId, event.id);
       await syncCaseWorkStatus(connection, input.applicationId, before.status, after.status, event.id);
       await enqueueApplicationStatusEmail(connection, { applicationId: input.applicationId, from: before.status, to: after.status,
         eventId: event.id, actor: event.actorId, actorType: event.actorId === 'admin' ? 'ADMIN' : 'STAFF' });

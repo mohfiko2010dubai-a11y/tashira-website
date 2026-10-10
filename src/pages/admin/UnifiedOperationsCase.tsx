@@ -12,6 +12,7 @@ import { applicationStatusLabels } from '@/components/admin/application-display'
 import { DocumentValidityReview } from '@/components/admin/DocumentValidityReview';
 import SchedulerAlertPanel from '@/components/operations/SchedulerAlertPanel';
 import SupplierSelectionPanel from '@/components/operations/SupplierSelectionPanel';
+import SubmissionEvidencePanel from '@/components/operations/SubmissionEvidencePanel';
 import { WORK_LISTS } from '@contracts/work-queue';
 
 const tabs = [
@@ -49,7 +50,7 @@ export default function UnifiedOperationsCase() {
       </>}
       {tab === 'change' && <><DocumentValidityReview referenceNumber={model.summary.reference} mode="change" /><p className="rounded-xl border bg-white p-4">عرض التعديل وموافقة العميل وفرق المبلغ مرتبطة بالطلب نفسه. تسوية فرق المبلغ لا تعني تقديم الطلب للهجرة.</p><ManualVisaChange referenceNumber={model.summary.reference} /></>}
       {tab === 'payments' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><RefundRequest applicationId={model.summary.applicationId} arabic /></>}
-      {tab === 'submission' && <><SupplierSelectionPanel referenceNumber={model.summary.reference} onSaved={refresh} /><OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="status" /><SchedulerAlertPanel applicationId={model.summary.applicationId} /></>}
+      {tab === 'submission' && <><SupplierSelectionPanel referenceNumber={model.summary.reference} onSaved={refresh} /><SubmissionEvidencePanel applicationId={model.summary.applicationId} referenceNumber={model.summary.reference} onSaved={async () => { await refresh(); const next = new URLSearchParams(search); next.set('work', 'WAIT_AUTHORITY'); setSearch(next, { replace: true }); }} /><OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="status" /><SchedulerAlertPanel applicationId={model.summary.applicationId} /></>}
       {tab === 'visa' && <><DocumentManager applicationId={model.summary.applicationId} readOnly allowUpload applicants={applicants} language="ar" /><VisaDeliveryPanel applicationId={model.summary.applicationId} applicationReference={model.summary.reference} applicants={applicants} /></>}
       {tab === 'messages' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><Link to="/staff/operations/support" className="inline-block rounded-lg border bg-white px-4 py-2">فتح صندوق المراسلات</Link></>}
       {tab === 'history' && <><section className="rounded-2xl border bg-white p-5"><h2 className="mb-3 font-bold">سجل إجراءات الطلب</h2><ul className="divide-y">{model.operationalHistory.map(event => <li key={event.id} className="py-3"><p>{event.reason || event.event}</p><p className="text-sm text-slate-500">{event.actorReference || event.actorType} · {event.occurredAt}</p></li>)}</ul></section><CaseNotePanel referenceNumber={model.summary.reference} onRecorded={refresh} /></>}

@@ -77,6 +77,7 @@ type PanelProps = {
 
 export function OperationsControlledWritePanel({ enabled, model, capabilities, execute, refresh, group = 'all' }: PanelProps) {
   if (!enabled || !capabilities) return null;
+  capabilities = { ...capabilities, validStatusTransitions: capabilities.validStatusTransitions.filter(status => status !== 'visa_processing') };
   capabilities = group === 'all' ? capabilities : { ...capabilities,
     humanReview: group === 'documents' && capabilities.humanReview, documentReview: group === 'documents' && capabilities.documentReview,
     assignmentModes: [], reevaluationApplicantIds: [], validStatusTransitions: group === 'status' ? capabilities.validStatusTransitions : [],

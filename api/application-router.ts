@@ -1,5 +1,7 @@
 import { customerServiceClock } from "./lib/customer-wait-log";
 import { selectCaseSupplier } from './lib/supplier-selection';
+import { submissionEvidenceInput } from '../contracts/submission-evidence';
+import { recordSupplierDispatch } from './lib/supplier-dispatch';
 import { syncCaseWorkStatus } from './lib/operations/case-work-status';
 import { enqueueApplicationStatusEmail } from './lib/application-status-outbox';
 import { randomUUID } from 'node:crypto';
@@ -42,6 +44,19 @@ const STATUS_ENUM = ["submitted","payment_received","documents_pending","documen
 const VAT_STATUS_ENUM = ["standard", "zero_rated", "exempt", "out_of_scope"] as const;
 const PLACE_OF_SUPPLY_ENUM = ["within_uae", "outside_uae"] as const;
 export const applicationRouter = createRouter({
+  submissionEvidence: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3) }).strict()).query(async ({ input }) => {
+    const [rows] = await defaultOperationsPool().execute<RowDataPacket[]>(`SELECT e.id,e.evidence_kind,e.external_reference,e.document_id,e.occurred_at,s.name supplier_name,d.mime_type
+      FROM operations_submission_evidence e JOIN applications a ON a.id=e.application_id JOIN suppliers s ON s.id=e.supplier_id
+      JOIN documents d ON d.id=e.document_id
+      WHERE a.reference_number=? ORDER BY e.recorded_at DESC`, [input.referenceNumber]);
+    return rows.map(row => ({ id: String(row.id), kind: String(row.evidence_kind), externalReference: String(row.external_reference), documentId: Number(row.document_id), occurredAt: new Date(row.occurred_at).toISOString(), supplierName: String(row.supplier_name), mimeType: String(row.mime_type) }));
+  }),
+  recordSupplierDispatch: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), evidence: submissionEvidenceInput, key: z.string().uuid() }).strict()).mutation(async ({ input, ctx }) => {
+    await assertStaffSupplierAccess(ctx);
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: 'NOT_FOUND', message: 'الطلب غير موجود. ارجع إلى قائمة الطلبات.' });
+    return recordSupplierDispatch(application.id, input.evidence, input.key, ctx.staffId ? `staff:${ctx.staffId}` : 'admin-session', needsStaffScope(ctx) ? ctx.staffId : undefined);
+  }),
   supplierOptions: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3) }).strict()).query(async ({ input, ctx }) => {
     await assertStaffSupplierAccess(ctx);
     const db = getDb();

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertDocumentNotSubmissionEvidence } from './lib/submission-evidence';
 import { applicationUploadQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import {
   storageUpload,
@@ -103,6 +104,7 @@ export const storageRouter = createRouter({
   delete: staffOrAdminQuery
     .input(z.object({ documentId: z.number().positive() }))
     .mutation(async ({ input }) => {
+      await assertDocumentNotSubmissionEvidence(input.documentId);
       try {
         if (!isStorageConfigured()) {
           throw new TRPCError({
@@ -142,6 +144,7 @@ export const storageRouter = createRouter({
       uploadedBy: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      await assertDocumentNotSubmissionEvidence(input.documentId);
       try {
         if (!isStorageConfigured()) {
           throw new TRPCError({

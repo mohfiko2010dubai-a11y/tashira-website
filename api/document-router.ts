@@ -10,6 +10,7 @@ import { documentUploadEvent, recordTimelineEvent } from "./lib/application-time
 import { recordDocumentLifecycleEvent } from "./lib/document-lifecycle";
 import { LOCAL_STORAGE_METADATA, storageDelete } from "./lib/local-storage";
 import { sendDocumentsRequiredNotification } from "./lib/customer-notification-email";
+import { assertDocumentNotSubmissionEvidence } from './lib/submission-evidence';
 
 const DOCUMENT_TYPES = [
   "passport", "photo", "national_id", "supporting",
@@ -137,6 +138,7 @@ export const documentRouter = createRouter({
       uploadStatus: z.enum(UPLOAD_STATUSES),
     }))
     .mutation(async ({ input }) => {
+      await assertDocumentNotSubmissionEvidence(input.id);
       const db = getDb();
       await db.update(documents)
         .set({ uploadStatus: input.uploadStatus })
@@ -147,6 +149,7 @@ export const documentRouter = createRouter({
   requestReplacement: applicationUploadQuery
     .input(z.object({ id: z.number().positive(), reason: z.string().min(1).max(255) }))
     .mutation(async ({ input, ctx }) => {
+      await assertDocumentNotSubmissionEvidence(input.id);
       const db = getDb();
       const [doc] = await db.select().from(documents).where(eq(documents.id, input.id)).limit(1);
       if (!doc) throw new TRPCError({ code: "NOT_FOUND", message: "Document not found" });
@@ -188,6 +191,7 @@ export const documentRouter = createRouter({
   delete: staffOrAdminQuery
     .input(z.object({ id: z.number().positive() }))
     .mutation(async ({ input, ctx }) => {
+      await assertDocumentNotSubmissionEvidence(input.id);
       const db = getDb();
 
       // Get document to find storage path
