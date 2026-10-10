@@ -1,3 +1,7 @@
+# ERP-05A integration fixture correction — 2026-10-11
+
+CI38087824005 Verify passed; database integration62 passed and3 new refund scenarios failed because the minimal rehearsal fixture omitted existing migration047 (stripe_event_created). Add the actual unchanged migration to the guarded disposable runner; no assertion removed, no production/staging schema change. Rerun all65 tests and exact candidate gates before deployment.
+
 # ERP-05A verification candidate — 2026-10-11
 
 Refund requests now also reuse refundMoney for available balances, preventing floating-point residue from rejecting the last partial amount. New disposable router tests require the router DATABASE_URL to equal the guarded rehearsal URL, cover concurrent/replayed requests, changed intent, original actor vs reassignment, another visa payment, deposit source, stale clients without request UUID and 0.30 minus0.10 then0.20. Inventory65 across19 suites. Local check/lint/test/build run completed; final precision/stale-client edits require exact candidate CI and server gates before deployment. No refund execution, invoice issuance or email sent. ERP05 security-deposit creation, settlement/invoice/credit-note UAT and full visual acceptance remain open.

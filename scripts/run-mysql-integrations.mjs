@@ -25,7 +25,7 @@ try {
   // The minimal legacy rehearsal fixture predates these existing document fields.
   await db.query('ALTER TABLE documents ADD COLUMN uploaded_by varchar(255) NULL, ADD COLUMN updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP');
   for(const file of ['005_business_architecture.sql','008_email_template_evidence.sql','009_application_data_classification.sql','010_refunds_and_security_deposits.sql','011_security_deposit_email.sql','012_refund_email_evidence.sql','013_refund_email_append_only_idempotency.sql',
-    '046_checkout_quote_revisions.sql','051_checkout_payment_attempts.sql','052_explicit_test_orders.sql','055_product_availability.sql','056_processing_guarantee.sql','057_nationality_availability.sql','059_company_policy_settings.sql','060_nationality_product_rules.sql','061_submission_and_stripe_fee.sql','062_named_staff_security.sql','063_refund_queue.sql','064_transactional_email.sql','065_internal_email_templates.sql','066_suppressed_email_jobs.sql']) {
+    '046_checkout_quote_revisions.sql','047_stripe_event_order.sql','051_checkout_payment_attempts.sql','052_explicit_test_orders.sql','055_product_availability.sql','056_processing_guarantee.sql','057_nationality_availability.sql','059_company_policy_settings.sql','060_nationality_product_rules.sql','061_submission_and_stripe_fee.sql','062_named_staff_security.sql','063_refund_queue.sql','064_transactional_email.sql','065_internal_email_templates.sql','066_suppressed_email_jobs.sql']) {
     for(const statement of parseMysqlClientScript(readFileSync('migrations/'+file,'utf8'))) await db.query(statement);
   }
   await db.query("UPDATE applications SET data_classification='TEST'");
