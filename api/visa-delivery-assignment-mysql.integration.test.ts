@@ -72,10 +72,12 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
   it('serializes concurrent retries, retains one delivery/audit, and rejects changed instructions or revoked grants', async () => {
     const f = await fixture();
     await syntheticScan(f, 'PASSED', '2026-01-01');
+    f.preparedAt = '2026-10-10T19:59:19.765Z';
     const result = await Promise.all([repository.prepare(f), repository.prepare(f)]);
+    expect(result[0].generatedAt).toBe('2026-10-10T19:59:19.000Z');
     expect(result[0]).toEqual(result[1]);
     expect(await repository.prepare({ ...f, commandId: randomUUID() })).toEqual(result[0]);
-    expect(await repository.listForCustomer(f.applicationReference)).toHaveLength(1);
+    expect(await repository.listForCustomer(f.applicationReference)).toEqual([result[0]]);
     const [audit] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM operations_audit_events WHERE event_type='VISA_DELIVERY_PREPARED' AND resource_reference=?", [result[0].deliveryId]);
     expect(Number(audit[0].n)).toBe(1);
     await expect(repository.prepare({ ...f, customerInstructions: ['Changed instructions'] })).rejects.toThrow('VISA_DELIVERY_IDEMPOTENCY_CONFLICT');

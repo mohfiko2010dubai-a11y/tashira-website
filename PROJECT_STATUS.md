@@ -1,3 +1,7 @@
+# ERP-04D1 verification corrections — 2026-10-11
+
+CI38081872793 passed Verify but failed 1 of59 mandatory MySQL tests: DATETIME(0) discarded milliseconds while the first delivery response and its integrity hash retained them. Canonicalize to whole UTC seconds before hashing and persistence; regression now fixes a nonzero-millisecond input and checks exact equality across concurrent calls, fresh retry keys and database reads. No test relaxed. Full gates and CI rerun pending; runtime remains529e219. Exact-server tests also detected a leftover submission-evidence-uat.cjs temporary bundle in candidate source: moved that artifact to /var/tmp/submission-evidence-uat-preserved-20261011.cjs, outside the build source, without adding an environment-access exception. No production changes.
+
 # ERP-04D1 assigned-owner delivery candidate — 2026-10-10
 
 Visa delivery candidate removes the obsolete mandatory team join, supports ASSIGNED scope, and rechecks current staff grants/ownership inside the application-first locked transaction before new writes and replays. Concurrent retries/new keys for the same exact document reuse one package; changed recipient/instructions conflict. Same-time conflicting scans fail closed. Arabic panel has clear errors, loading/empty/retry states and stable retry keys. Added one unit scenario and three guarded database scenarios; mandatory inventory59 across17 suites. Local check/lint/test/build passed1471 unit tests; CI59 mandatory database tests pending; not yet deployed.
