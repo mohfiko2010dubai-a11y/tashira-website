@@ -60,6 +60,11 @@ suite('atomic staff work dispatch', () => {
         VALUES (?,'single','non-gcc','ROUTE_TEST',?,'queue@example.invalid','000',1,100,'documents_received','paid','TEST',1,?)`, [`QUEUE-${tag}-${index}`, speed, date]);
       cases.push(inserted.insertId);
     }
+    const [grants] = await pool.execute<RowDataPacket[]>(`SELECT r.is_active, sr.valid_from<=UTC_TIMESTAMP() effective,
+      (SELECT COUNT(*) FROM operations_role_permissions rp WHERE rp.role_id=r.id) permission_count,
+      (SELECT COUNT(*) FROM operations_scope_grants sg WHERE sg.staff_user_id=sr.staff_user_id AND sg.revoked_at IS NULL) scope_count
+      FROM operations_staff_roles sr JOIN operations_roles r ON r.id=sr.role_id WHERE sr.staff_user_id=?`, [staff[0]]);
+    expect(grants.map(row => ({ active: row.is_active, effective: Number(row.effective), permissions: Number(row.permission_count), scopes: Number(row.scope_count) }))).toEqual([{ active: 'ACTIVE', effective: 1, permissions: 2, scopes: 1 }]);
   });
   afterAll(async () => { await pool?.end(); });
 
