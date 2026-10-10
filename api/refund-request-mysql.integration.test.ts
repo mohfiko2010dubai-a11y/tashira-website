@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createPool, type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
 import { refundRouter } from './refund-router';
+import { securityDepositRouter } from './security-deposit-router';
 import { env } from './lib/env';
 import type { TrpcContext } from './context';
 const url = process.env.OPS_REHEARSAL_DATABASE_URL;
@@ -61,6 +62,23 @@ describe.skipIf(!url).sequential('refund request retries in disposable MySQL', (
     const cases = await caller.listByApplication({ applicationId: f.id }); expect(cases).toHaveLength(2);
     expect(cases.find(c => c.id === deposit.refundCaseId)?.items[0]).toMatchObject({ sourceType: 'SECURITY_DEPOSIT', securityDepositPaymentId: depositId, status: 'PENDING' });
     const available = await caller.eligibleSources({ applicationId: f.id }); expect(available.find(s => s.id === depositId)?.availableAmount).toBe(30);
+  });
+  it('shows assigned deposit status without capabilities or manager write permissions', async () => {
+    const f = await fixture(), id = randomUUID();
+    await pool.execute(`INSERT INTO security_deposit_requests(id,application_id,amount,currency,security_deposit_status,purpose,access_token_hash,expires_at,requested_by)
+      VALUES (?,?,50,'AED','SENT','Synthetic pending deposit',?,'2030-01-01','synthetic')`, [id, f.id, randomUUID().replaceAll('-', '').padEnd(64, '0')]);
+    const caller = securityDepositRouter.createCaller(context(staff[0]));
+    const rows = await caller.operationalStatus({ applicationId: f.id });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id, amount: '50.00', currency: 'AED', status: 'SENT' });
+    expect(Object.keys(rows[0]).sort()).toEqual(['id', 'amount', 'currency', 'status', 'purpose', 'expiresAt', 'sentAt', 'paidAt'].sort());
+    await expect(securityDepositRouter.createCaller(context(staff[1])).operationalStatus({ applicationId: f.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(securityDepositRouter.createCaller(context(0)).operationalStatus({ applicationId: f.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(caller.createAndSend({ applicationId: f.id, amount: 50, purpose: 'Synthetic request' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(caller.resend({ requestId: id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await pool.execute('UPDATE operations_case_controls SET assigned_staff_user_id=? WHERE application_id=?', [staff[1], f.id]);
+    await expect(caller.operationalStatus({ applicationId: f.id })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(await securityDepositRouter.createCaller(context(staff[1])).operationalStatus({ applicationId: f.id })).toHaveLength(1);
   });
   it('denies a prior owner retry and refuses another applications payment', async () => {
     const f = await fixture(), foreign = await fixture(), caller = refundRouter.createCaller(context(staff[0])), request = command(f);

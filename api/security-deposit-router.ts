@@ -10,7 +10,7 @@ import {
   securityDepositPayments,
   securityDepositRequests,
 } from "@db/schema";
-import { adminQuery, createRouter, securityDepositQuery } from "./middleware";
+import { adminQuery, createRouter, securityDepositQuery, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { transactionalEmailProvider } from "./lib/email-provider";
 import { recipientHash } from "./lib/resend-email";
@@ -24,6 +24,16 @@ function actorReference(ctx: { user?: { id: number } }) {
 }
 
 export const securityDepositRouter = createRouter({
+  // Operational projection only: never expose the customer's payment capability.
+  operationalStatus: staffOrAdminQuery.input(z.object({ applicationId: z.number().int().positive() }))
+    .query(({ input }) => getDb().select({
+      id: securityDepositRequests.id, amount: securityDepositRequests.amount,
+      currency: securityDepositRequests.currency, status: securityDepositRequests.status,
+      purpose: securityDepositRequests.purpose, expiresAt: securityDepositRequests.expiresAt,
+      sentAt: securityDepositRequests.sentAt, paidAt: securityDepositRequests.paidAt,
+    }).from(securityDepositRequests).where(eq(securityDepositRequests.applicationId, input.applicationId))
+      .orderBy(desc(securityDepositRequests.createdAt))),
+
   listByApplication: adminQuery.input(z.object({ applicationId: z.number().int().positive() }))
     .query(({ input }) => getDb().select().from(securityDepositRequests)
       .where(eq(securityDepositRequests.applicationId, input.applicationId))

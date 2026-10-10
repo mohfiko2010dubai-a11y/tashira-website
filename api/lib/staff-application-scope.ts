@@ -20,7 +20,7 @@ export function assertStaffCaseScope(actor: AuthorizationActor, resource: Author
 }
 
 export function staffResourceTargets(path: string, input: unknown): { kind: "application" | "document" | "reference"; value: string | number }[] {
-  if (!/^(application|document|storage|wizard|timeline|invoice|risk|payment|refund|emailOperations|dynamicInterview|customerOperations|customerPrecheck|customerVisaAssistant)\./.test(path) || !input || typeof input !== "object") return [];
+  if (!/^(application|document|storage|wizard|timeline|invoice|risk|payment|refund|securityDeposit|emailOperations|dynamicInterview|customerOperations|customerPrecheck|customerVisaAssistant)\./.test(path) || !input || typeof input !== "object") return [];
   const targets: ReturnType<typeof staffResourceTargets> = [];
   for (const key of ["referenceNumber", "applicationId", "documentId", "id"] as const) {
     const value: unknown = Reflect.get(input, key);

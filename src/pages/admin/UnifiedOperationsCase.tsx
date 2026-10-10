@@ -6,6 +6,7 @@ import DocumentManager from '@/components/shared/DocumentManager';
 import VisaDeliveryPanel from '@/components/operations/VisaDeliveryPanel';
 import CaseNotePanel from '@/components/operations/CaseNotePanel';
 import RefundRequest from '@/components/operations/RefundRequest';
+import SecurityDepositStatus from '@/components/operations/SecurityDepositStatus';
 import { ManualVisaChange } from '@/components/admin/ManualVisaChange';
 import CustomerProgressPanel from '@/components/operations/CustomerProgressPanel';
 import { applicationStatusLabels } from '@/components/admin/application-display';
@@ -50,7 +51,7 @@ export default function UnifiedOperationsCase() {
         <OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="documents" />
       </>}
       {tab === 'change' && <><DocumentValidityReview referenceNumber={model.summary.reference} mode="change" /><p className="rounded-xl border bg-white p-4">عرض التعديل وموافقة العميل وفرق المبلغ مرتبطة بالطلب نفسه. تسوية فرق المبلغ لا تعني تقديم الطلب للهجرة.</p><ManualVisaChange referenceNumber={model.summary.reference} /></>}
-      {tab === 'payments' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><RefundRequest applicationId={model.summary.applicationId} arabic /></>}
+      {tab === 'payments' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><SecurityDepositStatus applicationId={model.summary.applicationId} /><RefundRequest applicationId={model.summary.applicationId} arabic /></>}
       {tab === 'submission' && <><SupplierSelectionPanel referenceNumber={model.summary.reference} onSaved={refresh} /><SubmissionEvidencePanel applicationId={model.summary.applicationId} referenceNumber={model.summary.reference} onSaved={async () => { await refresh(); const next = new URLSearchParams(search); next.set('work', 'WAIT_AUTHORITY'); setSearch(next, { replace: true }); }} /><OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="status" /><SchedulerAlertPanel applicationId={model.summary.applicationId} /></>}
       {tab === 'visa' && <><DocumentManager applicationId={model.summary.applicationId} readOnly allowUpload applicants={applicants} language="ar" /><VisaDeliveryPanel applicationId={model.summary.applicationId} applicationReference={model.summary.reference} applicants={applicants} /></>}
       {tab === 'messages' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><Link to="/staff/operations/support" className="inline-block rounded-lg border bg-white px-4 py-2">فتح صندوق المراسلات</Link></>}

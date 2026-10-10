@@ -1,3 +1,15 @@
+# ERP-05B deposit follow-up candidate — 2026-10-11
+
+Added a narrowly projected securityDeposit.operationalStatus read, assigned-case scope enforcement, Arabic follow-up panel in unified payments tab, and an actual router integration covering exact allowed keys, anonymous/other owner denial, reassignment, and refusal of staff create/resend. Existing payment/refund/create/send behavior unchanged. Mandatory MySQL inventory66; gates pending, not deployed.
+
+# ERP-05A refund request safety deployed — 2026-10-11
+
+Staging runtime9e3c1d01bee641ee7598d367feee347570b7136a. CI38088275808 both jobs passed: all65 MySQL tests in19 suites, zero skipped. Exact-server check/lint/test/build passed1472 unit tests. Backup /var/backups/tashira-staging/refund-verified-9e3c1d0-1791668461096. Health/pages200 and protected anonymous APIs403. No production/schema changes, Stripe execution or emails. Initial failures were corrected by adding existing migration047 to disposable setup and using the real financial_event_type column in the one-event assertion; no assertions removed.
+
+Employee refund source selection now covers eligible visa payments and security deposits, shows existing requests, and preserves stable command IDs for unchanged in-page retries. Server locks/rechecks assignment, reserves once, verifies exact replay intent, and rounds available balances consistently. Full-refresh request identity, actual Stripe TEST/invoice/inbox UAT and browser acceptance remain open. Browser runtime still fails before tab access.
+
+Next ERP05B: expose a restricted assigned-case security-deposit status projection in the unified case. Existing create/send/admin permissions remain unchanged; no capability hashes/tokens, financial cost or profit fields in employee responses. Deposit creation retry safety remains a separate open item.
+
 # ERP-05A integration fixture correction — 2026-10-11
 
 CI38087824005 Verify passed; database integration62 passed and3 new refund scenarios failed because the minimal rehearsal fixture omitted existing migration047 (stripe_event_created). Add the actual unchanged migration to the guarded disposable runner; no assertion removed, no production/staging schema change. Rerun all65 tests and exact candidate gates before deployment.
