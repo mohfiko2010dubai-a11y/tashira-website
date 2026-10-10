@@ -17,7 +17,7 @@ export function refundExecutionStatus(statuses: readonly string[]) {
   return statuses.includes('SUCCEEDED') ? 'PARTIALLY_REFUNDED' as const : 'FAILED' as const;
 }
 
-function money(value: number) {
+export function refundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
@@ -47,7 +47,7 @@ export function calculateRefund(input: {
     deductionAmount = deduction.value;
   }
 
-  deductionAmount = money(deductionAmount);
+  deductionAmount = refundMoney(deductionAmount);
   if (deductionAmount > requestedAmount) {
     throw new Error("Deduction cannot exceed the requested refund");
   }
@@ -55,9 +55,9 @@ export function calculateRefund(input: {
     throw new Error("A refund must return a positive amount");
   }
   return {
-    requestedAmount: money(requestedAmount),
+    requestedAmount: refundMoney(requestedAmount),
     deductionAmount,
-    refundAmount: money(requestedAmount - deductionAmount),
+    refundAmount: refundMoney(requestedAmount - deductionAmount),
   };
 }
 

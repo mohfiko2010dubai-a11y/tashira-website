@@ -1,5 +1,7 @@
 import { overdueWaitingOrders } from "./lib/customer-wait-log";
 import crypto from "node:crypto";
+import { enforceStaffApplicationScope } from "./lib/staff-application-scope";
+import { refundRequestIdentity } from "./lib/refund-request-identity";
 import { createExpressGuaranteeRefund, processingGuarantees } from "./lib/express-guarantee-refund";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -18,7 +20,7 @@ import { adminQuery, createRouter, staffOrAdminQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { verifyNamedStaffPassword } from "./lib/named-staff-password";
 import { executeApprovedRefund } from "./lib/execute-refund";
-import { assertRefundSource, calculateRefund, deriveRefundCaseStatus, reconcileRefundStatus, type RefundDeduction } from "./lib/refund-domain";
+import { assertRefundSource, calculateRefund, refundMoney, deriveRefundCaseStatus, reconcileRefundStatus, type RefundDeduction } from "./lib/refund-domain";
 import { findStripeRefund, retrieveStripeRefund } from "./lib/stripe";
 import { sendRefundOutcomeEmail } from "./lib/refund-outcome-email";
 import { completeVisaRefundWithCreditNote } from "./lib/refund-credit-note";
@@ -90,7 +92,7 @@ export const refundRouter = createRouter({
           sourceType: source,
           id,
           originalAmount: Number(amount),
-          availableAmount: Math.max(0, Number(amount) - Number(reserved?.total || 0)),
+          availableAmount: Math.max(0, refundMoney(Number(amount) - Number(reserved?.total || 0))),
           currency: sourceCurrency.toUpperCase(),
         };
       };
@@ -123,16 +125,33 @@ export const refundRouter = createRouter({
   }),
 
   createCase: staffOrAdminQuery.input(z.object({
+    commandId: z.string().uuid().optional(),
     applicationId: z.number().int().positive(),
     reason: z.string().trim().min(5).max(500),
     policyVersion: z.string().trim().min(1).max(50),
     items: z.array(itemInput).min(1).max(2),
   })).mutation(async ({ input, ctx }) => getDb().transaction(async (tx) => {
+    if (!input.commandId) throw new TRPCError({ code: "BAD_REQUEST", message: "حدّث الصفحة لتحميل نموذج الاسترداد الجديد ثم أعد المحاولة. لم يتم إنشاء طلب." });
     const [application] = await tx.select({ id: applications.id }).from(applications)
       .where(eq(applications.id, input.applicationId)).limit(1).for("update");
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
 
-    const refundCaseId = crypto.randomUUID();
+    // Assignment changes take the same application lock. Recheck ownership here,
+    // including retries, before reading or creating financial records.
+    await enforceStaffApplicationScope(ctx, 'refund.createCase', input, true);
+    const requester = actorReference(ctx);
+    const [prior] = await tx.select().from(refundCases).where(eq(refundCases.id, input.commandId)).limit(1);
+    if (prior) {
+      const priorItems = await tx.select().from(refundItems).where(eq(refundItems.refundCaseId, prior.id));
+      const recorded = priorItems.map(item => ({ sourceType: item.sourceType, paymentId: item.paymentId,
+        securityDepositPaymentId: item.securityDepositPaymentId, requestedAmount: item.requestedAmount,
+        deduction: { type: item.deductionType, value: item.deductionValue } }));
+      if (prior.applicationId !== input.applicationId || prior.requestedBy !== requester || prior.reason !== input.reason
+        || prior.policyVersion !== input.policyVersion || refundRequestIdentity(recorded) !== refundRequestIdentity(input.items))
+        throw new TRPCError({ code: 'CONFLICT', message: 'تختلف بيانات المحاولة عن طلب الاسترداد المسجل. حدّث الصفحة وراجع الطلب السابق.' });
+      return { refundCaseId: prior.id, status: prior.status, replayed: true };
+    }
+    const refundCaseId = input.commandId;
     const preparedItems: Array<typeof refundItems.$inferInsert> = [];
     const depositRequestIds: string[] = [];
     for (const item of input.items) {
@@ -149,7 +168,7 @@ export const refundRouter = createRouter({
             eq(refundItems.paymentId, payment.id),
             inArray(refundItems.status, ["PENDING", "PROCESSING", "SUCCEEDED"]),
           ));
-        const available = Number(payment.amount) - Number(reserved?.total || 0);
+        const available = refundMoney(Number(payment.amount) - Number(reserved?.total || 0));
         const calculation = calculateRefund({
           paidAmount: available,
           requestedAmount: item.requestedAmount,
@@ -185,7 +204,7 @@ export const refundRouter = createRouter({
             eq(refundItems.securityDepositPaymentId, deposit.id),
             inArray(refundItems.status, ["PENDING", "PROCESSING", "SUCCEEDED"]),
           ));
-        const available = Number(deposit.amount) - Number(reserved?.total || 0);
+        const available = refundMoney(Number(deposit.amount) - Number(reserved?.total || 0));
         const calculation = calculateRefund({
           paidAmount: available,
           requestedAmount: item.requestedAmount,
@@ -233,13 +252,13 @@ export const refundRouter = createRouter({
       id: crypto.randomUUID(),
       applicationId: input.applicationId,
       eventName: "REFUND_REQUESTED",
-      eventSource: "ADMIN_DASHBOARD",
-      actorType: "ADMIN",
+      eventSource: ctx.isAdmin ? "ADMIN_DASHBOARD" : "STAFF_DASHBOARD",
+      actorType: ctx.isAdmin ? "ADMIN" : "STAFF",
       actorReference: actorReference(ctx),
       resultingState: "PENDING_APPROVAL",
       summary: "Refund case created for administrative review",
     });
-    return { refundCaseId, status: "PENDING_APPROVAL" as const };
+    return { refundCaseId, status: "PENDING_APPROVAL" as const, replayed: false };
   })),
 
   approveCase: adminQuery.input(z.object({

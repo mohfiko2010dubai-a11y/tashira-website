@@ -1,3 +1,13 @@
+# ERP-05A verification candidate — 2026-10-11
+
+Refund requests now also reuse refundMoney for available balances, preventing floating-point residue from rejecting the last partial amount. New disposable router tests require the router DATABASE_URL to equal the guarded rehearsal URL, cover concurrent/replayed requests, changed intent, original actor vs reassignment, another visa payment, deposit source, stale clients without request UUID and 0.30 minus0.10 then0.20. Inventory65 across19 suites. Local check/lint/test/build run completed; final precision/stale-client edits require exact candidate CI and server gates before deployment. No refund execution, invoice issuance or email sent. ERP05 security-deposit creation, settlement/invoice/credit-note UAT and full visual acceptance remain open.
+
+# ERP-04D2 deployed; ERP-05A refund requests in progress — 2026-10-11
+
+Runtime86d213b19707e2d8e830673ac73183ddaee67303. Supplier operations board passed local and exact-server check/lint/test/build1471 unit tests. CI38083542481 both jobs successful, all62 guarded database tests in18 suites, zero skipped. Backup /var/backups/tashira-staging/supplier-board-86d213b-1791664051836. HTTP health200; no production/schema changes. Authenticated browser UAT remains open because the browser tool cannot initialize. Actual visa delivery still awaits genuine file scanning; ERP04 is not fully closed.
+
+Next ERP05A fixes the employee refund form's first-visa-payment assumption, exposing all already-authorized eligible sources including deposits and displaying current requests. Existing refund creation lacks stable retry identity: a lost response can create a second partial-refund request if funds remain. Candidate adds a client-generated UUID as the existing refund-case ID, exact persisted intent matching on replay under application lock, and ownership recheck after acquiring that lock. No schema change, no new staff approval/execution rights, no Stripe execution or email action in this work. Client keys persist across retries of unchanged inputs. Full verification pending; not deployed.
+
 # ERP-04D2 pagination verification — 2026-10-11
 
 CI38083248347 caught MySQL binary-protocol LIMIT parameter rejection in the new paginated list; all prior59 DB tests passed, the three new board tests failed on query execution. Use mysql2 escaped query placeholders for the paginated SELECT (all client values still bound and escaped), then rerun all62 DB tests. No deployment of failed candidate; staff-redaction assertion remains unchanged.
