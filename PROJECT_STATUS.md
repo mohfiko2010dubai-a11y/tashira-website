@@ -1,3 +1,7 @@
+# ERP-05B access test correction — 2026-10-11
+
+CI38088705596 caught direct subrouter calls lacking the mounted path prefix used by generic scoping. Added explicit assigned-case authorization inside operationalStatus as defense in depth, retaining the other-owner denial test unchanged. Candidate not deployed; all66 integrations and exact gates must rerun.
+
 # ERP-05B deposit follow-up candidate — 2026-10-11
 
 Added a narrowly projected securityDeposit.operationalStatus read, assigned-case scope enforcement, Arabic follow-up panel in unified payments tab, and an actual router integration covering exact allowed keys, anonymous/other owner denial, reassignment, and refusal of staff create/resend. Existing payment/refund/create/send behavior unchanged. Mandatory MySQL inventory66; gates pending, not deployed.

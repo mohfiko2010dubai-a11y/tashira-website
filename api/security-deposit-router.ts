@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { enforceStaffApplicationScope } from "./lib/staff-application-scope";
 import { assertApplicationIntakeOpen } from "./lib/application-intake";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, gt, inArray } from "drizzle-orm";
@@ -26,13 +27,16 @@ function actorReference(ctx: { user?: { id: number } }) {
 export const securityDepositRouter = createRouter({
   // Operational projection only: never expose the customer's payment capability.
   operationalStatus: staffOrAdminQuery.input(z.object({ applicationId: z.number().int().positive() }))
-    .query(({ input }) => getDb().select({
+    .query(async ({ input, ctx }) => {
+      await enforceStaffApplicationScope(ctx, 'securityDeposit.operationalStatus', input, false);
+      return getDb().select({
       id: securityDepositRequests.id, amount: securityDepositRequests.amount,
       currency: securityDepositRequests.currency, status: securityDepositRequests.status,
       purpose: securityDepositRequests.purpose, expiresAt: securityDepositRequests.expiresAt,
       sentAt: securityDepositRequests.sentAt, paidAt: securityDepositRequests.paidAt,
     }).from(securityDepositRequests).where(eq(securityDepositRequests.applicationId, input.applicationId))
-      .orderBy(desc(securityDepositRequests.createdAt))),
+      .orderBy(desc(securityDepositRequests.createdAt));
+    }),
 
   listByApplication: adminQuery.input(z.object({ applicationId: z.number().int().positive() }))
     .query(({ input }) => getDb().select().from(securityDepositRequests)
