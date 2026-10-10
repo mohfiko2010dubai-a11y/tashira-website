@@ -31,5 +31,8 @@ describe.skipIf(!url).sequential('pricing margin currency in disposable MySQL',(
     expect(result.grossProfit-before.grossProfit).toBeCloseTo(513.8,2);
     expect(result.excludedOtherBaseCurrencyOrders-before.excludedOtherBaseCurrencyOrders).toBe(1);
     await expect(businessRouter.createCaller({...admin,isAdmin:false,staffId:999999}).cockpit()).rejects.toMatchObject({code:'FORBIDDEN'});
+    const employee=businessRouter.createCaller({...admin,isAdmin:false,staffId:999999});
+    await expect(employee.settlementReport({applicationId:1})).rejects.toMatchObject({code:'FORBIDDEN'});
+    await expect(employee.reconcileSettlement({applicationId:1,kind:'PAYMENT',id:'1'})).rejects.toMatchObject({code:'FORBIDDEN'});
   });
 });

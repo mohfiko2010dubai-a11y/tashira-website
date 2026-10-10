@@ -1,3 +1,9 @@
+# T2B1 settlement evidence candidate — 2026-10-11
+
+Adds immutable provider balance evidence and manager-only per-order reconciliation. Read-only Stripe GET verifies successful source identity, amount, currency, payment mode and charge/refund relationship, net arithmetic and provider FX. Rechecks source under application lock; concurrent/repeated capture cannot double-count. Report separates settlement currencies, excludes failed service payments and deposit refunds, distinguishes missing evidence/cost from zero and does not invent final profit. No payment/refund is executed. New migration076 pending; no staging schema/runtime changes yet.
+
+Seven focused parser/unit cases passed. Added3 mandatory disposable MySQL cases (inventory80/21) for concurrent/replay, partial refund, immutable records, changed sources, cross-application target and mode mismatch; employee report/capture denial added to existing finance case. Full gates/CI pending. Browser CUA reset and alternate documented node_repl path both failed before inventory with trusted Node process exited unexpectedly. Continue independent financial and communications work; visual acceptance remains OPEN.
+
 # T2A deployed; remaining completion gates explicit — 2026-10-11
 
 Staging runtime995caae37a9f9c175dd3fcc23eedcf6169a68b0a; CI38095960139 both jobs successful.77 mandatory MySQL tests in20 suites executed, zero skipped, including actual router USD/AED family costs, TEST exclusion, historical different base currency and employee FORBIDDEN. Local check/lint/test/build passed1496 unit tests plus13 build-environment checks; final TypeScript project-reference check passed after final edits. Exact server check/lint/test/build passed for deployed SHA. Original local dist/boot.js hash preserved FD544988685D8C1A81295ACF50D33B4D38494C5E56CDC81F697BDA296CD36EED.

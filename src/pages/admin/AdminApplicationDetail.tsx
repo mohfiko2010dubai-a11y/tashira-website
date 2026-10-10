@@ -1,4 +1,5 @@
 import { ManualVisaChange } from '@/components/admin/ManualVisaChange';
+import SettlementPanel from '@/components/admin/SettlementPanel';
 import { visaLabel, applicationStatusLabels, formatFeeMinor } from '@/components/admin/application-display';
 import { DocumentValidityReview } from "@/components/admin/DocumentValidityReview";
 import Logo from '@/components/shared/Logo';
@@ -439,6 +440,7 @@ export default function AdminApplicationDetail() {
 {fees.data?.filter(payment => payment.status === 'succeeded').map(payment => <div key={payment.paymentId} className="mt-4 rounded-xl border bg-white p-4"><div className="flex flex-wrap items-center justify-between gap-3"><p>دفعة رقم {payment.paymentId}<strong className="mt-1 block text-lg">{payment.feeMinor === null ? 'لم تُطابق الرسوم بعد' : payment.currency ? formatFeeMinor(payment.feeMinor, payment.currency) : "عملة الرسوم غير مسجّلة — حدّث من Stripe"}</strong></p><button className="min-h-11 rounded-xl border px-4 py-2 font-semibold disabled:opacity-50" disabled={reconcileFee.isPending} onClick={() => reconcileFee.mutate({ paymentId: payment.paymentId })}>تحديث الرسوم من Stripe</button></div><details className="mt-3 text-sm text-slate-500"><summary className="cursor-pointer">معرّف حركة Stripe</summary><bdi className="mt-2 block break-all">{payment.balanceTransaction || 'غير مسجّل'}</bdi></details></div>)}
 {reconcileFee.error && <p role="alert" className="mt-3 text-red-700">{reconcileFee.error.message}</p>}{reconcileFee.isSuccess && <p role="status" className="mt-3 text-emerald-700">تم تحديث الرسوم من Stripe.</p>}</section>
               <ProcessingGuarantee applicationId={app.id} />
+              <SettlementPanel applicationId={app.id} />
               <RefundManager applicationId={app.id} />
             </div>
           )}

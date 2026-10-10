@@ -44,6 +44,7 @@ try {
   for (const statement of parseMysqlClientScript(readFileSync('migrations/073_deposit_creation_identity.sql', 'utf8'))) await db.query(statement);
   for (const statement of parseMysqlClientScript(readFileSync('migrations/074_deposit_email_attempts.sql', 'utf8'))) await db.query(statement);
   for (const statement of parseMysqlClientScript(readFileSync('migrations/075_visa_file_evidence.sql', 'utf8'))) await db.query(statement);
+  for (const statement of parseMysqlClientScript(readFileSync('migrations/076_stripe_settlement_evidence.sql', 'utf8'))) await db.query(statement);
   // Exercise the real trigger in the disposable database, then restore fixtures.
   await db.beginTransaction();
   try {
@@ -81,10 +82,10 @@ function find(dir) { return readdirSync(dir,{withFileTypes:true}).flatMap(entry 
   return entry.isDirectory()?find(file):entry.name.endsWith('.integration.test.ts')?[file]:[];
 }); }
 const files=find('api');
-if (files.length !== 20) throw new Error('Integration inventory changed; review the expected suite');
+if (files.length !== 21) throw new Error('Integration inventory changed; review the expected suite');
 const report='mysql-integration-results.json';
 const result=spawnSync(process.execPath,['node_modules/vitest/vitest.mjs','run',...files,'--no-file-parallelism','--reporter=default','--reporter=json','--outputFile='+report],{env,stdio:'inherit'});
 if(result.status!==0)process.exit(result.status??1);
 const summary=JSON.parse(readFileSync(report,'utf8'));
-if(summary.numPassedTests!==77 || summary.numPendingTests!==0 || summary.numFailedTests!==0) throw new Error('All77 integration tests must execute and pass; skips fail CI');
-console.log('All77 guarded MySQL integration tests passed, zero skipped.');
+if(summary.numPassedTests!==80 || summary.numPendingTests!==0 || summary.numFailedTests!==0) throw new Error('All80 integration tests must execute and pass; skips fail CI');
+console.log('All80 guarded MySQL integration tests passed, zero skipped.');

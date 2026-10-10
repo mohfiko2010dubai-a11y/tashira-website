@@ -1,5 +1,8 @@
 import { COMPANY_FIELDS, companyReopeningBlockers } from "../contracts/company-settings";
 import { captureStripeFee } from "./lib/stripe-fee";
+import { SettlementReconciliation } from './lib/settlement-reconciliation';
+import { defaultOperationsPool } from './lib/operations/mysql-query-client';
+import { TRPCError } from '@trpc/server';
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { financialApplicationScope } from "./lib/financial-application-scope";
@@ -22,6 +25,18 @@ function actorReference(ctx: { user?: { id: number }; staffId?: number }) {
 }
 
 export const businessRouter = createRouter({
+  settlementReport: adminQuery.input(z.object({applicationId:z.number().int().positive()}))
+    .query(({input})=>new SettlementReconciliation(defaultOperationsPool()).report(input.applicationId)),
+  reconcileSettlement: adminQuery.input(z.object({applicationId:z.number().int().positive(),kind:z.enum(['PAYMENT','REFUND']),id:z.string().min(1).max(36)}))
+    .mutation(async({input,ctx})=>{
+      try{return await new SettlementReconciliation(defaultOperationsPool()).capture(input.applicationId,input.kind,input.id,actorReference(ctx));}
+      catch(error){
+        const pending=error instanceof Error&&error.message==='SETTLEMENT_PENDING';
+        throw new TRPCError({code:'BAD_REQUEST',message:pending
+          ? 'حركة التسوية لم تتوفر لدى Stripe بعد. أعد المطابقة لاحقًا.'
+          : 'تعذرت مطابقة الحركة المالية. حدّث الطلب وتحقق من الدفعة أو الاسترداد في Stripe ثم أعد المحاولة.'});
+      }
+    }),
   orderFees: adminQuery.input(z.object({ applicationId: z.number().int().positive() })).query(({ input }) =>
     getDb().select({ paymentId: payments.id, status: payments.status, feeMinor: payments.stripeFeeMinor,
       currency: payments.stripeFeeCurrency, balanceTransaction: payments.stripeBalanceTransactionId }).from(payments).where(eq(payments.applicationId, input.applicationId))),
