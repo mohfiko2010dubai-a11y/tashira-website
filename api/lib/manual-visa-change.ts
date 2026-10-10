@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { withCheckoutLock } from "./checkout-quote";
 import { defaultOperationsPool } from "./operations/mysql-query-client";
+import { syncCaseWorkStatus } from './operations/case-work-status';
 
 export const refusalOutcomes = ["FULL_REFUND_CANCEL", "REFUND_LESS_FEE", "TRY_ANOTHER_PRODUCT", "ORIGINAL_AT_CUSTOMER_REQUEST"] as const;
 export type ManualChangeRequest = {
@@ -126,7 +127,9 @@ export async function decideManualChange(id: string, actorId: number, approve: b
         await connection.execute("UPDATE applications SET submitted_product=?,substitution_acknowledged_version=?,substitution_acknowledged_at=NOW(3) WHERE id=?",
           [quote.previous_product, quote.version, quote.application_id]);
       } else if (["FULL_REFUND_CANCEL", "REFUND_LESS_FEE"].includes(decision.outcome)) {
+        const [previous] = await connection.execute<RowDataPacket[]>('SELECT status FROM applications WHERE id=?', [quote.application_id]);
         await connection.execute("UPDATE applications SET status='cancelled' WHERE id=?", [quote.application_id]);
+        await syncCaseWorkStatus(connection, Number(quote.application_id), String(previous[0].status), 'cancelled', `decision:${id}`);
       }
       await event(connection, quote, "REFUSAL_RESOLVED", `staff:${actorId}`, `${decision.outcome}: ${reason}`.slice(0, 500), "ADMIN");
     }

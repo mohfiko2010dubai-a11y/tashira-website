@@ -107,6 +107,7 @@ export function OperationsControlledWritePanel({ enabled, model, capabilities, e
 }
 
 export function OperationsControlledWritePanelLive({ enabled, model, onRefresh, group = 'all' }: { enabled: boolean; model: OperationsCaseReadModel; onRefresh(): Promise<void>; group?: PanelProps['group'] }) {
+  const utils = trpc.useUtils();
   const capabilities=trpc.operationsWrite.capabilities.useQuery({applicationId:model.summary.applicationId},{enabled,retry:false});
   const human=trpc.operationsWrite.humanReview.useMutation(),document=trpc.operationsWrite.documentReview.useMutation(),assignment=trpc.operationsWrite.assignment.useMutation(),status=trpc.operationsWrite.statusTransition.useMutation(),reevaluation=trpc.operationsWrite.requestReevaluation.useMutation();
   const execute=async(command:ControlledWriteCommand)=>{
@@ -116,7 +117,7 @@ export function OperationsControlledWritePanelLive({ enabled, model, onRefresh, 
     if(command.action==="ASSIGNMENT")await assignment.mutateAsync({...common,mode:command.mode,assigneeId:command.assigneeId});
     if(command.action==="STATUS_TRANSITION")await status.mutateAsync({...common,to:command.to});
     if(command.action==="REEVALUATION_REQUEST")await reevaluation.mutateAsync({...common,applicantId:command.applicantId,expectedCurrentEvaluationId:command.expectedCurrentEvaluationId});
-    await Promise.all([capabilities.refetch(),onRefresh()]);
+    await Promise.all([capabilities.refetch(),onRefresh(),utils.operationsWork.overview.invalidate(),utils.operationsWork.managerReport.invalidate()]);
   };
   const refresh=async()=>{await Promise.all([capabilities.refetch(),onRefresh()]);};
   if (enabled && capabilities.isLoading) return <section id="actions" className="rounded-2xl border bg-white p-5 text-sm text-slate-600">Loading authorized Operations actions…</section>;

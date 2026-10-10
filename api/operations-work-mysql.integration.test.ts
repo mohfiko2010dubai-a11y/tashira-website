@@ -6,6 +6,7 @@ import { MysqlWorkQueue } from './lib/operations/mysql-work-queue';
 import { MysqlOperationsAccessProvider } from './lib/operations/mysql-access-provider';
 import { MysqlControlledWriteExecutor } from './lib/operations/mysql-controlled-write-executor';
 import { MysqlOperationsSqlClient } from './lib/operations/mysql-query-client';
+import { syncCaseWorkStatus } from './lib/operations/case-work-status';
 
 const url = process.env.OPS_EXECUTOR_DATABASE_URL;
 const suite = url ? describe.sequential : describe.skip;
@@ -94,6 +95,80 @@ suite('atomic staff work dispatch', () => {
     const [saved] = await pool.execute<RowDataPacket[]>('SELECT team_id,assigned_staff_user_id FROM operations_case_controls WHERE application_id=?', [own.applicationId]);
     expect(saved[0]).toMatchObject({ team_id: null, assigned_staff_user_id: staff[1] });
     await expect(writes.assignment({ ...command, idempotencyKey: key(), expectedVersion: capabilities.version + 1, assigneeId: `staff:${staff[0]}` }, await access.actorForContext(context(staff[1])))).rejects.toMatchObject({ code: 'OUT_OF_SCOPE' });
+  });
+
+  it('controlled status changes move one owned case between lists and replay without duplicate closure', async () => {
+    const own = (await queue.overview(context(staff[1]), true)).mine.find(row => row.state === 'WAIT_CUSTOMER')!;
+    const actor = await access.actorForContext(context(staff[1]));
+    const transition = async (to: 'documents_pending' | 'documents_received' | 'cancelled') => {
+      const capabilities = await writes.capabilities(own.applicationId, actor);
+      const command = { applicationId: own.applicationId, expectedVersion: capabilities.version, idempotencyKey: key(), reason: 'Synthetic queue transition', to };
+      const result = await writes.statusTransition(command, actor);
+      expect(await writes.statusTransition(command, actor)).toEqual({ ...result, status: 'IDEMPOTENT_REPLAY' });
+    };
+    await transition('documents_pending');
+    let item = (await queue.overview(context(staff[1]), true)).mine.find(row => row.applicationId === own.applicationId)!;
+    expect(item).toMatchObject({ state: 'WAIT_CUSTOMER', dueAt: own.dueAt, version: own.version + 1 });
+    await transition('documents_received');
+    item = (await queue.overview(context(staff[1]), true)).mine.find(row => row.applicationId === own.applicationId)!;
+    expect(item.state).toBe('READY');
+    expect(item.dueAt).toBeNull();
+    await expect(queue.command(context(staff[1]), { kind: 'WORK_STATE', applicationId: own.applicationId, version: own.version, state: 'ACTIVE', reason: 'Stale browser tab', followUpAt: null, key: key() })).rejects.toMatchObject({ code: 'CONFLICT' });
+    await transition('cancelled');
+    const overview = await queue.overview(context(staff[1]), true);
+    expect(overview.mine.filter(row => row.applicationId === own.applicationId)).toHaveLength(1);
+    expect(overview.mine.find(row => row.applicationId === own.applicationId)?.state).toBe('DONE');
+    expect(overview.available.some(row => row.reference === own.reference)).toBe(false);
+    const [events] = await pool.execute<RowDataPacket[]>("SELECT next_state FROM operations_work_events WHERE application_id=? AND idempotency_key LIKE 'status:%' ORDER BY id", [own.applicationId]);
+    expect(events.map(row => row.next_state)).toEqual(['WAIT_CUSTOMER', 'READY', 'DONE']);
+    expect((await queue.overview(context(staff[0]), true)).mine.some(row => row.applicationId === own.applicationId)).toBe(false);
+  });
+
+  it('rolls back status, queue version and queue history together when audit storage fails', async () => {
+    const own = (await queue.overview(context(staff[1]), true)).mine.find(row => row.state !== 'DONE')!;
+    const actor = await access.actorForContext(context(staff[1]));
+    const capabilities = await writes.capabilities(own.applicationId, actor);
+    const failure = new MysqlControlledWriteExecutor(pool, access, { beforeAuditPersist: () => { throw new Error('Synthetic audit failure'); } });
+    const [before] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) AS n FROM operations_work_events WHERE application_id=?', [own.applicationId]);
+    await expect(failure.statusTransition({ applicationId: own.applicationId, expectedVersion: capabilities.version, idempotencyKey: key(), reason: 'Synthetic rollback', to: 'cancelled' }, actor)).rejects.toThrow();
+    expect((await queue.overview(context(staff[1]), true)).mine.find(row => row.applicationId === own.applicationId)).toEqual(own);
+    const [saved] = await pool.execute<RowDataPacket[]>('SELECT status FROM applications WHERE id=?', [own.applicationId]);
+    expect(saved[0].status).toBe('documents_received');
+    const [after] = await pool.execute<RowDataPacket[]>('SELECT COUNT(*) AS n FROM operations_work_events WHERE application_id=?', [own.applicationId]);
+    expect(after[0].n).toBe(before[0].n);
+  });
+
+  it('concurrent status saves apply one transition and one queue event', async () => {
+    const own = (await queue.overview(context(staff[1]), true)).mine.find(row => row.state !== 'DONE')!;
+    const actor = await access.actorForContext(context(staff[1]));
+    const capabilities = await writes.capabilities(own.applicationId, actor);
+    const command = { applicationId: own.applicationId, expectedVersion: capabilities.version, reason: 'Synthetic simultaneous update', to: 'documents_pending' as const };
+    const results = await Promise.allSettled([writes.statusTransition({ ...command, idempotencyKey: key() }, actor), writes.statusTransition({ ...command, idempotencyKey: key() }, actor)]);
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter(result => result.status === 'rejected')).toHaveLength(1);
+    const [events] = await pool.execute<RowDataPacket[]>("SELECT next_state FROM operations_work_events WHERE application_id=? AND idempotency_key LIKE 'status:%'", [own.applicationId]);
+    expect(events.map(row => row.next_state)).toEqual(['WAIT_CUSTOMER']);
+    expect((await queue.overview(context(staff[1]), true)).mine.find(row => row.applicationId === own.applicationId)?.version).toBe(own.version + 1);
+  });
+
+  it('supports old assigned cases without work rows, reopening, no-op saves and unassigned cases without inventing ownership', async () => {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    try {
+      await connection.execute('SELECT id FROM applications WHERE id=? FOR UPDATE', [cases[0]]);
+      await syncCaseWorkStatus(connection, cases[0], 'documents_received', 'under_review', key());
+      const [unassigned] = await connection.execute<RowDataPacket[]>('SELECT * FROM operations_case_work WHERE application_id=?', [cases[0]]);
+      expect(unassigned).toHaveLength(0);
+      await connection.execute('INSERT INTO operations_case_controls (application_id,assigned_staff_user_id) VALUES (?,?)', [cases[0], staff[1]]);
+      await syncCaseWorkStatus(connection, cases[0], 'visa_processing', 'visa_received', key());
+      await syncCaseWorkStatus(connection, cases[0], 'visa_received', 'completed', key());
+      await syncCaseWorkStatus(connection, cases[0], 'completed', 'completed', key());
+      await syncCaseWorkStatus(connection, cases[0], 'completed', 'under_review', key());
+      const [saved] = await connection.execute<RowDataPacket[]>('SELECT work_state,version,follow_up_at FROM operations_case_work WHERE application_id=?', [cases[0]]);
+      expect(saved[0]).toMatchObject({ work_state: 'READY', version: 3, follow_up_at: null });
+      const [events] = await connection.execute<RowDataPacket[]>('SELECT previous_state,next_state FROM operations_work_events WHERE application_id=? ORDER BY id', [cases[0]]);
+      expect(events.map(row => [row.previous_state, row.next_state])).toEqual([['WAIT_AUTHORITY','READY'],['READY','DONE'],['DONE','READY']]);
+    } finally { await connection.rollback(); connection.release(); }
   });
 
   it('named manager can participate; history is append-only and deactivation blocks actions', async () => {

@@ -82,6 +82,8 @@ export default function AdminApplicationDetail() {
     onSuccess: () => {
       utils.application.getByReference.invalidate();
       utils.application.list.invalidate();
+      utils.operationsWork.overview.invalidate();
+      utils.operationsWork.managerReport.invalidate();
     },
   });
 

@@ -5,6 +5,7 @@ import { withCheckoutLock } from "./checkout-quote";
 import { recordTimelineEvent, type TimelineActorType } from "./application-timeline";
 import { issuePaidInvoice, preparePaidInvoice, type InvoiceIssueData } from "./invoice-archive";
 import { FinancialFinalizationPending, retryableFinancialConflict } from "./financial-document-series";
+import { syncCaseWorkStatus } from './operations/case-work-status';
 
 export class SupersededStripeEvent extends Error {}
 
@@ -43,6 +44,7 @@ export async function applyStripePaymentState(input: {
     }
     await db.update(applications).set({ paymentStatus: input.target, stripeEventCreated: nextCreated,
       ...(input.target === "paid" && changed ? { status: "payment_received" as const } : {}) }).where(eq(applications.id, input.applicationId));
+    if (input.target === 'paid' && changed) await syncCaseWorkStatus(connection, input.applicationId, app.status, 'payment_received', `payment:${input.paymentId}`);
     await db.update(payments).set({ status: input.target === "paid" ? "succeeded" : "failed", stripeEventCreated: nextCreated })
       .where(eq(payments.id, input.paymentId));
     if (changed) await recordTimelineEvent({ applicationId: input.applicationId, paymentId: input.paymentId,

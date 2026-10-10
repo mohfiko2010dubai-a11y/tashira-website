@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { randomUUID } from 'node:crypto';
+import { syncCaseWorkStatus } from './lib/operations/case-work-status';
 import { TRPCError } from "@trpc/server";
 import { newApplicationQuery, adminQuery, applicationAccessQuery, applicationSubmissionQuery, applicationUploadQuery, chatQuery, createRouter } from "./middleware";
 import { getDb } from "./queries/connection";
@@ -354,6 +356,7 @@ export const wizardRouter = createRouter({
         const quote = await withCheckoutLock(updated.id, async connection => {
         await assertCheckoutEditable(connection, updated.id);
         const db = drizzle(connection);
+        const [current] = await db.select({ status: applications.status }).from(applications).where(eq(applications.id, updated.id)).limit(1);
         const persistedApplicants: Array<{ id: number; applicantIndex: number }> = [];
         for (const applicant of submittedApplicants) {
           const persisted = await persistApplicant(updated.id, applicant.applicantIndex, applicant, db);
@@ -381,6 +384,8 @@ export const wizardRouter = createRouter({
             updatedAt: new Date(),
           })
           .where(eq(applications.referenceNumber, input.referenceNumber));
+
+        await syncCaseWorkStatus(connection, updated.id, current.status, 'documents_pending', `wizard:${randomUUID()}`);
 
         return (await refreshCheckoutQuote(connection, updated.id)).quote;
         });

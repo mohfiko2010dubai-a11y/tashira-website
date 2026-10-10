@@ -1,5 +1,8 @@
 import { customerServiceClock } from "./lib/customer-wait-log";
 import { selectCaseSupplier } from './lib/supplier-selection';
+import { syncCaseWorkStatus } from './lib/operations/case-work-status';
+import { randomUUID } from 'node:crypto';
+import type { RowDataPacket } from 'mysql2/promise';
 import { refuseVisaChange, requestManualChange, decideManualChange, manualChangeQueue, refusalOutcomes, recordDifferenceLink } from "./lib/manual-visa-change";
 import { verifyNamedStaffPassword } from "./lib/named-staff-password";
 import { MysqlCustomerInterviewWriteRepository } from "./lib/customer/mysql-customer-interview-write-repository";
@@ -334,8 +337,11 @@ export const applicationRouter = createRouter({
         throw new TRPCError({ code: "CONFLICT", message: "Verified payment is required before operational processing" });
       }
       await withCheckoutLock(input.id, async connection => {
+        const [current] = await connection.execute<RowDataPacket[]>('SELECT status,payment_status FROM applications WHERE id=?', [input.id]);
+        if (!current[0] || !canEnterApplicationState(current[0].payment_status, input.status)) throw new TRPCError({ code: 'CONFLICT', message: 'Verified payment is required before operational processing' });
         await connection.execute("UPDATE applications SET status=? WHERE id=?", [input.status, input.id]);
         if (input.status === "visa_processing") await recordAuthoritySubmission(connection, input.id, "admin-session");
+        await syncCaseWorkStatus(connection, input.id, String(current[0].status), input.status, randomUUID());
       });
       const eventByStatus: Partial<Record<typeof input.status, TimelineEventName>> = {
         under_review: "PROCESSING_STARTED",
