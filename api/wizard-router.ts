@@ -1,3 +1,4 @@
+import {customerApplicationResponse} from './lib/customer-application-response';
 import { z } from "zod";
 import { randomUUID } from 'node:crypto';
 import { syncCaseWorkStatus } from './lib/operations/case-work-status';
@@ -461,7 +462,8 @@ export const wizardRouter = createRouter({
     .input(z.object({ referenceNumber: z.string() }))
     .query(async ({ input, ctx }) => {
       assertApplicationReferenceAccess(ctx, input.referenceNumber);
-      return getCanonicalApplicationByReference(input.referenceNumber);
+      const application=await getCanonicalApplicationByReference(input.referenceNumber);
+      return !application||ctx.isAdmin||ctx.user?.role==='admin'||ctx.staffId?application:customerApplicationResponse(application);
     }),
 
   getProgress: applicationAccessQuery

@@ -1,3 +1,13 @@
+# Final API UAT passed; customer commercial-data boundary candidate — 2026-10-11
+
+Runtime8224e02cb31c34a4e149f0f0afba66757f3ae397 deployed on staging after CI38098593869 and exact-server gates;82 mandatory MySQL tests/21 suites, zero skipped. Local1514 unit/13 build tests passed. Backup /var/backups/tashira-staging/creation-classification-8224e02-1791678835465. New application TEST classification now verified in actual public API flow.
+
+Family HTTP UAT TSH-F19706AC2CFE4E7A846C4DCE1F3F8AC0 passed: two applicants, six isolated requirements, upload and unchanged resave preserve each applicant files. Old harness expected obsolete six-month rejection/two documents and used a malformed tiny PNG; corrected harness to current human-review policy, non-GCC accommodation and a valid generated synthetic image. No business-rule rollback. This is authenticated customer API evidence, not visual UAT.
+
+Named synthetic staff/manager password login and API checks passed: own case allowed with financial fields absent; foreign case403; staff finance/report403; manager finance/report200 and supplier cost visible only to manager. Temporary accounts and per-account staging flags cleaned afterward (initial cleanup used numeric flag0 against enumYES/NO; corrected and rerun, no persistent privilege intended). Customer projection inspection found commercial supplier fields returned to customers. Candidate explicitly nulls supplier object/cost/VAT/invoice/internal notes on both canonical customer getters while preserving internal/manager projection and existing staff redaction. Local check/lint/test/build passed1515 unit/13 build checks; CI/deployment pending.
+
+T2 provider UAT completed for215 and225: all successful source movements captured via Stripe TEST GET, both invoices and refund credit note matched immutable archive/amount/currency/hash; zero missing settlements/documents. Final profit deliberately unavailable without verified actual expenses/tax evidence. Arabic guide draft docs/ERP_OPERATOR_GUIDE_AR.html follows current ERP labels, contains no fabricated screenshots and explicitly marks visual/provider gaps. Browser sandbox still prevents inventory. Production untouched; launch not cleared.
+
 # T3A and T2B2 deployed; final customer test found classification gap — 2026-10-11
 
 Current staging runtime dd936d1d4f22abdf7f0ad9d38a272a0f89763c04. CI38098255844 both jobs passed;82 mandatory MySQL tests/21 suites, zero skipped. Exact-server gates and local1511 unit/13 build checks passed. T2B2 runtime backup /var/backups/tashira-staging/settlement-documents-dd936d1-1791678476572. No new schema required. First DB run identified the disposable fixture omitted existing migration058; added it, no assertion skipped.

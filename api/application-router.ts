@@ -1,3 +1,4 @@
+import {customerApplicationResponse} from './lib/customer-application-response';
 import { customerServiceClock } from "./lib/customer-wait-log";
 import { selectCaseSupplier } from './lib/supplier-selection';
 import { submissionEvidenceInput } from '../contracts/submission-evidence';
@@ -285,7 +286,8 @@ export const applicationRouter = createRouter({
       const application = await getCanonicalApplicationByReference(input.referenceNumber);
       if (!application) return application;
       const purposes = await loadTripPurposes(defaultOperationsSqlClient(), application.id);
-      return { ...application, documentRuleDiagnostics: application.applicants.map(applicant => {
+      const visible=ctx.isAdmin||ctx.user?.role==='admin'||ctx.staffId?application:customerApplicationResponse(application);
+      return { ...visible, documentRuleDiagnostics: application.applicants.map(applicant => {
         const result = evaluateDocumentRequirements({ nationality: applicant.nationality, country_of_residence: applicant.gccResidenceCountry,
           visa_type: application.visaType, residence_type: application.residenceType, trip_purpose: purposes.get(applicant.id) });
         return { applicantId: applicant.id, label: applicant.fullName, suppressed: result.suppressed, unmatched: result.unmatched };
