@@ -1,3 +1,7 @@
+# Latest receipt correction — 2026-10-11
+
+Deposit receipt implementation deployed as c01b181 after1546 unit/13 build and84 mandatory CI database tests. Atomic payment-linked outbox, repeat suppression, exact AED amount and Arabic/English body verified. Actual emailed deposit payment/refund and inbox acceptance remain OPEN; see PROJECT_STATUS. Production untouched.
+
 # Current sequential acceptance — 2026-10-11 (supersedes open-task snapshots below)
 
 1. Products/suppliers: CLOSED on staging. 13 cards/49 real source rates, shared bidirectional editor, costs AED before VAT, no invented supplier prices.

@@ -1,3 +1,10 @@
+# Deposit receipt deployed and verified — 2026-10-11
+
+Staging runtime c01b18139c990d382e07af3048cee9f3014687c2. CI38159720738: Verify and mandatory84 MySQL integration tests succeeded. Local and exact-server check/lint/test/build passed:1546 unit tests +13 build checks. Atomic deposit receipt outbox and Arabic status detail correction deployed; replay/race/unverified-payment/outbox-failure tests passed. This validates code and dispatch behavior, not actual inbox receipt for an unpaid deposit.
+
+Backup:/var/backups/tashira-staging/erp-deposit-receipt-c01b181-1791739925292; health200; no migration; production untouched. Post-deploy application262 remains paid/completed/TEST with two distinct deliveries matching scanned hashes; temporary QA accounts inactive. Unrelated local dist/boot.js preserved byte-for-byte.
+
+Remaining external acceptance: existing AED10 emailed deposit request still SENT; actual link/payment/refund and inbox receipt not verified (provider sent-message read401; browser tool fails before opening a session). No duplicate deposit request sent. Genuine inbound email/official WhatsApp integration, actual expense/tax basis for final profit and separately approved production transfer remain open. No launch-ready claim.
 # Deposit receipt correction — 2026-10-11, validation in progress
 
 Found and corrected a missing customer notification: verified security-deposit payment now inserts a durable STATUS_CHANGED receipt in the same transaction as payment/request/timeline updates. Stable payment-specific job identity and affected-row guard prevent concurrent/replayed finalizers from duplicating mail. Recipient/language come from the application's existing dispatcher. Arabic status messages now include the actual status text, including the paid AED amount. No new invoice is created for the refundable deposit and no business rule changes.
