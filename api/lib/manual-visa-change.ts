@@ -4,6 +4,8 @@ import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { withCheckoutLock } from "./checkout-quote";
 import { defaultOperationsPool } from "./operations/mysql-query-client";
 import { syncCaseWorkStatus } from './operations/case-work-status';
+import { prepareManualTopUp, issueManualTopUp, notifyManualTopUp } from './manual-topup-accounting';
+import { retryableFinancialConflict, FinancialFinalizationPending } from './financial-document-series';
 
 export const refusalOutcomes = ["FULL_REFUND_CANCEL", "REFUND_LESS_FEE", "TRY_ANOTHER_PRODUCT", "ORIGINAL_AT_CUSTOMER_REQUEST"] as const;
 export type ManualChangeRequest = {
@@ -106,9 +108,15 @@ export async function manualChangeQueue() {
 }
 
 export async function decideManualChange(id: string, actorId: number, approve: boolean, reason: string) {
-  const [owners] = await defaultOperationsPool().execute<RowDataPacket[]>("SELECT application_id FROM visa_change_decisions WHERE id=?", [id]);
+  const [owners] = await defaultOperationsPool().execute<RowDataPacket[]>("SELECT application_id,kind,direction FROM visa_change_decisions WHERE id=?", [id]);
   if (!owners[0]) conflict("Decision not found. Refresh the approvals queue.");
-  return withCheckoutLock(Number(owners[0].application_id), async connection => {
+  if (reason.trim().length < 5) conflict("Record an approval or rejection reason of at least five characters.");
+  for (let attempt = 0; ; attempt++) {
+  const topUp = approve && owners[0].kind === 'SETTLEMENT' && owners[0].direction === 'TOP_UP' ? await prepareManualTopUp(id) : null;
+  let invoiceNumber: string | undefined;
+  let result: { approved: boolean };
+  try {
+  result = await withCheckoutLock(Number(owners[0].application_id), async connection => {
     const [rows] = await connection.execute<RowDataPacket[]>("SELECT * FROM visa_change_decisions WHERE id=?", [id]);
     const decision = rows[0];
     if (decision.state !== "PENDING") conflict("This decision was already processed. Refresh the queue.");
@@ -119,6 +127,7 @@ export async function decideManualChange(id: string, actorId: number, approve: b
     if (!approve) { await event(connection, quote, "DECISION_REJECTED", `staff:${actorId}`, reason, "ADMIN"); return { approved: false }; }
     if (decision.kind === "SETTLEMENT") {
       if (!["ACCEPTED", "PAYMENT_PENDING", "REFUND_PENDING"].includes(quote.state) || !decision.stripe_reference) conflict("Settlement evidence is incomplete or no longer current.");
+      if (topUp) invoiceNumber = await issueManualTopUp(connection, topUp);
       await connection.execute("UPDATE visa_change_quotes SET state='SETTLED' WHERE id=?", [quote.id]);
       await event(connection, quote, "SETTLED", `staff:${actorId}`, `${decision.direction} ${decision.amount_minor} ${decision.currency}; ${decision.stripe_reference}; ${reason}`.slice(0, 500), "ADMIN");
     } else {
@@ -149,5 +158,17 @@ export async function decideManualChange(id: string, actorId: number, approve: b
       SELECT ?,a.id,'STATUS_CHANGED',JSON_OBJECT('statusLabel',CONCAT(IF(a.preferred_language='ar',?,?), ' — ',?), 'sourceEvent','adjustment_issued')
       FROM applications a WHERE a.id=?`, [`adjustment:${id}`, labels[1], labels[0], reason, quote.application_id]);
     return { approved: true };
-  });
+  }, 2);
+  } catch (error) {
+    if (!retryableFinancialConflict(error)) throw error;
+    if (attempt >= 31) throw new FinancialFinalizationPending('Difference invoice is awaiting accounting confirmation; retry without charging again');
+    await new Promise(resolve => setTimeout(resolve, Math.min(500, 25 * (attempt + 1))));
+    continue;
+  }
+  if (topUp && invoiceNumber) {
+    try { await notifyManualTopUp(topUp, invoiceNumber); }
+    catch { return { ...result, notificationPending: true }; } // Committed outbox retries the same invoice; never report the paid settlement as rolled back.
+  }
+  return result;
+  }
 }

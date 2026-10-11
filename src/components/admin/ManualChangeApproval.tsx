@@ -14,6 +14,12 @@ export function ManualChangeApproval({ row, refresh }: { row: Decision; refresh:
     <p>Requested by {row.requester} · {new Date(row.createdAt).toLocaleString()}</p>
     <p>{row.reason}</p>
     {row.stripeReference && <p className="break-all">Completed movement: {row.currency} {((row.amountMinor || 0) / 100).toFixed(2)} · {row.stripeReference}</p>}
+    {row.kind === 'SETTLEMENT' && row.direction === 'TOP_UP' && <div className="rounded border bg-slate-50 p-3" dir="rtl">
+      <p>عند الاعتماد يتحقق النظام من الدفعة في Stripe ويصدر فاتورة مستقلة بقيمة الفرق. الفاتورة الأصلية تظل كما هي.</p>
+      <details><summary className="cursor-pointer">بيانات ربط الدفعة اليدوية في Stripe</summary><p>تأكد أن Metadata للدفعة تحتوي على القيم التالية حتى لا تُسجل دفعة لطلب آخر:</p>
+        <p dir="ltr" className="break-all">referenceNumber: {row.referenceNumber}</p><p dir="ltr" className="break-all">visaChangeQuoteId: {row.quoteId}</p>
+      </details>
+    </div>}
     {row.writtenInsistence && <p>Customer insistence: {row.writtenInsistence}</p>}
     {row.riskRecord && <p>Recorded risk: {row.riskRecord}</p>}
     <label className="block"><input type="checkbox" checked={verified} onChange={event => setVerified(event.target.checked)} /> I verified this evidence{row.stripeReference ? ", including the completed amount and reference in Stripe" : ""}. Approval records the decision and does not execute a payment or refund.</label>

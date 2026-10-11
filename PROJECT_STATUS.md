@@ -1,3 +1,9 @@
+# T1A — verified manual top-up invoice implementation — in acceptance
+
+Connected approved manual top-up to read-only Stripe receipt verification, exact USD difference and order/quote metadata binding, a retryable reserved payment, a separate immutable invoice, and a PAYMENT_CONFIRMED outbox job in the same approval transaction. Original invoice pointers remain unchanged. Manager approval stays required; no charge/refund is initiated by approval. Stripe manual payment must carry referenceNumber and visaChangeQuoteId metadata; the approval screen shows both exact values. Reused/foreign receipts, partial receipts, refunded/disputed charges and wrong environment fail closed. Customer identity comes from the immutable original archive; old card/payer claims are not copied to the new payment.
+
+Local check/lint/test/build passed (1535 unit tests;13 build checks).84 database tests await required CI run; actual Stripe TEST top-up acceptance and staging deployment are still pending. This is not a completed-task or release claim. Cheaper-product manual refund reconciliation remains T1B; security deposit T2; provider/inbox T3; final continuous journey T4.
+
 # Customer payment and partial-refund acceptance — 2026-10-11
 
 Current staging runtime remains15efc08e865eaa2a053235689eb40fd333913eb6. Actual Stripe TEST (not a seeded paid state) family application260 / TSH-1EE174A9AFEA4036B3192EBBD1681541: two travellers, six documents, server quote equals charged amount, repeated payment confirmation leaves exactly one succeeded payment. Original invoice TEST-INV-00009 archived. A10.00USD partial refund succeeded in Stripe, with separate TEST-CN-00003; repeated refund creation returns the same case and repeated execution returns409, preventing a second refund. PDF hashes verified for both archives. Temporary QA accounts all inactive. No real-money movement or production mutation.
