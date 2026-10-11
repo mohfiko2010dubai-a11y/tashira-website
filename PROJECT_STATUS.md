@@ -1,3 +1,13 @@
+# Final deployed boundary and server acceptance — 2026-10-11
+
+Staging runtime4f866de048e4c7bc5e45f72db192d282657aa92f deployed after CI38099214584 (Verify and mandatory MySQL integration successful), exact-server check/lint/test/build and local1515 unit +13 build checks. Mandatory MySQL82/21 executed with zero skipped. Rollback backup: /var/backups/tashira-staging/customer-commercial-4f866de-1791679504658. No schema change in this deployment. Production unchanged.
+
+Final authenticated HTTP family UAT TSH-7AF94750F4214B52A0E5D13E7358D907 passed: new TEST classification, supplier commercial fields hidden on BOTH customer getters, two travellers/six independent uploads, unchanged resave preserves files, short passport saved for current human-review policy. Final temporary named staff/manager login checks passed: own case allowed/redacted, foreign case403, staff finance/report403, manager finance/report200. Temporary actors disabled and account-scoped flags cleared by harness.
+
+Final real ClamAV delivery UAT SCAN-UAT-35c1200e-785b-436f-b03c- passed: one delivery on concurrent replay, verified owner download200 with private/no-store, anonymous/other customer401, original replacement cannot alter immutable delivery, unscanned source401, tampered archive409 then restored200. No real visa, email or financial action in this regression. HTTP health/login/dashboard200 and anonymous protected operations403 passed.
+
+OPEN: genuine inbound mailbox/provider connection, official WhatsApp API, owner definition of operational margin versus accounting net profit, and authenticated visual full-journey UAT. No final launch clearance. Arabic operator guide exists as an explicitly unillustrated staging acceptance draft. Detailed handover: docs/ERP_FINAL_ACCEPTANCE_2026-10-11.txt. Browser sandbox failure is not a passed browser test.
+
 # Final API UAT passed; customer commercial-data boundary candidate — 2026-10-11
 
 Runtime8224e02cb31c34a4e149f0f0afba66757f3ae397 deployed on staging after CI38098593869 and exact-server gates;82 mandatory MySQL tests/21 suites, zero skipped. Local1514 unit/13 build tests passed. Backup /var/backups/tashira-staging/creation-classification-8224e02-1791678835465. New application TEST classification now verified in actual public API flow.

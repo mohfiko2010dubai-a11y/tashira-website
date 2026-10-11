@@ -10,7 +10,7 @@ Latest owner instruction: finish the remaining work in tested, reviewed logical 
 
 ## T2 — Financial attribution — IN PROGRESS
 - T2A: correct pricing-margin currency, use stored FX once for family totals, explicitly separate historical base currencies and label quote estimates. Deployed995caae on staging; CI38095960139 including77 mandatory MySQL tests and exact-server gates passed. HTTP health/access checks passed; visual check remains T4.
-- T2B1: actual immutable Stripe settlement evidence deployed6248351; CI80/21 passed, actual TEST payment GET/replay verified. T2B2 remains: invoice/credit-note and supplier-cost reconciliation plus actual provider refund UAT. Do not estimate settlement FX from invoice FX.
+- T2B1: actual immutable Stripe settlement evidence deployed6248351; CI80/21 passed, actual TEST payment GET/replay verified. Invoice/credit-note matching and actual provider refund UAT passed in T2B2; supplier/internal expense and profit definition remain T2C. Do not estimate settlement FX from invoice FX.
 - T2B2: invoice/credit-note archive identity, amount, currency and PDF hash checks deployed dd936d1; actual TEST refund215 GET/replay passed.
 - T2C: manager closure details open the per-case financial reconciliation. Final profit remains blocked on actual supplier/internal expense and accounting tax evidence. Attach reconciled per-case results to the existing manager-only closure attribution; reopen/reassignment must not double-count. Missing evidence stays incomplete, never zero/final profit.
 - Reconcile actual paid invoices and top-ups, successful refunds/credit notes, supplier cost/VAT, actual Stripe fees and currency conversion.
@@ -25,9 +25,10 @@ Latest owner instruction: finish the remaining work in tested, reviewed logical 
 - Verify events, duplicate prevention, customer reply routing and assigned staff visibility.
 
 ## T4 — Full acceptance and handover — OPEN
-- New draft TEST classification gap discovered by final API UAT; fix candidate fully tested, deployment pending.
+- New draft TEST classification fix deployed8224e02; final family API UAT passed on runtime4f866de. Customer supplier-cost leak fixed on both getters; actual customer/staff/manager boundary checks passed.
 - Synthetic staging customer/employee/manager journey: save/resume, payment, amendment/top-up invoice, partial refund, supplier dispatch/filing proof, visa delivery, tracking/email.
 - Verify queue transitions, concurrency/ownership, prohibited staff financial/admin actions and historical application compatibility.
+- Final real scanner/download regression and HTTP ownership tests passed; these do not replace visual acceptance.
 - Authenticated visual UAT and Arabic illustrated guide. Browser infrastructure currently exits before inventory; HTTP200 is not visual acceptance.
 - Final transfer checklist/rollback and exact remaining owner actions. No launch-ready claim until evidence exists.
 

@@ -1,0 +1,52 @@
+TASHIRA — staging acceptance and remaining launch gates
+Date: 2026-10-11
+Runtime: 4f866de048e4c7bc5e45f72db192d282657aa92f
+Scope: staging only; production not modified or cleared for launch.
+
+PASSED EVIDENCE
+1. Full check/lint/test/build locally and on the exact server candidate.
+   1515 unit tests; 13 build-environment checks.
+   CI run38099214584: both jobs successful; 82 mandatory MySQL tests/21 suites, no skips.
+2. Public customer API: TEST draft, two travellers, six isolated uploaded requirements,
+   unchanged resave, latest human-review passport policy. Supplier cost/VAT/notes hidden.
+3. Real named staff/manager password login: owned case permitted, other case403,
+   staff financial/report endpoints403, manager endpoints200. Test actors disabled.
+4. Real local ClamAV: immutable clean file, replay creates one delivery,
+   other customer/anonymous denied, archive tampering409, restored download200.
+5. Actual Stripe TEST read-only settlement reconciliation: applications215/225;
+   immutable invoices and credit note match source IDs, amounts, currencies and PDF hashes.
+   No new charge/refund executed during this reconciliation. Final profit is unavailable,
+   not zero and not inferred from Stripe net alone.
+6. Synthetic outgoing support reply: concurrent calls -> one outbox job;
+   provider accepted once (SENT, attempt1). Provider ID01a1285b-8684-70ec-bc55-bbc69c0b7606.
+   Inbox receipt has not been confirmed. Recipient comes from the application.
+7. Health and page HTTP checks pass; anonymous protected operations403.
+
+NOT YET ACCEPTED
+A. Real mailbox incoming replies: requires secure mailbox/provider connection and an actual
+   received-message test routed to the correct application and assigned employee.
+B. WhatsApp: requires official API setup; a Business-app telephone number alone is not API.
+   Must test incoming/outgoing messages, provider webhook authenticity, duplicates and routing.
+C. Profit: owner must confirm operational margin or accounting net profit definition.
+   Missing actual expenses/tax evidence must remain incomplete, never silently estimated.
+D. Visual customer/staff/manager journey on deployed runtime. Browser tool exits before inventory.
+   No claim that buttons, layout, queue navigation or rendering passed visual acceptance.
+E. One final continuous synthetic journey: save/resume -> TEST payment -> supplier dispatch/proof
+   -> amendment approval/top-up invoice -> partial refund/credit note -> scanned visa delivery
+   -> customer tracking and inbox. Existing component/integration evidence does not replace it.
+F. Illustrated Arabic guide: draft docs/ERP_OPERATOR_GUIDE_AR.html exists; add real verified
+   screenshots after visual UAT. No invented screenshots.
+
+TRANSFER / ROLLBACK
+Current runtime backup: /var/backups/tashira-staging/customer-commercial-4f866de-1791679504658
+Latest additive staging schemas:075 scanned delivery,076 settlement evidence,077 support reply.
+Schema backups are recorded in PROJECT_STATUS.md. Runtime rollback preserves old assets and
+legacy invoice links; do not drop additive evidence tables to roll back the application.
+Support-mail synthetic reference was added only to the existing staging recipient allowlist;
+no real-customer activation. Test accounts disabled. Synthetic rows remain marked TEST.
+Production transfer needs separate authorization, production backup/restore check, environment
+and secret review, exact migration plan, live/test separation and post-transfer smoke tests.
+Do not migrate synthetic staging customer/order rows into production.
+
+Decision: server-level work listed above accepted on staging. Project launch remains OPEN
+until items A-F and the production transfer approval are resolved. No 100-percent/no-error claim.
