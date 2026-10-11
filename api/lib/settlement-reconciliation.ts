@@ -2,6 +2,8 @@ import type { Pool, PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { stripeRuntimeMode, stripeSecretKey } from './stripe-runtime';
 import { parseSettlement, serviceAmountMinor, summarizeSettlements, type SettlementSource } from './settlement-evidence';
 
+import {reconcileSourceDocument} from './settlement-documents';
+
 type Provider = (source: SettlementSource) => Promise<unknown>;
 type Sql = Pool | PoolConnection;
 const sourcesSql=`SELECT 'PAYMENT' kind,CAST(p.id AS CHAR) id,p.application_id applicationId,
@@ -70,16 +72,24 @@ export class SettlementReconciliation {
       await connection.query('START TRANSACTION READ ONLY');
       const expected=await sources(connection,applicationId);
       const [recorded]=await connection.execute<RowDataPacket[]>('SELECT * FROM stripe_settlement_evidence WHERE application_id=?',[applicationId]);
+      const [archives]=await connection.execute<RowDataPacket[]>(`SELECT document_number,issuance_key,payment_id,series,snapshot_json,
+        (SHA2(pdf_bytes,256)=pdf_sha256) intact FROM financial_document_archives WHERE application_id=?`,[applicationId]);
+      const [invoices]=await connection.execute<RowDataPacket[]>('SELECT invoice_number,payment_id,amount FROM invoices WHERE application_id=?',[applicationId]);
+      const [refundPayments]=await connection.execute<RowDataPacket[]>(`SELECT r.id,r.payment_id FROM refund_items r JOIN payments p ON p.id=r.payment_id WHERE p.application_id=?`,[applicationId]);
+      const archiveEvidence=archives.map(row=>({number:String(row.document_number),issuanceKey:String(row.issuance_key),paymentId:String(row.payment_id),series:String(row.series),snapshot:String(row.snapshot_json),intact:Boolean(Number(row.intact))}));
+      const invoiceEvidence=invoices.map(row=>({number:String(row.invoice_number),paymentId:String(row.payment_id),amount:String(row.amount)}));
       const rows=expected.map(source=>{
         const match=recorded.find(row=>row.source_kind===source.kind&&String(row.source_id)===source.id
-          &&row.provider_id===source.providerId&&Number(row.source_amount_minor)===source.amountMinor&&row.source_currency===source.currency);
-        return {...source,settlement:match?{transactionId:String(match.balance_transaction_id),currency:String(match.settlement_currency),
+          &&row.stripe_mode===this.mode()&&row.provider_id===source.providerId&&Number(row.source_amount_minor)===source.amountMinor&&row.source_currency===source.currency);
+        const paymentId=source.kind==='PAYMENT'?source.id:String(refundPayments.find(row=>String(row.id)===source.id)?.payment_id??'');
+        return {...source,document:reconcileSourceDocument(source,paymentId,archiveEvidence,invoiceEvidence),settlement:match?{transactionId:String(match.balance_transaction_id),currency:String(match.settlement_currency),
           grossMinor:Number(match.gross_minor),feeMinor:Number(match.fee_minor),netMinor:Number(match.net_minor),
           exchangeRate:match.exchange_rate===null?null:String(match.exchange_rate)}:null};
       });
       const [supplier]=await connection.execute<RowDataPacket[]>('SELECT supplier_total_aed,supplier_invoice_number,supplier_paid FROM applications WHERE id=?',[applicationId]);
       await connection.commit();
       return {basis:'STRIPE_BALANCE_MOVEMENTS' as const,rows,missing:rows.filter(row=>!row.settlement).length,
+        documentsIncomplete:rows.filter(row=>row.document.status!=='MATCHED').length,
         totals:summarizeSettlements(rows.flatMap(row=>row.settlement?[row.settlement]:[])),
         supplier:{totalAed:supplier[0]?.supplier_total_aed==null?null:String(supplier[0].supplier_total_aed),
           invoiceNumber:supplier[0]?.supplier_invoice_number?String(supplier[0].supplier_invoice_number):null,

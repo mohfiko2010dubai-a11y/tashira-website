@@ -20,6 +20,7 @@ export default function SettlementPanel({applicationId}:{applicationId:number}){
           <div><dt>رسوم الحركة</dt><dd>{formatFeeMinor(row.settlement.feeMinor,row.settlement.currency)}</dd></div>
           <div><dt>صافي حركة الرصيد</dt><dd>{formatFeeMinor(row.settlement.netMinor,row.settlement.currency)}</dd></div>
         </dl>:<p className="mt-2 text-amber-800">لم تُطابق بعد؛ لا تدخل في إجمالي التسوية.</p>}
+      <p className="mt-2 text-sm">{row.kind==='PAYMENT'?'الفاتورة':'الإشعار الدائن'}: {row.document.number??'غير موجود'} · {row.document.status==='MATCHED'?'مطابق للمبلغ والعملة والدفعة':row.document.status==='MISSING'?'يلزم استكمال الأرشيف المالي':'يوجد اختلاف؛ راجع المستند قبل اعتماد الحساب'}</p>
       </div>)}
       {report.data.totals.map(total=><p key={total.currency} className="rounded-lg bg-slate-50 p-3">صافي الحركات المطابقة ({total.currency}): <strong>{formatFeeMinor(total.netMinor,total.currency)}</strong></p>)}
       <p className="text-sm">تكلفة المورد شاملة الضريبة: {report.data.supplier.totalAed===null?'غير مسجلة':`${report.data.supplier.totalAed} AED`} · فاتورة المورد: {report.data.supplier.invoiceNumber??'لم تُسجل'} · {report.data.supplier.paid?'مسدد للمورد':'لم يسجل سداد المورد'}</p>

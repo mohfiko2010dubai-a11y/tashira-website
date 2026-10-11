@@ -1,3 +1,11 @@
+# T2B2 accounting-document reconciliation candidate — 2026-10-11
+
+Adds payment-to-invoice and successful-refund-to-credit-note checks against immutable archives, including application/payment identity, amount/currency, original invoice, refund item/provider identity and archived PDF hash. Missing/corrupt/ambiguous evidence is explicit. Report never mixes TEST and LIVE evidence. Manager closure detail can open the existing reconciliation panel per attributed case; no duplicate profit formula. Three focused unit scenarios and expanded existing MySQL acceptance cover this. Local check/lint/test/build passed1511 unit tests and13 build checks; mandatory82/21 review CI pending. Final profit remains unavailable without verified actual supplier/internal costs and accounting tax treatment; no quote is represented as realized profit.
+
+T3A corrected concurrency uses a current read after application lock; mandatory82/21 CI38097811893 and Verify passed. A supplier-isolation assertion accidentally matched random reference digits105; replaced with exact allowlisted response keys plus financial-key denial. No authorization assertion removed. Exact-server453646b build running; not yet deployed.
+
+Actual provider refund evidence now verified: Stripe TEST GET for synthetic application215 captured a successful refund and replayed idempotently; no new refund/payment. Payment225 and refund215 provider acceptance complete for T2B1. Production unchanged.
+
 # T3A outbound support reply candidate; T2B1 deployed — 2026-10-11
 
 T2B1 runtime62483513a9936106e3323d0ecdc1abb0c3b74252. CI38096703015 both jobs passed;80 mandatory MySQL tests/21 suites, zero skipped. Local and exact-server check/lint/test/build passed. Migration076 applied after exact staging DB/user verification and previous payment/refund counts preserved. Schema backup /var/backups/tashira-staging/settlement-schema-1791676961774; runtime backup /var/backups/tashira-staging/settlement-6248351-1791676964603. Actual Stripe TEST GET for synthetic application225 captured payment settlement and repeated safely; no financial transaction executed. Actual provider refund UAT remains open. Final profit/invoice and employee attribution remain T2B2/T2C.

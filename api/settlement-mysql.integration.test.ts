@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {afterAll,beforeAll,describe,expect,it} from 'vitest';
 import {createPool,type Pool,type ResultSetHeader} from 'mysql2/promise';
 import {SettlementReconciliation} from './lib/settlement-reconciliation';
@@ -36,7 +36,12 @@ describe.skipIf(!url).sequential('settlement reconciliation in disposable MySQL'
     await service.capture(f.applicationId,'REFUND',itemId,'synthetic-ci');
     const report=await service.report(f.applicationId);
     expect(report.missing).toBe(0);expect(report.totals).toEqual([{currency:'AED',grossMinor:29360,feeMinor:1200,netMinor:28160}]);
-    expect(report.supplier.totalAed).toBeNull();expect(report.finalProfit).toBeNull();
+    expect(report.supplier.totalAed).toBeNull();expect(report.finalProfit).toBeNull();expect(report.documentsIncomplete).toBe(2);
+    const number='TEST-INV-'+randomUUID().slice(0,8),pdf=Buffer.from('%PDF synthetic accounting fixture');
+    await pool.execute('INSERT INTO invoices(invoice_number,application_id,payment_id,amount,vat_rate) VALUES (?,?,?,100,0)',[number,f.applicationId,f.paymentId]);
+    await pool.execute(`INSERT INTO financial_document_archives(document_number,issuance_key,application_id,payment_id,series,sequence_number,issued_at,snapshot_json,pdf_bytes,pdf_sha256) VALUES (?,?,?,?,'TEST-INV',?,NOW(3),?,?,?)`,[number,'payment:'+f.paymentId,f.applicationId,f.paymentId,900000+f.applicationId,JSON.stringify({totalAmount:100,currency:'USD'}),pdf,createHash('sha256').update(pdf).digest('hex')]);
+    const linked=await service.report(f.applicationId);expect(linked.documentsIncomplete).toBe(1);expect(linked.rows.find(row=>row.kind==='PAYMENT')?.document).toEqual({status:'MATCHED',number});
+    expect((await new SettlementReconciliation(pool,provider,()=> 'LIVE').report(f.applicationId)).missing).toBe(2);
     await expect(pool.execute('UPDATE stripe_settlement_evidence SET net_minor=0 WHERE application_id=?',[f.applicationId])).rejects.toThrow('immutable');
   });
   it('rejects a changed source during provider lookup and another application target',async()=>{

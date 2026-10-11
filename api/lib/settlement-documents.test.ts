@@ -1,0 +1,10 @@
+import {describe,it,expect} from 'vitest';
+import {reconcileSourceDocument,type AccountingArchive} from './settlement-documents';
+const payment={kind:'PAYMENT' as const,id:'9',applicationId:1,providerId:'pi_test',paymentIntent:'pi_test',amountMinor:10000,currency:'USD'};
+const invoice={number:'TEST-INV-00009',paymentId:'9',amount:'100.00'};
+const archive:AccountingArchive={number:invoice.number,paymentId:'9',series:'TEST-INV',issuanceKey:'payment:9',intact:true,snapshot:JSON.stringify({totalAmount:100,currency:'USD'})};
+describe('settlement accounting evidence',()=>{
+ it('matches each payment invoice without treating a missing archive as zero',()=>{expect(reconcileSourceDocument(payment,'9',[archive],[invoice]).status).toBe('MATCHED');expect(reconcileSourceDocument(payment,'9',[],[invoice]).status).toBe('MISSING');});
+ it('rejects corrupt PDF, wrong currency, amount or ambiguous invoice',()=>{for(const changed of [{intact:false},{snapshot:'{}'},{snapshot:JSON.stringify({totalAmount:100,currency:'AED'})},{snapshot:JSON.stringify({totalAmount:1,currency:'USD'})}])expect(reconcileSourceDocument(payment,'9',[{...archive,...changed}],[invoice]).status).toBe('MISMATCH');expect(reconcileSourceDocument(payment,'9',[archive],[invoice,invoice]).status).toBe('MISMATCH');});
+ it('binds partial refund credit note to the original invoice, refund and payment',()=>{const refund={...payment,kind:'REFUND' as const,id:'refund-item',providerId:'re_test',amountMinor:2000};const note={...archive,number:'TEST-CN-00001',series:'TEST-CN',issuanceKey:'refund:re_test',snapshot:JSON.stringify({amount:'20.00',currency:'USD',refundItemId:refund.id,stripeRefundId:refund.providerId,originalInvoiceNumber:invoice.number})};expect(reconcileSourceDocument(refund,'9',[note],[invoice]).status).toBe('MATCHED');expect(reconcileSourceDocument(refund,'other',[note],[invoice]).status).toBe('MISSING');expect(reconcileSourceDocument(refund,'9',[{...note,snapshot:note.snapshot.replace('refund-item','other')}],[invoice]).status).toBe('MISMATCH');});
+});
