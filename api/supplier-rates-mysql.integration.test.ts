@@ -90,7 +90,7 @@ describe.skipIf(!url)('supplier rate versions in disposable MySQL', () => {
     const byProduct=await listProductSupplierRates(code,pool);
     expect(byProduct.map(r=>r.id).sort()).toEqual(bySupplier.map(r=>r.id).sort());
     expect(byProduct.every(r=>r.totalAed===null&&r.vatAmountAed===null)).toBe(true);
-    const [app]=await pool.execute<ResultSetHeader>("INSERT INTO applications(reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,status,payment_status) VALUES (?,'single','gcc-accompany',?,'regular','test@example.invalid','000',1,'under_review','paid')",['PRODUCT-'+randomUUID(),code]);
+    const [app]=await pool.execute<ResultSetHeader>("INSERT INTO applications(reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,total_amount_aed,status,payment_status) VALUES (?,'single','gcc-accompany',?,'regular','test@example.invalid','000',1,0,'under_review','paid')",['PRODUCT-'+randomUUID(),code]);
     await pool.execute("INSERT INTO applicants(application_id,applicant_index,full_name) VALUES (?,0,'Synthetic')",[app.insertId]);
     expect((await selectCaseSupplier(app.insertId,supplierId,null,'synthetic')).pricingReadiness).toBe('TAX_PENDING');
     const [cost]=await pool.execute<RowDataPacket[]>('SELECT supplier_cost_aed,supplier_vat_amount,supplier_total_aed FROM applications WHERE id=?',[app.insertId]);
