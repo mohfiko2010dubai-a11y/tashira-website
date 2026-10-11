@@ -81,13 +81,13 @@ function AppContent() {
   }, [i18n.language]);
 
   if (isPublicPage(location.pathname)) return <PublicApp />;
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isBackOfficeRoute = /^\/(admin|staff)(\/|$)/.test(location.pathname);
 
   return (
     <HelmetProvider>
     <div className={`min-h-screen bg-white ${isRtlLanguage(i18n.language) ? 'font-tajawal' : 'font-inter'}`}>
-      {!isAdminRoute && <Header />}
-      <main data-application-layout data-motion-screen={/^(\/(admin|staff|login|dashboard))(\/|$)/.test(location.pathname) ? undefined : ""} className={isAdminRoute ? undefined : "site-header-clearance"}>
+      {!isBackOfficeRoute && <Header />}
+      <main data-application-layout data-motion-screen={/^(\/(admin|staff|login|dashboard))(\/|$)/.test(location.pathname) ? undefined : ""} className={isBackOfficeRoute ? undefined : "site-header-clearance"}>
         <ChunkLoadErrorBoundary>
           <Suspense fallback={<div className="min-h-[40vh]" aria-label="Loading page">{!location.pathname.startsWith('/pay/') && <Logo variant="mark-only" watermark size={32} />}</div>}>
           <Routes>
@@ -162,9 +162,9 @@ function AppContent() {
           </Suspense>
         </ChunkLoadErrorBoundary>
       </main>
-      {!isAdminRoute && <Footer />}
-      {!isAdminRoute && <ScrollToTop />}
-      {!isAdminRoute && <ChatBot key={new URLSearchParams(location.search).get('resume') === '1' ? 'resume' : 'default'} />}
+      {!isBackOfficeRoute && <Footer />}
+      {!isBackOfficeRoute && <ScrollToTop />}
+      {!isBackOfficeRoute && <ChatBot key={new URLSearchParams(location.search).get('resume') === '1' ? 'resume' : 'default'} />}
     </div>
     </HelmetProvider>
   );
