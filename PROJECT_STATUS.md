@@ -1,3 +1,8 @@
+# Inbound message scope correction — 2026-10-11, gates in progress
+
+Reproduced three missing rollout-boundary checks before correction: a message could borrow another application's enabled flag, another team's enabled flag, or bypass a disabled application override using global caller context. Service now rechecks the normalized message's own application/team against the same trusted deployment environment before persistence. Positive application/team/global cases remain covered. This is an internal preparation fix: no live provider ingress has been activated.
+
+Current connector inventory was checked read-only: Hostinger grants a different company's mailbox, not admin@tashiraev.com. Outlook is the owner's Yahoo account; exact deposit reference search found no message. Neither substitutes for TASHIRA mailbox access. No mailbox/webhook configuration or mail sending changed. Existing deposit capability remains unavailable; no duplicate request created. Full gates/deployment pending.
 # Deposit receipt deployed and verified — 2026-10-11
 
 Staging runtime c01b18139c990d382e07af3048cee9f3014687c2. CI38159720738: Verify and mandatory84 MySQL integration tests succeeded. Local and exact-server check/lint/test/build passed:1546 unit tests +13 build checks. Atomic deposit receipt outbox and Arabic status detail correction deployed; replay/race/unverified-payment/outbox-failure tests passed. This validates code and dispatch behavior, not actual inbox receipt for an unpaid deposit.

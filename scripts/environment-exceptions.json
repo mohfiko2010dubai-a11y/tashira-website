@@ -18,6 +18,7 @@
   "api/lib/invoice-download-token.ts": "Invoice download HMAC credential only.",
   "api/lib/local-storage.ts": "Storage root isolation and signed-link HMAC secret.",
   "api/lib/operations/mysql-access-provider.ts": "Trusted authorization and governed feature context, never visa eligibility or prices.",
+  "api/lib/operations/inbound-email-service.ts": "Carries the trusted deployment environment into the inbound message's own application/team feature-flag boundary; no business policy or environment-specific acceptance bypass.",
   "api/lib/operations/mysql-controlled-write-executor.ts": "Constructs trusted authorization context for controlled staff operations.",
   "api/lib/operations/mysql-query-client.ts": "Database connection credential for operations persistence.",
   "api/lib/public-app-url.ts": "Configured public origin for secure links and canonical metadata.",
