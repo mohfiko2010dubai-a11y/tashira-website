@@ -37,9 +37,18 @@ describe('manual refund import for visa changes',()=>{
     mock.write.mockReset().mockResolvedValueOnce([[{state:'PENDING',quote_state:'REFUND_PENDING',refund_case_id:'case'}]])
       .mockResolvedValueOnce([[{id:12,amount:'185.00',currency:'USD'}]])
       .mockResolvedValueOnce([[{id:'item',refund_case_id:'case',application_id:7,payment_id:12,refund_source_type:'VISA_SERVICE',refund_amount:'30.00',currency:'USD',refund_item_status:'PROCESSING',idempotency_key:'manual:re_test'}]])
-      .mockResolvedValueOnce([[{count:1}]]).mockResolvedValue([{}]);
+      .mockResolvedValueOnce([[{count:1}]]).mockResolvedValueOnce([[]]).mockResolvedValue([{}]);
     const value=await prepareManualRefund('decision');expect(value.itemId).toBe('item');
     expect(mock.write.mock.calls.some(([sql])=>/INSERT INTO refund/.test(sql))).toBe(false);
+  });
+  it('rejects a previous refund already allocated to another amendment',async()=>{
+    mock.write.mockReset().mockResolvedValueOnce([[{state:'PENDING',quote_state:'ACCEPTED',refund_case_id:null}]])
+      .mockResolvedValueOnce([[{id:12,amount:'185.00',currency:'USD'}]])
+      .mockResolvedValueOnce([[{id:'item',refund_case_id:'case',application_id:7,payment_id:12,refund_source_type:'VISA_SERVICE',refund_amount:'30.00',currency:'USD',refund_item_status:'SUCCEEDED',refund_case_status:'REFUNDED'}]])
+      .mockResolvedValueOnce([[{count:1}]]).mockResolvedValueOnce([[{id:'earlier-quote'}]]);
+    await expect(prepareManualRefund('decision')).rejects.toThrow('already been used');
+    expect(mock.prepare).not.toHaveBeenCalled();
+    expect(mock.write.mock.calls.some(([sql])=>/UPDATE visa_change_quotes/.test(sql))).toBe(false);
   });
   it('does not write a pending or failed Stripe refund',async()=>{
     mock.verify.mockRejectedValue(new Error('Provider refund not succeeded'));

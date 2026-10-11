@@ -1,3 +1,11 @@
+# Paid amendment and complete operational acceptance — 2026-10-11
+
+Runtime51e5314f7ff16f9255d235357b8156b47b27526f; CI38157061771 Verify +84 mandatory DB cases passed; local/exact-server1540 unit +13 build checks, check/lint/build passed. Backup:/var/backups/tashira-staging/erp-refund-51e5314-1791737654127. Health200, no migration, production untouched.
+
+Actual Stripe TEST application262 / TSH-9AF6CD82CF0E4C1FB9AD955CBFFABFFC: original TEST-INV-00012; USD220 difference TEST-INV-00013; actual cheaper-product refund USD220/TEST-CN-00004. Customer consent both ways, one refund record, duplicate approval409, immutable PDF hashes and original preservation passed. Full existing-source reconciliation0 missing settlements/0 incomplete documents. Same case passed employee upload/supplier/filing/two scanned synthetic visas/completed workflow and manager AED640 real BASHIR cost visibility, staff finance403 and one closure. Visual screenshots inspected; temporary accounts disabled. Final review added cross-quote refund reuse guard, candidate pending gates/deployment.
+
+Deposit request20683b9a-58b7-4e1b-85f5-575b0d2e2cbe accepted by Resend for pre-authorized synthetic application233/admin@tashiraev.com. Same-command replay preserved request; capability purged after SENT. GET sent email401 prevents harness opening actual link. No deposit payment/refund or inbox receipt claimed for this request. Do not recreate it; continue from recipient link. Genuine inbound mailbox and official WhatsApp connection remain external setup. Final profit null pending expense/tax evidence. See current top ERP_COMPLETION_TASKS for exact remaining gates. No launch-ready claim.
+
 # T1A — accepted on staging — 2026-10-11
 
 Runtime8756edd407b4e0cd6bc478a006d60fd4f9c4ee98 deployed after local/exact-server check/lint/test/build and CI38155948969 (Verify and84 mandatory MySQL cases passed). Backup:/var/backups/tashira-staging/erp-topup-8756edd-1791736760817; health200; no migration; production untouched.

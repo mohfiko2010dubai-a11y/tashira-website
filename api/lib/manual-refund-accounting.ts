@@ -36,6 +36,8 @@ export async function prepareManualRefund(decisionId: string) {
       itemId=String(item.id);caseId=String(item.refund_case_id);
       const [[count]] = await connection.execute<RowDataPacket[]>('SELECT COUNT(*) count FROM refund_items WHERE refund_case_id=?', [caseId]);
       if (Number(count.count) !== 1) throw new Error('A combined refund case needs separate reconciliation before linking one visa difference');
+      const [linkedQuotes] = await connection.execute<RowDataPacket[]>('SELECT id FROM visa_change_quotes WHERE refund_case_id=? AND id<>?', [caseId,decision.quote_id]);
+      if (linkedQuotes.length) throw new Error('This refund has already been used for another visa change');
     } else {
       const [[reserved]] = await connection.execute<RowDataPacket[]>("SELECT COALESCE(SUM(refund_amount),0) total FROM refund_items WHERE payment_id=? AND refund_item_status IN ('PENDING','PROCESSING','SUCCEEDED')", [paymentId]);
       if (Math.round(Number(reserved.total)*100)+amountMinor > Math.round(Number(payments[0].amount)*100)) throw new Error('Other recorded refunds reserve this balance; reconcile them before importing another refund');
