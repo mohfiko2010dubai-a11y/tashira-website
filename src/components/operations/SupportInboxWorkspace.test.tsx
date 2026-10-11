@@ -10,7 +10,12 @@ const thread: SupportThreadDetail = { threadId: "thread-1", applicationId: 1, cu
 
 describe("Support Inbox workspace", () => {
   it("renders persisted safe messages, notes and controlled actions without an outbound sender", () => { const html = renderToStaticMarkup(<SupportInboxWorkspace threads={[thread]} selected={thread} busy={false} noteBody="" targetStaffId="" onNoteBody={vi.fn()} onTargetStaffId={vi.fn()} onSelect={vi.fn()} onCommand={vi.fn()} />);
-    expect(html).toContain("Please confirm the status."); expect(html).toContain("Internal context"); expect(html).toContain("Wait for customer"); expect(html).toContain("Reassign"); expect(html).toContain("Outbound email delivery is not enabled");
+    expect(html).toContain("Please confirm the status."); expect(html).toContain("Internal context"); expect(html).toContain("Wait for customer"); expect(html).toContain("Reassign"); expect(html).not.toContain("إرسال الرد بالبريد");
     expect(html).not.toMatch(/passport|stripe|payment|cost|margin|profit/i);
+  });
+  it('distinguishes queued and failed replies from confirmed inbox delivery',()=>{
+    const selected={...thread,outgoingEmails:[{commandId:'a',body:'Reply queued',status:'PENDING',attempts:0,createdAt:''},{commandId:'b',body:'Reply failed',status:'FAILED',attempts:6,createdAt:''}]};
+    const html=renderToStaticMarkup(<SupportInboxWorkspace threads={[selected]} selected={selected} busy={false} noteBody="" targetStaffId="" onNoteBody={vi.fn()} onTargetStaffId={vi.fn()} onSelect={vi.fn()} onCommand={vi.fn()} onReply={vi.fn()} onReplyBody={vi.fn()} />);
+    expect(html).toContain('بانتظار الإرسال');expect(html).toContain('تعذر الإرسال');expect(html).toContain('إرسال الرد بالبريد');
   });
 });

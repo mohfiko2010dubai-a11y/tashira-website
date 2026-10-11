@@ -14,7 +14,7 @@ const thread: SupportThreadDetail = { threadId: "11111111-1111-4111-8111-1111111
 function setup(flags: readonly FeatureFlagRecord[] = [flag]) { const commands: unknown[] = []; const repository: SupportInboxRepository = { list: async () => [thread], get: async () => thread,
   apply: async (_id, command) => { commands.push(command); return { ...thread, version: 1 }; } };
   const access = { actorForContext: async () => actor, flagContextForContext: async () => ({ environment: "STAGING" as const, staffId: 4, teamIds: new Set([7]) }), featureFlags: async () => flags };
-  return { commands, router: createOperationsSupportRouter({ access, repository, now: () => new Date("2026-08-26T12:00:00Z") }) }; }
+  return { commands, router: createOperationsSupportRouter({ access, repository, now: () => new Date("2026-08-26T12:00:00Z"),queueReply:async(_id,command)=>{commands.push(command);return {queued:true,replayed:false};} }) }; }
 
 describe("Operations Support router", () => {
   it("requires staff and a scoped enabled flag", async () => { await expect(setup().router.createCaller(ctx()).list({})).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -25,4 +25,10 @@ describe("Operations Support router", () => {
     expect(value.commands[0]).toMatchObject({ actorStaffId: 4, occurredAt: "2026-08-26T12:00:00.000Z" }); });
   it("rejects client-provided authorization or actor fields", async () => { await expect(setup().router.createCaller(ctx(4)).command({ threadId: thread.threadId,
     command: { commandId: "command-123", expectedVersion: 0, action: "CLAIM", actorStaffId: 999 } as never })).rejects.toMatchObject({ code: "BAD_REQUEST" }); });
+  it('derives reply sender and refuses arbitrary recipient or disabled inbox',async()=>{
+    const value=setup(),input={threadId:thread.threadId,commandId:'22222222-2222-4222-8222-222222222222',expectedVersion:0,body:'Synthetic reply'};
+    await value.router.createCaller(ctx(4)).reply(input);expect(value.commands[0]).toMatchObject({actorStaffId:4,body:input.body});
+    await expect(value.router.createCaller(ctx(4)).reply({...input,recipient:'other@example.invalid'} as never)).rejects.toMatchObject({code:'BAD_REQUEST'});
+    await expect(setup([]).router.createCaller(ctx(4)).reply(input)).rejects.toMatchObject({code:'FORBIDDEN'});
+  });
 });

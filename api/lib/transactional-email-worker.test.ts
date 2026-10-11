@@ -9,6 +9,7 @@ vi.mock('./payment-success-email', () => ({ sendPaymentSuccessEmail: mocks.payme
 vi.mock('./refund-outcome-email', () => ({ sendRefundOutcomeEmail: vi.fn() }));
 vi.mock('./email-provider', () => ({ adminEmailRecipient: mocks.admin }));
 import { runTransactionalEmails } from './transactional-email-worker';
+import {recipientHash} from './resend-email';
 
 const application = () => ({ reference_number: 'TSH-SYNTHETIC', contact_email: 'synthetic@example.invalid', preferred_language: 'ar', payment_status: 'paid', status: 'under_review', visa_type: '30days-single', submitted_product: '14days-single', substitution_version: 2, substitution_acknowledged_version: null as number | null });
 const job = () => ({ job_key: 'substitution:91:2', application_id: 91, template: 'PRODUCT_SUBSTITUTED', variables_json: { originalProduct: '30days-single', replacementProduct: '14days-single' } });
@@ -26,6 +27,14 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 describe('durable transactional email dispatch', () => {
+  it.each([false,true])('support reply uses the stored customer and suppresses changed recipient: %s',async changed=>{
+    const queued={...job(),job_key:'support-reply:synthetic-command',template:'SUPPORT_REPLY',variables_json:{replyText:'Synthetic reply',recipientHash:recipientHash('synthetic@example.invalid')}};
+    if(changed)current.contact_email='other@example.invalid';
+    let pending=true;mocks.claim.mockImplementation(async(sql:string)=>{if(!sql.startsWith('SELECT *'))return [{}];const rows=pending?[queued]:[];pending=false;return [rows];});
+    await runTransactionalEmails();
+    if(changed){expect(mocks.send).not.toHaveBeenCalled();expect(mocks.execute).toHaveBeenCalledWith(expect.stringContaining('failure_message=?'),['SUPPRESSED',null,queued.job_key]);}
+    else expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({recipient:'synthetic@example.invalid',template:'SUPPORT_REPLY',sourceReference:queued.job_key,variables:expect.objectContaining({replyText:'Synthetic reply'})}));
+  });
   it.each(['en', 'ar'])('uses the application recipient, current %s language and stable status-event identity', async language => {
     current.preferred_language = language;
     const queued = { ...job(), job_key: 'application-status:source-event-1', template: 'STATUS_CHANGED',

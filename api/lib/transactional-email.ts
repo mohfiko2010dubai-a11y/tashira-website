@@ -4,6 +4,7 @@ import { adminEmailActionUrl, isAdminEmail } from './email-audience';
 import { processingCopy } from '../../contracts/processing-copy';
 
 export const EMAIL_TEMPLATES = [
+  "SUPPORT_REPLY",
   "APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED",
   "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP",
   "SECURITY_DEPOSIT_REQUEST", "REFUND_COMPLETED",
@@ -32,6 +33,7 @@ export class DisabledEmailProvider implements TransactionalEmailProvider {
 
 export function validateTemplateVariables(template: EmailTemplate, variables: Record<string, string>) {
   const required: Record<EmailTemplate, string[]> = {
+    SUPPORT_REPLY: ["referenceNumber", "replyText"],
     APPLICATION_RECEIVED: ["referenceNumber"],
     PAYMENT_SUCCESS: ["referenceNumber", "invoiceNumber", "amountPaid", "currency", "currentStatus", "invoiceUrl"],
     PAYMENT_FAILED: ["referenceNumber"],
@@ -63,6 +65,7 @@ function renderEmailContent(template: EmailTemplate, variables: Record<string, s
   validateTemplateVariables(template, variables);
   const reference = variables.referenceNumber;
   const content: Record<EmailTemplate, { subject: string; body: string }> = {
+    SUPPORT_REPLY: {subject:`A message about your application — ${reference}`,body:variables.replyText},
     APPLICATION_RECEIVED: { subject: `Application received — ${reference}`, body: `We received application ${reference}.` },
     PAYMENT_SUCCESS: {
       subject: `Payment successful — ${reference}`,

@@ -7,7 +7,7 @@ import { adminEmailActionUrl, isAdminEmail } from './email-audience';
 beforeEach(() => vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com'));
 afterEach(() => vi.unstubAllEnvs());
 describe('transactional mail in the customer language', () => {
-  const variables = { referenceNumber: 'TSH-SYNTHETIC', invoiceNumber: 'TEST-INV-00001', amountPaid: '185.00', currency: 'USD', currentStatus: 'Paid', statusLabel: 'Paid', refundSummary: 'USD 50.00',
+  const variables = { replyText:'Synthetic reply <not markup>',referenceNumber: 'TSH-SYNTHETIC', invoiceNumber: 'TEST-INV-00001', amountPaid: '185.00', currency: 'USD', currentStatus: 'Paid', statusLabel: 'Paid', refundSummary: 'USD 50.00',
     invoiceUrl: `https://staging.tashiraev.com/invoice-download/TEST-INV-00001?expires=2000000000&signature=${'a'.repeat(43)}`,
     resumeUrl: 'https://staging.tashiraev.com/recover?token=synthetic', otp: '123456', expiresMinutes: '10',
     amount: '50.00', purpose: 'Synthetic', depositUrl: `https://staging.tashiraev.com/deposit/${'b'.repeat(43)}`, expiresAt: '2030-01-01',

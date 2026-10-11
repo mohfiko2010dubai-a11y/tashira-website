@@ -3,10 +3,11 @@ import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from "mysql
 import type { SupportCommand, SupportThread, SupportThreadState, SupportPriority } from "./support-workflow";
 import { SupportThreadWorkflow } from "./support-workflow";
 import type { SupportMessage, SupportChannel, SupportDirection } from "./support-inbox";
+import type {SupportOutgoingEmail} from './support-email-reply';
 
 type SqlValue = string | number | Date | null;
 export type SupportThreadResource = SupportThread & { teamId: number; assignedActorId?: string; departmentId?: number; applicationOwnerActorId?: string | null };
-export type SupportThreadDetail = SupportThreadResource & { messages: readonly SupportMessage[] };
+export type SupportThreadDetail = SupportThreadResource & { messages: readonly SupportMessage[];outgoingEmails?:readonly SupportOutgoingEmail[] };
 
 function value(row: object, key: string): unknown { return Reflect.get(row, key); }
 function text(row: object, key: string): string { const item = value(row, key); if (typeof item !== "string") throw new Error(`SUPPORT_ROW_INVALID:${key}`); return item; }
@@ -115,6 +116,8 @@ export class MysqlSupportInboxRepository {
       channel: text(row, "channel") as SupportChannel, direction: text(row, "direction") as SupportDirection, applicationId: optionalNumber(row, "applicationId"),
       customerReference: value(row, "customerReference") === null ? null : text(row, "customerReference"), sanitizedBody: text(row, "sanitizedBody"),
       occurredAt: dateTime(row, "occurredAt"), actorReference: text(row, "actorReference"), auditReference: text(row, "auditReference") }));
-    return { ...threadFromRow(found[0], notes), messages };
+    const outgoing=await rows(connection,`SELECT r.command_id,r.body,j.job_status,j.attempts,r.created_at
+      FROM operations_support_email_requests r JOIN transactional_email_jobs j ON j.job_key=r.job_key WHERE r.thread_id=? ORDER BY r.created_at,r.command_id`,[threadId]);
+    return { ...threadFromRow(found[0], notes), messages,outgoingEmails:outgoing.map(row=>({commandId:text(row,'command_id'),body:text(row,'body'),status:text(row,'job_status'),attempts:number(row,'attempts'),createdAt:dateTime(row,'created_at')})) };
   }
 }

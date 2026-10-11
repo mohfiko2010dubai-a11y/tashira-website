@@ -6,6 +6,7 @@ import { processingCopy } from '../../contracts/processing-copy';
 export function arabicEmailContent(template: EmailTemplate, v: Record<string, string>) {
   const r = v.referenceNumber;
   const copy: Record<EmailTemplate, [string, string]> = {
+    SUPPORT_REPLY: ['رسالة بخصوص طلبك',v.replyText],
     APPLICATION_RECEIVED: ['استلمنا طلبك', `استلمنا الطلب ${r}. يمكنك متابعة حالة طلبك ورفع مستنداتك من صفحة طلبك الآمنة.`],
     PAYMENT_SUCCESS: ['تم استلام الدفع', `تم التحقق من الدفع للطلب ${r}. رقم الفاتورة: ${v.invoiceNumber}. المبلغ المدفوع: ${v.amountPaid} ${v.currency}. رابط الفاتورة الآمن: ${v.invoiceUrl}. سنراجع الطلب المدفوع؛ تأكيد الدفع لا يعني إرساله إلى الجهة الحكومية. ${v.trackingUrl || ''}`],
     PAYMENT_FAILED: ['الدفع يحتاج إلى متابعة', `لم يكتمل الدفع للطلب ${r}. افتح صفحة طلبك للتحقق من حالة الدفع والمحاولة مجددًا.`],

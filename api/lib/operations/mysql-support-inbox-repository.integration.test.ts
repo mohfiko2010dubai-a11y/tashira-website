@@ -2,8 +2,10 @@ import { randomUUID } from "node:crypto";
 import { createPool, type Pool, type ResultSetHeader } from "mysql2/promise";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MysqlSupportInboxRepository } from "./mysql-support-inbox-repository";
+import {queueSupportEmail} from './support-email-reply';
 
 const databaseUrl = process.env.OPS_SUPPORT_DATABASE_URL;
+const originalPublicUrl=process.env.PUBLIC_APP_URL;
 const integration = databaseUrl ? describe.sequential : describe.skip;
 function id(result: object): number { const value = Reflect.get(result, "insertId"); if (typeof value !== "number" || value < 1) throw new Error("SYNTHETIC_ID_INVALID"); return value; }
 
@@ -11,6 +13,7 @@ integration("MySQL Support Inbox repository", () => {
   let pool: Pool; let repository: MysqlSupportInboxRepository; let staffId = 0; let threadId = ""; let messageId = "";
   const suffix = `${process.pid}-${Date.now()}`;
   beforeAll(async () => {
+    const target=new URL(databaseUrl!);if(!['127.0.0.1','localhost'].includes(target.hostname)||target.port!=='33306'||!/^\/tashira_ops_rehearsal_[a-z0-9_]+$/.test(target.pathname))throw new Error('Disposable database required');
     pool = createPool({ uri: databaseUrl ?? "", connectionLimit: 3 }); repository = new MysqlSupportInboxRepository(pool);
     const [department] = await pool.execute<ResultSetHeader>("INSERT INTO operations_departments (code,name) VALUES (?,?)", [`SUPPORT-${suffix}`,"Synthetic Support"]); const departmentId = id(department);
     const [team] = await pool.execute<ResultSetHeader>("INSERT INTO operations_teams (department_id,code,name) VALUES (?,?,?)", [departmentId,`SUPPORT-${suffix}`,"Synthetic Support Team"]); const teamId = id(team);
@@ -23,7 +26,7 @@ integration("MySQL Support Inbox repository", () => {
       (id,provider_message_id,thread_id,channel,direction,customer_reference,sanitized_body,actor_reference,audit_reference,occurred_at)
       VALUES (?,? ,?,'EMAIL','INBOUND',?,'Synthetic status request','customer','audit-synthetic',UTC_TIMESTAMP())`, [messageId,`provider-${suffix}`,threadId,`TSH-SUPPORT-${suffix}`]);
   });
-  afterAll(async () => { await pool.end(); });
+  afterAll(async () => { await pool?.end();if(originalPublicUrl===undefined)delete process.env.PUBLIC_APP_URL;else process.env.PUBLIC_APP_URL=originalPublicUrl; });
 
   it("loads persisted thread/message evidence and applies replay-safe concurrent commands", async () => {
     expect(await repository.list()).toEqual(expect.arrayContaining([expect.objectContaining({ threadId, unreadCount: 1, teamId: expect.any(Number) })]));
@@ -59,5 +62,29 @@ integration("MySQL Support Inbox repository", () => {
     expect(moved).toMatchObject({ applicationOwnerActorId: `staff:${successor}`, assignedStaffId: successor, messages: [{ messageId, sanitizedBody: 'Synthetic status request' }] });
     await expect(repository.apply(threadId, { commandId: randomUUID(), expectedVersion: 2, actorStaffId: staffId, occurredAt: new Date().toISOString(), action: 'ADD_INTERNAL_NOTE', noteId: randomUUID(), noteBody: 'Must be denied' })).rejects.toThrow('SUPPORT_ACCESS_DENIED');
     await expect(repository.apply(threadId, { commandId: randomUUID(), expectedVersion: 2, actorStaffId: successor, occurredAt: new Date().toISOString(), action: 'REASSIGN', targetStaffId: staffId })).rejects.toThrow('SUPPORT_USE_CASE_ASSIGNMENT');
+  });
+  it('queues one reply under concurrent retry, rejects changed content and stale ownership',async()=>{
+    process.env.PUBLIC_APP_URL='https://staging.tashiraev.com';
+    const current=await repository.get(threadId);expect(current?.applicationId).toBeTruthy();
+    await pool.execute('UPDATE operations_case_controls SET assigned_staff_user_id=? WHERE application_id=?',[staffId,current!.applicationId]);
+    const [role]=await pool.execute<ResultSetHeader>("INSERT INTO operations_roles(code,name) VALUES (?,?)",['REPLY_'+suffix,'Synthetic reply']);
+    await pool.execute("INSERT INTO operations_role_permissions(role_id,permission_id,granted_by) SELECT ?,id,'synthetic-ci' FROM operations_permissions WHERE code='case.transition'",[role.insertId]);
+    await pool.execute("INSERT INTO operations_staff_roles(staff_user_id,role_id,granted_by,valid_from) VALUES (?,?,'synthetic-ci','2020-01-01')",[staffId,role.insertId]);
+    await pool.execute("INSERT INTO operations_scope_grants(staff_user_id,scope_type,granted_by) VALUES (?,'ASSIGNED','synthetic-ci')",[staffId]);
+    const command={commandId:randomUUID(),expectedVersion:current!.version,actorStaffId:staffId,body:'Synthetic customer reply'};
+    const results=await Promise.all([1,2].map(()=>queueSupportEmail(pool,threadId,command)));
+    expect(results.filter(row=>row.replayed)).toHaveLength(1);
+    const updated=await repository.get(threadId);expect(updated?.outgoingEmails).toMatchObject([{status:'PENDING',body:command.body}]);
+    await expect(queueSupportEmail(pool,threadId,{...command,body:'Changed'})).rejects.toThrow('IDEMPOTENCY_CONFLICT');
+    await pool.execute('UPDATE operations_case_controls SET assigned_staff_user_id=NULL WHERE application_id=?',[current!.applicationId]);
+    await expect(queueSupportEmail(pool,threadId,command)).rejects.toThrow('ACCESS_DENIED');
+  });
+  it('rejects revoked permissions and threads without a linked application',async()=>{
+    const current=await repository.get(threadId);
+    await pool.execute('UPDATE operations_case_controls SET assigned_staff_user_id=? WHERE application_id=?',[staffId,current!.applicationId]);
+    await pool.execute('UPDATE operations_staff_roles SET revoked_at=NOW() WHERE staff_user_id=?',[staffId]);
+    await expect(queueSupportEmail(pool,threadId,{commandId:randomUUID(),expectedVersion:current!.version,actorStaffId:staffId,body:'Must not send'})).rejects.toThrow('ACCESS_DENIED');
+    await pool.execute('UPDATE operations_support_threads SET application_id=NULL WHERE id=?',[threadId]);
+    await expect(queueSupportEmail(pool,threadId,{commandId:randomUUID(),expectedVersion:current!.version,actorStaffId:staffId,body:'Must not send'})).rejects.toThrow('APPLICATION_REQUIRED');
   });
 });

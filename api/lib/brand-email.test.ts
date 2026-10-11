@@ -6,6 +6,7 @@ afterEach(() => vi.unstubAllEnvs());
 it('uses a text wordmark for customers and plain internal notices with images disabled', () => {
   vi.stubEnv('PUBLIC_APP_URL', 'https://staging.tashiraev.com');
   const variables = {
+    replyText:'Synthetic reply <not markup>',
     referenceNumber: 'TSH-TEST', invoiceNumber: 'INV-TEST', amountPaid: '185', currency: 'USD',
     currentStatus: 'Paid', statusLabel: 'Review <not approval>',
     invoiceUrl: 'https://staging.tashiraev.com/invoice-download/INV-TEST?expires=9999999999&signature=' + 'a'.repeat(43),

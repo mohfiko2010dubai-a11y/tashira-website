@@ -7,6 +7,7 @@ import { adminEmailRecipient } from './email-provider';
 import { publicAppOrigin } from './public-app-url';
 import { EMAIL_TEMPLATES, type EmailTemplate } from './transactional-email';
 import { adminEmailActionUrl, isAdminEmail } from './email-audience';
+import {recipientHash} from './resend-email';
 
 // Durable source events, not UI actions: retries and process restarts do not lose mail.
 export const timelineEmailTemplates: Readonly<Record<string, EmailTemplate>> = {
@@ -67,6 +68,7 @@ async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRE
   if (statusOutbox) variables.statusLabel = application.preferred_language === 'ar' ? variables.statusLabelAr : variables.statusLabelEn;
   const template = EMAIL_TEMPLATES.find(value => value === job.template);
   if (!template) throw new Error('Unknown mail template');
+  if(template==='SUPPORT_REPLY'&&variables.recipientHash!==recipientHash(String(application.contact_email)))return 'SUPPRESSED';
   // A queued proposal must never describe a replaced or already accepted version.
   if (template === 'PRODUCT_SUBSTITUTED' && (
     job.job_key !== `substitution:${job.application_id}:${application.substitution_version}` ||

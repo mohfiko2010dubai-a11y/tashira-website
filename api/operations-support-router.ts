@@ -6,12 +6,15 @@ import { defaultOperationsPool, defaultOperationsSqlClient } from "./lib/operati
 import { MysqlSupportInboxRepository } from "./lib/operations/mysql-support-inbox-repository";
 import { executeSupportCommand, listSupportThreads, readSupportThread, type SupportInboxRepository } from "./lib/operations/support-inbox-service";
 import { createRouter, staffOrAdminQuery } from "./middleware";
+import {assertSupportReplyAccess} from './lib/operations/support-inbox-service';
+import {queueSupportEmail,type SupportReplyCommand} from './lib/operations/support-email-reply';
 
 const action = z.enum(["CLAIM","ASSIGN","REASSIGN","START","WAIT_FOR_CUSTOMER","RESOLVE","ADD_INTERNAL_NOTE"]);
 const command = z.object({ commandId: z.string().min(8).max(100), expectedVersion: z.number().int().nonnegative(), action,
   targetStaffId: z.number().int().positive().optional(), noteId: z.string().uuid().optional(), noteBody: z.string().trim().min(1).max(4000).optional() }).strict();
 type Access = Pick<MysqlOperationsAccessProvider, "actorForContext" | "flagContextForContext" | "featureFlags">;
-type Dependencies = { access: Access; repository: SupportInboxRepository; now(): Date };
+type Dependencies = { access: Access; repository: SupportInboxRepository; now(): Date;
+  queueReply?(threadId:string,command:SupportReplyCommand):Promise<{queued:true;replayed:boolean}> };
 async function gate(deps: Dependencies, ctx: TrpcContext) { if (!ctx.staffId) throw new TRPCError({ code: "FORBIDDEN", message: "Support access denied" });
   const [actor, context, flags] = await Promise.all([deps.access.actorForContext(ctx), deps.access.flagContextForContext(ctx), deps.access.featureFlags()]);
   return { actor: actor.id === 'admin' ? { ...actor, id: `staff:${ctx.staffId}` } : actor, context, flags, repository: deps.repository }; }
@@ -20,9 +23,15 @@ function safe(error: unknown): never { if (error instanceof OperationsAccessErro
   if (error instanceof Error && ["SUPPORT_THREAD_VERSION_CONFLICT","SUPPORT_COMMAND_IDEMPOTENCY_CONFLICT"].includes(error.message)) throw new TRPCError({ code: "CONFLICT", message: "Support thread changed; refresh and retry" });
   if (error instanceof Error && error.message === "SUPPORT_THREAD_NOT_FOUND") throw new TRPCError({ code: "NOT_FOUND", message: "Support thread not found" });
   if (error instanceof Error && error.message === 'SUPPORT_USE_CASE_ASSIGNMENT') throw new TRPCError({ code: 'BAD_REQUEST', message: 'This conversation follows the application owner. Reassign the application instead.' });
+  if(error instanceof Error&&error.message==='SUPPORT_REPLY_APPLICATION_REQUIRED')throw new TRPCError({code:'BAD_REQUEST',message:'اربط المحادثة بطلب العميل قبل الرد بالبريد.'});
   throw new TRPCError({ code: "BAD_REQUEST", message: "Support action could not be completed" }); }
 
 export function createOperationsSupportRouter(deps: Dependencies) { return createRouter({
+  reply:staffOrAdminQuery.input(z.object({threadId:z.string().uuid(),commandId:z.string().uuid(),expectedVersion:z.number().int().nonnegative(),body:z.string().trim().min(1).max(4000)}).strict())
+    .mutation(async({ctx,input})=>{try{await assertSupportReplyAccess({...await gate(deps,ctx),threadId:input.threadId});
+      if(!deps.queueReply||!ctx.staffId)throw new Error('SUPPORT_ACCESS_DENIED');
+      return await deps.queueReply(input.threadId,{commandId:input.commandId,expectedVersion:input.expectedVersion,body:input.body,actorStaffId:ctx.staffId});
+    }catch(error){safe(error);}}),
   list: staffOrAdminQuery.input(z.object({}).strict()).query(async ({ ctx }) => { try { return await listSupportThreads(await gate(deps, ctx)); } catch (error) { safe(error); } }),
   detail: staffOrAdminQuery.input(z.object({ threadId: z.string().uuid() }).strict()).query(async ({ ctx, input }) => { try { return await readSupportThread({ ...await gate(deps, ctx), threadId: input.threadId }); } catch (error) { safe(error); } }),
   command: staffOrAdminQuery.input(z.object({ threadId: z.string().uuid(), command }).strict()).mutation(async ({ ctx, input }) => { try {
@@ -31,4 +40,4 @@ export function createOperationsSupportRouter(deps: Dependencies) { return creat
 }); }
 
 const access = new MysqlOperationsAccessProvider(defaultOperationsSqlClient());
-export const operationsSupportRouter = createOperationsSupportRouter({ access, repository: new MysqlSupportInboxRepository(defaultOperationsPool()), now: () => new Date() });
+export const operationsSupportRouter = createOperationsSupportRouter({ access, repository: new MysqlSupportInboxRepository(defaultOperationsPool()), now: () => new Date(),queueReply:(threadId,command)=>queueSupportEmail(defaultOperationsPool(),threadId,command) });

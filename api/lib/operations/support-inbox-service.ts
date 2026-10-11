@@ -22,6 +22,11 @@ function allowed(actor: AuthorizationActor, permission: "support.read" | "suppor
   return actor.permissions.has(permission) && authorize(actor, permission, resource).allowed;
 }
 
+export async function assertSupportReplyAccess(input: Context & {threadId:string}):Promise<void>{
+  enabled(input);const current=await input.repository.get(input.threadId);
+  if(!current||!allowed(input.actor,'support.reply',current))throw new Error('SUPPORT_ACCESS_DENIED');
+}
+
 export async function listSupportThreads(input: Context): Promise<readonly SupportThreadResource[]> {
   enabled(input); if (!input.actor.permissions.has("support.read") && !input.actor.permissions.has('case.read_assigned')) throw new Error("SUPPORT_ACCESS_DENIED");
   return (await input.repository.list()).filter((thread) => allowed(input.actor, "support.read", thread));

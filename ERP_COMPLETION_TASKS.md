@@ -10,13 +10,14 @@ Latest owner instruction: finish the remaining work in tested, reviewed logical 
 
 ## T2 — Financial attribution — IN PROGRESS
 - T2A: correct pricing-margin currency, use stored FX once for family totals, explicitly separate historical base currencies and label quote estimates. Deployed995caae on staging; CI38095960139 including77 mandatory MySQL tests and exact-server gates passed. HTTP health/access checks passed; visual check remains T4.
-- T2B: persist/reconcile actual Stripe settlement amounts and currencies (current capture stores fees only), successful service refunds, invoice/credit-note references and supplier invoice costs. Do not estimate settlement FX from invoice FX.
+- T2B1: actual immutable Stripe settlement evidence deployed6248351; CI80/21 passed, actual TEST payment GET/replay verified. T2B2 remains: invoice/credit-note and supplier-cost reconciliation plus actual provider refund UAT. Do not estimate settlement FX from invoice FX.
 - T2C: attach reconciled per-case results to the existing manager-only closure attribution; reopen/reassignment must not double-count. Missing evidence stays incomplete, never zero/final profit.
 - Reconcile actual paid invoices and top-ups, successful refunds/credit notes, supplier cost/VAT, actual Stripe fees and currency conversion.
 - Exclude test data; distinguish missing cost or settlement from zero; preserve approved accounting policy.
 - Verify reopened/reassigned case attribution and manager-only visibility. No invented final profit.
 
-## T3 — Communications — OPEN
+## T3 — Communications — IN PROGRESS
+- T3A outbound support reply candidate: existing durable outbox, current case-owner authorization, immutable request/retry and recipient binding; full local gates passed. Migration077/review CI/deployment still pending.
 - Reuse existing email/outbox/support ownership; preserve each application's own recipient and language.
 - Configure and test genuine inbound/outbound provider connection. Hostinger MX is mailbox hosting; Resend outbound delivery webhook is not inbound mail.
 - WhatsApp Business app number is not an official API connection. Record missing provider setup; do not simulate connectivity or change domain MX/production mail.

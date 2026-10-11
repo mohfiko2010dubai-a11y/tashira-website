@@ -504,7 +504,7 @@ export const customerRecoveryChallenges = mysqlTable("customer_recovery_challeng
 export const outboundEmailEvents = mysqlTable("outbound_email_events", {
   id: varchar("id", { length: 36 }).primaryKey(),
   applicationId: bigint("email_application_id", { mode: "number", unsigned: true }),
-  template: mysqlEnum("email_template", ["APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP", "SECURITY_DEPOSIT_REQUEST", "REFUND_COMPLETED", "DOCUMENTS_COMPLETE", "PRODUCT_SUBSTITUTED", "REJECTED", "RESUME_REMINDER", "REVIEW_REQUEST", "APPROVAL_PENDING", "GUARANTEE_BREACHED", "CONNECTION_BROKEN", "SUPPLIER_OVERRIDE", "LICENCE_EXPIRY"]).notNull(),
+  template: mysqlEnum("email_template", ["SUPPORT_REPLY", "APPLICATION_RECEIVED", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "DOCUMENTS_REQUIRED", "SUBMITTED", "STATUS_CHANGED", "VISA_ISSUED", "RESUME_LINK", "RECOVERY_OTP", "SECURITY_DEPOSIT_REQUEST", "REFUND_COMPLETED", "DOCUMENTS_COMPLETE", "PRODUCT_SUBSTITUTED", "REJECTED", "RESUME_REMINDER", "REVIEW_REQUEST", "APPROVAL_PENDING", "GUARANTEE_BREACHED", "CONNECTION_BROKEN", "SUPPLIER_OVERRIDE", "LICENCE_EXPIRY"]).notNull(),
   sourceReference: varchar("source_reference", { length: 100 }),
   recipientHash: varchar("recipient_hash", { length: 64 }).notNull(),
   provider: varchar("email_provider", { length: 50 }).notNull(),
