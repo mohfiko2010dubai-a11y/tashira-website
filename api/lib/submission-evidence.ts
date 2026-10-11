@@ -19,13 +19,13 @@ export async function assertDocumentNotSubmissionEvidence(documentId: number) {
 export async function copySubmissionEvidence(connection: PoolConnection, applicationId: number, kind: 'SUPPLIER_SENT' | 'AUTHORITY_FILED', raw: SubmissionEvidenceInput, actor: string, id: string = randomUUID()) {
   const input = submissionEvidenceInput.parse(raw);
   const [applications] = await connection.execute<RowDataPacket[]>(`SELECT a.supplier_id,a.supplier_cost_aed,a.supplier_total_aed,a.created_at,
-    a.supplier_rate_id,a.supplier_rate_quantity,a.processing_type,r.supplier_id captured_supplier,r.service_code captured_product,r.processing_type captured_speed,
+    r.vat_confirmed,r.residence_category,a.residence_type,a.supplier_rate_id,a.supplier_rate_quantity,a.processing_type,r.supplier_id captured_supplier,r.service_code captured_product,r.processing_type captured_speed,
     COALESCE(a.submitted_product,a.visa_type) product,(SELECT COUNT(*) FROM applicants p WHERE p.application_id=a.id) quantity
     FROM applications a LEFT JOIN supplier_product_rates r ON r.id=a.supplier_rate_id WHERE a.id=?`, [applicationId]);
   const application = applications[0];
   if (!application || Number(application.supplier_id) !== input.supplierId) throw new TRPCError({ code: 'CONFLICT', message: 'تغير المورد. حدّث الطلب وراجع جهة التقديم قبل الحفظ.' });
-  if (application.supplier_cost_aed == null || application.supplier_total_aed == null || Number(application.quantity) < 1) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'بيانات المورد أو تكلفته غير مكتملة. احفظ المورد بعد استكمال سعر التأشيرة وعدد المسافرين.' });
-  if (application.supplier_rate_id && (Number(application.captured_supplier) !== input.supplierId || application.product !== application.captured_product || application.processing_type !== application.captured_speed || Number(application.quantity) !== Number(application.supplier_rate_quantity))) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'تغير المورد أو التأشيرة أو أعداد المسافرين بعد تحديد التكلفة. احفظ المورد لتحديث التكلفة أولًا.' });
+  if (application.supplier_cost_aed == null || (application.supplier_total_aed == null && application.vat_confirmed !== 0) || Number(application.quantity) < 1) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'بيانات المورد أو تكلفته غير مكتملة. احفظ المورد بعد استكمال سعر التأشيرة وعدد المسافرين.' });
+  if (application.supplier_rate_id && (Number(application.captured_supplier) !== input.supplierId || (application.residence_category !== 'all' && application.residence_category !== application.residence_type) || application.product !== application.captured_product || application.processing_type !== application.captured_speed || Number(application.quantity) !== Number(application.supplier_rate_quantity))) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'تغير المورد أو التأشيرة أو أعداد المسافرين بعد تحديد التكلفة. احفظ المورد لتحديث التكلفة أولًا.' });
   const occurredAt = new Date(input.occurredAt);
   const followUpAt = input.followUpAt ? new Date(input.followUpAt) : null;
   if (kind === 'SUPPLIER_SENT' && (!followUpAt || followUpAt.getTime() <= Date.now())) throw new TRPCError({ code: 'BAD_REQUEST', message: 'حدد موعد المتابعة القادم مع المورد ثم احفظ الإرسال.' });

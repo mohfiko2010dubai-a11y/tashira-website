@@ -1,0 +1,545 @@
+{
+  "source": "الاسعار.xlsx",
+  "scope": "Main table A:F only; side notes excluded by owner",
+  "currency": "AED",
+  "vat": "Not included; not specified",
+  "products": [
+    {
+      "serviceCode": "96hours-transit",
+      "nameAr": "ترانزيت",
+      "nameEn": "transit visa",
+      "kind": "visa",
+      "durationDays": 4,
+      "entryType": "single",
+      "audience": "all",
+      "sourceRow": 4,
+      "sourceSelling": "145 USD"
+    },
+    {
+      "serviceCode": "14days-single",
+      "nameAr": "١٤ يومًا — دخول واحد",
+      "nameEn": "14 days",
+      "kind": "visa",
+      "durationDays": 14,
+      "entryType": "single",
+      "audience": "all",
+      "sourceRow": 6,
+      "sourceSelling": "165 USD"
+    },
+    {
+      "serviceCode": "30days-single",
+      "nameAr": "٣٠ يومًا — دخول واحد",
+      "nameEn": "30 days single",
+      "kind": "visa",
+      "durationDays": 30,
+      "entryType": "single",
+      "audience": "all",
+      "sourceRow": 8,
+      "sourceSelling": "185 USD"
+    },
+    {
+      "serviceCode": "30days-multiple",
+      "nameAr": "٣٠ يومًا — دخول متعدد",
+      "nameEn": "30 days multi",
+      "kind": "visa",
+      "durationDays": 30,
+      "entryType": "multiple",
+      "audience": "all",
+      "sourceRow": 10,
+      "sourceSelling": "285 USD"
+    },
+    {
+      "serviceCode": "60days-single",
+      "nameAr": "٦٠ يومًا — دخول واحد",
+      "nameEn": "60 days single",
+      "kind": "visa",
+      "durationDays": 60,
+      "entryType": "single",
+      "audience": "all",
+      "sourceRow": 12,
+      "sourceSelling": "295 USD"
+    },
+    {
+      "serviceCode": "60days-multiple",
+      "nameAr": "٦٠ يومًا — دخول متعدد",
+      "nameEn": "60 days multi",
+      "kind": "visa",
+      "durationDays": 60,
+      "entryType": "multiple",
+      "audience": "all",
+      "sourceRow": 14,
+      "sourceSelling": "385 USD"
+    },
+    {
+      "serviceCode": "extension-before-entry",
+      "nameAr": "تمديد قبل الدخول",
+      "nameEn": "Extension ( before entry )",
+      "kind": "procedure",
+      "durationDays": null,
+      "entryType": "not_applicable",
+      "audience": "all",
+      "sourceRow": 16,
+      "sourceSelling": "250 AED"
+    },
+    {
+      "serviceCode": "visa-modification",
+      "nameAr": "تعديل التأشيرة",
+      "nameEn": "Modify",
+      "kind": "procedure",
+      "durationDays": null,
+      "entryType": "not_applicable",
+      "audience": "all",
+      "sourceRow": 17,
+      "sourceSelling": "250 AED"
+    },
+    {
+      "serviceCode": "extension-inside-country",
+      "nameAr": "تمديد داخل الدولة",
+      "nameEn": "Extension ( Inside Country )",
+      "kind": "procedure",
+      "durationDays": null,
+      "entryType": "not_applicable",
+      "audience": "all",
+      "sourceRow": 18,
+      "sourceSelling": "1250 AED"
+    },
+    {
+      "serviceCode": "visa-cancellation",
+      "nameAr": "إلغاء التأشيرة",
+      "nameEn": "Visa Cacellation",
+      "kind": "procedure",
+      "durationDays": null,
+      "entryType": "not_applicable",
+      "audience": "all",
+      "sourceRow": 19,
+      "sourceSelling": "250 AED"
+    },
+    {
+      "serviceCode": "visa-reconsideration",
+      "nameAr": "إعادة النظر",
+      "nameEn": "Reconsideration ( إعادة نظر )",
+      "kind": "procedure",
+      "durationDays": null,
+      "entryType": "not_applicable",
+      "audience": "all",
+      "sourceRow": 20,
+      "sourceSelling": "95 USD"
+    },
+    {
+      "serviceCode": "child-transit-14-30",
+      "nameAr": "أطفال — ترانزيت / ١٤ / ٣٠ يومًا",
+      "nameEn": "Child ( transit - 14 - 30 )",
+      "kind": "visa",
+      "durationDays": null,
+      "entryType": "single",
+      "audience": "child",
+      "sourceRow": 21,
+      "sourceSelling": "95 USD"
+    },
+    {
+      "serviceCode": "child-60days",
+      "nameAr": "أطفال — ٦٠ يومًا",
+      "nameEn": "Child 60 days",
+      "kind": "visa",
+      "durationDays": 60,
+      "entryType": "single",
+      "audience": "child",
+      "sourceRow": 22,
+      "sourceSelling": "145 USD"
+    }
+  ],
+  "rates": [
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "96hours-transit",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "260.46",
+      "sourceCell": "C4"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "96hours-transit",
+      "processingType": "express",
+      "residenceCategory": "gcc-resident",
+      "costAed": "260.46",
+      "sourceCell": "C4"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "96hours-transit",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "208.88",
+      "sourceCell": "D4"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "96hours-transit",
+      "processingType": "express",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "208.88",
+      "sourceCell": "D4"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "96hours-transit",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "320.00",
+      "sourceCell": "E4"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "96hours-transit",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "320.00",
+      "sourceCell": "E4"
+    },
+    {
+      "supplierName": "حبايب (عالم الطيران)",
+      "serviceCode": "96hours-transit",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "725.00",
+      "sourceCell": "F4"
+    },
+    {
+      "supplierName": "حبايب (عالم الطيران)",
+      "serviceCode": "96hours-transit",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "725.00",
+      "sourceCell": "F4"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "14days-single",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "260.46",
+      "sourceCell": "C6"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "14days-single",
+      "processingType": "express",
+      "residenceCategory": "gcc-resident",
+      "costAed": "260.46",
+      "sourceCell": "C6"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "14days-single",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "208.88",
+      "sourceCell": "D6"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "14days-single",
+      "processingType": "express",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "208.88",
+      "sourceCell": "D6"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "14days-single",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "320.00",
+      "sourceCell": "E6"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "14days-single",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "320.00",
+      "sourceCell": "E6"
+    },
+    {
+      "supplierName": "حبايب (عالم الطيران)",
+      "serviceCode": "14days-single",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "725.00",
+      "sourceCell": "F6"
+    },
+    {
+      "supplierName": "حبايب (عالم الطيران)",
+      "serviceCode": "14days-single",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "725.00",
+      "sourceCell": "F6"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "30days-single",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "260.46",
+      "sourceCell": "C8"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "30days-single",
+      "processingType": "express",
+      "residenceCategory": "gcc-resident",
+      "costAed": "260.46",
+      "sourceCell": "C8"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "30days-single",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "208.88",
+      "sourceCell": "D8"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "30days-single",
+      "processingType": "express",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "208.88",
+      "sourceCell": "D8"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "30days-single",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "320.00",
+      "sourceCell": "E8"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "30days-single",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "320.00",
+      "sourceCell": "E8"
+    },
+    {
+      "supplierName": "حبايب (عالم الطيران)",
+      "serviceCode": "30days-single",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "725.00",
+      "sourceCell": "F8"
+    },
+    {
+      "supplierName": "حبايب (عالم الطيران)",
+      "serviceCode": "30days-single",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "725.00",
+      "sourceCell": "F8"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "30days-multiple",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "520.00",
+      "sourceCell": "E10"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "30days-multiple",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "520.00",
+      "sourceCell": "E10"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "60days-single",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "500.00",
+      "sourceCell": "E12"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "60days-single",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "500.00",
+      "sourceCell": "E12"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "60days-multiple",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "900.00",
+      "sourceCell": "E14"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "60days-multiple",
+      "processingType": "express",
+      "residenceCategory": "all",
+      "costAed": "900.00",
+      "sourceCell": "E14"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "extension-before-entry",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "126.36",
+      "sourceCell": "C16"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "extension-before-entry",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "73.15",
+      "sourceCell": "D16"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "extension-before-entry",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "160.00",
+      "sourceCell": "E16"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "visa-modification",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "126.36",
+      "sourceCell": "C17"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "visa-modification",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "73.15",
+      "sourceCell": "D17"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "visa-modification",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "160.00",
+      "sourceCell": "E17"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "extension-inside-country",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "855.65",
+      "sourceCell": "C18"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "extension-inside-country",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "755.65",
+      "sourceCell": "D18"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "extension-inside-country",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "900.00",
+      "sourceCell": "E18"
+    },
+    {
+      "supplierName": "حبايب (عالم الطيران)",
+      "serviceCode": "extension-inside-country",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "1100.00",
+      "sourceCell": "F18"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "visa-cancellation",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "126.36",
+      "sourceCell": "C19"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "visa-cancellation",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "105.65",
+      "sourceCell": "D19"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "visa-cancellation",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "140.00",
+      "sourceCell": "E19"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "visa-reconsideration",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "126.36",
+      "sourceCell": "C20"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "visa-reconsideration",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "73.15",
+      "sourceCell": "D20"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "child-transit-14-30",
+      "processingType": "regular",
+      "residenceCategory": "gcc-resident",
+      "costAed": "260.46",
+      "sourceCell": "C21"
+    },
+    {
+      "supplierName": "GDRFA",
+      "serviceCode": "child-transit-14-30",
+      "processingType": "regular",
+      "residenceCategory": "gcc-accompany",
+      "costAed": "208.88",
+      "sourceCell": "D21"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "child-transit-14-30",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "60.00",
+      "sourceCell": "E21"
+    },
+    {
+      "supplierName": "BASHIR",
+      "serviceCode": "child-60days",
+      "processingType": "regular",
+      "residenceCategory": "all",
+      "costAed": "150.00",
+      "sourceCell": "E22"
+    }
+  ]
+}

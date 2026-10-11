@@ -14,6 +14,7 @@ const LINKS = [
   { to: '/admin/invoices', label: 'Invoices' },
   { to: '/admin/finance', label: 'Finance' },
   { to: '/admin/staff', label: 'Staff' },
+  { to: '/admin/products', label: 'المنتجات والخدمات' },
   { to: '/admin/suppliers', label: 'Suppliers' },
   { to: '/admin/chat', label: 'Chat' },
   { to: '/admin/content', label: 'Content' },

@@ -24,7 +24,7 @@ export default function SupplierSelectionPanel({ referenceNumber, onSaved }: { r
         setSelected(null);
         await query.refetch();
         await onSaved();
-        setMessage(result.pricingReadiness === 'READY' ? 'تم حفظ المورد وتحديد التكلفة من قائمة أسعاره لدى الإدارة.' : result.pricingReadiness === 'MISSING_RATE' ? 'تم حفظ المورد. يلزم أن تستكمل الإدارة سعر هذه التأشيرة لدى المورد قبل التقديم.' : 'المورد محفوظ. توجد بيانات مالية تحتاج مراجعة الإدارة قبل تغييرها.');
+        setMessage((result.pricingReadiness === 'READY' || result.pricingReadiness === 'TAX_PENDING') ? 'تم حفظ المورد وتحديد التكلفة من قائمة أسعاره لدى الإدارة.' : result.pricingReadiness === 'MISSING_RATE' ? 'تم حفظ المورد. يلزم أن تستكمل الإدارة سعر هذه التأشيرة لدى المورد قبل التقديم.' : 'المورد محفوظ. توجد بيانات مالية تحتاج مراجعة الإدارة قبل تغييرها.');
       } catch (error) { setMessage(error instanceof Error ? error.message : 'تعذر حفظ المورد. حدّث الطلب ثم حاول مجددًا.'); }
     }}>
       <label className="min-w-0 flex-1 font-medium">اسم المورد أو جهة الهجرة

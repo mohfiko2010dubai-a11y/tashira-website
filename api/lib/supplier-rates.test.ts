@@ -17,6 +17,7 @@ it.each(['-1', '1.001', 'NaN', '1e3', '1000000'])('rejects malformed or oversize
 it('denies public and ordinary staff reads and writes of supplier prices', async () => {
   for (const staffId of [undefined, 4]) {
     const caller = supplierRouter.createCaller({ staffId, isAdmin: false, req: new Request('https://example.invalid'), resHeaders: new Headers(), customerApplicationReferences: new Set() });
+    await expect(caller.productRates({serviceCode:'30days-single'})).rejects.toMatchObject({code:'FORBIDDEN'});
     await expect(caller.rates({ supplierId: 1 })).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(caller.saveRate(input)).rejects.toMatchObject({ code: 'FORBIDDEN' });
   }

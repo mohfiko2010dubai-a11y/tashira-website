@@ -2,7 +2,7 @@ import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { TRPCError } from '@trpc/server';
 import { aedAmount, aedMinorUnits } from '../../contracts/supplier-rates';
 
-export type SupplierCostStatus = 'READY' | 'MISSING_RATE' | 'MANUAL_REVIEW';
+export type SupplierCostStatus = 'READY' | 'TAX_PENDING' | 'MISSING_RATE' | 'MANUAL_REVIEW';
 export function supplierTotals(cost: string, vat: string, quantity: number) {
   if (!Number.isSafeInteger(quantity) || quantity < 1) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'لا توجد بيانات مسافرين مكتملة لحساب التكلفة. أضف المسافرين ثم احفظ المورد.' });
   const net = aedMinorUnits(cost) * quantity, tax = aedMinorUnits(vat) * quantity;
@@ -16,27 +16,29 @@ export async function canReplaceSupplierEstimate(connection: PoolConnection, row
   const hasCost = [row.supplier_cost_aed, row.supplier_vat_amount, row.supplier_total_aed].some(value => value != null);
   if (!hasCost) return true;
   if (!row.supplier_rate_id || !row.supplier_rate_quantity) return false;
-  const [rates] = await connection.execute<RowDataPacket[]>('SELECT supplier_id,cost_aed,vat_amount_aed,vat_status,place_of_supply FROM supplier_product_rates WHERE id=?', [row.supplier_rate_id]);
+  const [rates] = await connection.execute<RowDataPacket[]>('SELECT supplier_id,cost_aed,vat_amount_aed,vat_status,place_of_supply,vat_confirmed FROM supplier_product_rates WHERE id=?', [row.supplier_rate_id]);
   const rate = rates[0];
   if (!rate || Number(rate.supplier_id) !== Number(row.supplier_id)) return false;
+  if (!rate.vat_confirmed) return supplierTotals(String(rate.cost_aed), '0', Number(row.supplier_rate_quantity)).cost === String(row.supplier_cost_aed) && row.supplier_vat_amount == null && row.supplier_total_aed == null;
   const totals = supplierTotals(String(rate.cost_aed), String(rate.vat_amount_aed), Number(row.supplier_rate_quantity));
   return totals.cost === String(row.supplier_cost_aed) && totals.vat === String(row.supplier_vat_amount) && totals.total === String(row.supplier_total_aed)
     && row.supplier_vat_status === rate.vat_status && row.supplier_place_of_supply === rate.place_of_supply;
 }
 
-export async function captureSupplierCost(connection: PoolConnection, applicationId: number, supplierId: number, product: string, speed: string, quantity: number): Promise<SupplierCostStatus> {
+export async function captureSupplierCost(connection: PoolConnection, applicationId: number, supplierId: number, product: string, speed: string, quantity: number, residence = 'non-gcc'): Promise<SupplierCostStatus> {
   // Caller already holds the application and supplier locks. Do not fall back past a disabled latest rate.
-  const [rates] = await connection.execute<RowDataPacket[]>(`SELECT id,cost_aed,vat_amount_aed,vat_status,place_of_supply,active
-    FROM supplier_product_rates WHERE supplier_id=? AND service_code=? AND processing_type=? ORDER BY version DESC LIMIT 1`, [supplierId, product, speed]);
+  const [rates] = await connection.execute<RowDataPacket[]>(`SELECT id,cost_aed,vat_amount_aed,vat_status,place_of_supply,active,vat_confirmed
+    FROM supplier_product_rates WHERE supplier_id=? AND service_code=? AND processing_type=? AND residence_category IN ('all',?) ORDER BY (residence_category=?) DESC,version DESC LIMIT 1`, [supplierId, product, speed, residence, residence]);
   const rate = rates[0];
-  if (!rate?.active || quantity < 1) {
+  const [cards] = await connection.execute<RowDataPacket[]>('SELECT enabled FROM operational_product_cards WHERE service_code=?',[product]);
+  if (!rate?.active || cards[0]?.enabled === 0 || quantity < 1) {
     await connection.execute(`UPDATE applications SET supplier_id=?,supplier_rate_id=NULL,supplier_rate_quantity=NULL,
       supplier_cost_aed=NULL,supplier_vat_amount=NULL,supplier_total_aed=NULL,supplier_vat_status=NULL,supplier_place_of_supply=NULL WHERE id=?`, [supplierId, applicationId]);
     return 'MISSING_RATE';
   }
-  const totals = supplierTotals(String(rate.cost_aed), String(rate.vat_amount_aed), quantity);
+  const totals = supplierTotals(String(rate.cost_aed), rate.vat_confirmed ? String(rate.vat_amount_aed) : '0', quantity);
   await connection.execute(`UPDATE applications SET supplier_id=?,supplier_rate_id=?,supplier_rate_quantity=?,
     supplier_cost_aed=?,supplier_vat_amount=?,supplier_total_aed=?,supplier_vat_status=?,supplier_place_of_supply=? WHERE id=?`,
-  [supplierId, rate.id, quantity, totals.cost, totals.vat, totals.total, rate.vat_status, rate.place_of_supply, applicationId]);
-  return 'READY';
+  [supplierId, rate.id, quantity, totals.cost, rate.vat_confirmed ? totals.vat : null, rate.vat_confirmed ? totals.total : null, rate.vat_status, rate.place_of_supply, applicationId]);
+  return rate.vat_confirmed ? 'READY' : 'TAX_PENDING';
 }

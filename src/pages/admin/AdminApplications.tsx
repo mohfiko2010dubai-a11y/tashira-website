@@ -121,6 +121,7 @@ export default function AdminApplications() {
           <Link to="/admin/finance" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <TrendingUp size={14} /> Finance
           </Link>
+          <Link to="/admin/products" className="px-3 py-1.5 text-sm text-gray-400 hover:text-white">المنتجات والخدمات</Link>
           <Link to="/admin/suppliers" className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors">
             <Building2 size={14} /> Suppliers
           </Link>

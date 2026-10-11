@@ -65,10 +65,12 @@ export const applicationRouter = createRouter({
     if (!application) throw new TRPCError({ code: 'NOT_FOUND', message: 'الطلب غير موجود. ارجع إلى قائمة الطلبات.' });
     const [pricing] = await defaultOperationsPool().execute<RowDataPacket[]>(`SELECT CASE
       WHEN a.supplier_id IS NULL THEN 'NOT_SELECTED'
-      WHEN a.supplier_cost_aed IS NULL OR a.supplier_total_aed IS NULL THEN 'MISSING_RATE'
+      WHEN a.supplier_cost_aed IS NULL THEN 'MISSING_RATE'
       WHEN a.supplier_rate_id IS NULL THEN 'MANUAL'
       WHEN r.supplier_id<>a.supplier_id OR r.service_code<>COALESCE(a.submitted_product,a.visa_type)
-        OR r.processing_type<>a.processing_type OR a.supplier_rate_quantity<>(SELECT COUNT(*) FROM applicants p WHERE p.application_id=a.id) THEN 'NEEDS_REFRESH'
+        OR r.processing_type<>a.processing_type OR (r.residence_category<>'all' AND r.residence_category<>a.residence_type) OR a.supplier_rate_quantity<>(SELECT COUNT(*) FROM applicants p WHERE p.application_id=a.id) THEN 'NEEDS_REFRESH'
+      WHEN r.vat_confirmed=FALSE THEN 'TAX_PENDING'
+      WHEN a.supplier_total_aed IS NULL THEN 'MISSING_RATE'
       ELSE 'READY' END readiness FROM applications a LEFT JOIN supplier_product_rates r ON r.id=a.supplier_rate_id WHERE a.reference_number=?`, [input.referenceNumber]);
     const options = await db.select({ id: suppliers.id, name: suppliers.name }).from(suppliers).where(eq(suppliers.isActive, 'active')).orderBy(suppliers.name);
     return { currentSupplierId: application.supplierId, options, pricingReadiness: String(pricing[0]?.readiness ?? 'NOT_SELECTED') };

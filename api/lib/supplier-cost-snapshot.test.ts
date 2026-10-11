@@ -12,8 +12,8 @@ it('does not invent a price or reuse a disabled latest rate', async () => {
   const execute = vi.fn().mockResolvedValueOnce([[{ active: 0, cost_aed: '100', vat_amount_aed: '0' }]]).mockResolvedValue([[]]);
   const connection = { execute } as unknown as PoolConnection;
   expect(await captureSupplierCost(connection, 4, 5, 'synthetic', 'regular', 1)).toBe('MISSING_RATE');
-  expect(execute.mock.calls[1][0]).toContain('supplier_cost_aed=NULL');
-  expect(execute.mock.calls[1][1]).toEqual([5, 4]);
+  expect(execute.mock.calls[2][0]).toContain('supplier_cost_aed=NULL');
+  expect(execute.mock.calls[2][1]).toEqual([5, 4]);
 });
 it('operational readiness survives employee financial redaction, while actual costs do not', () => {
   expect(redactStaffFinancials({ saved: true, pricingReadiness: 'READY', supplierCostAed: '100.00', supplierTotalAed: '105.00' })).toEqual({ saved: true, pricingReadiness: 'READY' });

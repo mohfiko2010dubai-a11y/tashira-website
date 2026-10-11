@@ -1,3 +1,9 @@
+# Approved products/supplier task — candidate in verification — 2026-10-11
+
+Owner approved main A:F table of الاسعار.xlsx only; side lists ignored. No new synthetic supplier/price rows permitted on staging. Candidate introduces Arabic product/procedure cards, the SAME supplier-rate editor from either direction, residence-specific GDRFA prices, explicit unconfirmed VAT, and immutable order rate references. Source extraction:13 products/procedures,49 supplier rate rows. Existing customer catalog publication and current sell prices are preserved; missing product regular sell prices may be imported from source. No source procedures/requirements invented.
+
+Migration078 pending. Real supplier import pending full gates/CI/exact-staging identity and backup. Local type/lint and focused tests passed; full gates in progress. Browser inventory still fails before session with Windows sandbox helper error, so visual acceptance is not claimed. Production untouched. Follow current task before remaining ERP communications/profit gates.
+
 # Final deployed boundary and server acceptance — 2026-10-11
 
 Staging runtime4f866de048e4c7bc5e45f72db192d282657aa92f deployed after CI38099214584 (Verify and mandatory MySQL integration successful), exact-server check/lint/test/build and local1515 unit +13 build checks. Mandatory MySQL82/21 executed with zero skipped. Rollback backup: /var/backups/tashira-staging/customer-commercial-4f866de-1791679504658. No schema change in this deployment. Production unchanged.

@@ -52,6 +52,7 @@ const StaffRegulatoryChanges = lazy(() => importWithStaleChunkRecovery(() => imp
 const StaffOperationalPolicies = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/StaffOperationalPolicies')));
 const AdminFinanceCockpit = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFinanceCockpit')));
 const AdminVisaRules = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminVisaRules')));
+const AdminProducts = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminProducts')));
 const AdminCatalogs = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminCatalogs')));
 const AdminDynamicForm = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminDynamicForm')));
 const AdminFeatureFlags = lazy(() => importWithStaleChunkRecovery(() => import('@/pages/admin/AdminFeatureFlags')));
@@ -127,6 +128,7 @@ function AppContent() {
           <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
           <Route path="/admin/applications" element={<AdminGuard><AdminApplications /></AdminGuard>} />
           <Route path="/admin/applications/:referenceNumber" element={<AdminGuard><AdminApplicationDetail /></AdminGuard>} />
+          <Route path="/admin/products" element={<AdminGuard><AdminProducts /></AdminGuard>} />
           <Route path="/admin/suppliers" element={<AdminGuard><AdminSuppliers /></AdminGuard>} />
           <Route path="/admin/staff" element={<AdminGuard><AdminStaff /></AdminGuard>} />
           <Route path="/admin/invoices" element={<AdminGuard><AdminInvoices /></AdminGuard>} />

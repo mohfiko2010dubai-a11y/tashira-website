@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createPool, type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
-import { listSupplierRates, saveSupplierRate } from './lib/supplier-rates';
+import { listSupplierRates, saveSupplierRate, listProductSupplierRates } from './lib/supplier-rates';
+import { listProductCards, saveProductCard, saveProductSellingPrice } from './lib/product-cards';
 import { selectCaseSupplier } from './lib/supplier-selection';
 
 const url = process.env.OPS_REHEARSAL_DATABASE_URL;
@@ -71,4 +72,32 @@ describe.skipIf(!url)('supplier rate versions in disposable MySQL', () => {
     const [other] = await pool.execute<ResultSetHeader>("INSERT INTO suppliers(name,is_active) VALUES ('Synthetic other supplier','active')");
     await expect(selectCaseSupplier(applicationId, other.insertId, supplierId, 'synthetic:admin')).rejects.toMatchObject({ code: 'CONFLICT' });
   });
+  it('saves product cards once, rejects stale edits and versions selling prices without changing public availability', async () => {
+    const code='card-'+randomUUID();const card={serviceCode:code,expectedVersion:0,nameAr:'إجراء اختبار معزول',nameEn:'Isolated procedure',kind:'procedure' as const,durationDays:null,entryType:'not_applicable' as const,audience:'all' as const,enabled:true,instructions:'Owner instructions',requiredDocuments:'Owner requirements',applicableProducts:[]};
+    const results=await Promise.allSettled([saveProductCard(card,'synthetic',pool),saveProductCard(card,'synthetic',pool)]);expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+    await saveProductCard({...card,expectedVersion:1,nameAr:'اسم محدث'},'synthetic',pool);
+    expect((await listProductCards(pool)).find(c=>c.serviceCode===code)).toMatchObject({nameAr:'اسم محدث',expectedVersion:2});
+    await expect(saveProductCard(card,'synthetic',pool)).rejects.toMatchObject({code:'CONFLICT'});
+    await saveProductSellingPrice({serviceCode:code,processingType:'regular',expectedVersion:0,amount:'250',currency:'AED'},'synthetic',pool);
+    await expect(saveProductSellingPrice({serviceCode:code,processingType:'regular',expectedVersion:0,amount:'300',currency:'AED'},'synthetic',pool)).rejects.toMatchObject({code:'CONFLICT'});
+    const [publicRows]=await pool.execute<RowDataPacket[]>('SELECT is_active FROM visa_product_availability WHERE service_code=?',[code]);expect(Number(publicRows[0].is_active)).toBe(0);
+  });
+  it('shares supplier/product reads and selects the residence-specific pre-tax rate without inventing VAT', async () => {
+    const code='product-'+randomUUID();
+    await pool.execute('INSERT INTO visa_product_availability(service_code,is_active) VALUES (?,0)',[code]);
+    for(const [category,cost] of [['gcc-resident','260.46'],['gcc-accompany','208.88']] as const) await saveSupplierRate({...rate(),serviceCode:code,residenceCategory:category,costAed:cost,vatConfirmed:false,vatAmountAed:null,vatStatus:null},'synthetic',pool);
+    const bySupplier=(await listSupplierRates(supplierId,pool)).filter(r=>r.serviceCode===code);
+    const byProduct=await listProductSupplierRates(code,pool);
+    expect(byProduct.map(r=>r.id).sort()).toEqual(bySupplier.map(r=>r.id).sort());
+    expect(byProduct.every(r=>r.totalAed===null&&r.vatAmountAed===null)).toBe(true);
+    const [app]=await pool.execute<ResultSetHeader>("INSERT INTO applications(reference_number,base_type,residence_type,visa_type,processing_type,contact_email,contact_phone,exchange_rate,status,payment_status) VALUES (?,'single','gcc-accompany',?,'regular','test@example.invalid','000',1,'under_review','paid')",['PRODUCT-'+randomUUID(),code]);
+    await pool.execute("INSERT INTO applicants(application_id,applicant_index,full_name) VALUES (?,0,'Synthetic')",[app.insertId]);
+    expect((await selectCaseSupplier(app.insertId,supplierId,null,'synthetic')).pricingReadiness).toBe('TAX_PENDING');
+    const [cost]=await pool.execute<RowDataPacket[]>('SELECT supplier_cost_aed,supplier_vat_amount,supplier_total_aed FROM applications WHERE id=?',[app.insertId]);
+    expect(cost[0]).toMatchObject({supplier_cost_aed:'208.88',supplier_vat_amount:null,supplier_total_aed:null});
+    await saveSupplierRate({...rate(),serviceCode:code,residenceCategory:'gcc-accompany',expectedVersion:1,costAed:'220',vatConfirmed:false,vatAmountAed:null,vatStatus:null},'synthetic',pool);
+    await selectCaseSupplier(app.insertId,supplierId,supplierId,'synthetic');
+    const [unchanged]=await pool.execute<RowDataPacket[]>('SELECT supplier_cost_aed FROM applications WHERE id=?',[app.insertId]);expect(unchanged[0].supplier_cost_aed).toBe('208.88');
+  });
+
 });

@@ -62,7 +62,7 @@ export default function AdminSuppliers() {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <Building2 size={20} className="text-[#C9A04C]" />
-            <h2 className="text-lg font-semibold">Supplier Management</h2>
+            <h2 className="text-lg font-semibold">الموردون</h2><Link to="/admin/products" className="underline">المنتجات والخدمات</Link>
           </div>
           <button onClick={() => { setForm(emptyForm); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2 bg-[#C9A04C] text-white rounded-lg text-sm hover:shadow-md transition-all">
             <Plus size={14} /> Add Supplier
