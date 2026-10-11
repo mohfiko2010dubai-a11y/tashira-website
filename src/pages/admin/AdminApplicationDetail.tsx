@@ -289,14 +289,15 @@ export default function AdminApplicationDetail() {
               {/* Supplier */}
               <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-7">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4  flex items-center gap-2">
-                  <Building2 size={14} /> المورد والتكلفة والربح
+                  <Building2 size={14} /> المورد والتكلفة المسجلة
                 </h2>
                 {app.supplier ? (
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div><p className="text-sm text-gray-500">المورد</p><p className="font-semibold">{app.supplier.name}</p></div>
                     <div><p className="text-sm text-gray-500">جهة الاتصال</p><p>{app.supplier.contactPerson || "-"}</p></div>
-                    <div><p className="text-sm text-gray-500">التكلفة بالدرهم</p><p className="font-semibold text-red-500">AED {Number(a.supplierCostAed || 0).toFixed(2)}</p></div>
-                    <div><p className="text-sm text-gray-500">الربح بالدرهم</p><p className="font-semibold text-emerald-600">AED {(totalAed - Number(a.supplierCostAed || 0)).toFixed(2)}</p></div>
+                    <div><p className="text-sm text-gray-500">تكلفة المورد قبل الضريبة</p><p className="font-semibold text-red-500">{a.supplierCostAed == null ? "غير مسجلة" : `AED ${Number(a.supplierCostAed).toFixed(2)}`}</p></div>
+                    <div><p className="text-sm text-gray-500">فرق قيمة الطلب وتكلفة المورد</p><p className="font-semibold text-emerald-600">{a.supplierCostAed == null ? "غير متاح قبل تسجيل التكلفة" : `AED ${(totalAed - Number(a.supplierCostAed)).toFixed(2)}`}</p></div>
+                    <p className="col-span-2 rounded-lg bg-amber-50 p-3 text-amber-950">هذا فرق بين قيمة الطلب والتكلفة المسجلة، وليس الربح النهائي. لا يشمل الاستردادات ورسوم الدفع وباقي المصروفات وتسوية الضريبة. راجع مطابقة التحصيل والاسترداد في قسم المدفوعات.</p>
                   </div>
                 ) : (
                   <p className="text-gray-400 text-sm">لم يُحدد مورد بعد.</p>

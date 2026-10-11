@@ -111,9 +111,9 @@ export default function DocumentManager({ applicationId, language = "en", readOn
         originalFileName: uploadFile.name, storedFileName: stored.storedFileName, mimeType: stored.mimeType,
         fileSize: stored.fileSize, storagePath: stored.storagePath, uploadStatus: "uploaded", uploadedBy: "operations-staff" });
       await Promise.all([utils.document.listByApplication.invalidate({ applicationId }), utils.document.countByApplication.invalidate({ applicationId })]);
-      setUploadFile(null); setUploadMessage("Document uploaded and recorded in the case timeline.");
+      setUploadFile(null); setUploadMessage(ar ? "تم رفع المستند وتسجيله في سجل الطلب." : "Document uploaded and recorded in the case timeline.");
     } catch (cause) {
-      setUploadMessage(documentUploadError(cause instanceof Error ? cause.message : "", false));
+      setUploadMessage(documentUploadError(cause instanceof Error ? cause.message : "", ar));
     }
   };
 
@@ -150,14 +150,14 @@ export default function DocumentManager({ applicationId, language = "en", readOn
   return (
     <div className="space-y-4">
       {allowUpload && applicants.length > 0 && <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <h3 className="font-semibold text-slate-900">Upload a case document</h3>
-        <p className="mt-1 text-sm text-slate-600">The file is attached only to the selected applicant. Visa files remain subject to review and secure delivery controls.</p>
+        <h3 className="font-semibold text-slate-900">{ar ? "رفع مستند للطلب" : "Upload a case document"}</h3>
+        <p className="mt-1 text-sm text-slate-600">{ar ? "اختر المسافر ونوع المستند ثم ارفع الملف. لإثبات التقديم اختر مستندًا إضافيًا. ملف التأشيرة يحتاج المراجعة والتجهيز الآمن قبل تسليمه للعميل." : "The file is attached only to the selected applicant. Visa files remain subject to review and secure delivery controls."}</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <select aria-label="Document applicant" value={uploadApplicantId} onChange={(event) => setUploadApplicantId(event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">Select applicant</option>{applicants.map((applicant) => <option key={applicant.applicantId} value={applicant.applicantId}>{applicant.displayName}</option>)}</select>
-          <select aria-label="Document type" value={uploadType} onChange={(event) => setUploadType(event.target.value as typeof uploadType)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">{uploadTypes.map((type) => <option key={type} value={type}>{labels[type] ?? type}</option>)}</select>
-          <input aria-label="Choose document" type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
+          <select aria-label={ar ? "المسافر صاحب المستند" : "Document applicant"} value={uploadApplicantId} onChange={(event) => setUploadApplicantId(event.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">{ar ? "اختر المسافر" : "Select applicant"}</option>{applicants.map((applicant) => <option key={applicant.applicantId} value={applicant.applicantId}>{applicant.displayName}</option>)}</select>
+          <select aria-label={ar ? "نوع المستند" : "Document type"} value={uploadType} onChange={(event) => setUploadType(event.target.value as typeof uploadType)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">{uploadTypes.map((type) => <option key={type} value={type}>{labels[type] ?? type}</option>)}</select>
+          <input aria-label={ar ? "اختر ملف المستند" : "Choose document"} type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
         </div>
-        <button type="button" disabled={!uploadFile || !uploadApplicantId || uploadStorage.isPending || createDocument.isPending} onClick={() => void handleUpload()} className="mt-3 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{uploadStorage.isPending || createDocument.isPending ? "Uploading…" : "Upload to selected applicant"}</button>
+        <button type="button" disabled={!uploadFile || !uploadApplicantId || uploadStorage.isPending || createDocument.isPending} onClick={() => void handleUpload()} className="mt-3 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{uploadStorage.isPending || createDocument.isPending ? (ar ? "جارٍ الرفع…" : "Uploading…") : (ar ? "رفع المستند للمسافر المحدد" : "Upload to selected applicant")}</button>
         {uploadMessage && <p role="status" className="mt-2 text-sm text-slate-700">{uploadMessage}</p>}
       </section>}
       {deleteDoc.error && <p role="alert" className="text-red-700">{ar ? "تعذر حذف المستند. حدّث الصفحة وحاول مرة أخرى." : "Document could not be deleted. Refresh and retry."}</p>}
