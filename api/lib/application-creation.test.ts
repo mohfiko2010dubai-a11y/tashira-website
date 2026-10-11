@@ -3,6 +3,8 @@ import type { TrpcContext } from '../context';
 import { issueCreationDevice, creationDeviceOwner } from './creation-device';
 import { prepareApplicationCreation, withApplicationCreation } from './application-creation';
 
+const runtime=vi.hoisted(()=>({mode:vi.fn(()=> 'TEST' as 'TEST'|'LIVE'),classified:vi.fn()}));
+vi.mock('./stripe-runtime',()=>({stripeRuntimeMode:runtime.mode}));
 const pool = vi.hoisted(() => ({ getConnection: vi.fn() }));
 vi.mock('./operations/mysql-query-client', () => ({ defaultOperationsPool: () => pool }));
 
@@ -15,6 +17,7 @@ describe('server-issued application creation requests', () => {
   const deviceContext = () => context(issueCreationDevice(new Headers()).cookie.split(';')[0]);
   beforeEach(() => {
     vi.stubEnv('CUSTOMER_SESSION_SECRET', 'synthetic-test-secret-only-12345678901234567890');
+    runtime.mode.mockReset().mockReturnValue('TEST');runtime.classified.mockClear();
     rows = []; pending = Promise.resolve();
     pool.getConnection.mockImplementation(async () => {
       let unlock = () => {};
@@ -25,6 +28,7 @@ describe('server-issued application creation requests', () => {
         rollback: async () => { rows = snapshot; unlock(); },
         release: () => {},
         execute: async (sql: string, values: unknown[]) => {
+          if(sql.startsWith('UPDATE applications SET data_classification')){runtime.classified(...values);return [{affectedRows:1},[]];}
           if (sql.startsWith('INSERT IGNORE') || sql.startsWith('SELECT owner_hash FROM application_creation_devices')) return [[], []];
           if (sql.includes('ORDER BY sequence')) return [rows.filter(row => row.owner_hash === values[0] && row.flow === values[1]).slice(-1), []];
           if (sql.startsWith('INSERT INTO application_creation_requests')) {
@@ -49,7 +53,7 @@ describe('server-issued application creation requests', () => {
     expect((await prepareApplicationCreation(ctx, 'FORM', false)).requestKey).toBe(first.requestKey);
     const create = vi.fn().mockResolvedValue({ applicationId: 3, applicantIds: [12] });
     const results = await Promise.all([1, 2].map(() => withApplicationCreation(ctx, first.requestKey, ['FORM'], { test: true }, create)));
-    expect(create).toHaveBeenCalledOnce();
+    expect(create).toHaveBeenCalledOnce();expect(runtime.classified).toHaveBeenCalledExactlyOnceWith('TEST',true,3);
     expect(results[0]).toEqual(results[1]);
     expect(results[0].referenceNumber).toMatch(/^TSH-[A-F0-9]{32}$/);
     const reopened = await prepareApplicationCreation(ctx, 'FORM', false);
@@ -67,6 +71,18 @@ describe('server-issued application creation requests', () => {
     await expect(withApplicationCreation(ctx, request.requestKey, ['CHAT'], {}, create)).rejects.toMatchObject({ code: 'FORBIDDEN' });
     await expect(withApplicationCreation(ctx, request.requestKey, ['FORM'], { changed: true }, create)).rejects.toMatchObject({ code: 'CONFLICT' });
     expect(create).toHaveBeenCalledTimes(2);
+  });
+  it.each(['FORM','CHAT'] as const)('classifies a new %s application from server mode only and preserves replayed history',async flow=>{
+    const ctx=deviceContext(),request=await prepareApplicationCreation(ctx,flow,false),create=vi.fn().mockResolvedValue({applicationId:7,applicantIds:[12]});
+    runtime.mode.mockReturnValue('LIVE');await withApplicationCreation(ctx,request.requestKey,[flow],{test:true},create);
+    expect(runtime.classified).toHaveBeenCalledExactlyOnceWith('LIVE',false,7);
+    runtime.mode.mockReturnValue('TEST');await withApplicationCreation(ctx,request.requestKey,[flow],{test:true},create);
+    expect(runtime.classified).toHaveBeenCalledTimes(1);
+  });
+  it('refuses new creation when payment environment cannot be established',async()=>{
+    const ctx=deviceContext(),request=await prepareApplicationCreation(ctx,'FORM',false),create=vi.fn();
+    runtime.mode.mockImplementation(()=>{throw new Error('Runtime not configured');});
+    await expect(withApplicationCreation(ctx,request.requestKey,['FORM'],{},create)).rejects.toThrow('Runtime not configured');expect(create).not.toHaveBeenCalled();
   });
   it('rejects a forged or expired device cookie', () => {
     const issued = issueCreationDevice(new Headers());

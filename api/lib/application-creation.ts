@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
+import {stripeRuntimeMode} from './stripe-runtime';
 import { TRPCError } from "@trpc/server";
 import type { TrpcContext } from "../context";
 import { defaultOperationsPool } from "./operations/mysql-query-client";
@@ -47,7 +48,9 @@ export async function withApplicationCreation(ctx: TrpcContext, requestKey: stri
       await connection.commit();
       return { applicationId: Number(request.application_id), referenceNumber, applicantIds: members.map(row => Number(row.id)) };
     }
+    const mode=stripeRuntimeMode();
     const result = await create(connection, referenceNumber);
+    await connection.execute('UPDATE applications SET data_classification=?,is_test=? WHERE id=?',[mode,mode==='TEST',result.applicationId]);
     await connection.execute("UPDATE application_creation_requests SET application_id=?,payload_hash=? WHERE id=?", [result.applicationId, payloadHash, requestKey]);
     await connection.commit();
     return { ...result, referenceNumber };
