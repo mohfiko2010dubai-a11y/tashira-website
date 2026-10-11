@@ -1,3 +1,19 @@
+# STOP — historical production runbook; not executable for the current ERP release
+
+Updated 2026-10-11. The commands below reference an older release, root-owned PM2 and historical deployment mechanisms. They predate later isolation and ERP changes. They MUST NOT be used as the current transfer procedure or rollback instructions. No current production release SHA is approved by this document. Do not restore root PM2 or obsolete deployment pollers from this history.
+
+Current handover gates:
+1. Close the exact acceptance items at the top of ERP_COMPLETION_TASKS.md: recipient-link deposit acceptance, genuine inbox/WhatsApp setup, accounting evidence and final approval.
+2. Obtain separate production authorization and a maintenance window. Then record a fresh read-only inventory: actual application/service users, systemd/PM2 units, release SHA, database/schema, storage/log/config paths and permissions, current migrations, active payments/refunds and any running24-hour submission commitments. Do not infer these from staging or this historical file.
+3. Prepare a concrete reviewed delta from that inventory to the accepted release; preserve customer records, invoice series and documents. Never copy staging database, synthetic records, TEST credentials, QA accounts or test-mail allowlists into production.
+4. Capture verified database/files/config backups and an off-host copy; record hashes, owners/modes, retention location and a restore rehearsal. Rollback must restore the freshly captured current service/user, not a historical root process.
+5. Stop on any identity mismatch, failed check, migration/count discrepancy, missing old document or unhealthy service. Test existing customer documents as well as a new authorized upload after deployment.
+6. Perform the approved transfer, health/access/financial-document checks and monitored acceptance before reopening intake. Preserve the approved no-response-cache policy and existing finance/idempotency boundaries.
+
+Everything below is retained as historical evidence only.
+
+---
+
 # TASHIRA Production Go-Live Runbook
 
 This runbook requires a separately approved maintenance window. It does not itself authorize production access, migration, deployment, cleanup, or secret changes. Production rollback and pre-migration baseline: `0083a32e8ee53a1f5e7c74219cd2c63a844b80df`. Reviewed V1 application release commit: `0782670deddf1aadf4b16bdb06ffd7b1ef78ceda`.

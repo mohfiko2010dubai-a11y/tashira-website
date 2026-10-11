@@ -1,3 +1,11 @@
+# Final staging checkpoint — 2026-10-11
+
+Runtime f1229f9db63884cdf2abc1b7780d2b257b7951c3 deployed; CI38158056038 both jobs passed including84 mandatory MySQL cases. Local and exact-server check/lint/test/build passed:1541 unit tests +13 build checks. Refund cross-quote reuse guard deployed and regression passed. Backup:/var/backups/tashira-staging/erp-refund-binding-f1229f9-1791738509784; health200; no migration; production untouched.
+
+After deployment: application262 remains completed/paid/TEST; two distinct applicant deliveries match scanned byte hashes; temporary QA accounts inactive. Manager browser recheck passed AED640 actual BASHIR family cost, staff finance403, one closure and no page errors. Financial documents12/13 and credit note04 retain matched actual Stripe TEST settlement evidence. Unit/build/CI success does not close external acceptance.
+
+Remaining: open the actual AED10 deposit email link already sent to admin@tashiraev.com (request20683b9a-58b7-4e1b-85f5-575b0d2e2cbe), then test that request's payment/refund; obtain genuine mailbox ingress and official WhatsApp API setup for integration/acceptance; actual expense/tax basis for final profit; separately approved production transfer. Old PRODUCTION_GO_LIVE_RUNBOOK root-PM2 commands marked historical/non-executable because they predate isolation/current ERP. A fresh production inventory and reviewed delta are required, not historical rollback commands.
+
 # Paid amendment and complete operational acceptance — 2026-10-11
 
 Runtime51e5314f7ff16f9255d235357b8156b47b27526f; CI38157061771 Verify +84 mandatory DB cases passed; local/exact-server1540 unit +13 build checks, check/lint/build passed. Backup:/var/backups/tashira-staging/erp-refund-51e5314-1791737654127. Health200, no migration, production untouched.
