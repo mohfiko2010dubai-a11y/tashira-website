@@ -1,3 +1,31 @@
+# Customer payment and partial-refund acceptance — 2026-10-11
+
+Current staging runtime remains15efc08e865eaa2a053235689eb40fd333913eb6. Actual Stripe TEST (not a seeded paid state) family application260 / TSH-1EE174A9AFEA4036B3192EBBD1681541: two travellers, six documents, server quote equals charged amount, repeated payment confirmation leaves exactly one succeeded payment. Original invoice TEST-INV-00009 archived. A10.00USD partial refund succeeded in Stripe, with separate TEST-CN-00003; repeated refund creation returns the same case and repeated execution returns409, preventing a second refund. PDF hashes verified for both archives. Temporary QA accounts all inactive. No real-money movement or production mutation.
+
+Email acceptance is NOT passed by this test: the recipient was sequential-staging@example.invalid; PAYMENT_SUCCESS/APPLICATION_RECEIVED/REFUND_COMPLETED events are FAILED, not SENT. No inbox-delivery claim. This test intentionally leaves the live mail allowlist untouched.
+
+New verified launch gap: api/lib/invoice-archive.ts exports issueVisaChangeInvoice, but its only callers are tests. api/lib/manual-visa-change.ts decides a settlement by storing the supplied Stripe reference and setting SETTLED; it does not retrieve the provider movement, create/link its payment record, or issue the difference invoice. The separate-invoice owner requirement is therefore NOT complete in that runtime. Do not mark the whole financial amendment journey passed. Next task must retain the approved manual/manager workflow while connecting verified movement + immutable financial document + recipient notification, with duplicate/foreign-reference and interrupted-finalization tests. Do not reuse the original invoice or invent a payment result.
+
+# Final paired employee/manager acceptance — 2026-10-11
+
+Runtime15efc08e865eaa2a053235689eb40fd333913eb6 deployed; CI38147769655 Verify and mandatory DB integration successful. Local and exact-server check/lint/test/build passed:1518 unit,13 build checks; mandatory84 DB cases executed in CI. No migrations in these two UI releases. Backup:/var/backups/tashira-staging/erp-clarity-15efc08-1791729575079. Unrelated local dist/boot.js SHA256 preserved FD544988685D8C1A81295ACF50D33B4D38494C5E56CDC81F697BDA296CD36EED.
+
+Final authenticated Playwright test reference ERP-VISUAL-2b2c2460-7646-4d8d-ab3f-7eb57a836033: Arabic upload; real BASHIR selection; employee cost hidden; supporting evidence upload/dispatch; authority filing without manager approval; follow-up queue; visa_received; actual malware scan and secure preparation; completed queue; manager sees AED320.00 and provisional margin description; staff catalog/report403; manager report200; exactly one closure attribution. Zero JavaScript page errors. Images reviewed. Synthetic paid operational precondition seeded, NOT an actual payment test; proof/visa explicitly synthetic. Temporary accounts disabled and scoped flags cleared after every test, including rate-limit setup failure cleanup. Login protection never weakened.
+
+Customer family API regression TSH-9C700D31C100462CA91BC979EB9ECCBE passed:2travellers/6files, current short-passport human-review policy, unchanged resave preserves uploaded requirements. Finance TEST215/225 matches invoice/credit-note/settlement with zero missing. No real payment/refund, supplier dispatch or authority submission executed; no real-customer email activation. Production untouched.
+
+Arabic guide now illustrated with actual product/supplier/filing/delivery/completed screenshots; all images load. Guide clearly distinguishes these accepted phases from unverified continuous financial/customer/inbox acceptance.
+
+Remaining: live mailbox inbound connection and official WhatsApp API plus real end-to-end provider acceptance; final-profit definition and actual supplier/internal expenses/tax evidence; continuous customer payment/amendment/top-up/refund/security-deposit/inbox journey; separate production authorization. These are not closed by this employee/manager operational journey. No project-complete or launch-ready claim.
+
+# Sequential employee acceptance and layout fix — 2026-10-11
+
+Runtime01e511a4167e660ed118c2b1a1dd0c32c59c113d deployed after CI38146955312 success and exact-server check/lint/test/build. Backup:/var/backups/tashira-staging/erp-layout-01e511a-1791728861717. Fix removes marketing header/footer/chat from /staff and /admin layouts; actual staff screenshot had shown header overlapping controls. Local verification still completing static-asset scan at this checkpoint.
+
+Authenticated employee browser journey PASSED on synthetic ERP-VISUAL-cbdd31ad-2e33-4630-b0ef-6ed1453576ff: supporting upload, BASHIR selection with actual cost hidden, supplier dispatch, authority filing without manager approval, follow-up queue, visa receipt, actual scan/secure preparation, completion and completed queue. Zero page errors. Payment-paid precondition was seeded in this TEST-only operational fixture; no Stripe payment or actual authority submission was made. All temporary named accounts disabled and their scoped flags cleared. Test harness corrected missing fixture read permissions, TEST visibility and terminal form unmount; no business guard relaxed.
+
+Finance existing TEST applications215/225 rechecked: zero missing settlements/documents; invoices and credit note matched. Final profit remains null pending actual expenses/tax basis. Next clarity fix: legacy manager overview called gross price-cost difference profit and treated missing cost as zero; upload section retains English in Arabic layout. Genuine inbound mailbox, official WhatsApp, full customer financial journey remain independent open tasks.
+
 # Product and supplier cards — deployed and accepted — 2026-10-11
 
 Staging runtime:14bc2ee981c54ae1f66b2428971aa1996aafa1d4. Review CI38145494658 passed Verify and mandatory MySQL integration (84 tests/21 suites, zero skipped). Local and exact-server check/lint/test/build passed;1518 unit and13 build checks. Production unchanged.

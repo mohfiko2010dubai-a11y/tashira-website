@@ -1,3 +1,22 @@
+# Next sequential financial task — OPEN, not launch-cleared
+
+1. Connect manual visa-change settlement to verified Stripe evidence and the existing separate difference-invoice issuer. The issuer currently has no runtime caller. Preserve latest owner manual approval policy and original invoice. Require provider/amount/currency/application binding, no repeated movement, atomic accounting, and recoverable email notification; test actual Stripe TEST top-up and cheaper-product refund through customer consent.
+2. Complete security-deposit customer acceptance/payment/refund with the actual notification link and invoice/accounting distinction.
+3. Genuine inbound mailbox and official WhatsApp integration require provider access; do not represent the Business-app number as an API.
+4. Final continuous customer/employee/manager journey and production handover remain open until the above evidence and approved profit basis exist.
+
+PASSED financial subset: actual TEST family payment260, amount matches displayed server quote, one payment after confirmation replay; TEST-INV-00009. Partial refund10USD, TEST-CN-00003, repeated creation same case / repeated execute409. Both PDF archive hashes verified. Invalid synthetic recipient generated FAILED email events; no inbox claim. Temporary accounts disabled.
+
+# Sequential acceptance update — 2026-10-11
+
+- Employee supplier/filing phase: PASSED authenticated visual UAT using BASHIR actual price, synthetic proof, immutable evidence and follow-up list; no additional manager approval required.
+- Visa delivery phase: PASSED authenticated visual UAT, real scan, secure delivery preparation and completed queue on runtime01e511a. No real visa/payment/authority submission.
+- Workspace layout: overlapping marketing header found and fixed for /staff as well as /admin. Public homepage header preserved. CI38146955312 green; exact-server and local gates passed. Backup recorded in PROJECT_STATUS.
+- Finance evidence: existing TEST215/225 reconciled with no missing settlement/invoice/credit note. Legacy overview label clarified and deployed15efc08; missing supplier cost no longer means zero. This does not invent final-profit policy.
+- Arabic guide: real product/supplier/filing screenshots added; no fabricated screen mockups. Final runtime15efc08 paired employee/manager visual acceptance PASSED: real cost hidden from staff and visible to manager, staff403, one closure attribution, no page errors.
+- External blocked: genuine inbound mailbox connection, official WhatsApp API, approved final-profit definition and actual expense/tax evidence. Continue independent tests; do not simulate these integrations.
+- Still open: continuous customer payment/amendment/refund/security-deposit/inbox journey and final launch approval. Prior component tests remain valid but do not replace that acceptance.
+
 # Owner-priority task: products and supplier prices — COMPLETED ON STAGING
 
 Runtime14bc2ee; CI38145494658; migration078.13 cards/49 exact approved rates. Both card directions share one editor/source. Actual order cost capture and historical snapshot protection tested. Headless authenticated visual acceptance passed on both pages, no JavaScript errors; temporary test account disabled. Unknown supplier VAT is explicitly pending and not fabricated. This acceptance does not close remaining unrelated ERP tasks below.
@@ -33,7 +52,7 @@ Latest owner instruction: finish the remaining work in tested, reviewed logical 
 - Synthetic staging customer/employee/manager journey: save/resume, payment, amendment/top-up invoice, partial refund, supplier dispatch/filing proof, visa delivery, tracking/email.
 - Verify queue transitions, concurrency/ownership, prohibited staff financial/admin actions and historical application compatibility.
 - Final real scanner/download regression and HTTP ownership tests passed; these do not replace visual acceptance.
-- Authenticated visual UAT and Arabic illustrated guide. Browser infrastructure currently exits before inventory; HTTP200 is not visual acceptance.
+- Authenticated visual UAT and Arabic illustrated guide. Isolated authenticated Playwright now passes employee/manager operational acceptance; interactive CUA still fails. Customer financial/inbox visual acceptance remains open.
 - Final transfer checklist/rollback and exact remaining owner actions. No launch-ready claim until evidence exists.
 
 Each phase: implement -> focused tests -> full required gates -> review -> staging deployment -> evidence -> update PROJECT_STATUS. External blocked items do not stop independent work.
