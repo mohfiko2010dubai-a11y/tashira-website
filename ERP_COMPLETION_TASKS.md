@@ -1,3 +1,7 @@
+# Latest inbound boundary correction — 2026-10-11
+
+Staging8e1c11f: actual message application/team rollout isolation verified and deployed.1551 unit/13 build/84 CI database tests passed. No live provider ingress activated; connected mailboxes do not provide admin@tashiraev.com access. Existing deposit and external acceptance gates below remain OPEN.
+
 # Latest receipt correction — 2026-10-11
 
 Deposit receipt implementation deployed as c01b181 after1546 unit/13 build and84 mandatory CI database tests. Atomic payment-linked outbox, repeat suppression, exact AED amount and Arabic/English body verified. Actual emailed deposit payment/refund and inbox acceptance remain OPEN; see PROJECT_STATUS. Production untouched.

@@ -1,3 +1,10 @@
+# Inbound scope boundary deployed — 2026-10-11
+
+Staging runtime8e1c11fcd926019e06a13945dcf1880fd0e285d9; CI38160950538 both jobs passed, including84 mandatory database cases. Local and exact-server check/lint/test/build passed:1551 unit tests +13 build checks. Three scope-bypass regression tests failed before the fix and now pass, with positive message application/team/global scope coverage. Environment-policy gate initially required explicit review of the trusted deployment-context read; narrow reason documented, no gate suppressed.
+
+Backup:/var/backups/tashira-staging/erp-inbound-scope-8e1c11f-1791740982093; health200; no migration; production untouched. Post-deploy application262 paid/completed/TEST, two delivery hashes match, QA accounts inactive. This internal ingestion boundary has no live provider ingress caller yet and does NOT close real mailbox acceptance.
+
+Remaining prerequisites verified this turn: connected Hostinger mailbox is not TASHIRA's company mailbox; connected Outlook account is the owner's Yahoo and exact deposit reference search returned no results. Company mailbox connection/ingress and official WhatsApp API remain unavailable; actual deposit link payment/refund/inbox test remains pending; expense/tax/profit evidence and separate production approval still required. No unrelated mailbox read, no webhook/provider configuration changed and no duplicate deposit message sent.
 # Inbound message scope correction — 2026-10-11, gates in progress
 
 Reproduced three missing rollout-boundary checks before correction: a message could borrow another application's enabled flag, another team's enabled flag, or bypass a disabled application override using global caller context. Service now rechecks the normalized message's own application/team against the same trusted deployment environment before persistence. Positive application/team/global cases remain covered. This is an internal preparation fix: no live provider ingress has been activated.
