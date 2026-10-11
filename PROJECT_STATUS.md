@@ -1,3 +1,8 @@
+# Deposit receipt correction — 2026-10-11, validation in progress
+
+Found and corrected a missing customer notification: verified security-deposit payment now inserts a durable STATUS_CHANGED receipt in the same transaction as payment/request/timeline updates. Stable payment-specific job identity and affected-row guard prevent concurrent/replayed finalizers from duplicating mail. Recipient/language come from the application's existing dispatcher. Arabic status messages now include the actual status text, including the paid AED amount. No new invoice is created for the refundable deposit and no business rule changes.
+
+Focused21 tests passed; full1546 unit tests passed (84 DB tests require CI), check and lint passed; build, CI and staging deployment pending at this checkpoint. Existing emailed request20683b9a-58b7-4e1b-85f5-575b0d2e2cbe still SENT; sent-message read401 and browser tool startup failure prevent opening its actual capability. No duplicate request sent; no payment/refund/inbox acceptance claimed. Production untouched.
 # Final staging checkpoint — 2026-10-11
 
 Runtime f1229f9db63884cdf2abc1b7780d2b257b7951c3 deployed; CI38158056038 both jobs passed including84 mandatory MySQL cases. Local and exact-server check/lint/test/build passed:1541 unit tests +13 build checks. Refund cross-quote reuse guard deployed and regression passed. Backup:/var/backups/tashira-staging/erp-refund-binding-f1229f9-1791738509784; health200; no migration; production untouched.

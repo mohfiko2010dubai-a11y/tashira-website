@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   applicationTimelineEvents,
   applications,
@@ -69,6 +69,17 @@ export async function finalizeSecurityDepositPayment(
       resultingState: "PAID",
       summary: "Refundable security deposit payment verified",
     });
+    const amount = Number(payment.amount).toFixed(2);
+    const variables = JSON.stringify({
+      statusLabelEn: `We received your refundable security deposit of AED ${amount}. This deposit is separate from visa service fees.`,
+      statusLabelAr: `تم استلام التأمين المسترد بقيمة ${amount} درهم إماراتي. هذا التأمين منفصل عن رسوم خدمة التأشيرة.`,
+      sourceEvent: "SECURITY_DEPOSIT_PAID",
+    });
+    // Commit the receipt with the payment; webhook/API retries cannot enqueue it twice.
+    await tx.execute(sql`INSERT INTO transactional_email_jobs
+      (job_key, application_id, template, variables_json)
+      VALUES (${`application-status:security-deposit-paid:${payment.id}`},
+        ${payment.applicationId}, ${"STATUS_CHANGED"}, ${variables})`);
   });
   return { status: "PAID" as const, applicationId: payment.applicationId };
 }
