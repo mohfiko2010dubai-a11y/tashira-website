@@ -13,6 +13,7 @@ export async function queueSupportEmail(pool:Pool,threadId:string,input:SupportR
   if(!body||body.length>4000||!Number.isSafeInteger(input.actorStaffId)||input.actorStaffId<=0)throw new Error('SUPPORT_REPLY_INVALID');
   const connection=await pool.getConnection();
   try{
+    await connection.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
     await connection.beginTransaction();
     const [links]=await connection.execute<RowDataPacket[]>('SELECT application_id FROM operations_support_threads WHERE id=?',[threadId]);
     const applicationId=Number(links[0]?.application_id);
@@ -28,7 +29,7 @@ export async function queueSupportEmail(pool:Pool,threadId:string,input:SupportR
       :owner===actor.id&&authorize(actor,'case.transition',{assignedActorId:owner}).allowed;
     if(!allowed)throw new Error('SUPPORT_ACCESS_DENIED');
     const hash=createHash('sha256').update(JSON.stringify({threadId,...input,body})).digest('hex');
-    const [prior]=await connection.execute<RowDataPacket[]>('SELECT command_sha256 FROM operations_support_email_requests WHERE command_id=?',[input.commandId]);
+    const [prior]=await connection.execute<RowDataPacket[]>('SELECT command_sha256 FROM operations_support_email_requests WHERE command_id=? FOR UPDATE',[input.commandId]);
     if(prior[0]){
       if(prior[0].command_sha256!==hash)throw new Error('SUPPORT_COMMAND_IDEMPOTENCY_CONFLICT');
       await connection.commit();return {queued:true as const,replayed:true};

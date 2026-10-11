@@ -37,7 +37,8 @@ describe.skipIf(!url).sequential('supplier operations board in disposable MySQL'
     const rows = await listSupplierOperations(input, actor, false, pool);
     expect(rows.items.map(row => row.applicationId)).toEqual([own.id]);
     expect(rows.counts).toEqual({ SELECTED: 1 }); expect(rows.items[0]).not.toHaveProperty('accounting');
-    expect(JSON.stringify(rows)).not.toMatch(/supplierCost|supplierVat|supplierTotal|105/);
+    expect(JSON.stringify(rows)).not.toMatch(/supplierCost|supplierVat|supplierTotal/);
+    expect(Object.keys(rows.items[0]).sort()).toEqual(['applicationId','reference','supplierId','supplierName','product','status','stage','applicantCount','visaCount','supplierSentAt','authorityFiledAt','followUpAt','externalReference','isTest'].sort());
     expect((await listSupplierOperations({ ...input, includeTest: false }, actor, false, pool)).items).toEqual([]);
     await expect(listSupplierOperations(input, { ...actor, permissions: new Set(['case.read_assigned']) }, false, pool)).rejects.toMatchObject({ code: 'FORBIDDEN' });
     const manager = { ...actor, scopes: ['ALL'] as const };
