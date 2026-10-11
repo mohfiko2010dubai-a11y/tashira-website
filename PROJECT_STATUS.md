@@ -1,3 +1,9 @@
+# T1A — accepted on staging — 2026-10-11
+
+Runtime8756edd407b4e0cd6bc478a006d60fd4f9c4ee98 deployed after local/exact-server check/lint/test/build and CI38155948969 (Verify and84 mandatory MySQL cases passed). Backup:/var/backups/tashira-staging/erp-topup-8756edd-1791736760817; health200; no migration; production untouched.
+
+Actual Stripe TEST UAT application261 / TSH-25273AFBA8FF4DF088CA67D221651F84: two travellers, original payment, customer-owned consent to60days-single, actual220USD difference payment with order/quote metadata, named-admin approval. Original TEST-INV-00010 preserved; difference TEST-INV-00011 issued for220USD only; both PDF hashes match; customer download200 returns exact archive; anonymous access denied. One durable payment-specific invoice email job recorded. Recipient remains synthetic.invalid: no inbox delivery claim. Temporary admin disabled. T1A closed for API/financial acceptance; T1B cheaper-product manual refund import/accounting is next and not yet closed.
+
 # T1A — verified manual top-up invoice implementation — in acceptance
 
 Connected approved manual top-up to read-only Stripe receipt verification, exact USD difference and order/quote metadata binding, a retryable reserved payment, a separate immutable invoice, and a PAYMENT_CONFIRMED outbox job in the same approval transaction. Original invoice pointers remain unchanged. Manager approval stays required; no charge/refund is initiated by approval. Stripe manual payment must carry referenceNumber and visaChangeQuoteId metadata; the approval screen shows both exact values. Reused/foreign receipts, partial receipts, refunded/disputed charges and wrong environment fail closed. Customer identity comes from the immutable original archive; old card/payer claims are not copied to the new payment.

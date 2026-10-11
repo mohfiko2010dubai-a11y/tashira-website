@@ -20,6 +20,7 @@ export function ManualChangeApproval({ row, refresh }: { row: Decision; refresh:
         <p dir="ltr" className="break-all">referenceNumber: {row.referenceNumber}</p><p dir="ltr" className="break-all">visaChangeQuoteId: {row.quoteId}</p>
       </details>
     </div>}
+    {row.direction === 'REFUND' && <p dir="rtl" className="rounded border bg-slate-50 p-3">يتحقق النظام من الاسترداد المنفّذ في Stripe ويربطه بدفعة هذا الطلب وإشعار الدائن. الاعتماد لا ينفّذ استردادًا جديدًا.</p>}
     {row.writtenInsistence && <p>Customer insistence: {row.writtenInsistence}</p>}
     {row.riskRecord && <p>Recorded risk: {row.riskRecord}</p>}
     <label className="block"><input type="checkbox" checked={verified} onChange={event => setVerified(event.target.checked)} /> I verified this evidence{row.stripeReference ? ", including the completed amount and reference in Stripe" : ""}. Approval records the decision and does not execute a payment or refund.</label>

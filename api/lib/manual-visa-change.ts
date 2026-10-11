@@ -5,6 +5,7 @@ import { withCheckoutLock } from "./checkout-quote";
 import { defaultOperationsPool } from "./operations/mysql-query-client";
 import { syncCaseWorkStatus } from './operations/case-work-status';
 import { prepareManualTopUp, issueManualTopUp, notifyManualTopUp } from './manual-topup-accounting';
+import { prepareManualRefund, issueManualRefund } from './manual-refund-accounting';
 import { retryableFinancialConflict, FinancialFinalizationPending } from './financial-document-series';
 
 export const refusalOutcomes = ["FULL_REFUND_CANCEL", "REFUND_LESS_FEE", "TRY_ANOTHER_PRODUCT", "ORIGINAL_AT_CUSTOMER_REQUEST"] as const;
@@ -108,11 +109,13 @@ export async function manualChangeQueue() {
 }
 
 export async function decideManualChange(id: string, actorId: number, approve: boolean, reason: string) {
-  const [owners] = await defaultOperationsPool().execute<RowDataPacket[]>("SELECT application_id,kind,direction FROM visa_change_decisions WHERE id=?", [id]);
+  const [owners] = await defaultOperationsPool().execute<RowDataPacket[]>("SELECT application_id,kind,direction,outcome,state FROM visa_change_decisions WHERE id=?", [id]);
   if (!owners[0]) conflict("Decision not found. Refresh the approvals queue.");
+  if (owners[0].state !== 'PENDING') conflict('This decision was already processed. Refresh the queue.');
   if (reason.trim().length < 5) conflict("Record an approval or rejection reason of at least five characters.");
   for (let attempt = 0; ; attempt++) {
   const topUp = approve && owners[0].kind === 'SETTLEMENT' && owners[0].direction === 'TOP_UP' ? await prepareManualTopUp(id) : null;
+  const refund = approve && owners[0].direction === 'REFUND' && (owners[0].kind === 'SETTLEMENT' || ['FULL_REFUND_CANCEL','REFUND_LESS_FEE'].includes(String(owners[0].outcome))) ? await prepareManualRefund(id) : null;
   let invoiceNumber: string | undefined;
   let result: { approved: boolean };
   try {
@@ -125,6 +128,7 @@ export async function decideManualChange(id: string, actorId: number, approve: b
     await connection.execute("UPDATE visa_change_decisions SET state=?,decided_by=?,decided_at=NOW(3),decision_reason=? WHERE id=?",
       [approve ? "APPROVED" : "REJECTED", actorId, reason, id]);
     if (!approve) { await event(connection, quote, "DECISION_REJECTED", `staff:${actorId}`, reason, "ADMIN"); return { approved: false }; }
+    if (refund) await issueManualRefund(connection, refund, actorId);
     if (decision.kind === "SETTLEMENT") {
       if (!["ACCEPTED", "PAYMENT_PENDING", "REFUND_PENDING"].includes(quote.state) || !decision.stripe_reference) conflict("Settlement evidence is incomplete or no longer current.");
       if (topUp) invoiceNumber = await issueManualTopUp(connection, topUp);

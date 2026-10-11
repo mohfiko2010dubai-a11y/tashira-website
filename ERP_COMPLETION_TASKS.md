@@ -1,3 +1,11 @@
+# Current sequence — 2026-10-11
+
+- T1A: verified top-up and separate invoice — PASSED staging8756edd; actual TEST family consent/payment/manager approval; invoices00010/00011; customer download and anonymous denial; CI84DB passed.
+- T1B: cheaper-product manual Stripe refund -> existing refund ledger/credit note -> accepted settlement and durable customer notification — IN PROGRESS.
+- T2: security-deposit request/accept/payment/refund with real notification link — pending.
+- T3: genuine mailbox inbound / official WhatsApp / provider receipt acceptance — external setup pending; compatible internal work continues.
+- T4: continuous whole journey, final profit basis and production handover — pending; no launch clearance.
+
 # Next sequential financial task — OPEN, not launch-cleared
 
 1. Connect manual visa-change settlement to verified Stripe evidence and the existing separate difference-invoice issuer. The issuer currently has no runtime caller. Preserve latest owner manual approval policy and original invoice. Require provider/amount/currency/application binding, no repeated movement, atomic accounting, and recoverable email notification; test actual Stripe TEST top-up and cheaper-product refund through customer consent.
