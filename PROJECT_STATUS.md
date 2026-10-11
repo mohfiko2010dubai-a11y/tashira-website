@@ -1,3 +1,15 @@
+# Product and supplier cards — deployed and accepted — 2026-10-11
+
+Staging runtime:14bc2ee981c54ae1f66b2428971aa1996aafa1d4. Review CI38145494658 passed Verify and mandatory MySQL integration (84 tests/21 suites, zero skipped). Local and exact-server check/lint/test/build passed;1518 unit and13 build checks. Production unchanged.
+
+Migration078 and approved main A:F sheet imported:13 cards (8 visas,5 procedures),49 supplier rates, active suppliers GDRFA/BASHIR/حبايب (عالم الطيران). Second import inserted0 and matched49 unchanged rows. No invented supplier prices. Previous synthetic supplier disabled for new selection; historical references retained. Supplier costs AED before VAT; unconfirmed VAT remains null, not zero/exempt. Current selling rules preserved; old Express source prices not reimported.
+
+Both product and supplier cards use the same rate IDs/editor. Mandatory DB tests cover concurrent/stale edits, price versioning and historical order snapshots. Actual staging acceptance matched all49 source rates from both readers, verified admin access and anonymous denial, and captured actual TEST order base costs GDRFA resident260.46/accompany208.88 and BASHIR320.00. No payment or email executed.
+
+Authenticated isolated Playwright visual acceptance PASSED:13 cards, procedure and visa tabs,30days-single supplier costs, shared editor and unknown-VAT state, supplier-side BASHIR320.00, zero page errors. Screenshots inspected: tmp/product-card-ui.png, tmp/products-procedures-ui.png, tmp/supplier-card-ui.png in workspace root. Temporary QA admin disabled afterward. This completes the product/supplier task UI acceptance, not the unrelated whole-project journey or launch clearance. Interactive CUA still fails independently.
+
+Schema backup:/var/backups/tashira-staging/product-cards-1791727658242. Runtime backup:/var/backups/tashira-staging/product-cards-14bc2ee-1791727674229. Preserved unrelated local dist/boot.js. Other ERP/provider and final launch blockers remain as previously recorded below.
+
 # Approved products/supplier task — candidate in verification — 2026-10-11
 
 Owner approved main A:F table of الاسعار.xlsx only; side lists ignored. No new synthetic supplier/price rows permitted on staging. Candidate introduces Arabic product/procedure cards, the SAME supplier-rate editor from either direction, residence-specific GDRFA prices, explicit unconfirmed VAT, and immutable order rate references. Source extraction:13 products/procedures,49 supplier rate rows. Existing customer catalog publication and current sell prices are preserved; missing product regular sell prices may be imported from source. No source procedures/requirements invented.

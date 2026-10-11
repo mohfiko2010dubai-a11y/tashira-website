@@ -1,3 +1,7 @@
+# Owner-priority task: products and supplier prices — COMPLETED ON STAGING
+
+Runtime14bc2ee; CI38145494658; migration078.13 cards/49 exact approved rates. Both card directions share one editor/source. Actual order cost capture and historical snapshot protection tested. Headless authenticated visual acceptance passed on both pages, no JavaScript errors; temporary test account disabled. Unknown supplier VAT is explicitly pending and not fabricated. This acceptance does not close remaining unrelated ERP tasks below.
+
 # Remaining ERP completion tasks
 
 Latest owner instruction: finish the remaining work in tested, reviewed logical phases on isolated staging. Production is not authorized. Existing compatible workflows remain authoritative.
