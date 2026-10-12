@@ -20,7 +20,8 @@ function safe(error: unknown): never {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'لا تملك صلاحية فتح هذا الملف أو تغيّر الموظف المسؤول. حدّث الطلب أو راجع المدير.' });
   if (reason === 'VISA_DELIVERY_NOT_FOUND') throw new TRPCError({ code: 'NOT_FOUND', message: 'ملف التأشيرة غير متاح. حدّث صفحة الطلب أو تواصل مع المسؤول.' });
   if (reason === 'VISA_DELIVERY_IDEMPOTENCY_CONFLICT') throw new TRPCError({ code: 'CONFLICT', message: 'توجد نسخة تسليم محفوظة ببيانات مختلفة. حدّث الطلب وراجع النسخة السابقة.' });
-  if (reason === 'VISA_DELIVERY_APPLICATION_STATE_REQUIRED') throw new TRPCError({ code: 'BAD_REQUEST', message: 'يلزم استلام الدفع وتسجيل استلام التأشيرة أولًا. راجع حالة الطلب ثم أعد التجهيز.' });
+  if (reason === 'VISA_DELIVERY_PAYMENT_REQUIRED') throw new TRPCError({ code: 'BAD_REQUEST', message: 'لم يُسجّل دفع مؤكد لهذا الطلب. راجع تفاصيل الدفع والاسترداد.' });
+  if (reason === 'VISA_DELIVERY_APPLICATION_STATE_REQUIRED') throw new TRPCError({ code: 'BAD_REQUEST', message: 'الدفع مسجّل، لكن استلام التأشيرة لم يُسجّل بعد. استخدم الخطوة التالية في تبويب تسليم التأشيرة ثم أعد التجهيز.' });
   if (['VISA_DELIVERY_OWNERSHIP_OR_SCAN_REQUIRED', 'VISA_DELIVERY_SCAN_NOT_PASSED'].includes(reason)) throw new TRPCError({ code: 'BAD_REQUEST', message: 'لم يكتمل فحص ملف التأشيرة الأمني أو الملف لا يخص هذا المسافر. راجع الملف المختار واطلب من الإدارة استكمال الفحص؛ لا يلزم إعادة رفعه إذا كان صحيحًا.' });
   if(reason.startsWith('VISA_FILE_') || reason === 'VISA_DELIVERY_FILE_EVIDENCE_REQUIRED') throw new TRPCError({code:'BAD_REQUEST',message:reason==='VISA_FILE_SCAN_INFECTED' ? 'ملف التأشيرة لم يجتز الفحص الأمني. ارفع نسخة سليمة من المصدر ثم أعد التجهيز.' : 'تعذر التحقق من سلامة ملف التأشيرة الآن. أعد المحاولة، وإذا استمرت المشكلة اطلب من المدير مراجعة خدمة الفحص.'});
   throw new TRPCError({ code: 'BAD_REQUEST', message: 'تعذر حفظ تجهيز التأشيرة. حدّث الطلب ثم أعد المحاولة.' });

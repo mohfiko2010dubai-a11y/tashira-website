@@ -23,7 +23,8 @@ function capabilities(overrides:Partial<OperationsWriteCapabilities>={}):Operati
 describe("Operations Controlled Write UI",()=>{
   it('separates document and status actions without widening server capabilities', () => {
     const documents = renderToStaticMarkup(<OperationsControlledWritePanel enabled group="documents" model={fixture()} capabilities={capabilities()} execute={execute} />);
-    expect(documents).toContain('حفظ نتيجة المراجعة');
+    expect(documents).toContain('اختر المستند للمراجعة');
+    expect(documents).not.toContain('حفظ نتيجة المراجعة');
     expect(documents).not.toContain('حفظ حالة الطلب');
     expect(documents).not.toContain('Assignment');
     const status = renderToStaticMarkup(<OperationsControlledWritePanel enabled group="status" model={fixture()} capabilities={capabilities()} execute={execute} />);
@@ -31,6 +32,11 @@ describe("Operations Controlled Write UI",()=>{
     expect(status).not.toContain('حفظ نتيجة المراجعة');
     const denied = renderToStaticMarkup(<OperationsControlledWritePanel enabled group="documents" model={fixture()} capabilities={capabilities({ documentReview: false })} execute={execute} />);
     expect(denied).not.toContain('حفظ نتيجة المراجعة');
+  });
+  it('keeps proof-required submission in the supplier form, with visa receipt still available here', () => {
+    const html = renderToStaticMarkup(<OperationsControlledWritePanel enabled group="status" model={fixture()} capabilities={capabilities({validStatusTransitions:['visa_processing','visa_received']})} execute={execute} />);
+    expect(html).not.toContain('value="visa_processing"');
+    expect(html).toContain('value="visa_received"');
   });
   it("renders no controls while the flag is off",()=>expect(renderToStaticMarkup(<OperationsControlledWritePanel enabled={false} model={fixture()} capabilities={capabilities()} execute={execute}/>)).toBe(""));
 

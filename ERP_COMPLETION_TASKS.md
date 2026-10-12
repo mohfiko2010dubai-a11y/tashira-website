@@ -1,3 +1,9 @@
+# Screenshot workflow corrections — 2026-10-12, acceptance in progress
+
+Owner-approved tasks: (1) compact document dialog and one selected review form, (2) visa-only delivery uploads/list, (3) distinguish existing paid state from visa receipt prerequisite without asking to confirm payment again, (4) supplier/direct submission advances to processing and opens delivery awaiting the result.
+
+Implementation complete locally; check/lint/test/build passed:1552 unit tests and13 build checks.84 mandatory database cases and staging visual acceptance pending. Supplier dispatch atomically persists processing status, version and one customer status outbox with existing proof/timeline/work audit. Supplier evidence stays SUPPLIER_SENT and does not fabricate the authority system timestamp or stop its guarantee clock. No production change, no change to real supplier rates. Owner case TSH-680472 remains unmodified.
+
 # Latest inbound boundary correction — 2026-10-11
 
 Staging8e1c11f: actual message application/team rollout isolation verified and deployed.1551 unit/13 build/84 CI database tests passed. No live provider ingress activated; connected mailboxes do not provide admin@tashiraev.com access. Existing deposit and external acceptance gates below remain OPEN.

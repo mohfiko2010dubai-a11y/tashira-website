@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
 import OperationsShell from '@/components/operations/OperationsShell';
@@ -23,6 +25,7 @@ const tabs = [
 ] as const;
 
 export default function UnifiedOperationsCase() {
+  const [documentsOpen, setDocumentsOpen] = useState(false);
   const { referenceNumber = '' } = useParams<{ referenceNumber: string }>();
   const [search, setSearch] = useSearchParams();
   const tab = tabs.find(([key]) => key === search.get('tab'))?.[0] ?? 'documents';
@@ -46,14 +49,14 @@ export default function UnifiedOperationsCase() {
         {tabs.map(([key, label]) => <button key={key} type="button" aria-pressed={tab === key} className={`min-h-11 rounded-lg px-4 py-2 ${tab === key ? 'bg-slate-900 text-white' : 'text-slate-700'}`} onClick={() => { const next = new URLSearchParams(search); next.set('tab', key); setSearch(next, { replace: true }); }}>{label}</button>)}
       </nav>
       {tab === 'documents' && <>
-        <DocumentManager applicationId={model.summary.applicationId} readOnly allowUpload applicants={applicants} language="ar" />
-        <DocumentValidityReview referenceNumber={model.summary.reference} />
-        <OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="documents" />
+        <section className="rounded-2xl border bg-white p-5"><h2 className="font-bold">ملف المستندات والمراجعة</h2><p className="my-3">افتح الملف لمعاينة المستندات ورفع المرفقات وحفظ نتيجة المراجعة لكل مستند.</p><p className="mb-3 text-sm text-slate-600">المستندات: {model.applicants.reduce((total, applicant) => total + applicant.documents.length, 0)} · تمت مراجعتها: {model.applicants.reduce((total, applicant) => total + applicant.documents.filter(document => document.readiness === 'VALIDATED').length, 0)}</p><button type="button" className="rounded-lg bg-slate-900 px-4 py-3 text-white" onClick={() => setDocumentsOpen(true)}>فتح ملف المستندات ومراجعته</button></section>
+        <Dialog open={documentsOpen} onOpenChange={setDocumentsOpen}><DialogContent dir="rtl" lang="ar" className="max-h-[90vh] overflow-y-auto sm:max-w-5xl"><DialogTitle>ملف المستندات والمراجعة</DialogTitle><DialogDescription>اختر المستند، راجعه واحفظ النتيجة، ثم ارجع إلى الطلب.</DialogDescription><DocumentManager applicationId={model.summary.applicationId} readOnly allowUpload applicants={applicants} language="ar" /><DocumentValidityReview referenceNumber={model.summary.reference} /><OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="documents" /><button type="button" className="rounded-lg border p-3" onClick={() => setDocumentsOpen(false)}>إغلاق الملف والعودة للطلب</button></DialogContent></Dialog>
+        <OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="status" />
       </>}
       {tab === 'change' && <><DocumentValidityReview referenceNumber={model.summary.reference} mode="change" /><p className="rounded-xl border bg-white p-4">عرض التعديل وموافقة العميل وفرق المبلغ مرتبطة بالطلب نفسه. تسوية فرق المبلغ لا تعني تقديم الطلب للهجرة.</p><ManualVisaChange referenceNumber={model.summary.reference} /></>}
       {tab === 'payments' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><SecurityDepositStatus applicationId={model.summary.applicationId} /><RefundRequest applicationId={model.summary.applicationId} arabic /></>}
-      {tab === 'submission' && <><SupplierSelectionPanel referenceNumber={model.summary.reference} onSaved={refresh} /><SubmissionEvidencePanel applicationId={model.summary.applicationId} referenceNumber={model.summary.reference} onSaved={async () => { await refresh(); const next = new URLSearchParams(search); next.set('work', 'WAIT_AUTHORITY'); setSearch(next, { replace: true }); }} /><OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="status" /><SchedulerAlertPanel applicationId={model.summary.applicationId} /></>}
-      {tab === 'visa' && <><DocumentManager applicationId={model.summary.applicationId} readOnly allowUpload applicants={applicants} language="ar" /><VisaDeliveryPanel applicationId={model.summary.applicationId} applicationReference={model.summary.reference} applicants={applicants} /></>}
+      {tab === 'submission' && <><SupplierSelectionPanel referenceNumber={model.summary.reference} onSaved={refresh} /><SubmissionEvidencePanel applicationId={model.summary.applicationId} referenceNumber={model.summary.reference} onSaved={async () => { await refresh(); const next = new URLSearchParams(search); next.set('work', 'WAIT_AUTHORITY'); next.set('tab', 'visa'); setSearch(next, { replace: true }); }} /><OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="status" /><SchedulerAlertPanel applicationId={model.summary.applicationId} /></>}
+      {tab === 'visa' && <><OperationsControlledWritePanelLive enabled model={model} onRefresh={refresh} group="status" /><DocumentManager key="visa-files" applicationId={model.summary.applicationId} onlyType="visa" readOnly allowUpload applicants={applicants} language="ar" /><VisaDeliveryPanel applicationId={model.summary.applicationId} applicationReference={model.summary.reference} applicants={applicants} applicationStatus={model.summary.status} /></>}
       {tab === 'messages' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><Link to="/staff/operations/support" className="inline-block rounded-lg border bg-white px-4 py-2">فتح صندوق المراسلات</Link></>}
       {tab === 'history' && <><section className="rounded-2xl border bg-white p-5"><h2 className="mb-3 font-bold">سجل إجراءات الطلب</h2><ul className="divide-y">{model.operationalHistory.map(event => <li key={event.id} className="py-3"><p>{event.reason || event.event}</p><p className="text-sm text-slate-500">{event.actorReference || event.actorType} · {event.occurredAt}</p></li>)}</ul></section><CaseNotePanel referenceNumber={model.summary.reference} onRecorded={refresh} /></>}
     </div>

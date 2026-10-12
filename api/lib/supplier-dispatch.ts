@@ -21,8 +21,16 @@ export async function recordSupplierDispatch(applicationId: number, input: Submi
       const [applications] = await connection.execute<RowDataPacket[]>('SELECT status,payment_status FROM applications WHERE id=?', [applicationId]);
       if (applications[0]?.payment_status !== 'paid' || !['documents_received', 'under_review'].includes(String(applications[0]?.status))) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'سجّل اكتمال المستندات واستلام الدفع قبل إرسال الملف إلى المورد.' });
       copy = await copySubmissionEvidence(connection, applicationId, 'SUPPLIER_SENT', input, actor, key);
+      await connection.execute("UPDATE applications SET status='visa_processing' WHERE id=?", [applicationId]);
+      await connection.execute('UPDATE operations_case_controls SET version=version+1 WHERE application_id=?', [applicationId]);
+      await connection.execute(`INSERT INTO transactional_email_jobs(job_key,application_id,template,variables_json) VALUES (?,?,'STATUS_CHANGED',?)`,
+        [`application-status:supplier-dispatch:${key}`, applicationId, JSON.stringify({
+          statusLabelEn: 'Your application has been submitted through the supplier and is awaiting a result. Visa issuance is not yet confirmed.',
+          statusLabelAr: 'تم التقديم للهجرة عن طريق المورد، والطلب بانتظار النتيجة. لم يتم تأكيد إصدار التأشيرة بعد.',
+          sourceEvent: 'SUPPLIER_DOCUMENTS_SENT',
+        })]);
       await connection.execute(`INSERT INTO application_timeline_events(id,application_id,event_name,event_source,actor_type,actor_reference,summary)
-        VALUES (?,?,'SUPPLIER_DOCUMENTS_SENT','SUPPLIER_DESK',?,?,'تم تسجيل إرسال الملف إلى المورد؛ لم يُؤكد تقديمه للهجرة بعد.')`, [key, applicationId, requiredOwnerId === undefined ? 'ADMIN' : 'STAFF', actor]);
+        VALUES (?,?,'SUPPLIER_DOCUMENTS_SENT','SUPPLIER_DESK',?,?,'تم تسجيل التقديم عن طريق المورد؛ بانتظار النتيجة. إثبات إرسال المورد محفوظ ولا يثبت وقت التقديم الفعلي في نظام الهجرة.')`, [key, applicationId, requiredOwnerId === undefined ? 'ADMIN' : 'STAFF', actor]);
       if (Number.isSafeInteger(owner) && owner > 0) {
         const [states] = await connection.execute<RowDataPacket[]>('SELECT work_state FROM operations_case_work WHERE application_id=? FOR UPDATE', [applicationId]);
         const reason = 'تم إرسال الملف إلى المورد؛ بانتظار إثبات التقديم أو الرد.';

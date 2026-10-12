@@ -7,7 +7,7 @@ export function visaLabel(code: string | null | undefined): string {
 }
 export const applicationStatusLabels: Record<string, string> = {
   submitted: 'تم استلام الطلب', payment_received: 'تم استلام الدفع', documents_pending: 'بانتظار المستندات',
-  documents_received: 'تم استلام المستندات', under_review: 'قيد المراجعة', visa_processing: 'قيد المعالجة لدى الجهة',
+  documents_received: 'تم استلام المستندات', under_review: 'قيد المراجعة', visa_processing: 'تم التقديم للهجرة',
   visa_received: 'تم استلام التأشيرة', completed: 'مكتمل', rejected: 'مرفوض', cancelled: 'ملغى',
   paid: 'مدفوع', pending: 'بانتظار الدفع', failed: 'فشل الدفع', refunded: 'تم الاسترداد', unpaid: 'غير مدفوع',
 };

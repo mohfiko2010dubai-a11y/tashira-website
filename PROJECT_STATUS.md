@@ -1,3 +1,9 @@
+# Screenshot workflow corrections — 2026-10-12, acceptance in progress
+
+Owner-approved tasks: (1) compact document dialog and one selected review form, (2) visa-only delivery uploads/list, (3) distinguish existing paid state from visa receipt prerequisite without asking to confirm payment again, (4) supplier/direct submission advances to processing and opens delivery awaiting the result.
+
+Implementation complete locally; check/lint/test/build passed:1552 unit tests and13 build checks.84 mandatory database cases and staging visual acceptance pending. Supplier dispatch atomically persists processing status, version and one customer status outbox with existing proof/timeline/work audit. Supplier evidence stays SUPPLIER_SENT and does not fabricate the authority system timestamp or stop its guarantee clock. No production change, no change to real supplier rates. Owner case TSH-680472 remains unmodified.
+
 # Inbound scope boundary deployed — 2026-10-11
 
 Staging runtime8e1c11fcd926019e06a13945dcf1880fd0e285d9; CI38160950538 both jobs passed, including84 mandatory database cases. Local and exact-server check/lint/test/build passed:1551 unit tests +13 build checks. Three scope-bypass regression tests failed before the fix and now pass, with positive message application/team/global scope coverage. Environment-policy gate initially required explicit review of the trusted deployment-context read; narrow reason documented, no gate suppressed.

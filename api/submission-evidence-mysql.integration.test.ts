@@ -72,10 +72,10 @@ describe.skipIf(!url).sequential('protected supplier and authority evidence in d
     if (oldRoot === undefined) delete process.env.STORAGE_ROOT; else process.env.STORAGE_ROOT = oldRoot;
     if (root && path.dirname(root) === path.resolve(tmpdir()) && path.basename(root).startsWith('tashira-proof-')) await rm(root, { recursive: true, force: true });
   });
-  it('records supplier dispatch once in follow-up without falsely recording government filing or emailing the customer', async () => {
+  it('advances supplier submission once with one customer message but does not fabricate the authority timestamp', async () => {
     const f = await fixture(), key = randomUUID();
     await Promise.all([1, 2].map(() => recordSupplierDispatch(f.applicationId, f.input, key, `staff:${staffId}`, staffId)));
-    expect(await state(f.applicationId)).toMatchObject({ status: 'under_review', work_state: 'WAIT_SUPPLIER', authority_submitted_at: null, proofs: 1, mails: 0 });
+    expect(await state(f.applicationId)).toMatchObject({ status: 'visa_processing', work_state: 'WAIT_SUPPLIER', authority_submitted_at: null, proofs: 1, mails: 1 });
     await expect(recordSupplierDispatch(f.applicationId, { ...f.input, externalReference: 'changed' }, key, `staff:${staffId}`, staffId)).rejects.toMatchObject({ code: 'CONFLICT' });
   });
   it('rejects wrong owner, foreign document, future filing and missing price with no evidence or files', async () => {
