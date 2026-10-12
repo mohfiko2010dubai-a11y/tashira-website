@@ -1,3 +1,9 @@
+# One-click filing correction and customer visa access — 2026-10-12, acceptance pending
+
+Owner screenshot showed documents_received still required a manual under_review transition for authority filing. Allow proof-backed paid documents_received -> visa_processing through the existing atomic executor; remove the redundant status form from the supplier/submission tab. The button keeps evidence, pricing, authorization, audit, version and payment guards and opens visa delivery. Updated the mandatory DB acceptance to start from documents_received (86 total unchanged).
+
+Customer tracking previously omitted delivered visas. Added shared Arabic/English visa cards to tracking and the customer portal with traveller identity, saved instructions, validity and guarded download/retry. Processing step no longer implies government approval. Local check/lint/test/build passed1558 unit tests +13 build checks. Staging deployment, mandatory DB CI and actual browser acceptance pending. No production or owner-case mutation. New paid Stripe TEST fixture266 prepared for exact-state acceptance.
+
 # Screenshot workflow tasks CLOSED on staging — 2026-10-12
 
 Deployed runtime aedbb6f6d89f4c2a2bcf33adda2020b061358561. CI38236398653 Verify and mandatory database integration both SUCCESS (86 tests, zero skipped). Local and server check/lint/test/build passed1553 unit tests +13 build checks. Earlier integration run executed all86 successfully but its inventory assertion still expected84; corrected assertion and success summary to86 without weakening any failure/skip guard. Backup /var/backups/tashira-staging/erp-workflow-final-aedbb6f-1791801167780; private/public health200; no migration; production unchanged.

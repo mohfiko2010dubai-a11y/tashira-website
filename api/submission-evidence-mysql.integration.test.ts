@@ -133,9 +133,11 @@ describe.skipIf(!url).sequential('protected supplier and authority evidence in d
     await expect(pool.execute('UPDATE operations_submission_evidence SET external_reference=? WHERE application_id=?', ['changed', f.applicationId])).rejects.toMatchObject({ sqlState: '45000' });
     await expect(pool.execute('DELETE FROM operations_submission_evidence WHERE application_id=?', [f.applicationId])).rejects.toMatchObject({ sqlState: '45000' });
   });
-  it('requires proof then atomically records actual filing time, customer mail and authority queue; replay adds nothing', async () => {
+  it('files directly from documents received with proof, actual time, mail and queue; replay adds nothing', async () => {
     const f = await fixture(), actor = await access.actorForContext(context());
+    await pool.execute("UPDATE applications SET status='documents_received' WHERE id=?", [f.applicationId]);
     const capabilities = await writes.capabilities(f.applicationId, actor);
+    expect(capabilities.validStatusTransitions).toContain('visa_processing');
     const command = { applicationId: f.applicationId, expectedVersion: capabilities.version, idempotencyKey: randomUUID(), reason: 'Synthetic authority filing', to: 'visa_processing' as const };
     await expect(writes.statusTransition(command, actor)).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
     const input = { ...command, submission: f.input };

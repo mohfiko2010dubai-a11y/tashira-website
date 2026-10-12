@@ -4,9 +4,11 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle, Mail, Search } from "lucide-react";
 import { trpc } from "@/providers/trpc-client";
 import ApplicationTimeline from "@/components/shared/ApplicationTimeline";
+import CustomerVisaDeliveries from "@/components/customer/CustomerVisaDeliveries";
+import { applicationStatusLabels } from "@/components/admin/application-display";
 import { buildChatbotPaymentPath } from "@/lib/chatbot-application";
 
-const statusSteps = ["submitted", "under-review", "approved", "issued"] as const;
+const statusSteps = ["submitted", "under-review", "processing", "issued"] as const;
 
 function statusIndex(status: string) {
   if (["submitted", "payment_received", "documents_pending"].includes(status)) return 0;
@@ -78,7 +80,7 @@ export default function Track() {
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${completed ? "bg-[#C9A04C] text-white" : "bg-gray-100 text-gray-400"}`}>
                             {completed ? <CheckCircle size={18} /> : <span>{index + 1}</span>}
                           </div>
-                          <span className="text-[10px] mt-1.5 text-gray-500">{t(`result.${step}`)}</span>
+                          <span className="text-[10px] mt-1.5 text-gray-500">{step === "processing" ? (isAr ? "تم التقديم" : "Submitted for processing") : t(`result.${step}`)}</span>
                         </div>
                         {index < statusSteps.length - 1 && <div className={`flex-1 h-[2px] mx-2 ${index < current ? "bg-[#C9A04C]" : "bg-gray-200"}`} />}
                       </div>
@@ -92,7 +94,7 @@ export default function Track() {
                     { label: t("result.applicant"), value: application.applicants[0]?.fullName || "—" },
                     { label: t("result.visaType"), value: application.visaType },
                     { label: t("result.submittedDate"), value: new Date(application.createdAt).toLocaleDateString() },
-                    { label: isAr ? "الحالة الحالية" : "Current status", value: application.status.replaceAll("_", " ") },
+                    { label: isAr ? "الحالة الحالية" : "Current status", value: isAr ? (applicationStatusLabels[application.status] || application.status.replaceAll("_", " ")) : application.status.replaceAll("_", " ") },
                   ].map((item) => (
                     <div key={item.label}>
                       <p className="text-xs text-gray-400 uppercase tracking-wider">{item.label}</p>
@@ -111,6 +113,9 @@ export default function Track() {
                     <ArrowLeft size={16} /> {isAr ? "العودة إلى تأكيد الدفع" : "Back to Payment Confirmation"}
                   </Link>
                 )}
+                <div className="mt-6">
+                  <CustomerVisaDeliveries referenceNumber={application.referenceNumber} applicants={application.applicants.map(a => ({ id: a.id, name: a.fullName }))} />
+                </div>
                 <div className="mt-6">
                   <ApplicationTimeline referenceNumber={application.referenceNumber} />
                 </div>

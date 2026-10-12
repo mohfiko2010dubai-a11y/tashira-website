@@ -9,6 +9,7 @@ describe("payment-authoritative controlled status transitions", () => {
 
   it("retains the normal controlled state machine after authoritative payment confirmation", () => {
     expect(controlledTransitionsForPaymentState("submitted", "paid")).toEqual(["payment_received", "cancelled", "rejected"]);
-    expect(controlledTransitionsForPaymentState("documents_received", "paid")).toEqual(["under_review", "documents_pending", "cancelled", "rejected"]);
+    expect(controlledTransitionsForPaymentState("documents_received", "paid")).toEqual(["under_review", "visa_processing", "documents_pending", "cancelled", "rejected"]);
+    expect(controlledTransitionsForPaymentState("documents_received", "pending")).not.toContain("visa_processing");
   });
 });
