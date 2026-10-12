@@ -1,3 +1,11 @@
+# Screenshot tasks — deployed and tested, review-result display follow-up — 2026-10-12
+
+Runtime a1ef357317ca9ecfc43f4de98f30b9f3cdd0fa0d passed local/server check/lint/test/build (1552 unit +13 build), CI38234255924 both jobs including84 mandatory database tests. Backup /var/backups/tashira-staging/erp-workflow-a1ef357-1791799911550. Health200, no migration, production unchanged.
+
+Two independent actual Stripe TEST family cases263/264 passed employee and manager browser journeys: save one selected document review in dialog; BASHIR real cost640AED hidden from employee; supplier or direct filing opens visa tab and shared follow-up queue; no non-visa files in delivery; receipt, two scanned deliveries and completed queue; manager sees cost; employee finance403; one closure per case; no page errors. Independent reads confirm both completed/paid/TEST, four distinct applicant deliveries with matching scan hashes, temporary accounts inactive. Customer/authority documents and references were synthetic; no real submission or inbox delivery claim.
+
+Visual review found the dropdown still described reviewed files as awaiting review because the read model exposed upload state only. Follow-up now projects latest applicant/document-scoped audit outcome and actual filename separately from upload/eligibility readiness. Focused17 tests pass; final gates/deployment pending for this display correction. Owner case15 unchanged.
+
 # Screenshot workflow corrections — 2026-10-12, acceptance in progress
 
 Owner-approved tasks: (1) compact document dialog and one selected review form, (2) visa-only delivery uploads/list, (3) distinguish existing paid state from visa receipt prerequisite without asking to confirm payment again, (4) supplier/direct submission advances to processing and opens delivery awaiting the result.

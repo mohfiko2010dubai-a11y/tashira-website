@@ -50,6 +50,8 @@ export type OperationsCaseSource = {
     documentId: number;
     applicantId: number;
     code: string;
+    fileName?: string | null;
+    reviewOutcome?: string | null;
     readiness: "MISSING" | "UPLOADED" | "VALIDATED" | "REJECTED";
   }[];
   supplier: SupplierOperationalView | SupplierFinancialView | null;

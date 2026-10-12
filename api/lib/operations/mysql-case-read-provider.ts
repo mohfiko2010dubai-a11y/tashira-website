@@ -88,8 +88,13 @@ export class MysqlOperationsCaseReadProvider {
       this.sql.query(`SELECT id, applicant_index AS applicantIndex, full_name AS displayName,
                             nationality, gcc_residence_country AS residenceCountry
                        FROM applicants WHERE application_id=? ORDER BY applicant_index,id`, [applicationId]),
-      this.sql.query(`SELECT id, applicant_id AS applicantId, document_type AS code, upload_status AS uploadStatus
-                       FROM documents WHERE application_id=? AND applicant_id IS NOT NULL ORDER BY applicant_id,id`, [applicationId]),
+      this.sql.query(`SELECT d.id, d.applicant_id AS applicantId, d.document_type AS code, d.upload_status AS uploadStatus,
+                            d.original_file_name AS fileName,
+                            (SELECT e.outcome FROM operations_action_events e
+                              WHERE e.application_id=d.application_id AND e.applicant_id=d.applicant_id
+                                AND e.document_id=d.id AND e.action_type='DOCUMENT_REVIEW'
+                              ORDER BY e.document_version DESC,e.entity_version_after DESC LIMIT 1) AS reviewOutcome
+                       FROM documents d WHERE d.application_id=? AND d.applicant_id IS NOT NULL ORDER BY d.applicant_id,d.id`, [applicationId]),
       this.sql.query(`SELECT id, applicant_id AS applicantId, route_code AS selectedRoute,
                             engine_version AS engineVersion, final_eligibility_state AS eligibilityState,
                             decision_reason AS reason, manual_review_reason AS manualReviewReason,
@@ -175,6 +180,7 @@ export class MysqlOperationsCaseReadProvider {
       const uploadStatus = text(row, "uploadStatus");
       return {
         documentId: number(row, "id"), applicantId, code: text(row, "code"),
+        fileName: nullableText(row, "fileName"), reviewOutcome: nullableText(row, "reviewOutcome"),
         readiness: uploadStatus === "uploaded" ? "UPLOADED" as const : uploadStatus === "replaced" ? "REJECTED" as const : "MISSING" as const,
       };
     });

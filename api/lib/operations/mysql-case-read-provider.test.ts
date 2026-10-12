@@ -35,6 +35,22 @@ describe("MysqlOperationsCaseReadProvider", () => {
     expect(result?.family.currentRelationships(7)).toEqual([]);
   });
 
+  it("shows the latest stored document review separately from upload readiness", async () => {
+    class ReviewedSql extends FixtureSql {
+      override async query(sql: string): Promise<readonly object[]> {
+        if (sql.includes("FROM documents")) return [{id:701,applicantId:71,code:"passport",fileName:"Passport.png",uploadStatus:"uploaded",reviewOutcome:"ACCEPTED"}];
+        return super.query(sql);
+      }
+    }
+    const sql = new ReviewedSql();
+    const result = await new MysqlOperationsCaseReadProvider(sql).load("TSH-LEGACY-7");
+    expect(result?.source.documents[0]).toMatchObject({fileName:"Passport.png",reviewOutcome:"ACCEPTED",readiness:"UPLOADED"});
+    const baseline = new FixtureSql();
+    await new MysqlOperationsCaseReadProvider(baseline).load("TSH-LEGACY-7");
+    expect(baseline.queries.find(query => query.includes("FROM documents"))).toContain("e.applicant_id=d.applicant_id");
+    expect(baseline.queries.find(query => query.includes("FROM documents"))).toContain("ORDER BY e.document_version DESC,e.entity_version_after DESC");
+  });
+
   it("loads applicant-isolated travel groups and immutable scheduler evidence", async () => {
     const result = await new MysqlOperationsCaseReadProvider(new FixtureSql()).load("TSH-LEGACY-7");
     expect(result?.source.travelGroups).toEqual([expect.objectContaining({
