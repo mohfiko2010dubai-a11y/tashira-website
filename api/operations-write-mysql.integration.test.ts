@@ -127,7 +127,7 @@ integration("persistent Operations executor and internal API", () => {
   it("returns authoritative minimized capabilities", async () => {
     const capabilities = await caller.capabilities({ applicationId });
     expect(capabilities).toMatchObject({ version: 0, status: "documents_received", humanReview: true, documentReview: true });
-    expect(capabilities.validStatusTransitions).toEqual(["under_review", "documents_pending", "cancelled", "rejected"]);
+    expect(capabilities.validStatusTransitions).toEqual(["under_review", "visa_processing", "documents_pending", "cancelled", "rejected"]);
     expect(capabilities.documents).toContainEqual({ documentId: document1, applicantId: applicant1, version: 0 });
     expect(JSON.stringify(capabilities)).not.toMatch(/supplierCost|internalCost|margin|markup|profit|stripe|payout/i);
   });
