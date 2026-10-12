@@ -9,6 +9,7 @@ export default function SubmissionEvidencePanel({ applicationId, referenceNumber
   const history = trpc.application.submissionEvidence.useQuery({ referenceNumber });
   const capabilities = trpc.operationsWrite.capabilities.useQuery({ applicationId }, { retry: false });
   const dispatch = trpc.application.recordSupplierDispatch.useMutation();
+  const supplierConfirmation = trpc.application.recordSupplierAuthorityConfirmation.useMutation();
   const filing = trpc.operationsWrite.statusTransition.useMutation();
   const [kind, setKind] = useState<'supplier' | 'authority'>('authority');
   const [documentId, setDocumentId] = useState('');
@@ -18,8 +19,9 @@ export default function SubmissionEvidencePanel({ applicationId, referenceNumber
   const [message, setMessage] = useState('');
   const [preview, setPreview] = useState<{ documentId: number; mimeType: string } | null>(null);
   const key = useRef<string | null>(null);
-  const pending = dispatch.isPending || filing.isPending;
-  const canFile = capabilities.data?.validStatusTransitions.includes('visa_processing') ?? false;
+  const pending = dispatch.isPending || filing.isPending || supplierConfirmation.isPending;
+  const isSupplierFollowUp = capabilities.data?.status === 'visa_processing' && !!history.data?.some(item => item.kind === 'SUPPLIER_SENT') && !history.data?.some(item => item.kind === 'AUTHORITY_FILED');
+  const canFile = isSupplierFollowUp || (capabilities.data?.validStatusTransitions.includes('visa_processing') ?? false);
   const sources = documents.data?.filter(document => document.documentType === 'supporting' && document.uploadStatus === 'uploaded') ?? [];
   const inputClass = 'mt-1 block w-full rounded-lg border bg-white p-3';
   return <section className="rounded-2xl border bg-white p-5" aria-labelledby="submission-evidence-heading">
@@ -27,6 +29,7 @@ export default function SubmissionEvidencePanel({ applicationId, referenceNumber
     <p className="mt-2 text-sm text-slate-600">ارفع الإثبات كمرفق إضافي في المستندات، ثم اختره هنا. تأكيد التقديم للمورد أو للهجرة يحدّث حالة الطلب وينقلك مباشرة إلى تسليم التأشيرة انتظارًا للنتيجة.</p>
     <p className="mt-2 text-sm">هذا الزر يسجّل إرسالًا تم بالفعل خارج اللوحة؛ لا يرسل المستندات تلقائيًا إلى المورد.</p>
     {(supplier.isError || documents.isError || capabilities.isError || history.isError) && <p role="alert" className="mt-3">تعذر تحميل بيانات التقديم. <button type="button" className="underline" onClick={() => { void supplier.refetch(); void documents.refetch(); void capabilities.refetch(); void history.refetch(); }}>إعادة المحاولة</button></p>}
+    {isSupplierFollowUp && <p className="mt-3 rounded-lg bg-blue-50 p-3">إذا وصل رقم طلب الهجرة وإثباته من المورد، سجّلهما هنا. تظل الحالة «تم التقديم للهجرة» دون تكرار رسالة الحالة للعميل.</p>}
     <form className="mt-4" onChange={() => { key.current = null; setMessage(''); }} onSubmit={async event => {
       event.preventDefault();
       if (!supplier.data?.currentSupplierId) { setMessage('اختر المورد واحفظه أولًا.'); return; }
@@ -34,6 +37,7 @@ export default function SubmissionEvidencePanel({ applicationId, referenceNumber
       try {
         const evidence = { supplierId: supplier.data.currentSupplierId, documentId: Number(documentId), externalReference, occurredAt: new Date(occurredAt).toISOString(), ...(kind === 'supplier' ? { followUpAt: new Date(followUpAt).toISOString() } : {}) };
         if (kind === 'supplier') await dispatch.mutateAsync({ referenceNumber, evidence, key: key.current });
+        else if (isSupplierFollowUp) await supplierConfirmation.mutateAsync({ referenceNumber, evidence, key: key.current });
         else await filing.mutateAsync({ applicationId, expectedVersion: capabilities.data?.version ?? -1, to: 'visa_processing', reason: 'تأكيد التقديم بناءً على الرقم والإثبات المرفق.', idempotencyKey: key.current, submission: evidence });
         await Promise.all([history.refetch(), documents.refetch(), capabilities.refetch(), onSaved(), utils.operationsWork.overview.invalidate(), utils.operationsWork.managerReport.invalidate()]);
         setMessage(kind === 'supplier' ? 'تم تسجيل التقديم عن طريق المورد وتحديث الحالة. الطلب بانتظار النتيجة.' : 'تم تسجيل التقديم للهجرة وإثباته وتحديث حالة العميل.');
@@ -48,7 +52,7 @@ export default function SubmissionEvidencePanel({ applicationId, referenceNumber
         {kind === 'supplier' && <label>موعد المتابعة القادم<input required type="datetime-local" className={inputClass} value={followUpAt} onChange={event => setFollowUpAt(event.target.value)} /></label>}
         {kind === 'authority' && !canFile && <p className="sm:col-span-2">تأكيد التقديم غير متاح في حالة الطلب الحالية. راجع الخطوة التالية في قسم البيانات والمستندات؛ الدفع المسجّل لا يحتاج تأكيدًا جديدًا.</p>}
         {!sources.length && <p className="sm:col-span-2">لا يوجد إثبات متاح. ارفع الصورة أو ملف PDF كمرفق إضافي في قسم المستندات ثم اضغط إعادة المحاولة.</p>}
-        <button type="submit" disabled={pending || kind === 'authority' && !canFile} className="rounded-lg bg-slate-900 p-3 font-semibold text-white disabled:opacity-50">{pending ? 'جارٍ التسجيل…' : kind === 'authority' ? 'تأكيد التقديم للهجرة' : 'تأكيد التقديم عن طريق المورد'}</button>
+        <button type="submit" disabled={pending || kind === 'authority' && !canFile} className="rounded-lg bg-slate-900 p-3 font-semibold text-white disabled:opacity-50">{pending ? 'جارٍ التسجيل…' : kind === 'authority' ? isSupplierFollowUp ? 'حفظ رقم وإثبات الهجرة من المورد' : 'تأكيد التقديم للهجرة' : 'تأكيد التقديم عن طريق المورد'}</button>
         <button type="button" className="underline" onClick={() => void documents.refetch()}>تحديث قائمة المرفقات</button>
       </fieldset>
     </form>

@@ -2,6 +2,7 @@ import {customerApplicationResponse} from './lib/customer-application-response';
 import { customerServiceClock } from "./lib/customer-wait-log";
 import { selectCaseSupplier } from './lib/supplier-selection';
 import { submissionEvidenceInput } from '../contracts/submission-evidence';
+import { recordSupplierAuthorityConfirmation } from './lib/supplier-authority-confirmation';
 import { recordSupplierDispatch } from './lib/supplier-dispatch';
 import { syncCaseWorkStatus } from './lib/operations/case-work-status';
 import { enqueueApplicationStatusEmail } from './lib/application-status-outbox';
@@ -57,6 +58,12 @@ export const applicationRouter = createRouter({
     const application = await getCanonicalApplicationByReference(input.referenceNumber);
     if (!application) throw new TRPCError({ code: 'NOT_FOUND', message: 'الطلب غير موجود. ارجع إلى قائمة الطلبات.' });
     return recordSupplierDispatch(application.id, input.evidence, input.key, ctx.staffId ? `staff:${ctx.staffId}` : 'admin-session', needsStaffScope(ctx) ? ctx.staffId : undefined);
+  }),
+  recordSupplierAuthorityConfirmation: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), evidence: submissionEvidenceInput, key: z.string().uuid() }).strict()).mutation(async ({ input, ctx }) => {
+    await assertStaffSupplierAccess(ctx);
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({ code: 'NOT_FOUND', message: 'الطلب غير موجود. ارجع إلى قائمة الطلبات.' });
+    return recordSupplierAuthorityConfirmation(application.id, input.evidence, input.key, ctx.staffId ? `staff:${ctx.staffId}` : 'admin-session', needsStaffScope(ctx) ? ctx.staffId : undefined);
   }),
   supplierOptions: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3) }).strict()).query(async ({ input, ctx }) => {
     await assertStaffSupplierAccess(ctx);

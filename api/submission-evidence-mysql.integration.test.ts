@@ -12,6 +12,7 @@ import type { TrpcContext } from './context';
 import { MysqlOperationsAccessProvider } from './lib/operations/mysql-access-provider';
 import { MysqlOperationsSqlClient } from './lib/operations/mysql-query-client';
 import { MysqlControlledWriteExecutor } from './lib/operations/mysql-controlled-write-executor';
+import { recordSupplierAuthorityConfirmation } from './lib/supplier-authority-confirmation';
 import { recordSupplierDispatch } from './lib/supplier-dispatch';
 import { cleanupUncommittedSubmissionCopy } from './lib/submission-evidence';
 import { resolveStoragePath, storageUpload, storageDelete } from './lib/local-storage';
@@ -77,6 +78,25 @@ describe.skipIf(!url).sequential('protected supplier and authority evidence in d
     await Promise.all([1, 2].map(() => recordSupplierDispatch(f.applicationId, f.input, key, `staff:${staffId}`, staffId)));
     expect(await state(f.applicationId)).toMatchObject({ status: 'visa_processing', work_state: 'WAIT_SUPPLIER', authority_submitted_at: null, proofs: 1, mails: 1 });
     await expect(recordSupplierDispatch(f.applicationId, { ...f.input, externalReference: 'changed' }, key, `staff:${staffId}`, staffId)).rejects.toMatchObject({ code: 'CONFLICT' });
+  });
+  it('adds later authority proof after supplier submission once without another status email', async () => {
+    const f = await fixture();
+    await expect(recordSupplierAuthorityConfirmation(f.applicationId,f.input,randomUUID(),`staff:${staffId}`,staffId)).rejects.toMatchObject({code:'PRECONDITION_FAILED'});
+    await recordSupplierDispatch(f.applicationId,f.input,randomUUID(),`staff:${staffId}`,staffId);
+    const key = randomUUID();
+    await expect(recordSupplierAuthorityConfirmation(f.applicationId,f.input,key,`staff:${staffId}`,staffId+999)).rejects.toMatchObject({code:'FORBIDDEN'});
+    await Promise.all([1,2].map(() => recordSupplierAuthorityConfirmation(f.applicationId,f.input,key,`staff:${staffId}`,staffId)));
+    expect(await state(f.applicationId)).toMatchObject({status:'visa_processing',work_state:'WAIT_AUTHORITY',proofs:2,mails:1,authority_submitted_at:new Date(f.input.occurredAt)});
+    await expect(recordSupplierAuthorityConfirmation(f.applicationId,{...f.input,externalReference:'changed'},key,`staff:${staffId}`,staffId)).rejects.toMatchObject({code:'CONFLICT'});
+    await expect(recordSupplierAuthorityConfirmation(f.applicationId,f.input,randomUUID(),`staff:${staffId}`,staffId)).rejects.toMatchObject({code:'PRECONDITION_FAILED'});
+  });
+  it('rolls back later authority proof and clock if its timeline audit cannot be written', async () => {
+    const f = await fixture();
+    await recordSupplierDispatch(f.applicationId,f.input,randomUUID(),`staff:${staffId}`,staffId);
+    const key=randomUUID();
+    await pool.execute("INSERT INTO application_timeline_events(id,application_id,event_name,event_source,actor_type,actor_reference,summary) VALUES (?,?,'SYNTHETIC_COLLISION','SUPPLIER_DESK','STAFF','synthetic','Synthetic rollback test')",[key,f.applicationId]);
+    await expect(recordSupplierAuthorityConfirmation(f.applicationId,f.input,key,`staff:${staffId}`,staffId)).rejects.toThrow();
+    expect(await state(f.applicationId)).toMatchObject({status:'visa_processing',work_state:'WAIT_SUPPLIER',proofs:1,mails:1,authority_submitted_at:null});
   });
   it('rejects wrong owner, foreign document, future filing and missing price with no evidence or files', async () => {
     const f = await fixture(), foreign = await fixture();

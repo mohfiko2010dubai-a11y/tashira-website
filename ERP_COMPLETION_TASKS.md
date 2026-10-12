@@ -1,3 +1,7 @@
+# Preserve later authority confirmation — 2026-10-12, acceptance in progress
+
+Review-result display candidate4c59b62 passed local/server gates and CI38235407513 but is not deployed separately. Final review found that moving supplier dispatch immediately to visa_processing would otherwise remove the old later authority-proof path. Added a narrowly scoped action to append AUTHORITY_FILED evidence only to paid, processing cases with same-supplier prior SUPPLIER_SENT evidence. Existing ownership/pricing checks and checkout lock apply. Confirmation records the actual evidence time, actor/version/timeline and shared follow-up state; it does not rewind/change customer status or duplicate customer mail. Same-key replay succeeds; changed-key payload, foreign owner, missing prior submission, duplicate authority proof and audit failure are guarded. Two mandatory DB cases added (86 total). Local check/lint/tests1553 passed; final build/CI/server/visual acceptance pending.
+
 # Screenshot tasks — deployed and tested, review-result display follow-up — 2026-10-12
 
 Runtime a1ef357317ca9ecfc43f4de98f30b9f3cdd0fa0d passed local/server check/lint/test/build (1552 unit +13 build), CI38234255924 both jobs including84 mandatory database tests. Backup /var/backups/tashira-staging/erp-workflow-a1ef357-1791799911550. Health200, no migration, production unchanged.
