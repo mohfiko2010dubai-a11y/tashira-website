@@ -24,6 +24,8 @@ describe("versioned product acknowledgement", () => {
     expect(hooks.execute.mock.calls[2][0]).toContain("substitution_acknowledged_version=NULL");
     expect(hooks.execute.mock.calls[2][0]).not.toContain("visa_type=");
     expect(hooks.execute.mock.calls[3][1]).toEqual([1, 3, "14days-single", "staff:7", "Synthetic review reason"]);
+    expect(hooks.execute.mock.calls[4][0]).toContain("INSERT INTO transactional_email_jobs");
+    expect(hooks.execute.mock.calls[4][1]).toEqual(["substitution:1:3",1,JSON.stringify({originalProduct:"30days-single",replacementProduct:"14days-single"})]);
   });
   it("refuses stale consent and does not write it", async () => {
     hooks.execute.mockResolvedValue([[{ submitted_product: "14days-single", substitution_version: 3 }]]);

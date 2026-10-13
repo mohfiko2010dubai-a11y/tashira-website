@@ -21,6 +21,8 @@ export async function proposeSubmittedProduct(applicationId: number, product: st
     await prepareVisaChangeQuote(connection, applicationId, version, product);
     await connection.execute("UPDATE applications SET submitted_product=?,submitted_reason=?,substitution_version=?,substitution_acknowledged_version=NULL,substitution_acknowledged_at=NULL WHERE id=?", [product, reason.trim(), version, applicationId]);
     await connection.execute("INSERT INTO product_substitution_events (application_id,version,product,action,actor,reason) VALUES (?,?,?,'PROPOSED',?,?)", [applicationId, version, product, actor, reason.trim()]);
+    await connection.execute(`INSERT INTO transactional_email_jobs(job_key,application_id,template,variables_json)
+      VALUES (?,?,'PRODUCT_SUBSTITUTED',?)`,[`substitution:${applicationId}:${version}`,applicationId,JSON.stringify({originalProduct:rows[0].visa_type,replacementProduct:product})]);
     return { version };
   });
 }
