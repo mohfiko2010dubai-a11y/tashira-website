@@ -40,10 +40,14 @@ export async function refuseVisaChange(applicationId: number, quoteId: string, v
   });
 }
 
-export async function recordDifferenceLink(applicationId: number, quoteId: string, version: number, actorId: number, url: string) {
+export async function recordDifferenceLink(applicationId: number, quoteId: string, version: number, actorId: number, url: string, requiredOwnerId?: number) {
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" || parsed.hostname !== "buy.stripe.com" || parsed.username || parsed.password || parsed.port || url.length > 450) conflict("Use the HTTPS payment link created in your Stripe dashboard.");
   return withCheckoutLock(applicationId, async connection => {
+    if (requiredOwnerId !== undefined) {
+      const [owners] = await connection.execute<RowDataPacket[]>('SELECT assigned_staff_user_id FROM operations_case_controls WHERE application_id=? FOR UPDATE',[applicationId]);
+      if (Number(owners[0]?.assigned_staff_user_id) !== requiredOwnerId) throw new TRPCError({code:'FORBIDDEN',message:'الطلب لم يعد مسندًا إليك.'});
+    }
     const quote = await quoteFor(connection, applicationId, quoteId, version);
     if (quote.state !== "ACCEPTED" || Number(quote.difference_minor) <= 0) conflict("Issue the link only after the customer accepts a positive price difference.");
     const [prior] = await connection.execute<RowDataPacket[]>("SELECT reason FROM product_substitution_events WHERE application_id=? AND version=? AND action='PAYMENT_LINK_ISSUED'", [applicationId, version]);

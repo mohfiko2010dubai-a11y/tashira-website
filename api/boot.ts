@@ -1,4 +1,5 @@
 import { MysqlVisaDeliveryRepository } from "./lib/operations/mysql-visa-delivery-repository";
+import { finalizeAutomaticVisaTopUp } from "./lib/automatic-visa-topup";
 import { defaultOperationsPool } from "./lib/operations/mysql-query-client";
 import { readVerifiedVisaFile } from "./lib/operations/visa-file-evidence";
 import { archivedDocumentApplicationId, readArchivedInvoice } from "./lib/invoice-archive";
@@ -105,6 +106,8 @@ app.post("/api/stripe/webhook", async (c) => {
       }
       claimedEvent = claim;
       const depositRequestId = event.data.object.metadata.securityDepositRequestId;
+      const visaChangeQuoteId = event.data.object.metadata.visaChangeQuoteId;
+      if (depositRequestId && visaChangeQuoteId) throw new Error('Ambiguous payment owner');
       const referenceNumber = event.data.object.metadata.referenceNumber;
       const context = depositRequestId
         ? await getSecurityDepositWebhookContext(depositRequestId)
@@ -147,6 +150,8 @@ app.post("/api/stripe/webhook", async (c) => {
       } else if (event.type === "payment_intent.succeeded") {
         if (depositRequestId) {
           await finalizeSecurityDepositPayment(event.data.object.id, depositRequestId);
+        } else if (visaChangeQuoteId) {
+          await finalizeAutomaticVisaTopUp(context.referenceNumber, visaChangeQuoteId, event.data.object.id);
         } else {
           const finalized = await finalizeStripeTestPayment(context.referenceNumber, event.data.object.id, {
             actorType: "STRIPE",
@@ -157,7 +162,7 @@ app.post("/api/stripe/webhook", async (c) => {
         }
       } else {
         if (depositRequestId) await recordSecurityDepositPaymentFailure(event.data.object.id, depositRequestId);
-        else await recordStripeTestPaymentFailure(context.referenceNumber, event.data.object.id, event.created);
+        else if (!visaChangeQuoteId) await recordStripeTestPaymentFailure(context.referenceNumber, event.data.object.id, event.created);
       }
       const completedClaim = claimedEvent;
       claimedEvent = null;

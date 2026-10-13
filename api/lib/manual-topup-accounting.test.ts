@@ -9,7 +9,7 @@ vi.mock('./stripe-runtime',()=>({stripeRuntimeMode:()=> 'TEST'}));
 vi.mock('./payment-success-email',()=>({sendPaymentSuccessEmail:vi.fn()}));
 vi.mock('./stripe-fee',()=>({captureStripeFee:vi.fn()}));
 vi.mock('./application-timeline',()=>({recordTimelineEvent:vi.fn()}));
-import {prepareManualTopUp} from './manual-topup-accounting';
+import {prepareManualTopUp,prepareAutomaticTopUp} from './manual-topup-accounting';
 beforeEach(()=>{
   vi.resetAllMocks();
   mock.read.mockResolvedValue([[{application_id:7,amount_minor:3000,difference_minor:3000,currency:'USD',stripe_reference:'pi_topup',quote_id:'quote',reference_number:'TEST-7',is_test:1,
@@ -20,6 +20,14 @@ beforeEach(()=>{
   mock.prepare.mockResolvedValue({amount:'30.00'});
 });
 describe('manual top-up accounting preparation',()=>{
+  it('prepares the exact accepted difference from provider evidence without a staff decision',async()=>{
+    const result = await prepareAutomaticTopUp('quote','pi_topup','TEST-7');
+    expect(result.paymentId).toBe(12);
+    expect(mock.verify).toHaveBeenCalledWith({reference:'pi_topup',direction:'TOP_UP',amountMinor:3000,currency:'USD'});
+    expect(mock.read.mock.calls[0][0]).toContain("q.accepted_at IS NOT NULL");
+    expect(mock.read.mock.calls[0][1]).toEqual(['quote','TEST-7']);
+    expect(mock.write.mock.calls.some(([sql])=>sql.includes('visa_change_decisions'))).toBe(false);
+  });
   it('reserves the verified payment and invoices only the difference with no inherited payer/card claim',async()=>{
     const result=await prepareManualTopUp('decision');
     expect(result.paymentId).toBe(12);

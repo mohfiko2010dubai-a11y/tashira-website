@@ -9,6 +9,7 @@ import { enqueueApplicationStatusEmail } from './lib/application-status-outbox';
 import { randomUUID } from 'node:crypto';
 import type { RowDataPacket } from 'mysql2/promise';
 import { refuseVisaChange, requestManualChange, decideManualChange, manualChangeQueue, refusalOutcomes, recordDifferenceLink } from "./lib/manual-visa-change";
+import { createVisaDifferenceLink } from "./lib/visa-difference-link";
 import { verifyNamedStaffPassword } from "./lib/named-staff-password";
 import { MysqlCustomerInterviewWriteRepository } from "./lib/customer/mysql-customer-interview-write-repository";
 import { applicantName } from "../contracts/applicant-name";
@@ -119,6 +120,13 @@ export const applicationRouter = createRouter({
     return refuseVisaChange(application.id, input.quoteId, input.version, input.reason);
   }),
   manualChangeQueue: adminQuery.query(() => manualChangeQueue()),
+  createDifferenceLink: staffOrAdminQuery.input(z.object({referenceNumber:z.string().min(3),quoteId:z.string().uuid(),version:z.number().int().positive()}).strict()).mutation(async ({input,ctx})=>{
+    if (!ctx.staffId) throw new TRPCError({code:'FORBIDDEN',message:'Use your named staff account.'});
+    assertApplicationReferenceAccess(ctx,input.referenceNumber);
+    const application = await getCanonicalApplicationByReference(input.referenceNumber);
+    if (!application) throw new TRPCError({code:'NOT_FOUND'});
+    return createVisaDifferenceLink(application.id,input.quoteId,input.version,ctx.staffId,needsStaffScope(ctx)?ctx.staffId:undefined);
+  }),
   requestManualChange: staffOrAdminQuery.input(z.object({ referenceNumber: z.string().min(3), quoteId: z.string().uuid(), version: z.number().int().positive(),
     kind: z.enum(["SETTLEMENT", "REFUSAL_OUTCOME"]), outcome: z.enum(refusalOutcomes).optional(), direction: z.enum(["TOP_UP", "REFUND"]).optional(),
     amountMinor: z.number().int().positive().optional(), currency: z.literal("USD").optional(), stripeReference: z.string().max(150).optional(),

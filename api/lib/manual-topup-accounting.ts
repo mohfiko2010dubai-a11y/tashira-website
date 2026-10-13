@@ -19,16 +19,36 @@ export async function prepareManualTopUp(decisionId: string) {
     JOIN financial_document_archives f ON f.document_number=i.invoice_number
     WHERE d.id=? AND d.state='PENDING' AND d.kind='SETTLEMENT' AND d.direction='TOP_UP'`, [decisionId]);
   if (rows.length !== 1) throw new Error('The current accepted difference and original invoice are required');
-  const row = rows[0], applicationId = Number(row.application_id), amountMinor = Number(row.amount_minor);
+  return prepareTopUpRow(rows[0], { decisionId });
+}
+
+export async function prepareAutomaticTopUp(quoteId: string, paymentIntentId: string, referenceNumber: string) {
+  const [rows] = await defaultOperationsPool().execute<RowDataPacket[]>(`SELECT q.application_id,q.id quote_id,q.difference_minor amount_minor,q.difference_minor,q.currency,
+    q.quote_json,q.replacement_product,a.reference_number,a.is_test,f.snapshot_json
+    FROM visa_change_quotes q JOIN applications a ON a.id=q.application_id AND a.substitution_version=q.version
+    JOIN invoices i ON i.application_id=a.id AND i.invoice_number=a.invoice_number
+    JOIN financial_document_archives f ON f.document_number=i.invoice_number
+    WHERE q.id=? AND a.reference_number=? AND a.payment_status='paid' AND q.accepted_at IS NOT NULL
+      AND q.state IN ('ACCEPTED','PAYMENT_PENDING')`, [quoteId,referenceNumber]);
+  if (rows.length !== 1) throw new Error('Accepted current amendment and original invoice required');
+  return prepareTopUpRow({ ...rows[0], stripe_reference: paymentIntentId } as RowDataPacket, { quoteId });
+}
+
+async function prepareTopUpRow(row: RowDataPacket, source: { decisionId: string } | { quoteId: string }) {
+  const applicationId = Number(row.application_id), amountMinor = Number(row.amount_minor);
   if (amountMinor !== Number(row.difference_minor) || amountMinor <= 0 || row.currency !== 'USD') throw new Error('The recorded difference no longer matches its quote');
   const movement = await verifyManualMovement({ reference: String(row.stripe_reference), direction: 'TOP_UP', amountMinor, currency: 'USD' });
   if (movement.metadata.referenceNumber !== row.reference_number || movement.metadata.visaChangeQuoteId !== row.quote_id) {
     throw new Error('This Stripe payment is not linked to this order and visa-change quote. Check its referenceNumber and visaChangeQuoteId metadata before approval.');
   }
   const paymentId = await withCheckoutLock(applicationId, async connection => {
-    const [current] = await connection.execute<RowDataPacket[]>(`SELECT d.state,q.state quote_state,q.payment_id FROM visa_change_decisions d
-      JOIN visa_change_quotes q ON q.id=d.quote_id JOIN applications a ON a.id=q.application_id AND a.substitution_version=q.version WHERE d.id=?`, [decisionId]);
-    if (current.length !== 1 || current[0].state !== 'PENDING' || !['ACCEPTED','PAYMENT_PENDING'].includes(String(current[0].quote_state))) throw new Error('The settlement changed; refresh before approval');
+    const [current] = 'decisionId' in source
+      ? await connection.execute<RowDataPacket[]>(`SELECT d.state,q.state quote_state,q.payment_id FROM visa_change_decisions d
+          JOIN visa_change_quotes q ON q.id=d.quote_id JOIN applications a ON a.id=q.application_id AND a.substitution_version=q.version WHERE d.id=?`, [source.decisionId])
+      : await connection.execute<RowDataPacket[]>(`SELECT q.state quote_state,q.payment_id FROM visa_change_quotes q
+          JOIN applications a ON a.id=q.application_id AND a.substitution_version=q.version
+          WHERE q.id=? AND a.payment_status='paid' AND q.accepted_at IS NOT NULL`, [source.quoteId]);
+    if (current.length !== 1 || ('decisionId' in source && current[0].state !== 'PENDING') || !['ACCEPTED','PAYMENT_PENDING'].includes(String(current[0].quote_state))) throw new Error('The settlement changed; refresh before approval');
     const [prior] = await connection.execute<RowDataPacket[]>('SELECT id,application_id,amount,currency FROM payments WHERE stripe_payment_intent_id=?', [movement.paymentIntentId]);
     let id: number;
     if (prior.length) {
