@@ -1,0 +1,12 @@
+import {renderToStaticMarkup} from 'react-dom/server';
+import {beforeEach,expect,it,vi} from 'vitest';
+import VisaChangeProgress from './VisaChangeProgress';
+const mock=vi.hoisted(()=>({query:vi.fn()}));
+vi.mock('@/providers/trpc-client',()=>({trpc:{application:{visaChangeProgress:{useQuery:mock.query},createDifferenceLink:{useMutation:()=>({})}}}}));
+const quote={id:'q',version:1,previousProduct:'14days-single',replacementProduct:'30days-single',oldTotalMinor:20000,newTotalMinor:30000,differenceMinor:10000,currency:'USD',state:'PROPOSED',paymentLink:null as string|null};
+const render=()=>renderToStaticMarkup(<VisaChangeProgress referenceNumber="TSH-TEST"/>);
+beforeEach(()=>mock.query.mockReturnValue({data:{quote,events:[],mail:[],documents:[]}}));
+it('shows all stages and a disabled link button before customer consent',()=>{const html=render();expect(html).toContain('200.00 USD');expect(html).toContain('100.00 USD');expect(html).toContain('بانتظار موافقة العميل');expect(html).toMatch(/disabled=""[^>]*>إنشاء وإرسال رابط دفع الفرق/);expect(html).toContain('الفواتير والإشعارات الدائنة');});
+it('shows provider send failure separately from customer consent',()=>{mock.query.mockReturnValue({data:{quote:{...quote,state:'ACCEPTED'},events:[{action:'ACKNOWLEDGED',at:'2026-10-13T12:00:00Z'}],mail:[{kind:'PROPOSAL',status:'FAILED',at:'2026-10-13T11:00:00Z'}],documents:[]}});const html=render();expect(html).toContain('وافق العميل');expect(html).toContain('تعذر الإرسال');expect(html).not.toContain('disabled=""');});
+it('retains original and difference invoice links after settlement',()=>{mock.query.mockReturnValue({data:{quote:{...quote,state:'SETTLED'},events:[],mail:[],documents:[{number:'TEST-INV-1',kind:'ORIGINAL',amount:200,currency:'USD',issuedAt:'2026-10-13T12:00:00Z'},{number:'TEST-INV-2',kind:'DIFFERENCE',amount:100,currency:'USD',issuedAt:'2026-10-13T12:00:00Z'}]}});const html=render();expect(html).toContain('/invoices/TEST-INV-1/view');expect(html).toContain('/invoices/TEST-INV-2/download');expect(html).toContain('تمت تسوية الفرق');});
+it('does not show a payment request for a cheaper replacement',()=>{mock.query.mockReturnValue({data:{quote:{...quote,differenceMinor:-10000,state:'ACCEPTED'},events:[],mail:[],documents:[]}});const html=render();expect(html).toContain('المبلغ المسترد للعميل');expect(html).not.toContain('إنشاء وإرسال رابط دفع الفرق');});

@@ -19,6 +19,9 @@ export function DocumentValidityReview({ referenceNumber, mode = 'review' }: { r
   const propose = trpc.application.proposeSubmittedProduct.useMutation();
   const products = trpc.catalog.listActiveProducts.useQuery(undefined, { enabled: mode === 'change' });
   const application = trpc.application.getByReference.useQuery({ referenceNumber });
+  const [selectedProduct,setSelectedProduct]=useState('');
+  const preview=trpc.application.previewVisaChange.useQuery({referenceNumber,product:selectedProduct},{enabled:mode==='change'&&!!selectedProduct});
+  const utils=trpc.useUtils();
   const [result, setResult] = useState('');
   const control = 'mt-2 block min-h-11 w-full rounded-xl border border-slate-300 bg-white p-3 focus:outline-none focus:ring-2 focus:ring-[#C9A04C]';
   return <section dir="rtl" className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
@@ -29,14 +32,15 @@ export function DocumentValidityReview({ referenceNumber, mode = 'review' }: { r
         <div className="rounded-xl bg-amber-50 p-4"><p className="text-sm text-slate-600">النوع المسجّل للتقديم</p><p className="mt-2 font-bold">{visaLabel(application.data?.submittedProduct)}</p><p className="mt-2 text-sm text-slate-600">تسجيل النوع لا يعني إرساله للجهة أو تحصيل فرق السعر.</p></div></div>
       <form className="space-y-4" onSubmit={async event => {
         event.preventDefault(); const data = new FormData(event.currentTarget);
-        try { await propose.mutateAsync({ referenceNumber, product: String(data.get('product')), reason: String(data.get('reason')) }); await application.refetch(); setResult('تم حفظ المقترح. يظل التقديم متوقفًا حتى موافقة العميل واستيفاء متطلبات التسوية.'); }
+        try { await propose.mutateAsync({ referenceNumber, product: String(data.get('product')), reason: String(data.get('reason')) }); await application.refetch(); await utils.application.visaChangeProgress.invalidate(); await utils.application.visaChangeQuote.invalidate(); setResult('تم حفظ المقترح. يظل التقديم متوقفًا حتى موافقة العميل واستيفاء متطلبات التسوية.'); }
         catch (error) { setResult(error instanceof Error ? error.message : 'تعذر حفظ المقترح. حاول مرة أخرى.'); }
       }}>
-        <label className="block font-medium">١. اختر التأشيرة المقترحة<select name="product" required className={control}><option value="">اختر نوع التأشيرة</option>{products.data?.map(product => <option key={product.id} value={product.id}>{visaLabel(product.id)}</option>)}</select></label>
+        <label className="block font-medium">١. اختر التأشيرة المقترحة<select name="product" required className={control} value={selectedProduct} onChange={event=>setSelectedProduct(event.target.value)}><option value="">اختر نوع التأشيرة</option>{products.data?.map(product => <option key={product.id} value={product.id}>{visaLabel(product.id)}</option>)}</select></label>
+        {selectedProduct&&<div className="rounded-xl bg-amber-50 p-4" aria-live="polite">{preview.isLoading?'جارٍ حساب الفرق…':preview.error?'تعذر حساب السعر. أعد اختيار النوع.':preview.data?<><p>السعر السابق: {(preview.data.oldTotalMinor/100).toFixed(2)} {preview.data.currency}</p><p>السعر الجديد: {(preview.data.newTotalMinor/100).toFixed(2)} {preview.data.currency}</p><strong>{preview.data.differenceMinor>0?'يدفع العميل':preview.data.differenceMinor<0?'نرد للعميل':'لا يوجد فرق'}: {(Math.abs(preview.data.differenceMinor)/100).toFixed(2)} {preview.data.currency}</strong><p className="text-sm">يُثبت السعر عند إرسال المقترح.</p></>:null}</div>}
         {products.error && <p role="alert" className="text-red-700">تعذر تحميل أنواع التأشيرات. حدّث الصفحة قبل اقتراح التعديل.</p>}
         <label className="block font-medium">٢. اشرح سبب التغيير<textarea name="reason" required maxLength={500} rows={3} placeholder="اكتب سببًا واضحًا خاصًا بهذا الطلب" className={control} /></label>
         <p className="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">هذا الإجراء يحفظ مقترح تعديل. لا يخصم أموالًا ولا ينفّذ استردادًا.</p>
-        <button disabled={propose.isPending} className="min-h-11 rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50">{propose.isPending ? 'جارٍ الحفظ…' : 'حفظ مقترح التعديل'}</button>
+        <button disabled={propose.isPending||!preview.data||preview.isFetching||preview.isError} className="min-h-11 rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-50">{propose.isPending ? 'جارٍ الحفظ…' : 'حفظ وإرسال مقترح التعديل للعميل'}</button>
       </form>
     </> : <>
       {facts.isLoading && <p role="status">جارٍ تحميل بيانات المراجعة…</p>}

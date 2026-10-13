@@ -9,7 +9,7 @@ export function ManualVisaChange({ referenceNumber }: { referenceNumber: string 
   const [message, setMessage] = useState("");
   const quote = query.data;
   if (query.error) return <p role="alert">تعذر تحميل تفاصيل التعديل. حدّث الصفحة قبل تسجيل التسوية.</p>;
-  if (quote?.state === "SETTLED") return <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">تمت تسوية فرق تعديل التأشيرة. يمكنك متابعة اختيار المورد والتقديم.</p>;
+  if(quote?.state==="SETTLED" || (quote && quote.state!=="REFUSED" && quote.differenceMinor>=0))return null;
   if (!quote || !["REFUSED", "ACCEPTED", "PAYMENT_PENDING", "REFUND_PENDING"].includes(quote.state)) return null;
   const refused = quote.state === "REFUSED";
   const financial = !refused || ["FULL_REFUND_CANCEL", "REFUND_LESS_FEE"].includes(outcome);

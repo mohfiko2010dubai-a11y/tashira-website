@@ -1,3 +1,4 @@
+import {previewVisaChange,visaChangeProgress} from './lib/visa-change-progress';
 import {customerApplicationResponse} from './lib/customer-application-response';
 import { customerServiceClock } from "./lib/customer-wait-log";
 import { selectCaseSupplier } from './lib/supplier-selection';
@@ -99,6 +100,12 @@ export const applicationRouter = createRouter({
     const application = await getCanonicalApplicationByReference(input.referenceNumber);
     if (!application) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
     return customerServiceClock(application.id);
+  }),
+  visaChangeProgress: staffOrAdminQuery.input(z.object({referenceNumber:z.string().min(3)}).strict()).query(async({input,ctx})=>{
+    assertApplicationReferenceAccess(ctx,input.referenceNumber);const app=await getCanonicalApplicationByReference(input.referenceNumber);if(!app)throw new TRPCError({code:'NOT_FOUND'});return visaChangeProgress(app.id);
+  }),
+  previewVisaChange: staffOrAdminQuery.input(z.object({referenceNumber:z.string().min(3),product:z.string().min(1).max(80)}).strict()).query(async({input,ctx})=>{
+    assertApplicationReferenceAccess(ctx,input.referenceNumber);const app=await getCanonicalApplicationByReference(input.referenceNumber);if(!app)throw new TRPCError({code:'NOT_FOUND'});return previewVisaChange(app.id,input.product);
   }),
   visaChangeQuote: applicationAccessQuery.input(z.object({ referenceNumber: z.string().min(3) })).query(async ({ input, ctx }) => {
     assertApplicationReferenceAccess(ctx, input.referenceNumber);
