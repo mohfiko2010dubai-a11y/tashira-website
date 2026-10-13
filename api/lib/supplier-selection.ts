@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { RowDataPacket } from 'mysql2/promise';
 import { TRPCError } from '@trpc/server';
 import { withCheckoutLock } from './checkout-quote';
+import { assertSupplierProcessingReady } from './supplier-processing-readiness';
 import { canReplaceSupplierEstimate, captureSupplierCost, type SupplierCostStatus } from './supplier-cost-snapshot';
 
 export async function selectCaseSupplier(applicationId: number, supplierId: number, expectedSupplierId: number | null, actor: string, requiredOwnerId?: number) {
@@ -17,6 +18,8 @@ export async function selectCaseSupplier(applicationId: number, supplierId: numb
       const [owners] = await connection.execute<RowDataPacket[]>('SELECT assigned_staff_user_id FROM operations_case_controls WHERE application_id=? FOR UPDATE', [applicationId]);
       if (Number(owners[0]?.assigned_staff_user_id) !== requiredOwnerId) throw new TRPCError({ code: 'FORBIDDEN', message: 'الطلب لم يعد مسندًا إليك. حدّث قائمة العمل.' });
     }
+    await assertSupplierProcessingReady(connection, applicationId);
+    if (['payment_received', 'documents_pending'].includes(row.status)) throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'أكمل مراجعة المستندات أولًا من «البيانات والمستندات».' });
     const current = row.supplier_id == null ? null : Number(row.supplier_id);
     const matchingSnapshot = row.supplier_rate_id && (row.residence_category === 'all' || row.residence_category === row.residence_type) && row.product === row.captured_product && row.processing_type === row.captured_speed && Number(row.quantity) === Number(row.supplier_rate_quantity);
     if (current === supplierId && (matchingSnapshot || row.supplier_invoice_number || row.supplier_paid === 'paid')) return { saved: true as const, pricingReadiness: matchingSnapshot ? (row.vat_confirmed ? 'READY' as const : 'TAX_PENDING' as const) : 'MANUAL_REVIEW' as const };

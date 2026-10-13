@@ -23,7 +23,7 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
     const tag = randomUUID().slice(0, 8);
     const [role] = await pool.execute<ResultSetHeader>('INSERT INTO operations_roles(code,name) VALUES (?,?)', [`DEL_${tag}`, `Delivery ${tag}`]);
     await pool.execute("INSERT INTO operations_permissions(code,description,risk_level) VALUES ('document.review','Synthetic delivery','HIGH') ON DUPLICATE KEY UPDATE code=VALUES(code)");
-    await pool.execute("INSERT INTO operations_role_permissions(role_id,permission_id,granted_by) SELECT ?,id,'synthetic' FROM operations_permissions WHERE code='document.review'", [role.insertId]);
+    await pool.execute("INSERT INTO operations_role_permissions(role_id,permission_id,granted_by) SELECT ?,id,'synthetic' FROM operations_permissions WHERE code IN ('document.review','case.transition')", [role.insertId]);
     for (let index = 0; index < 2; index++) {
       const [person] = await pool.execute<ResultSetHeader>("INSERT INTO staff_users(username,password_hash,name,is_active,staff_role) VALUES (?,'unusable','Synthetic Delivery Staff','active','staff')", [`delivery-${tag}-${index}`]);
       staff.push(person.insertId);
@@ -82,6 +82,8 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
   });
   it('serializes concurrent retries, retains one delivery/audit, and rejects changed instructions or revoked grants', async () => {
     const f = await fixture();
+    await pool.execute("UPDATE applications SET status='visa_processing' WHERE id=?", [f.applicationId]);
+    const [second] = await pool.execute<ResultSetHeader>("INSERT INTO applicants(application_id,applicant_index,full_name) VALUES (?,1,'Second synthetic traveller')", [f.applicationId]);
     await syntheticScan(f, 'PASSED', '2026-01-01');
     f.preparedAt = '2026-10-10T19:59:19.765Z';
     const result = await Promise.all([repository.prepare(f), repository.prepare(f)]);
@@ -89,10 +91,20 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
     expect(result[0]).toEqual(result[1]);
     expect(await repository.prepare({ ...f, commandId: randomUUID() })).toEqual(result[0]);
     expect(await repository.listForCustomer(f.applicationReference)).toEqual([result[0]]);
+    const [partial] = await pool.execute<RowDataPacket[]>('SELECT status FROM applications WHERE id=?', [f.applicationId]);
+    expect(partial[0].status).toBe('visa_received');
+    const [secondDocument] = await pool.execute<ResultSetHeader>(`INSERT INTO documents
+      (application_id,applicant_id,document_type,original_file_name,stored_file_name,mime_type,file_size,storage_path,upload_status)
+      VALUES (?,?,'visa','second.pdf','second.pdf','application/pdf',10,'synthetic/second.pdf','uploaded')`, [f.applicationId, second.insertId]);
+    const secondCommand = { ...f, applicantId: second.insertId, visaDocumentId: secondDocument.insertId, commandId: randomUUID() };
+    await syntheticScan(secondCommand, 'PASSED', '2026-01-01');
+    await repository.prepare(secondCommand);
+    const [complete] = await pool.execute<RowDataPacket[]>('SELECT status FROM applications WHERE id=?', [f.applicationId]);
+    expect(complete[0].status).toBe('completed');
+    expect(await repository.listForCustomer(f.applicationReference)).toHaveLength(2);
     const [audit] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM operations_audit_events WHERE event_type='VISA_DELIVERY_PREPARED' AND resource_reference=?", [result[0].deliveryId]);
     expect(Number(audit[0].n)).toBe(1);
     await expect(repository.prepare({ ...f, customerInstructions: ['Changed instructions'] })).rejects.toThrow('VISA_DELIVERY_IDEMPOTENCY_CONFLICT');
-    await pool.execute("UPDATE applications SET status='completed' WHERE id=?", [f.applicationId]);
     expect(await repository.prepare(f)).toEqual(result[0]);
     await pool.execute('UPDATE operations_scope_grants SET revoked_at=UTC_TIMESTAMP() WHERE staff_user_id=?', [staff[0]]);
     await expect(repository.prepare(f)).rejects.toThrow('ACTOR_ACCESS_DENIED');

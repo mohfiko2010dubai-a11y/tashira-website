@@ -222,7 +222,7 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
       return {
         applicationId,version,status:status.data,currentActorId:trustedActor.id,
         assignedActorId:assignedStaffId===null?null:`staff:${assignedStaffId}`,teamId,
-        humanReview:can("case.transition")&&["documents_received","under_review"].includes(status.data),
+        humanReview:can("case.transition")&&paymentStatus==='paid'&&["payment_received","documents_pending","documents_received","under_review"].includes(status.data),
         documentReview:can("document.review")&&["documents_pending","documents_received","under_review"].includes(status.data),
         assignmentModes,
         validStatusTransitions:can("case.transition")?controlledTransitionsForPaymentState(status.data, paymentStatus):[],
@@ -236,8 +236,10 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
   }
 
   humanReview(input: Parameters<OperationsWriteExecutor["humanReview"]>[0], actor: AuthorizationActor): Promise<WriteResult> {
-    return this.execute("HUMAN_REVIEW", input, actor, async ({ repository, trustedActor, flags, now }) =>
-      recordHumanReview({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository }, { now: () => now, newId: randomUUID }));
+    return this.execute("HUMAN_REVIEW", input, actor, async ({ repository, trustedActor, flags, now, locked }) => {
+      if (locked.paymentStatus !== 'paid') throw new OperationsWriteError("PRECONDITION_FAILED");
+      return recordHumanReview({ ...input, actor: trustedActor, context: this.flagContext(trustedActor), flags, repository }, { now: () => now, newId: randomUUID });
+    });
   }
 
   /** Called inside the dispatcher's transaction, after it locks the dispatch row.
@@ -480,14 +482,6 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
       "UPDATE operations_case_controls SET version=?, assigned_staff_user_id=?, team_id=? WHERE application_id=? AND version=?",
       [after.version, assignedId, after.teamId ?? null, input.applicationId, before.version]);
     if (advanced !== 1) throw new OperationsWriteError("CONCURRENCY_CONFLICT");
-    if (action === "STATUS_TRANSITION") {
-      const changed = await affected(connection, "UPDATE applications SET status=? WHERE id=? AND status=?", [after.status, input.applicationId, before.status]);
-      if (changed !== 1) throw new OperationsWriteError("CONCURRENCY_CONFLICT");
-      if (after.status === "visa_processing") await recordAuthoritySubmission(connection, input.applicationId, event.actorId, event.id);
-      await syncCaseWorkStatus(connection, input.applicationId, before.status, after.status, event.id);
-      await enqueueApplicationStatusEmail(connection, { applicationId: input.applicationId, from: before.status, to: after.status,
-        eventId: event.id, actor: event.actorId, actorType: event.actorId === 'admin' ? 'ADMIN' : 'STAFF' });
-    }
     if (action === "DOCUMENT_REVIEW") {
       const documentId = numberField(event.details, "documentId");
       const version = numberField(event.details, "documentVersion");
@@ -505,6 +499,23 @@ export class MysqlControlledWriteExecutor implements OperationsWriteExecutor {
         after.teamId ?? null,
         stringField(event.details, "previousEvaluationId"), stringField(event.details, "evaluationId"), event.reason,
         event.entityVersionBefore, event.entityVersionAfter, input.idempotencyKey]);
+    if (action === "HUMAN_REVIEW") {
+      await connection.execute(`INSERT IGNORE INTO customer_wait_events(id,application_id,wait_key,event_kind,reason,occurred_at,source_reference,actor_reference)
+        SELECT SHA2(CONCAT('review-replaced:',p.id,':',?),256),p.application_id,p.wait_key,'RESUME','DOCUMENTS_REQUESTED',UTC_TIMESTAMP(3),?,?
+        FROM customer_wait_events p WHERE p.application_id=? AND p.wait_key LIKE 'review:%' AND p.event_kind='PAUSE'`, [event.id,event.id,event.actorId,input.applicationId]);
+    }
+    if (action === "STATUS_TRANSITION" || action === "HUMAN_REVIEW" && before.status !== after.status) {
+      const changed = await affected(connection, "UPDATE applications SET status=? WHERE id=? AND status=?", [after.status, input.applicationId, before.status]);
+      if (changed !== 1) throw new OperationsWriteError("CONCURRENCY_CONFLICT");
+      if (after.status === "visa_processing") await recordAuthoritySubmission(connection, input.applicationId, event.actorId, event.id);
+      await syncCaseWorkStatus(connection, input.applicationId, before.status, after.status, event.id);
+      if (!(action === "HUMAN_REVIEW" && stringField(event.details, "outcome") === "NEEDS_CORRECTION")) await enqueueApplicationStatusEmail(connection, { applicationId: input.applicationId, from: before.status, to: after.status,
+        eventId: event.id, actor: event.actorId, actorType: event.actorId === 'admin' ? 'ADMIN' : 'STAFF' });
+    }
+    if (action === "HUMAN_REVIEW" && stringField(event.details, "outcome") === "NEEDS_CORRECTION") {
+      await enqueueApplicationStatusEmail(connection, { applicationId: input.applicationId, from: before.status, to: after.status,
+        eventId: event.id, actor: event.actorId, actorType: event.actorId === 'admin' ? 'ADMIN' : 'STAFF', documentList: event.reason });
+    }
     await this.hooks.beforeAuditPersist?.({ action, applicationId: input.applicationId, idempotencyKey: input.idempotencyKey });
     await affected(connection,
       `INSERT INTO operations_audit_events

@@ -320,6 +320,7 @@ export const applicationRouter = createRouter({
       const offset = input?.offset || 0;
 
       const conditions = input?.includeTest ? [] : [financialApplicationScope()];
+      conditions.push(sql`${applications.paymentStatus} IN ('paid','refunded')`);
       const staffScope = await staffApplicationListCondition(ctx);
       if (staffScope) conditions.push(staffScope);
       if (input?.search?.trim()) {

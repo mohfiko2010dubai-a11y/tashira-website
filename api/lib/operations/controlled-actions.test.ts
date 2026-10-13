@@ -52,6 +52,17 @@ function snapshots() {
 }
 
 describe("controlled Operations write layer", () => {
+  it("moves a paid intake to supplier readiness with one review, or waits for missing documents", () => {
+    const complete = repository('staff:7', 'payment_received');
+    recordHumanReview({ ...common(complete, ['case.transition']), outcome: 'APPROVED_FOR_NEXT_STEP', reason: 'Documents complete and visa suitable' }, dependencies());
+    expect(complete.get(1)?.status).toBe('documents_received');
+    const missing = repository('staff:7', 'payment_received');
+    const reviewIds = dependencies();
+    recordHumanReview({ ...common(missing, ['case.transition']), outcome: 'NEEDS_CORRECTION', reason: 'Upload a clear passport copy' }, reviewIds);
+    expect(missing.get(1)?.status).toBe('documents_pending');
+    recordHumanReview({ ...common(missing, ['case.transition'], 5), idempotencyKey: 'completed-after-upload', outcome: 'APPROVED_FOR_NEXT_STEP', reason: 'Missing document received' }, reviewIds);
+    expect(missing.get(1)?.status).toBe('documents_received');
+  });
   it("denies unauthorized and wrong-team writes", () => {
     expect(() => recordHumanReview({ ...common(repository(), []), outcome: "MANUAL_REVIEW_REQUIRED", reason: "Requires review" }, dependencies())).toThrow("OPERATIONS_WRITE_ACCESS_DENIED");
     const repo = repository();
@@ -67,7 +78,7 @@ describe("controlled Operations write layer", () => {
   });
 
   it("fails closed when action prerequisites are not satisfied", () => {
-    expect(() => recordHumanReview({ ...common(repository("staff:7", "payment_received"), ["case.transition"]), outcome: "APPROVED_FOR_NEXT_STEP", reason: "Premature review" }, dependencies())).toThrow("HUMAN_REVIEW_PREREQUISITE_FAILED");
+    expect(() => recordHumanReview({ ...common(repository("staff:7", "completed"), ["case.transition"]), outcome: "APPROVED_FOR_NEXT_STEP", reason: "Premature review" }, dependencies())).toThrow("HUMAN_REVIEW_PREREQUISITE_FAILED");
     expect(() => assignCase({ ...common(repository("staff:7", "completed"), ["case.assign"]), mode: "REASSIGN", assignee: { id: "staff:9", active: true, teamIds: new Set([3]), workloadLimit: 5 }, reason: "Late reassignment" }, dependencies())).toThrow("TERMINAL_CASE_IS_READ_ONLY");
   });
 

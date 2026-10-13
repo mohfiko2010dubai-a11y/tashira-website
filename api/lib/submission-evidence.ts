@@ -5,6 +5,7 @@ import { TRPCError } from '@trpc/server';
 import { submissionEvidenceInput, type SubmissionEvidenceInput } from '../../contracts/submission-evidence';
 import { resolveStoragePath, storageUpload, storageDelete, LOCAL_STORAGE_METADATA } from './local-storage';
 import { defaultOperationsPool } from './operations/mysql-query-client';
+import { assertSupplierProcessingReady } from './supplier-processing-readiness';
 
 export function submissionFingerprint(applicationId: number, kind: string, input: SubmissionEvidenceInput) {
   return createHash('sha256').update(JSON.stringify({ applicationId, kind, input: submissionEvidenceInput.parse(input) })).digest('hex');
@@ -18,6 +19,7 @@ export async function assertDocumentNotSubmissionEvidence(documentId: number) {
 /** The application is locked by the caller. Only a fresh private copy becomes evidence. */
 export async function copySubmissionEvidence(connection: PoolConnection, applicationId: number, kind: 'SUPPLIER_SENT' | 'AUTHORITY_FILED', raw: SubmissionEvidenceInput, actor: string, id: string = randomUUID()) {
   const input = submissionEvidenceInput.parse(raw);
+  await assertSupplierProcessingReady(connection, applicationId);
   const [applications] = await connection.execute<RowDataPacket[]>(`SELECT a.supplier_id,a.supplier_cost_aed,a.supplier_total_aed,a.created_at,
     r.vat_confirmed,r.residence_category,a.residence_type,a.supplier_rate_id,a.supplier_rate_quantity,a.processing_type,r.supplier_id captured_supplier,r.service_code captured_product,r.processing_type captured_speed,
     COALESCE(a.submitted_product,a.visa_type) product,(SELECT COUNT(*) FROM applicants p WHERE p.application_id=a.id) quantity

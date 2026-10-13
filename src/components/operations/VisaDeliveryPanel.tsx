@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { trpc } from "@/providers/trpc-client";
 
-export default function VisaDeliveryPanel({ applicationId, applicationReference, applicants, applicationStatus }: {
+export default function VisaDeliveryPanel({ applicationId, applicationReference, applicants, applicationStatus, onSaved }: {
   applicationId: number;
+  onSaved?: () => Promise<void>;
   applicationStatus?: string;
   applicationReference: string;
   applicants: readonly { applicantId: number; displayName: string }[];
@@ -16,12 +17,12 @@ export default function VisaDeliveryPanel({ applicationId, applicationReference,
   const [instructions, setInstructions] = useState("راجع بيانات التأشيرة وتاريخ صلاحيتها قبل السفر.");
   const [message, setMessage] = useState("");
   const key = useRef<string | null>(null);
-  const ready = applicationStatus === undefined || ['visa_received', 'completed'].includes(applicationStatus);
-  const nextStep = applicationStatus === 'visa_processing' ? 'الطلب بانتظار النتيجة. عند وصول التأشيرة، سجّل «تم استلام التأشيرة» من الخطوة التالية أعلاه، ثم جهّز ملفها هنا.' : 'لم تُسجّل مرحلة استلام التأشيرة بعد. أكمل الخطوة التالية أعلاه أو تأكيد التقديم من «المورد والتقديم». لا يلزم تأكيد الدفع مرة أخرى إذا كان مسجّلًا.';
+  const ready = applicationStatus === undefined || ['visa_processing', 'visa_received', 'completed'].includes(applicationStatus);
+  const nextStep = 'أكمل مراجعة المستندات ثم سجّل التقديم من «المورد والتقديم». عند وصول التأشيرة يمكنك تسليمها هنا مباشرة.';
   const availableDocuments = (documents.data ?? []).filter((document) => !applicantId || document.applicantId === Number(applicantId));
   return <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5" id="visa-delivery">
     <h2 className="text-lg font-semibold text-emerald-950">تجهيز التأشيرة للعميل</h2>
-    <p className="mt-1 text-sm text-emerald-900">١. سجّل استلام التأشيرة في حالة الطلب. ٢. ارفع ملف التأشيرة للمسافر الصحيح في المستندات. ٣. أكمل البيانات واحفظ؛ يفحص النظام الملف ويحفظ نسخة آمنة للعميل. عند فشل الفحص يظهر السبب ولا يُسلّم الملف.</p>
+    <p className="mt-1 text-sm text-emerald-900">ارفع التأشيرة للمسافر الصحيح وأكمل بياناتها، ثم اضغط تسليم. يفحص النظام الملف ويسجّل الاستلام تلقائيًا؛ وبعد تسليم تأشيرات جميع المسافرين يُغلق الطلب.</p>
     {!ready && <p role="status" className="my-3 rounded-lg border border-amber-300 bg-amber-50 p-3">{nextStep}</p>}
     {documents.isLoading && <p role="status">جارٍ تحميل ملفات التأشيرات…</p>}
     {documents.isError && <p role="alert">تعذر تحميل الملفات. <button type="button" className="underline" onClick={() => void documents.refetch()}>إعادة المحاولة</button></p>}
@@ -34,8 +35,8 @@ export default function VisaDeliveryPanel({ applicationId, applicationReference,
       <label className="text-sm font-medium sm:col-span-2">تعليمات العميل<textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" rows={2} /></label>
     </fieldset>
     <button type="button" disabled={!ready || !applicantId || !documentId || visaReference.trim().length < 2 || validitySummary.trim().length < 3 || instructions.trim().length < 2 || prepare.isPending} onClick={async () => {
-      setMessage(""); key.current ??= crypto.randomUUID(); try { await prepare.mutateAsync({ applicationReference, applicantId: Number(applicantId), visaDocumentId: Number(documentId), visaReference: visaReference.trim(), validitySummary: validitySummary.trim(), customerInstructions: [instructions.trim()], commandId: key.current }); setMessage("تم تجهيز التأشيرة للتحميل الآمن من حساب العميل. هذا الإجراء لا يؤكد إرسال بريد جديد."); } catch (error) { setMessage(error instanceof Error ? error.message : "تعذر تجهيز التأشيرة. حدّث الطلب ثم حاول مرة أخرى."); }
-    }} className="mt-4 rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{prepare.isPending ? "جارٍ التجهيز…" : "حفظ وتجهيز التأشيرة للعميل"}</button>
+      setMessage(""); key.current ??= crypto.randomUUID(); try { await prepare.mutateAsync({ applicationReference, applicantId: Number(applicantId), visaDocumentId: Number(documentId), visaReference: visaReference.trim(), validitySummary: validitySummary.trim(), customerInstructions: [instructions.trim()], commandId: key.current }); await onSaved?.(); setMessage("تم تجهيز التأشيرة للعميل وتحديث حالة الطلب تلقائيًا."); } catch (error) { setMessage(error instanceof Error ? error.message : "تعذر تجهيز التأشيرة. حدّث الطلب ثم حاول مرة أخرى."); }
+    }} className="mt-4 rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{prepare.isPending ? "جارٍ التجهيز…" : "تسليم التأشيرة للعميل"}</button>
     {message && <p role="status" className="mt-3 text-sm text-emerald-950">{message}</p>}
   </section>;
 }

@@ -87,7 +87,7 @@ export class MysqlWorkQueue {
       DATE_FORMAT(COALESCE(w.changed_at,c.updated_at),'%Y-%m-%dT%H:%i:%s.000Z') AS changedAt
       FROM applications a JOIN operations_case_controls c ON c.application_id=a.id
       LEFT JOIN operations_case_work w ON w.application_id=a.id
-      WHERE c.assigned_staff_user_id=? AND (? OR (a.is_test=0 AND a.data_classification='LIVE'))
+      WHERE c.assigned_staff_user_id=? AND a.payment_status IN ('paid','refunded') AND (? OR (a.is_test=0 AND a.data_classification='LIVE'))
       ORDER BY w.follow_up_at IS NULL,w.follow_up_at,a.created_at,a.id LIMIT 500`, [staffId, includeTest]);
     return { asOf: Date.now(), availableCount: Number(counts[0]?.count ?? 0), availability: z.enum(AVAILABILITY).parse(availability[0]?.availability ?? 'OFF_DUTY'),
       available: available.map(row => ({ reference: String(row.reference), visaType: String(row.visaType), processingType: String(row.processingType), createdAt: String(row.createdAt) })),

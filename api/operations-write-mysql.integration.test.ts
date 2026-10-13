@@ -229,6 +229,21 @@ integration("persistent Operations executor and internal API", () => {
     const results = await Promise.all([caller.humanReview(input), caller.humanReview(input)]);
     expect(results.map((result) => result.status).sort()).toEqual(["APPLIED", "IDEMPOTENT_REPLAY"]);
     expect(new Set(results.map((result) => result.auditEventId)).size).toBe(1);
+    expect(await scalar("SELECT COUNT(*) value FROM applications WHERE id=? AND status='documents_pending'", [applicationId])).toBe(1);
+    expect(await scalar("SELECT COUNT(*) value FROM transactional_email_jobs WHERE application_id=? AND template='DOCUMENTS_REQUIRED'", [applicationId])).toBe(1);
+    expect(await scalar("SELECT COUNT(*) value FROM operations_case_work WHERE application_id=? AND work_state='WAIT_CUSTOMER'", [applicationId])).toBe(1);
+    await pool.execute("UPDATE customer_wait_policy SET enabled_at='2020-01-01' WHERE singleton=1");
+    const reviewId = results[0].auditEventId;
+    // Synthetic provider evidence only in this disposable database; no email is sent.
+    for (const status of ['FAILED', 'SENT']) {
+      await pool.execute(`INSERT INTO outbound_email_events(id,email_application_id,email_template,recipient_hash,email_provider,email_status,source_reference)
+        VALUES (?,?,'DOCUMENTS_REQUIRED',?,'synthetic-ci',?,SHA2(CONCAT(?,':application-status:',?),256))`, [randomUUID(),applicationId,'a'.repeat(64),status,applicationId,reviewId]);
+      expect(await scalar("SELECT COUNT(*) value FROM customer_wait_events WHERE application_id=? AND event_kind='PAUSE' AND wait_key LIKE 'review:%'", [applicationId])).toBe(status === 'SENT' ? 1 : 0);
+    }
+    expect(await caller.humanReview({ applicationId, expectedVersion: 7, idempotencyKey: 'missing-completed-001', reason: 'Missing file received and suitable', outcome: 'APPROVED_FOR_NEXT_STEP' })).toMatchObject({ version: 8 });
+    expect(await scalar("SELECT COUNT(*) value FROM applications WHERE id=? AND status='documents_received'", [applicationId])).toBe(1);
+    expect(await scalar("SELECT COUNT(*) value FROM operations_case_work WHERE application_id=? AND work_state='READY'", [applicationId])).toBe(1);
+    expect(await scalar("SELECT COUNT(*) value FROM customer_wait_events WHERE application_id=? AND event_kind='RESUME' AND wait_key LIKE 'review:%'", [applicationId])).toBe(1);
     expect(await scalar("SELECT COUNT(*) value FROM operations_action_events WHERE application_id=? AND correlation_id='concurrent-same-001'", [applicationId])).toBe(1);
   });
 

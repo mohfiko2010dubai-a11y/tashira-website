@@ -53,8 +53,11 @@ export function recordHumanReview(input: Common & { outcome: HumanReviewOutcome;
     ...input, auditEventId: deps.newId(), action: "HUMAN_REVIEW", actorId: input.actor.id, reason,
     occurredAt: deps.now().toISOString(), fingerprint: fingerprint({ action: "HUMAN_REVIEW", outcome: input.outcome, reason }),
     mutate: (draft) => {
-      if (!["documents_received", "under_review"].includes(draft.status)) throw new Error("HUMAN_REVIEW_PREREQUISITE_FAILED");
-      return { details: { outcome: input.outcome, reviewerId: input.actor.id } };
+      if (!["payment_received", "documents_pending", "documents_received", "under_review"].includes(draft.status)) throw new Error("HUMAN_REVIEW_PREREQUISITE_FAILED");
+      const from = draft.status;
+      if (input.outcome === "APPROVED_FOR_NEXT_STEP") draft.status = "documents_received";
+      if (input.outcome === "NEEDS_CORRECTION") draft.status = "documents_pending";
+      return { details: { outcome: input.outcome, reviewerId: input.actor.id, from, to: draft.status } };
     },
   });
 }

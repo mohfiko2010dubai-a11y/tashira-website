@@ -16,9 +16,9 @@ const copy: Record<string, { en: string; ar: string; event: string; template: Em
 
 /** Only called with an authorized, locked and persisted status change. No network IO. */
 export async function enqueueApplicationStatusEmail(connection: PoolConnection, input: {
-  applicationId: number; from: string; to: string; eventId: string; actor: string; actorType: 'STAFF' | 'ADMIN';
+  applicationId: number; from: string; to: string; eventId: string; actor: string; actorType: 'STAFF' | 'ADMIN'; documentList?: string;
 }) {
-  if (input.from === input.to) return;
+  if (input.from === input.to && !input.documentList) return;
   const entry = copy[input.to];
   if (!entry) throw new Error('Unknown application status notification');
   const [rows] = await connection.execute<RowDataPacket[]>('SELECT status,preferred_language FROM applications WHERE id=?', [input.applicationId]);
@@ -28,6 +28,6 @@ export async function enqueueApplicationStatusEmail(connection: PoolConnection, 
     (id,application_id,event_name,event_source,actor_type,actor_reference,resulting_state,summary)
     VALUES (?, ?, ?, 'STATUS_OUTBOX', ?, ?, ?, ?)`, [input.eventId, input.applicationId, entry.event, input.actorType, input.actor, input.to, label]);
   await connection.execute(`INSERT INTO transactional_email_jobs(job_key,application_id,template,variables_json)
-    VALUES (?,?,?,?)`, [`application-status:${input.eventId}`, input.applicationId, entry.template,
-    JSON.stringify({ statusLabel: label, statusLabelEn: entry.en, statusLabelAr: entry.ar, sourceEvent: entry.event, statusEventId: input.eventId, recordedStatus: input.to })]);
+    VALUES (?,?,?,?)`, [`application-status:${input.eventId}`, input.applicationId, input.documentList ? 'DOCUMENTS_REQUIRED' : entry.template,
+    JSON.stringify({ statusLabel: label, statusLabelEn: entry.en, statusLabelAr: entry.ar, sourceEvent: entry.event, statusEventId: input.eventId, recordedStatus: input.to, ...(input.documentList ? { documentList: input.documentList } : {}) })]);
 }

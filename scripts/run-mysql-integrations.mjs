@@ -47,6 +47,7 @@ try {
   for (const statement of parseMysqlClientScript(readFileSync('migrations/076_stripe_settlement_evidence.sql', 'utf8'))) await db.query(statement);
   for (const statement of parseMysqlClientScript(readFileSync('migrations/077_support_email_reply.sql', 'utf8'))) await db.query(statement);
   for (const statement of parseMysqlClientScript(readFileSync('migrations/078_product_cards.sql', 'utf8'))) await db.query(statement);
+  for (const statement of parseMysqlClientScript(readFileSync('migrations/079_simple_document_review_wait.sql', 'utf8'))) await db.query(statement);
   // Exercise the real trigger in the disposable database, then restore fixtures.
   await db.beginTransaction();
   try {

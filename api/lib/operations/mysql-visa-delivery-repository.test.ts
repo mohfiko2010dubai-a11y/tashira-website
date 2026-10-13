@@ -7,12 +7,12 @@ describe("MySQL visa delivery final-state guard", () => {
   it("rechecks paid and visa-issued state inside the locked preparation transaction", () => {
     expect(source).toContain("a.status applicationStatus,a.payment_status paymentStatus");
     expect(source).toContain("FOR UPDATE");
-    expect(source).toContain('text(latest,"applicationStatus")!=="visa_received"');
+    expect(source).toContain('["visa_processing","visa_received"].includes(text(latest,"applicationStatus"))');
     expect(source).toContain('text(latest,"paymentStatus")!=="paid"');
     expect(source).toContain("VISA_DELIVERY_APPLICATION_STATE_REQUIRED");
   });
 
   it("checks idempotent replay before enforcing current state", () => {
-    expect(source.indexOf("idempotency_key=? FOR UPDATE")).toBeLessThan(source.indexOf("VISA_DELIVERY_APPLICATION_STATE_REQUIRED"));
+    expect(source.indexOf("const replay=await")).toBeLessThan(source.indexOf("VISA_DELIVERY_APPLICATION_STATE_REQUIRED"));
   });
 });
