@@ -8,6 +8,7 @@ import { publicAppOrigin } from './public-app-url';
 import { EMAIL_TEMPLATES, type EmailTemplate } from './transactional-email';
 import { adminEmailActionUrl, isAdminEmail } from './email-audience';
 import {recipientHash} from './resend-email';
+import { visaDeliveryAttachment } from './visa-delivery-email';
 
 // Durable source events, not UI actions: retries and process restarts do not lose mail.
 export const timelineEmailTemplates: Readonly<Record<string, EmailTemplate>> = {
@@ -68,6 +69,14 @@ async function dispatch(job: RowDataPacket): Promise<'SENT' | 'FAILED' | 'SUPPRE
   if (statusOutbox) variables.statusLabel = application.preferred_language === 'ar' ? variables.statusLabelAr : variables.statusLabelEn;
   const template = EMAIL_TEMPLATES.find(value => value === job.template);
   if (!template) throw new Error('Unknown mail template');
+  if (template==='VISA_ISSUED' && String(job.job_key).startsWith('visa-delivery:')) {
+    if (job.job_key!==`visa-delivery:${variables.visaDeliveryId}`) throw new Error('Visa delivery job identity mismatch');
+    const attachment=await visaDeliveryAttachment(String(application.reference_number),variables.visaDeliveryId);
+    const result=await sendCustomerNotification({applicationId:Number(job.application_id),recipient:String(application.contact_email),template,
+      variables:{referenceNumber:String(application.reference_number),visaAttached:'1'},sourceReference:String(job.job_key),
+      attachments:[attachment],failureCategory:'visa_delivery_failed'});
+    return result.status==='FAILED'?'FAILED':'SENT';
+  }
   if(template==='SUPPORT_REPLY'&&variables.recipientHash!==recipientHash(String(application.contact_email)))return 'SUPPRESSED';
   // A queued proposal must never describe a replaced or already accepted version.
   if (template === 'PRODUCT_SUBSTITUTED' && (

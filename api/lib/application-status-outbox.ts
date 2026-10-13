@@ -16,7 +16,7 @@ const copy: Record<string, { en: string; ar: string; event: string; template: Em
 
 /** Only called with an authorized, locked and persisted status change. No network IO. */
 export async function enqueueApplicationStatusEmail(connection: PoolConnection, input: {
-  applicationId: number; from: string; to: string; eventId: string; actor: string; actorType: 'STAFF' | 'ADMIN'; documentList?: string;
+  applicationId: number; from: string; to: string; eventId: string; actor: string; actorType: 'STAFF' | 'ADMIN'; documentList?: string; notification?: false;
 }) {
   if (input.from === input.to && !input.documentList) return;
   const entry = copy[input.to];
@@ -27,6 +27,7 @@ export async function enqueueApplicationStatusEmail(connection: PoolConnection, 
   await connection.execute(`INSERT INTO application_timeline_events
     (id,application_id,event_name,event_source,actor_type,actor_reference,resulting_state,summary)
     VALUES (?, ?, ?, 'STATUS_OUTBOX', ?, ?, ?, ?)`, [input.eventId, input.applicationId, entry.event, input.actorType, input.actor, input.to, label]);
+  if (input.notification === false) return;
   await connection.execute(`INSERT INTO transactional_email_jobs(job_key,application_id,template,variables_json)
     VALUES (?,?,?,?)`, [`application-status:${input.eventId}`, input.applicationId, input.documentList ? 'DOCUMENTS_REQUIRED' : entry.template,
     JSON.stringify({ statusLabel: label, statusLabelEn: entry.en, statusLabelAr: entry.ar, sourceEvent: entry.event, statusEventId: input.eventId, recordedStatus: input.to, ...(input.documentList ? { documentList: input.documentList } : {}) })]);

@@ -5,3 +5,5 @@ describe("visa delivery", () => {
   it("prepares only an authorized, ownership-verified secure package", () => expect(prepareVisaDelivery(base)).toMatchObject({ state: "READY_FOR_SECURE_DELIVERY", applicantId: 2 }));
   it("rejects wrong ownership and unauthorized access", () => { expect(() => prepareVisaDelivery({ ...base, documentOwnershipVerified: false })).toThrow("VISA_DELIVERY_DOCUMENT_NOT_SAFE"); expect(() => prepareVisaDelivery({ ...base, authorizedCustomer: false })).toThrow("VISA_DELIVERY_CUSTOMER_AUTHORIZATION_REQUIRED"); });
 });
+
+it("accepts the scanned file without manual visa metadata",()=>{expect(prepareVisaDelivery({...base,visaReference:"",validitySummary:"",customerInstructions:[]})).toMatchObject({state:"READY_FOR_SECURE_DELIVERY"});expect(()=>prepareVisaDelivery({...base,visaReference:"",virusScanPassed:false})).toThrow();});

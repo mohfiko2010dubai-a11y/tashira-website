@@ -1,0 +1,8 @@
+import {renderToStaticMarkup} from 'react-dom/server';
+import {beforeEach,expect,it,vi} from 'vitest';
+import VisaDeliveryPanel from './VisaDeliveryPanel';
+const mock=vi.hoisted(()=>({deliveries:vi.fn(),documents:vi.fn()}));
+vi.mock('@/providers/trpc-client',()=>({trpc:{document:{listByApplication:{useQuery:mock.documents},create:{useMutation:()=>({})}},storage:{upload:{useMutation:()=>({})}},operationsVisaDelivery:{staffList:{useQuery:mock.deliveries},prepare:{useMutation:()=>({})}}}}));
+beforeEach(()=>{mock.deliveries.mockReturnValue({data:[]});mock.documents.mockReturnValue({data:[]});});
+it('shows a file picker bound to the case traveller without customer or metadata forms',()=>{const html=renderToStaticMarkup(<VisaDeliveryPanel applicationId={1} applicationReference="TSH-1" applicationStatus="visa_processing" applicants={[{applicantId:2,displayName:'Known Traveller'}]}/>);expect(html).toContain('رفع تأشيرة Known Traveller');expect(html).not.toContain('<select');expect(html).not.toContain('<textarea');expect(html).not.toContain('رقم التأشيرة');expect(html.match(/type="file"/g)).toHaveLength(1);});
+it('keeps only the undelivered family member actionable',()=>{mock.deliveries.mockReturnValue({data:[{applicantId:2,visaDocumentId:5}]});const html=renderToStaticMarkup(<VisaDeliveryPanel applicationId={1} applicationReference="TSH-1" applicationStatus="visa_received" applicants={[{applicantId:2,displayName:'First'},{applicantId:3,displayName:'Second'}]}/>);expect(html).toContain('تم تسليم التأشيرة');expect(html).not.toContain('رفع تأشيرة First');expect(html).toContain('رفع تأشيرة Second');expect(html.match(/type="file"/g)).toHaveLength(1);});

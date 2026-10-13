@@ -33,8 +33,8 @@ export default function CustomerVisaDeliveries({ referenceNumber, applicants }: 
     {error && <p role="alert" className="mt-3 text-red-700">{ar ? "تعذر تنزيل التأشيرة. حاول مرة أخرى أو تواصل معنا." : "Unable to download this visa. Try again or contact us."}</p>}
     <div className="mt-4 space-y-3">{query.data.map(delivery => <article key={delivery.deliveryId} className="space-y-3 rounded-xl bg-white p-4">
       <h3 className="font-semibold">{applicants.find(a => a.id === delivery.applicantId)?.name || (ar ? "المسافر" : "Traveller")}</h3>
-      <p className="text-sm">{ar ? "رقم التأشيرة: " : "Visa number: "}<bdi>{delivery.visaReference}</bdi></p>
-      <p className="text-sm">{ar ? "الصلاحية: " : "Validity: "}{delivery.validitySummary}</p>
+      {delivery.visaReference && <p className="text-sm">{ar ? "رقم التأشيرة: " : "Visa number: "}<bdi>{delivery.visaReference}</bdi></p>}
+      {delivery.validitySummary && <p className="text-sm">{ar ? "الصلاحية: " : "Validity: "}{delivery.validitySummary}</p>}
       <ul className="list-disc space-y-1 ps-5 text-sm">{delivery.customerInstructions.map((instruction, index) => <li key={index}>{instruction}</li>)}</ul>
       <button type="button" disabled={pending !== null} onClick={() => void download(delivery.deliveryId)} className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{pending === delivery.deliveryId ? (ar ? "جارٍ تجهيز التنزيل…" : "Preparing download…") : (ar ? "تنزيل التأشيرة" : "Download visa")}</button>
     </article>)}</div>

@@ -5,7 +5,7 @@ import { getDb } from "../queries/connection";
 import { auditLog } from "./audit-log";
 import { transactionalEmailProvider } from "./email-provider";
 import { recipientHash } from "./resend-email";
-import type { EmailTemplate } from "./transactional-email";
+import type { EmailTemplate, TransactionalEmailAttachment } from "./transactional-email";
 import { publicAppOrigin } from './public-app-url';
 
 type NotificationResult = { status: "SENT" | "FAILED" | "ALREADY_SENT" };
@@ -27,6 +27,7 @@ export async function sendCustomerNotification(input: {
   variables: Record<string, string>;
   sourceReference: string;
   failureCategory: string;
+  attachments?: readonly TransactionalEmailAttachment[];
 }): Promise<NotificationResult> {
   const db = getDb();
   const sourceReference = createHash('sha256').update(`${input.applicationId}:${input.sourceReference}`).digest('hex');
@@ -41,6 +42,7 @@ export async function sendCustomerNotification(input: {
     if (!application) throw new Error('Email application missing');
     const sent = await provider.send({
       recipient: input.recipient,
+      ...(input.attachments ? { attachments: input.attachments } : {}),
       template: input.template,
       variables: { ...input.variables, language: application.language, actionUrl: input.variables.actionUrl || `${publicAppOrigin()}/${application.language}/track` },
       idempotencyKey: `${input.template.toLowerCase()}:${input.applicationId}:${input.sourceReference}`,

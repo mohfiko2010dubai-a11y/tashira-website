@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ execute: vi.fn(), send: vi.fn(), claim: vi.fn(), admin: vi.fn(), payment: vi.fn() }));
+const mocks = vi.hoisted(() => ({ execute: vi.fn(), send: vi.fn(), claim: vi.fn(), admin: vi.fn(), payment: vi.fn(), attachment: vi.fn() }));
 vi.mock('./operations/mysql-query-client', () => ({ defaultOperationsPool: () => ({ execute: mocks.execute,
   getConnection: async () => ({ beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release: () => {}, execute: mocks.claim }),
 }) }));
 vi.mock('./customer-notification-email', () => ({ sendCustomerNotification: mocks.send }));
+vi.mock('./visa-delivery-email',()=>({visaDeliveryAttachment:mocks.attachment}));
 vi.mock('./payment-success-email', () => ({ sendPaymentSuccessEmail: mocks.payment }));
 vi.mock('./refund-outcome-email', () => ({ sendRefundOutcomeEmail: vi.fn() }));
 vi.mock('./email-provider', () => ({ adminEmailRecipient: mocks.admin }));
@@ -105,4 +106,15 @@ describe('payment timeline email identity', () => {
     await runTransactionalEmails();
     expect(mocks.payment).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 91, paymentId: 5, invoiceNumber: 'TEST-INV-1', amountPaid: 185 }));
   });
+});
+
+it.each([false,true])('visa delivery sends verified attachment or fails without sending: %s',async failure=>{
+ const id='00000000-0000-4000-8000-000000000099',key=`visa-delivery:${id}`;
+ const attachment={filename:'visa-2.pdf',content:'c2FmZQ=='};
+ if(failure)mocks.attachment.mockRejectedValue(new Error('File integrity mismatch'));else mocks.attachment.mockResolvedValue(attachment);
+ let pending=true;mocks.claim.mockImplementation(async(sql:string)=>{if(!sql.startsWith('SELECT *'))return [{}];const rows=pending?[{...job(),job_key:key,template:'VISA_ISSUED',variables_json:{visaDeliveryId:id}}]:[];pending=false;return [rows];});
+ await runTransactionalEmails();
+ expect(mocks.attachment).toHaveBeenCalledWith('TSH-SYNTHETIC',id);
+ if(failure){expect(mocks.send).not.toHaveBeenCalled();expect(mocks.execute).toHaveBeenCalledWith(expect.stringContaining('failure_message=?'),['FAILED',expect.any(String),key]);}
+ else expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({recipient:'synthetic@example.invalid',sourceReference:key,attachments:[attachment],variables:expect.objectContaining({visaAttached:'1'})}));
 });

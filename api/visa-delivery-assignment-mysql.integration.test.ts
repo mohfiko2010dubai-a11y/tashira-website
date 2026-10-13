@@ -86,6 +86,7 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
     const [second] = await pool.execute<ResultSetHeader>("INSERT INTO applicants(application_id,applicant_index,full_name) VALUES (?,1,'Second synthetic traveller')", [f.applicationId]);
     await syntheticScan(f, 'PASSED', '2026-01-01');
     f.preparedAt = '2026-10-10T19:59:19.765Z';
+    f.visaReference='';f.validitySummary='';f.customerInstructions=[];
     const result = await Promise.all([repository.prepare(f), repository.prepare(f)]);
     expect(result[0].generatedAt).toBe('2026-10-10T19:59:19.000Z');
     expect(result[0]).toEqual(result[1]);
@@ -102,6 +103,8 @@ describe.skipIf(!url).sequential('assigned-owner visa delivery in disposable MyS
     const [complete] = await pool.execute<RowDataPacket[]>('SELECT status FROM applications WHERE id=?', [f.applicationId]);
     expect(complete[0].status).toBe('completed');
     expect(await repository.listForCustomer(f.applicationReference)).toHaveLength(2);
+    const [emails]=await pool.execute<RowDataPacket[]>("SELECT job_key,template FROM transactional_email_jobs WHERE application_id=?",[f.applicationId]);
+    expect(emails).toHaveLength(2);expect(emails.every(row=>row.template==='VISA_ISSUED'&&row.job_key.startsWith('visa-delivery:'))).toBe(true);
     const [audit] = await pool.execute<RowDataPacket[]>("SELECT COUNT(*) n FROM operations_audit_events WHERE event_type='VISA_DELIVERY_PREPARED' AND resource_reference=?", [result[0].deliveryId]);
     expect(Number(audit[0].n)).toBe(1);
     await expect(repository.prepare({ ...f, customerInstructions: ['Changed instructions'] })).rejects.toThrow('VISA_DELIVERY_IDEMPOTENCY_CONFLICT');

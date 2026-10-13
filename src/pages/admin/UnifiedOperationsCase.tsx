@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { trpc } from '@/providers/trpc-client';
 import OperationsShell from '@/components/operations/OperationsShell';
 import DocumentManager from '@/components/shared/DocumentManager';
@@ -25,6 +25,7 @@ const tabs = [
 ] as const;
 
 export default function UnifiedOperationsCase() {
+  const navigate=useNavigate();
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const { referenceNumber = '' } = useParams<{ referenceNumber: string }>();
   const [search, setSearch] = useSearchParams();
@@ -57,7 +58,7 @@ export default function UnifiedOperationsCase() {
       {tab === 'change' && <><DocumentValidityReview referenceNumber={model.summary.reference} mode="change" /><p className="rounded-xl border bg-white p-4">عرض التعديل وموافقة العميل وفرق المبلغ مرتبطة بالطلب نفسه. تسوية فرق المبلغ لا تعني تقديم الطلب للهجرة.</p><ManualVisaChange referenceNumber={model.summary.reference} /></>}
       {tab === 'payments' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><SecurityDepositStatus applicationId={model.summary.applicationId} /><RefundRequest applicationId={model.summary.applicationId} arabic /></>}
       {tab === 'submission' && <><SupplierSelectionPanel referenceNumber={model.summary.reference} onSaved={refresh} /><SubmissionEvidencePanel applicationId={model.summary.applicationId} referenceNumber={model.summary.reference} onSaved={async () => { await refresh(); const next = new URLSearchParams(search); next.set('work', 'WAIT_AUTHORITY'); next.set('tab', 'visa'); setSearch(next, { replace: true }); }} /><SchedulerAlertPanel applicationId={model.summary.applicationId} /></>}
-      {tab === 'visa' && <><DocumentManager key="visa-files" applicationId={model.summary.applicationId} onlyType="visa" readOnly allowUpload applicants={applicants} language="ar" /><VisaDeliveryPanel applicationId={model.summary.applicationId} applicationReference={model.summary.reference} applicants={applicants} applicationStatus={model.summary.status} onSaved={async () => { await refresh(); }} /></>}
+      {tab === 'visa' && <><VisaDeliveryPanel applicationId={model.summary.applicationId} applicationReference={model.summary.reference} applicants={applicants} applicationStatus={model.summary.status} onSaved={async () => { const updated=await query.refetch();await utils.operationsWork.overview.invalidate();if(updated.data?.summary.status==='completed')navigate('/staff/dashboard?work=DONE'); }} /></>}
       {tab === 'messages' && <><CustomerProgressPanel referenceNumber={model.summary.reference} /><Link to="/staff/operations/support" className="inline-block rounded-lg border bg-white px-4 py-2">فتح صندوق المراسلات</Link></>}
       {tab === 'history' && <><section className="rounded-2xl border bg-white p-5"><h2 className="mb-3 font-bold">سجل إجراءات الطلب</h2><ul className="divide-y">{model.operationalHistory.map(event => <li key={event.id} className="py-3"><p>{event.reason || event.event}</p><p className="text-sm text-slate-500">{event.actorReference || event.actorType} · {event.occurredAt}</p></li>)}</ul></section><CaseNotePanel referenceNumber={model.summary.reference} onRecorded={refresh} /></>}
     </div>

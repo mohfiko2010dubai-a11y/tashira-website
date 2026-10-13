@@ -1,42 +1,59 @@
-import { useRef, useState } from "react";
-import { trpc } from "@/providers/trpc-client";
+import { useRef, useState } from 'react';
+import { trpc } from '@/providers/trpc-client';
 
-export default function VisaDeliveryPanel({ applicationId, applicationReference, applicants, applicationStatus, onSaved }: {
-  applicationId: number;
-  onSaved?: () => Promise<void>;
-  applicationStatus?: string;
-  applicationReference: string;
-  applicants: readonly { applicantId: number; displayName: string }[];
-}) {
-  const documents = trpc.document.listByApplication.useQuery({ applicationId, documentType: "visa", sortBy: "createdAt", sortOrder: "desc" });
-  const prepare = trpc.operationsVisaDelivery.prepare.useMutation();
-  const [applicantId, setApplicantId] = useState("");
-  const [documentId, setDocumentId] = useState("");
-  const [visaReference, setVisaReference] = useState("");
-  const [validitySummary, setValiditySummary] = useState("");
-  const [instructions, setInstructions] = useState("راجع بيانات التأشيرة وتاريخ صلاحيتها قبل السفر.");
-  const [message, setMessage] = useState("");
-  const key = useRef<string | null>(null);
-  const ready = applicationStatus === undefined || ['visa_processing', 'visa_received', 'completed'].includes(applicationStatus);
-  const nextStep = 'أكمل مراجعة المستندات ثم سجّل التقديم من «المورد والتقديم». عند وصول التأشيرة يمكنك تسليمها هنا مباشرة.';
-  const availableDocuments = (documents.data ?? []).filter((document) => !applicantId || document.applicantId === Number(applicantId));
-  return <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5" id="visa-delivery">
-    <h2 className="text-lg font-semibold text-emerald-950">تجهيز التأشيرة للعميل</h2>
-    <p className="mt-1 text-sm text-emerald-900">ارفع التأشيرة للمسافر الصحيح وأكمل بياناتها، ثم اضغط تسليم. يفحص النظام الملف ويسجّل الاستلام تلقائيًا؛ وبعد تسليم تأشيرات جميع المسافرين يُغلق الطلب.</p>
-    {!ready && <p role="status" className="my-3 rounded-lg border border-amber-300 bg-amber-50 p-3">{nextStep}</p>}
-    {documents.isLoading && <p role="status">جارٍ تحميل ملفات التأشيرات…</p>}
-    {documents.isError && <p role="alert">تعذر تحميل الملفات. <button type="button" className="underline" onClick={() => void documents.refetch()}>إعادة المحاولة</button></p>}
-    {documents.data?.length === 0 && <p className="mt-3">لا توجد تأشيرة مرفوعة. ارفع الملف في قسم المستندات للمسافر الصحيح أولًا.</p>}
-    <fieldset disabled={prepare.isPending} onChange={() => { key.current = null; setMessage(""); }} className="mt-4 grid gap-3 sm:grid-cols-2">
-      <label className="text-sm font-medium">المسافر<select value={applicantId} onChange={(event) => { setApplicantId(event.target.value); setDocumentId(""); }} className="mt-1 w-full rounded-lg border bg-white px-3 py-2"><option value="">اختر المسافر</option>{applicants.map((applicant) => <option key={applicant.applicantId} value={applicant.applicantId}>{applicant.displayName}</option>)}</select></label>
-      <label className="text-sm font-medium">ملف التأشيرة المرفوع<select value={documentId} onChange={(event) => setDocumentId(event.target.value)} className="mt-1 w-full rounded-lg border bg-white px-3 py-2"><option value="">اختر ملف التأشيرة</option>{availableDocuments.map((document) => <option key={document.id} value={document.id}>{document.originalFileName}</option>)}</select></label>
-      <label className="text-sm font-medium">رقم التأشيرة<input value={visaReference} onChange={(event) => setVisaReference(event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
-      <label className="text-sm font-medium">بيان الصلاحية<input value={validitySummary} onChange={(event) => setValiditySummary(event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="مثال: صالحة للدخول حتى التاريخ المطبوع عليها" /></label>
-      <label className="text-sm font-medium sm:col-span-2">تعليمات العميل<textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" rows={2} /></label>
-    </fieldset>
-    <button type="button" disabled={!ready || !applicantId || !documentId || visaReference.trim().length < 2 || validitySummary.trim().length < 3 || instructions.trim().length < 2 || prepare.isPending} onClick={async () => {
-      setMessage(""); key.current ??= crypto.randomUUID(); try { await prepare.mutateAsync({ applicationReference, applicantId: Number(applicantId), visaDocumentId: Number(documentId), visaReference: visaReference.trim(), validitySummary: validitySummary.trim(), customerInstructions: [instructions.trim()], commandId: key.current }); await onSaved?.(); setMessage("تم تجهيز التأشيرة للعميل وتحديث حالة الطلب تلقائيًا."); } catch (error) { setMessage(error instanceof Error ? error.message : "تعذر تجهيز التأشيرة. حدّث الطلب ثم حاول مرة أخرى."); }
-    }} className="mt-4 rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{prepare.isPending ? "جارٍ التجهيز…" : "تسليم التأشيرة للعميل"}</button>
-    {message && <p role="status" className="mt-3 text-sm text-emerald-950">{message}</p>}
+function base64(file:File){return new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('تعذر قراءة الملف. اختره مرة أخرى.'));reader.onload=()=>typeof reader.result==='string'?resolve(reader.result.slice(reader.result.indexOf(',')+1)):reject(new Error('تعذر قراءة الملف.'));reader.readAsDataURL(file);});}
+
+export default function VisaDeliveryPanel({applicationId,applicationReference,applicants,applicationStatus,onSaved}:{
+  applicationId:number;applicationReference:string;applicants:readonly {applicantId:number;displayName:string}[];applicationStatus?:string;onSaved?:()=>Promise<void>;
+}){
+  const documents=trpc.document.listByApplication.useQuery({applicationId,documentType:'visa',sortBy:'createdAt',sortOrder:'desc'});
+  const deliveries=trpc.operationsVisaDelivery.staffList.useQuery({applicationReference});
+  const upload=trpc.storage.upload.useMutation(),create=trpc.document.create.useMutation(),deliver=trpc.operationsVisaDelivery.prepare.useMutation();
+  const busyRef=useRef(false),keys=useRef(new Map<number,string>());
+  const [selected,setSelected]=useState<Record<number,File>>({});
+  const [busy,setBusy]=useState<number|null>(null),[message,setMessage]=useState('');
+  const ready=applicationStatus===undefined||['visa_processing','visa_received'].includes(applicationStatus);
+  async function send(applicantId:number,file?:File,existingId?:number){
+    if(busyRef.current)return;busyRef.current=true;setBusy(applicantId);setMessage('جارٍ رفع التأشيرة وفحصها…');
+    try{
+      let documentId=existingId;
+      if(file){
+        const stored=await upload.mutateAsync({applicationId,applicantId,documentType:'visa',fileName:file.name,mimeType:file.type||'application/octet-stream',fileSize:file.size,base64Data:await base64(file),uploadedBy:'operations-staff'});
+        const document=await create.mutateAsync({applicationId,applicantId,documentType:'visa',originalFileName:file.name,storedFileName:stored.storedFileName,mimeType:stored.mimeType,fileSize:stored.fileSize,storagePath:stored.storagePath,uploadStatus:'uploaded',uploadedBy:'operations-staff'});
+        documentId=document.id;
+        setSelected(previous=>{const next={...previous};delete next[applicantId];return next;});
+      }
+      if(!documentId)throw new Error('اختر ملف التأشيرة.');
+      const commandId=keys.current.get(documentId)??crypto.randomUUID();keys.current.set(documentId,commandId);
+      await deliver.mutateAsync({applicationReference,applicantId,visaDocumentId:documentId,commandId});
+      setSelected(previous=>{const next={...previous};delete next[applicantId];return next;});
+      await deliveries.refetch();await onSaved?.();
+      setMessage('تم تسليم التأشيرة وتحديث الطلب. أضيفت رسالة التأشيرة إلى قائمة الإرسال للعميل.');
+    }catch(error){setMessage(error instanceof Error?error.message:'تعذر تسليم التأشيرة. أعد المحاولة من الملف المرفوع أدناه.');}
+    finally{await documents.refetch();busyRef.current=false;setBusy(null);}
+  }
+  return <section id="visa-delivery" className="space-y-4 rounded-2xl border bg-white p-5">
+    <h2 className="text-xl font-bold">رفع التأشيرة وإكمال الطلب</h2>
+    <p>اختر ملف التأشيرة واضغط تسليم. يتولى النظام فحصها وإرسالها للعميل وتحديث حالة الطلب تلقائيًا.</p>
+    {!ready&&applicationStatus!=='completed'&&<p role="status">سجّل التقديم من «المورد والتقديم» أولًا، ثم ارفع التأشيرة عند وصولها.</p>}
+    {(deliveries.isError||documents.isError)&&<p role="alert">تعذر تحميل الملفات. <button className="underline" onClick={()=>{void deliveries.refetch();void documents.refetch();}}>إعادة المحاولة</button></p>}
+    {applicants.map(person=>{
+      const delivered=deliveries.data?.some(row=>row.applicantId===person.applicantId);
+      const waiting=(documents.data??[]).filter(doc=>doc.applicantId===person.applicantId&&doc.uploadStatus==='uploaded'&&!deliveries.data?.some(row=>row.visaDocumentId===doc.id));
+      const disabled=!ready||busy!==null||!deliveries.data||documents.isError;
+      return <article key={person.applicantId} className="space-y-3 rounded-xl border p-4" aria-label={person.displayName}>
+        <h3 className="font-semibold">{person.displayName}</h3>
+        {delivered?<p className="text-emerald-800">✓ تم تسليم التأشيرة</p>:<>
+          <label className={`inline-block rounded-lg bg-emerald-800 px-5 py-3 text-white ${disabled?'opacity-50':'cursor-pointer'}`}>
+            اختيار ملف التأشيرة
+            <input className="sr-only" type="file" accept="application/pdf,image/jpeg,image/png" aria-label={`رفع تأشيرة ${person.displayName}`} disabled={disabled} onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(file)setSelected(previous=>({...previous,[person.applicantId]:file}));}} />
+          </label>
+          {selected[person.applicantId]&&<div className="flex flex-wrap items-center gap-3"><span>{selected[person.applicantId].name}</span><button className="rounded-lg bg-emerald-800 px-5 py-3 text-white" disabled={disabled} onClick={()=>void send(person.applicantId,selected[person.applicantId])}>{busy===person.applicantId?'جارٍ التسليم…':applicants.length===1?'تسليم التأشيرة وإكمال الطلب':'تسليم التأشيرة'}</button></div>}
+          {waiting.map(doc=><div key={doc.id} className="flex flex-wrap items-center gap-3 text-sm"><span>{doc.originalFileName}</span><button className="rounded-lg border px-3 py-2" disabled={disabled} onClick={()=>void send(person.applicantId,undefined,doc.id)}>إرسال التأشيرة المرفوعة</button></div>)}
+        </>}
+      </article>;
+    })}
+    {applicants.length>1&&<p className="text-sm text-slate-600">يكتمل الطلب تلقائيًا بعد رفع تأشيرة كل مسافر.</p>}
+    {message&&<p role="status">{message}</p>}
   </section>;
 }
