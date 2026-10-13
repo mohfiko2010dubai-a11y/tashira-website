@@ -48,6 +48,9 @@ try {
   for (const statement of parseMysqlClientScript(readFileSync('migrations/077_support_email_reply.sql', 'utf8'))) await db.query(statement);
   for (const statement of parseMysqlClientScript(readFileSync('migrations/078_product_cards.sql', 'utf8'))) await db.query(statement);
   for (const statement of parseMysqlClientScript(readFileSync('migrations/079_simple_document_review_wait.sql', 'utf8'))) await db.query(statement);
+  for (const file of ['080_automatic_visa_difference.sql','080_automatic_visa_difference.rollback.sql','080_automatic_visa_difference.sql']) {
+    for (const statement of parseMysqlClientScript(readFileSync('migrations/'+file,'utf8'))) await db.query(statement);
+  }
   // Exercise the real trigger in the disposable database, then restore fixtures.
   await db.beginTransaction();
   try {
@@ -90,5 +93,5 @@ const report='mysql-integration-results.json';
 const result=spawnSync(process.execPath,['node_modules/vitest/vitest.mjs','run',...files,'--no-file-parallelism','--reporter=default','--reporter=json','--outputFile='+report],{env,stdio:'inherit'});
 if(result.status!==0)process.exit(result.status??1);
 const summary=JSON.parse(readFileSync(report,'utf8'));
-if(summary.numPassedTests!==86 || summary.numPendingTests!==0 || summary.numFailedTests!==0) throw new Error('All86 integration tests must execute and pass; skips fail CI');
-console.log('All86 guarded MySQL integration tests passed, zero skipped.');
+if(summary.numPassedTests!==87 || summary.numPendingTests!==0 || summary.numFailedTests!==0) throw new Error('All87 integration tests must execute and pass; skips fail CI');
+console.log('All87 guarded MySQL integration tests passed, zero skipped.');

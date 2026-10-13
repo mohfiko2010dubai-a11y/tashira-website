@@ -56,4 +56,21 @@ describe.skipIf(!url).sequential('settlement reconciliation in disposable MySQL'
     await expect(service.capture(f.applicationId,'PAYMENT',f.paymentId,'synthetic-ci')).rejects.toThrow('MISMATCH');
     expect((await service.report(f.applicationId)).totals).toEqual([]);
   });
+  it('settles an accepted difference without human approval only after its exact payment, archive and Stripe confirmation exist',async()=>{
+    const f=await fixture(),quote=randomUUID(),number='TEST-INV-'+randomUUID().slice(0,8),pdf=Buffer.from('%PDF synthetic difference');
+    await pool.execute("UPDATE applications SET substitution_version=1,invoice_number='TEST-ORIGINAL' WHERE id=?",[f.applicationId]);
+    await pool.execute(`INSERT INTO visa_change_quotes(id,application_id,version,previous_product,replacement_product,old_total_minor,new_total_minor,difference_minor,currency,quote_json) VALUES (?,?,1,'30days-single','60days-single',10000,20000,10000,'USD','{}')`,[quote,f.applicationId]);
+    await pool.execute("UPDATE visa_change_quotes SET state='ACCEPTED',accepted_at=NOW(3) WHERE id=?",[quote]);
+    await pool.execute("UPDATE visa_change_quotes SET state='PAYMENT_PENDING',payment_id=? WHERE id=?",[f.paymentId,quote]);
+    const settle=()=>pool.execute("UPDATE visa_change_quotes SET state='SETTLED' WHERE id=?",[quote]);
+    await expect(settle()).rejects.toThrow('Invalid visa-change settlement');
+    await pool.execute('INSERT INTO invoices(invoice_number,application_id,payment_id,amount,vat_rate) VALUES (?,?,?,100,0)',[number,f.applicationId,f.paymentId]);
+    await pool.execute(`INSERT INTO financial_document_archives(document_number,issuance_key,application_id,payment_id,series,sequence_number,issued_at,snapshot_json,pdf_bytes,pdf_sha256) VALUES (?,?,?,?,'TEST-INV',?,NOW(3),'{}',?,?)`,[number,'payment:'+f.paymentId,f.applicationId,f.paymentId,900000+f.applicationId,pdf,createHash('sha256').update(pdf).digest('hex')]);
+    await expect(settle()).rejects.toThrow('Invalid visa-change settlement');
+    await pool.execute(`INSERT INTO application_timeline_events(id,application_id,payment_id,event_name,event_source,actor_type,actor_reference,summary) VALUES (?,?,?,'PAYMENT_CONFIRMED','STRIPE_WEBHOOK','STRIPE',?,'Synthetic verified difference')`,[randomUUID(),f.applicationId,f.paymentId,f.intent]);
+    await pool.execute("UPDATE payments SET amount=99 WHERE id=?",[f.paymentId]);await expect(settle()).rejects.toThrow('Invalid visa-change settlement');
+    await pool.execute("UPDATE payments SET amount=100,status='pending' WHERE id=?",[f.paymentId]);await expect(settle()).rejects.toThrow('Invalid visa-change settlement');
+    await pool.execute("UPDATE payments SET status='succeeded' WHERE id=?",[f.paymentId]);await expect(settle()).resolves.toBeDefined();await expect(settle()).resolves.toBeDefined();
+    await expect(pool.execute("UPDATE visa_change_quotes SET difference_minor=9999,new_total_minor=19999 WHERE id=?",[quote])).rejects.toThrow('immutable');
+  });
 });
