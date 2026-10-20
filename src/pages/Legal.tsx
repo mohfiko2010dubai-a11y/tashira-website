@@ -1,3 +1,4 @@
+import LicenceStatement from '@/components/shared/LicenceStatement';
 import { RESIDENCE_REVIEW_NOTICE } from "@contracts/document-validity";
 import { useTranslation } from 'react-i18next';
 import { validatedLegalHtml } from '@/lib/legal-html';
@@ -28,6 +29,7 @@ export default function Legal({ page }: LegalProps) {
       </div>
 
       {/* Content */}
+      {page==='terms'&&<div className="mx-auto max-w-4xl px-5"><LicenceStatement /></div>}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
         <div
           className="prose prose-lg max-w-none legal-content"

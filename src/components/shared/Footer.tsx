@@ -1,10 +1,13 @@
+import LicenceStatement from './LicenceStatement';
+import {trpc} from '@/providers/trpc-client';
 import Logo from '@/components/shared/Logo';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Phone, Mail, MapPin, ShieldCheck, FileCheck } from 'lucide-react';
 
 export default function Footer() {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
+  const {data:licenceData}=trpc.business.licence.useQuery();
 
   return (
     <footer className="bg-[#1A2332] text-white">
@@ -15,8 +18,8 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <ShieldCheck size={22} className="text-[#C9A04C]" />
               <div>
-                <p className="text-xs text-gray-400">{t('footer.licensedIn')}</p>
-                <p className="text-sm font-semibold text-white">{t('footer.licensedLocation')}</p>
+                <p className="text-xs text-gray-400">{licenceData?.expiry.status==='expired'?(i18n.language.startsWith('ar')?'الرخصة قيد التجديد':'Licence under renewal'):t('footer.licensedIn')}</p>
+                <p className="text-sm font-semibold text-white">{i18n.language.startsWith('ar')?licenceData?.profile.authorityAr:licenceData?.profile.authorityEn}</p>
               </div>
             </div>
             <div className="hidden sm:block w-px h-8 bg-white/20" />
@@ -24,13 +27,13 @@ export default function Footer() {
               <FileCheck size={22} className="text-[#C9A04C]" />
               <div>
                 <p className="text-xs text-gray-400">{t('footer.licenseNumber')}</p>
-                <p className="text-sm font-semibold text-white" dir="ltr">2541485.01</p>
+                <p className="text-sm font-semibold text-white" dir="ltr">{licenceData?.profile.licence ?? ""}</p>
               </div>
             </div>
             <div className="hidden sm:block w-px h-8 bg-white/20" />
             <div className="text-center sm:text-start">
               <p className="text-xs text-gray-400">{t('footer.companyName')}</p>
-              <p className="text-sm font-semibold text-white">Tashira E-Visa and Tourism L.L.C-FZ</p>
+              <p className="text-sm font-semibold text-white">{licenceData?.profile.legalNameEn ?? ""}</p>
             </div>
           </div>
         </div>
@@ -41,11 +44,11 @@ export default function Footer() {
           {/* Company Info */}
           <div>
             <div className="mb-4">
-              <Logo theme="dark" size={26} /><p className="mt-2 text-xs text-gray-400" dir="ltr">2541485.01</p>
+              <Logo theme="dark" size={26} /><p className="mt-2 text-xs text-gray-400" dir="ltr">{licenceData?.profile.licence ?? ""}</p>
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed mb-5">
-              {t('footer.description')}
-            </p>
+            <div className="text-sm text-gray-400 leading-relaxed mb-5">
+              <LicenceStatement footer />
+            </div>
             {/* Social media links hidden - will be enabled when accounts are created */}
             {/*
             <div className="flex gap-2">
@@ -92,6 +95,8 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2.5">
               {[
+                { label: i18n.language.startsWith('ar')?'التحقق من الرخصة':'Verify licence', path:'/verify' },
+                { label: i18n.language.startsWith('ar')?'إخلاء المسؤولية':'Disclaimers', path:'/disclaimers' },
                 { label: t('footer.terms'), path: '/terms' },
                 { label: t('footer.privacy'), path: '/privacy' },
                 { label: t('footer.refund'), path: '/refund' },

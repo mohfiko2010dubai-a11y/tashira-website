@@ -1,0 +1,434 @@
+[
+  {
+    "host": "https://staging.tashiraev.com",
+    "count": 34,
+    "pages": [
+      {
+        "path": "/ar",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en",
+        "status": 200,
+        "matches": [
+          " 02 Upload Documents Upload your passport photo and required documents 03 Receive Visa If approved by the authority, receive the issued visa by email Why TASHIRA Your Trusted Partner for UAE Visa TASHIRA is a private company licens",
+          "requently Asked Questions How will I receive my UAE visa? Once your visa is processed and approved by the immigration authorities, it will be sent directly to your registered email address as a secure PDF. Can I get a refund if my "
+        ],
+        "flagAssets": [
+          "https://flagcdn.com/w40/ae.png"
+        ]
+      },
+      {
+        "path": "/en/visa-prices",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/how-to-apply",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/how-to-apply",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/visa-prices",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/news",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/guides",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/guides",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/contact",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/news",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/contact",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/terms",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/refund",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/refund",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/privacy",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/privacy",
+        "status": 200,
+        "matches": [
+          "We use data to create, review, process, recover and track applications; communicate; make authorized submissions; process and evidence payments; issue invoices; prevent abuse; secure the Service; and meet accounting, dispute and l"
+        ],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/terms",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/disclaimers",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/cookies",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/cookies",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/visa-pre-check",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/disclaimers",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/visa-pre-check",
+        "status": 200,
+        "matches": [
+          "ents Answer a few non-sensitive questions. This check is guidance only and never replaces official review. Nationality Select nationality… Residence type Non-GCC Resident GCC Resident GCC Resident Accompanying Country of residen"
+        ],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/editorial-policy",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/about",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/about",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/sources-and-verification",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/editorial-policy",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/sources-and-verification",
+        "status": 200,
+        "matches": [
+          "ernment authority. Visa decisions are made solely by the relevant authorities. We rely on official UAE government channels (such as ICP and GDRFA) and airline/authority publications as primary sources. Each guide lists its sourc"
+        ],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/verify",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/verify",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/guides/how-to-apply-uae-visa",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/guides/how-to-apply-uae-visa",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      }
+    ]
+  },
+  {
+    "host": "https://tashiraev.com",
+    "count": 32,
+    "pages": [
+      {
+        "path": "/en/visa-prices",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en",
+        "status": 200,
+        "matches": [
+          " 02 Upload Documents Upload your passport photo and required documents 03 Receive Visa If approved by the authority, receive the issued visa by email Why TASHIRA Your Trusted Partner for UAE Visa TASHIRA is a private company licens",
+          "requently Asked Questions How will I receive my UAE visa? Once your visa is processed and approved by the immigration authorities, it will be sent directly to your registered email address as a secure PDF. Can I get a refund if my "
+        ],
+        "flagAssets": [
+          "https://flagcdn.com/w40/ae.png"
+        ]
+      },
+      {
+        "path": "/ar",
+        "status": 200,
+        "matches": [
+          " 02 Upload Documents Upload your passport photo and required documents 03 Receive Visa If approved by the authority, receive the issued visa by email لماذا نحن شريكك الموثوق لتأشيرة الإمارات تأشيرة شركة خاصة مرخصة في منطقة ميدان ال"
+        ],
+        "flagAssets": [
+          "https://flagcdn.com/w40/ae.png"
+        ]
+      },
+      {
+        "path": "/ar/visa-prices",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/how-to-apply",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/how-to-apply",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/news",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/guides",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/guides",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/contact",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/contact",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/news",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/terms",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/refund",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/refund",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/privacy",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/terms",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/privacy",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/disclaimers",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/cookies",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/cookies",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/visa-pre-check",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/visa-pre-check",
+        "status": 200,
+        "matches": [
+          "ents Answer a few non-sensitive questions. This check is guidance only and never replaces official review. Nationality Select nationality… Residence type Non-GCC Resident GCC Resident GCC Resident Accompanying Country of residen"
+        ],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/disclaimers",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/editorial-policy",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/about",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/about",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/sources-and-verification",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/editorial-policy",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/sources-and-verification",
+        "status": 200,
+        "matches": [
+          "ernment authority. Visa decisions are made solely by the relevant authorities. We rely on official UAE government channels (such as ICP and GDRFA) and airline/authority publications as primary sources. Each guide lists its sourc"
+        ],
+        "flagAssets": []
+      },
+      {
+        "path": "/en/verify",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      },
+      {
+        "path": "/ar/verify",
+        "status": 200,
+        "matches": [],
+        "flagAssets": []
+      }
+    ]
+  }
+]

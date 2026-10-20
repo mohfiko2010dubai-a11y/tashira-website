@@ -1,3 +1,4 @@
+import LicenceSummary from '@/components/shared/LicenceSummary';
 import { useTranslation } from "react-i18next";
 import { marketingClaims } from "@contracts/marketing-claims";
 import { Shield, Clock, FileCheck, Headphones, Globe, ChevronRight } from 'lucide-react';
@@ -83,7 +84,7 @@ export default function WhyChooseTashira() {
 
                     {/* Title */}
                     <p className="text-sm font-semibold text-white group-hover:text-[#C9A04C] transition-colors">
-                      {copy[feature.key]}
+                      {feature.key==='license'?<LicenceSummary />:copy[feature.key]}
                     </p>
                   </div>
                 ))}

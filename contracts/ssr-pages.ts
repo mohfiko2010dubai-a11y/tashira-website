@@ -21,6 +21,7 @@ export function fixedMetadata(path: string, language = "en", search = ""): PageM
     const context = documentResultContext(new URLSearchParams(search || query));
     return { ...metadata["/visa-pre-check"][lang], layout: "marketing", canonicalPath: languagePath("/documents", lang) + (context ? "?" + documentResultSearch(context) : ""), image: `/og/${lang}/visa-pre-check.jpg`, language: lang };
   }
+  if (route.pathname === '/verify' || route.pathname === '/disclaimers') return {title:route.pathname==='/verify'?(lang==='ar'?'التحقق من رخصة الشركة | TASHIRA':'Verify company licence | TASHIRA'):(lang==='ar'?'إخلاء المسؤولية | TASHIRA':'Disclaimers | TASHIRA'),description:lang==='ar'?'بيانات الرخصة والأنشطة ورابط التحقق لدى جهة الإصدار.':'Company licence, activities and verification at the issuing authority.',canonicalPath:languagePath(route.pathname,lang),language:lang,layout:'marketing'};
   const page = Object.hasOwn(metadata, route.pathname) ? metadata[route.pathname as FixedPath] : null;
   return page ? { ...page[lang], layout: layouts[route.pathname as FixedPath], canonicalPath: languagePath(route.pathname, lang), image: `/og/${lang}/${route.pathname === "/" ? "home" : route.pathname.slice(1)}.jpg`, language: lang } : null;
 }

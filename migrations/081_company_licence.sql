@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS company_licence_settings (
+ version INT UNSIGNED NOT NULL PRIMARY KEY,
+ profile_json JSON NOT NULL,
+ created_by VARCHAR(100) NOT NULL,
+ created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+);

@@ -1386,3 +1386,12 @@ Actual browser UAT on new paid Stripe TEST app269 / TSH-9E034015503245FF917A4150
 ## Visa amendment progress and invoices candidate — 2026-10-13
 
 Added read-only price preview before proposal, persistent proposal-mail/customer-response/payment stages, disabled explained link action before consent, provider mail state distinct from customer consent, and original/difference/credit-note PDF links in unified amendment tab. Existing payment/refund execution policy unchanged. Read queries remain under assigned-case scope and return customer prices only, no supplier costs. Local check/lint/test/build1592 unit tests passed;87 mandatory MySQL tests and staging browser acceptance pending. Synthetic TEST app270 reserved. Not deployed yet.
+
+
+## Owner-authorised licence release — production and staging, 2026-10-20
+
+Published bilingual settings-backed /verify and /disclaimers, licensed activity beside unchanged logo, paired non-affiliation statements in header/footer/terms, and invoice verification link. QR decoded from the current licence points to the issuer PDF and returned200. All six activities and 02/12/2025–01/12/2027 dates verified in SSR. Licence/domain expiry notifications NOT implemented at owner's explicit request; expired-display safeguard retained. Admin editor /admin/licence on both sites.
+
+Production base7cdde687 and prior Oct14 public overlay preserved; staging base9e135978 preserved. Separate candidates built and deployed, not a full staging-to-production replacement. Only additive licence table/profile settings were written; customer/payment data untouched. Environment, intake, PM2 configuration and production nginx hashes unchanged. Backups /var/backups/tashira-licence-prod-1792497578464 and /var/backups/tashira-licence-staging-1792497467364. Server source now intentionally overlays these bases; preserve licence change in future deployments.
+
+Focused checks passed on both candidates: TypeScript, changed-file lint, expiry test and build. Both sites8 public routes200 with SSR data; anonymous edit403. Desktop/mobile bilingual verify screenshots and QR decoding passed, zero page JS errors. Rendered scan34 staging/32 production pages found only contextual authority/source wording and the existing plain UAE destination flag; no new crest or company authorisation claim. No unrelated finance/customer testing. Full evidence: docs/LICENCE_PUBLIC_RELEASE_20261020.md. Broader historic launch blockers remain separate.

@@ -1,3 +1,4 @@
+import LicenceSummary from '@/components/shared/LicenceSummary';
 import { marketingClaims } from "@contracts/marketing-claims";
 import { processingCopy } from "@contracts/processing-copy";
 import { useTranslation } from 'react-i18next';
@@ -61,7 +62,7 @@ export default function RHero() {
           {TRUST_ITEMS.map(({ icon: Icon, key }) => (
             <span key={key} className="inline-flex items-center gap-2 text-sm text-gray-300">
               <Icon size={18} className="text-[#C9A04C]" />
-              {marketingClaims(i18n.language)[key]}
+              {key==='license'?<LicenceSummary />:marketingClaims(i18n.language)[key]}
             </span>
           ))}
         </div>

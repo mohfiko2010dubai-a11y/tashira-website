@@ -136,6 +136,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.text(data.company.legalName ?? "", 15, 33, { maxWidth: 120 });
   doc.text(data.company.address ?? "", 15, 38, { maxWidth: 120 });
   doc.text(data.company.licence ?? "", 15, 46, { maxWidth: 120 });
+  doc.textWithLink("Verify company licence", 145, 46, {url:"https://tashiraev.com/en/verify"});
   doc.text([data.company.website, data.company.email, data.company.phone].filter(Boolean).join(" · "), 15, 50, { maxWidth: 180 });
   doc.setTextColor("#C9A04C");
   doc.setFontSize(18);

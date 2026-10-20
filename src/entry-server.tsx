@@ -43,7 +43,7 @@ async function render(job: Job) {
   let meta: PageMetadata | null = fixedMetadata(path, language, url.search);
   try {
     const dataStarted = performance.now();
-    const work: Promise<unknown>[] = [];
+    const work: Promise<unknown>[] = [queries.fetchQuery({queryKey:getQueryKey(trpc.business.licence,undefined,'query'),queryFn:()=>measure('business.licence',()=>client.business.licence.query())})];
     if (path === "/" || path === "/visa-prices" || path === "/documents") work.push(queries.fetchQuery({
       queryKey: getQueryKey(trpc.catalog.listActiveProducts, undefined, "query"),
       queryFn: () => measure("catalog.listActiveProducts", () => client.catalog.listActiveProducts.query()),

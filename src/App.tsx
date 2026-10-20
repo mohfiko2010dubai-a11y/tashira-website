@@ -1,3 +1,4 @@
+import AdminLicence from '@/pages/admin/AdminLicence';
 import Logo from '@/components/shared/Logo';
 import PublicApp from "./PublicApp";
 import { isPublicPage } from "@contracts/ssr-pages";
@@ -145,6 +146,7 @@ function AppContent() {
           <Route path="/admin/dynamic-form" element={<AdminGuard><AdminDynamicForm /></AdminGuard>} />
           <Route path="/admin/feature-flags" element={<AdminGuard><AdminFeatureFlags /></AdminGuard>} />
           <Route path="/admin/rule-evaluations" element={<AdminGuard><AdminRuleEvaluations /></AdminGuard>} />
+          <Route path="/admin/licence" element={<AdminGuard><AdminLicence /></AdminGuard>} />
           <Route path="/admin/security" element={<AdminGuard><AdminSecurity /></AdminGuard>} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/setup" element={<StaffSetup />} />

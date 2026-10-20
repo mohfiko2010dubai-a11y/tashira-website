@@ -1,3 +1,5 @@
+import {companyLicence,saveCompanyLicence} from './lib/company-licence';
+import {licenceProfileSchema} from '../contracts/licence-profile';
 import { COMPANY_FIELDS, companyReopeningBlockers } from "../contracts/company-settings";
 import { captureStripeFee } from "./lib/stripe-fee";
 import { SettlementReconciliation } from './lib/settlement-reconciliation';
@@ -25,6 +27,8 @@ function actorReference(ctx: { user?: { id: number }; staffId?: number }) {
 }
 
 export const businessRouter = createRouter({
+  licence: publicQuery.query(()=>companyLicence()),
+  saveLicence: adminQuery.input(z.object({expectedVersion:z.number().int().min(0),profile:licenceProfileSchema}).strict()).mutation(({input,ctx})=>saveCompanyLicence(input.expectedVersion,input.profile,actorReference(ctx))),
   settlementReport: adminQuery.input(z.object({applicationId:z.number().int().positive()}))
     .query(({input})=>new SettlementReconciliation(defaultOperationsPool()).report(input.applicationId)),
   reconcileSettlement: adminQuery.input(z.object({applicationId:z.number().int().positive(),kind:z.enum(['PAYMENT','REFUND']),id:z.string().min(1).max(36)}))

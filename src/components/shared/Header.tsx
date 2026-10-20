@@ -1,3 +1,4 @@
+import LicenceStatement from './LicenceStatement';
 import Logo from '@/components/shared/Logo';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -28,14 +29,15 @@ export default function Header() {
   return (
     <header className="fixed top-0 start-0 end-0 z-50 bg-white border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-[88px]">
+        <div className="flex items-center justify-between min-h-[88px] py-2">
           {/* Logo */}
+          <div className="flex max-w-xl flex-col gap-1 lg:flex-row lg:items-center lg:gap-3">
           <Link to="/" className="flex items-center">
             <Logo size={26} />
-          </Link>
+          </Link><LicenceStatement compact /></div>
 
           {/* Desktop Nav - Center */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden xl:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
                 key={link.key}
@@ -65,7 +67,7 @@ export default function Header() {
 
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 text-gray-700 hover:text-[#C9A04C]"
+              className="xl:hidden p-2 text-gray-700 hover:text-[#C9A04C]"
             >
               {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -75,7 +77,7 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-white/98 backdrop-blur-lg pt-20 px-6 md:hidden">
+        <div className="fixed inset-0 z-40 bg-white/98 backdrop-blur-lg pt-20 px-6 xl:hidden">
           <nav className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link

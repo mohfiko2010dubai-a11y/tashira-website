@@ -1,3 +1,4 @@
+import CompanyLicenceSettings from '@/components/admin/CompanyLicenceSettings';
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { trpc } from "@/providers/trpc-client";
@@ -56,6 +57,7 @@ export default function AdminCompanySettings() {
       <button disabled={save.isPending} className="rounded bg-slate-900 px-5 py-3 text-white">Save new settings version</button>
       <p role="status">{notice}</p>
     </form>
+    <CompanyLicenceSettings />
     <h2 className="font-bold">Version history</h2>
     {history.data?.map(version => <p key={version.version}>Version {version.version} · {version.legalName} · {version.createdBy} · {String(version.effectiveAt)}</p>)}
   </main>;

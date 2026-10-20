@@ -1,3 +1,4 @@
+import VerifyCompany from './pages/VerifyCompany';
 import MarketingLayout from "./components/shared/MarketingLayout";
 import PageHead from "./components/PageHead";
 import { useSyncExternalStore } from "react";
@@ -39,6 +40,7 @@ export default function PublicApp() {
       <Route path="/" element={<Home />} />
       <Route path="/visa-prices" element={<Pricing />} />
       <Route path="/how-to-apply" element={<HowToApply />} />
+      <Route path="/verify" element={<VerifyCompany />} /><Route path="/disclaimers" element={<VerifyCompany disclaimers />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/visa-pre-check" element={<CustomerPrecheck />} />
       <Route path="/documents" element={<DocumentChecklist />} />
