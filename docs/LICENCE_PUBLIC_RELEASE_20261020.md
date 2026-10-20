@@ -53,3 +53,10 @@ Matches were contextual, not claims that TASHIRA is government-approved:
 - Existing plain UAE flag image `https://flagcdn.com/w40/ae.png` appears in the home destination heading. It is not a new badge/crest beside the wordmark. Original logo is unchanged; no new emblem was introduced.
 
 This is scoped verification of the licence release, not an assertion that every earlier project task is complete.
+
+
+## Licence privacy follow-up — deployed 2026-10-20
+
+Owner requested that the personal-name-bearing Meydan PDF no longer be the public verification target, supplied dubai-unified-license.pdf, selected its first page only, and accepted that the external Dubai registry may show contact details. Both sites now display ONLY a PNG rendering of page1, including its original QR. Page2 (Yahoo contact/mobile) and the full PDF were not published. The public Meydan PDF link was replaced with the exact decoded Dubai QR destination https://app.invest.dubai.ae/DUL/96666FF4-F875-473C-BC75-D729774DD058. External destination still returned “An error occurred” in the inspected browser; no claim that its service was repaired.
+
+Company licence settings version2 adds the preview path and replaces verificationUrl; profile validation allows the explicit Dubai DUL host/path. Production backup /var/backups/tashira-licence-privacy-prod-1792498510478; staging backup /var/backups/tashira-licence-privacy-staging-1792498432838. Public page1 SHA256 6ffb53e94080093ff0f931c2ec7a53cf9ad85aad82ba44da55eab9019a0bf659 matches the inspected local first-page render on both sites. Arabic/English verify200, new destination present, old Meydan URL and Yahoo address absent from SSR. Production browser refreshed and visibly confirmed first-page link and Dubai verification button. Both builds/typechecks/changed-file lint and focused licence test passed. Customer data/payment configuration unchanged. Prior report’s Meydan public-link/QR statement is superseded by this owner choice.

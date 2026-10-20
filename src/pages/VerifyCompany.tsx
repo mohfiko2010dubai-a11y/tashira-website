@@ -19,7 +19,11 @@ export default function VerifyCompany({disclaimers=false}:{disclaimers?:boolean}
  <h2 className="text-xl font-bold">{ar?'الأنشطة المرخصة':'Licensed activities'}</h2>
  <p className="my-3">{ar?'الحصول على موافقة السلطات المختصة إلزامي لممارسة الأعمال المرخصة.':'Relevant authorities’ approval must be obtained prior to conducting applicable business activities.'}</p>
  <ul className="space-y-3">{data.profile.activities.map(a=><li key={a.code} className="rounded border p-4"><b dir="ltr">{a.code}</b><p dir="ltr">{a.en}</p><p dir="rtl">{a.ar}</p></li>)}</ul>
- <section className="mt-8 rounded-xl border p-5"><h2 className="text-xl font-bold">{ar?'تحقق لدى جهة الإصدار':'Check with the issuing authority'}</h2><p className="my-2">{ar?'يفتح الرمز ملف الرخصة على بوابة ميدان فري زون.':'The QR opens the licence document on the Meydan Free Zone portal.'}</p><a href={data.profile.verificationUrl} target="_blank" rel="noopener noreferrer"><img width="256" height="256" src={data.qrDataUrl} alt={ar?'رمز التحقق من الرخصة لدى ميدان':'Licence verification QR at Meydan'}/><span className="underline">{ar?'فتح مستند الرخصة لدى ميدان':'Open licence document at Meydan'}</span></a></section>
+ <section className="mt-8 rounded-xl border p-5"><h2 className="text-xl font-bold">{ar?'التحقق من تسجيل الشركة':'Verify company registration'}</h2>
+ {data.profile.documentPreviewPath&&<a href={data.profile.documentPreviewPath} target="_blank" rel="noopener noreferrer"><img className="my-4 h-auto w-full rounded border" src={data.profile.documentPreviewPath} alt={ar?'الصفحة الأولى من الرخصة الموحدة في دبي، مع رمز التحقق الأصلي':'First page of the Dubai Unified Licence, including its original verification QR'}/></a>}
+ <p className="my-3">{ar?'امسح رمز QR أو افتح رابط التحقق أدناه لعرض السجل لدى الجهة الرسمية.':'Scan the QR or open the verification link below to view the official registry record.'}</p>
+ {!data.profile.documentPreviewPath&&<img width="256" height="256" src={data.qrDataUrl} alt={ar?'رمز التحقق من تسجيل الشركة':'Company registration verification QR'}/>}
+ <a className="inline-block rounded bg-slate-900 px-5 py-3 text-white" href={data.profile.verificationUrl} target="_blank" rel="noopener noreferrer">{ar?'التحقق من تسجيل الشركة':'Verify company registration'}</a></section>
  </>}
  </article>;
 }
