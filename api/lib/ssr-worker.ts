@@ -8,7 +8,7 @@ export type RenderResult = { html: string; meta: PageMetadata | null; state: unk
 let activeWorkers = 0;
 
 /** Workers isolate synchronous React work so the caller's deadline remains enforceable. */
-export function renderInWorker(job: { url: string; apiOrigin: string; fault?: string }, signal: AbortSignal): Promise<RenderResult> {
+export function renderInWorker(job: { url: string; apiOrigin: string; requestOrigin?: string; fault?: string }, signal: AbortSignal): Promise<RenderResult> {
   if (activeWorkers >= 2) return Promise.reject(new Error("SSR capacity unavailable"));
   if (signal.aborted) return Promise.reject(signal.reason);
   activeWorkers++;

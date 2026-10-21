@@ -1,3 +1,4 @@
+import {profile} from '../ownership-fixture';
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ResendEmailProvider, recipientHash } from "./resend-email";
 
@@ -7,6 +8,7 @@ const config = {
   subjectPrefix: "[STAGING] ", enabled: true,
 };
 
+vi.mock('./order-ownership',()=>({orderOwnership:async()=>({host:'tashiraev.ae',profile})}));
 describe("Resend staging provider", () => {
   beforeEach(() => { process.env.PUBLIC_APP_URL = "https://staging.tashiraev.com"; });
   afterEach(() => { delete process.env.PUBLIC_APP_URL; });

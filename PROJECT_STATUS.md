@@ -1,3 +1,11 @@
+# Ownership footer and simplified header deployed — 2026-10-22
+
+Owner-approved production overlay deployed on .com/.ae (including www), preserving closed intake and production/staging bases. Exact settings-backed bilingual ownership footer, request-host canonical/OG, policy openings/private/error fallback; latest owner correction makes the header activity-only and restores visible HOME/navigation. Verified in production browser. Separate builds/checks/lint and targeted tests passed (staging71, production49, adapter11); no full ERP acceptance claimed.
+
+Migration082 captures new order request hosts atomically for new invoice/credit/email disclosures; admin emails unchanged, invoice company phone omitted, original numbering/archives preserved. Production remains0 applications/0 archives, staging260/27. Final backups: /var/backups/tashira-ownership-final-prod-1792613075639 and /var/backups/tashira-ownership-final-staging-1792613029921. Protected config hashes unchanged. Local unrelated dist/boot.js preserved.
+
+Important scope limits: legacy staging order origins unknown, no fabricated backfill; issued financial archives do not change with later settings edits; no live email/order acceptance; existing homepage UAE flag asset remains and wider dynamic-page crawl not exhaustive. These are NOT marked complete against the broad original acceptance checklist. See docs/OWNERSHIP_RELEASE_20261022.md for per-surface evidence, latest owner supersession and rollback.
+
 # Public website production update — 2026-10-14
 
 Owner explicitly authorized public website replacement only, retaining production administration, APIs, data and settings. Read-only comparison found Home/Pricing/Header/PublicApp/content routes already identical to staging9e13597; remaining request/operations changes were excluded. Built production7cdde687 plus staging Legal.tsx and document-validity contract (residence/refund notice). Production runtime source/boot/env/nginx/PM2/intake configuration unchanged by hashes; no DB query or mutation, no customer-data deletion, no key/provider activation. Intake remains closed by existing configuration.

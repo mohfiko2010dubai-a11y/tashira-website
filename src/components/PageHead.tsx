@@ -29,12 +29,12 @@ export default function PageHead({ title, description, canonicalPath, robots, al
       canonical.rel = "canonical";
       document.head.append(canonical);
     }
-    canonical.href = `https://www.tashiraev.com${canonicalPath}`;
+    canonical.href = `${window.location.origin}${canonicalPath}`;
     for (const language of ["en", "ar", "x-default"] as const) {
       let alternate = document.head.querySelector<HTMLLinkElement>(`link[rel="alternate"][hreflang="${language}"]`);
       if (!alternate) { alternate = document.createElement("link"); alternate.rel = "alternate"; alternate.hreflang = language; document.head.append(alternate); }
       const locale = language === "ar" ? "ar" : "en";
-      alternate.href = `https://www.tashiraev.com${languagePath(alternates?.[locale] || canonicalPath, locale)}`;
+      alternate.href = `${window.location.origin}${languagePath(alternates?.[locale] || canonicalPath, locale)}`;
     }
     if (robots) {
       let tag = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');

@@ -31,24 +31,24 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between min-h-[88px] py-2">
           {/* Logo */}
-          <div className="flex max-w-xl flex-col gap-1 lg:flex-row lg:items-center lg:gap-3">
+          <div className="flex shrink-0 flex-col gap-1">
           <Link to="/" className="flex items-center">
             <Logo size={26} />
           </Link><LicenceStatement compact /></div>
 
           {/* Desktop Nav - Center */}
-          <nav className="hidden xl:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-3 xl:gap-6">
             {navLinks.map((link) => (
               <Link
                 key={link.key}
                 to={link.path}
-                className={`text-sm font-semibold tracking-wide transition-colors duration-200 ${
+                className={`whitespace-nowrap text-xs lg:text-sm font-semibold tracking-wide transition-colors duration-200 ${
                   isActive(link.path)
                     ? 'text-[#C9A04C] border-b-2 border-[#C9A04C] pb-5 pt-5'
                     : 'text-gray-700 hover:text-[#C9A04C]'
                 }`}
               >
-                {i18n.language === 'ar' ? t(`nav.${link.key}`) : link.label}
+                {i18n.language === 'ar' ? (link.key==='home'?'الرئيسية':t(`nav.${link.key}`)) : link.label}
               </Link>
             ))}
           </nav>
@@ -67,7 +67,7 @@ export default function Header() {
 
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="xl:hidden p-2 text-gray-700 hover:text-[#C9A04C]"
+              className="md:hidden p-2 text-gray-700 hover:text-[#C9A04C]"
             >
               {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -77,7 +77,7 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-white/98 backdrop-blur-lg pt-20 px-6 xl:hidden">
+        <div className="fixed inset-0 z-40 bg-white/98 backdrop-blur-lg pt-20 px-6 md:hidden">
           <nav className="flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link
@@ -89,7 +89,7 @@ export default function Header() {
                     : 'text-gray-700 hover:text-[#C9A04C] hover:bg-gray-50'
                 }`}
               >
-                {i18n.language === 'ar' ? t(`nav.${link.key}`) : link.label}
+                {i18n.language === 'ar' ? (link.key==='home'?'الرئيسية':t(`nav.${link.key}`)) : link.label}
               </Link>
             ))}
           </nav>

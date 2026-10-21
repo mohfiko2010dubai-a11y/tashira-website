@@ -3,6 +3,8 @@ import type { TrpcContext } from '../context';
 import { issueCreationDevice, creationDeviceOwner } from './creation-device';
 import { prepareApplicationCreation, withApplicationCreation } from './application-creation';
 
+const ownership=vi.hoisted(()=>({record:vi.fn().mockResolvedValue(undefined)}));
+vi.mock('./order-ownership',()=>({recordOrderHost:ownership.record}));
 const runtime=vi.hoisted(()=>({mode:vi.fn(()=> 'TEST' as 'TEST'|'LIVE'),classified:vi.fn()}));
 vi.mock('./stripe-runtime',()=>({stripeRuntimeMode:runtime.mode}));
 const pool = vi.hoisted(() => ({ getConnection: vi.fn() }));
@@ -18,7 +20,7 @@ describe('server-issued application creation requests', () => {
   beforeEach(() => {
     vi.stubEnv('CUSTOMER_SESSION_SECRET', 'synthetic-test-secret-only-12345678901234567890');
     runtime.mode.mockReset().mockReturnValue('TEST');runtime.classified.mockClear();
-    rows = []; pending = Promise.resolve();
+    rows = []; pending = Promise.resolve();ownership.record.mockClear();
     pool.getConnection.mockImplementation(async () => {
       let unlock = () => {};
       let snapshot: typeof rows;
@@ -53,7 +55,7 @@ describe('server-issued application creation requests', () => {
     expect((await prepareApplicationCreation(ctx, 'FORM', false)).requestKey).toBe(first.requestKey);
     const create = vi.fn().mockResolvedValue({ applicationId: 3, applicantIds: [12] });
     const results = await Promise.all([1, 2].map(() => withApplicationCreation(ctx, first.requestKey, ['FORM'], { test: true }, create)));
-    expect(create).toHaveBeenCalledOnce();expect(runtime.classified).toHaveBeenCalledExactlyOnceWith('TEST',true,3);
+    expect(create).toHaveBeenCalledOnce();expect(ownership.record).toHaveBeenCalledExactlyOnceWith(expect.anything(),3,ctx.req);expect(runtime.classified).toHaveBeenCalledExactlyOnceWith('TEST',true,3);
     expect(results[0]).toEqual(results[1]);
     expect(results[0].referenceNumber).toMatch(/^TSH-[A-F0-9]{32}$/);
     const reopened = await prepareApplicationCreation(ctx, 'FORM', false);

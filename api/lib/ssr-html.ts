@@ -6,12 +6,12 @@ import type { PageMetadata } from "../../contracts/ssr-pages";
 import { languagePath, type SiteLanguage } from "../../contracts/language-routes";
 
 const escape = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-export function renderPageTemplate(template: string, meta: PageMetadata | null, rendered?: { html: string; state: unknown }, language: SiteLanguage = meta?.language ?? "en", privateTitle?: string): string {
+export function renderPageTemplate(template: string, meta: PageMetadata | null, rendered?: { html: string; state: unknown }, language: SiteLanguage = meta?.language ?? "en", privateTitle?: string, requestOrigin?: string): string {
   const backdrop = meta?.layout === "marketing" ? renderToStaticMarkup(createElement(MarketingBackdrop)) : "";
-  const head = meta ? `<title>${escape(meta.title)}</title><meta name="description" content="${escape(meta.description)}"/><link rel="canonical" href="https://www.tashiraev.com${escape(meta.canonicalPath)}"/>` : `<title>${escape(privateTitle ?? "TASHIRA")}</title>${privateTitle === undefined ? "" : '<meta name="robots" content="noindex, nofollow"/>'}`;
-  const social = meta ? Object.entries(socialMetadata(meta, process.env.PUBLIC_APP_URL)).map(([key, value]) => `<meta ${key.startsWith("twitter:") ? "name" : "property"}="${key}" content="${escape(value)}"/>`).join("") : "";
+  const head = meta ? `<title>${escape(meta.title)}</title><meta name="description" content="${escape(meta.description)}"/><link rel="canonical" href="${escape(requestOrigin ?? "")}${escape(meta.canonicalPath)}"/>` : `<title>${escape(privateTitle ?? "TASHIRA")}</title>${privateTitle === undefined ? "" : '<meta name="robots" content="noindex, nofollow"/>'}`;
+  const social = meta ? Object.entries(socialMetadata(meta, requestOrigin)).map(([key, value]) => `<meta ${key.startsWith("twitter:") ? "name" : "property"}="${key}" content="${escape(value)}"/>`).join("") : "";
   const state = rendered ? `<script id="__SSR_DATA" type="application/json">${JSON.stringify(rendered.state).replaceAll("<", "\\u003c")}</script>` : "";
-  const alternates = meta ? (["en", "ar", "x-default"] as const).map(lang => `<link rel="alternate" hreflang="${lang}" href="https://www.tashiraev.com${escape(languagePath(meta.canonicalPath, lang === "ar" ? "ar" : "en"))}"/>`).join("") : "";
+  const alternates = meta ? (["en", "ar", "x-default"] as const).map(lang => `<link rel="alternate" hreflang="${lang}" href="${escape(requestOrigin ?? "")}${escape(languagePath(meta.canonicalPath, lang === "ar" ? "ar" : "en"))}"/>`).join("") : "";
   return template.replace(/<html[^>]*>/, `<html lang="${language}" dir="${language === "ar" ? "rtl" : "ltr"}">`)
     .replace("<!--PAGE_METADATA-->", head + alternates + social)
     .replace('<div id="root"></div>', rendered ? `<div id="root" data-ssr="true">${rendered.html}</div>${state}` : '<div id="root">' + backdrop + '<div style="padding:32px;text-align:center"><img src="/icons/mark-1024-transparent.png" width="64" height="64" alt="TASHIRA — UAE E-Visa Services"/></div></div>');

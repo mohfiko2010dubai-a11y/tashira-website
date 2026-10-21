@@ -1,3 +1,5 @@
+import {companyLicence} from './company-licence';
+import {ownershipHtml} from '../../contracts/ownership';
 import type { Hono } from "hono";
 import type { HttpBindings } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
@@ -19,6 +21,15 @@ export function getFrontendCacheControl(requestPath: string): string {
 }
 export function serveStaticFiles(app: App) {
   const distPath = path.resolve(process.cwd(), "dist/public");
+  app.use("*", async (c,next)=>{
+    await next();
+    if(!c.res.headers.get('content-type')?.includes('text/html'))return;
+    const body=await c.res.text();
+    if(body.includes('data-ownership-statement')){c.res=new Response(body,c.res);return;}
+    const data=await companyLicence();const host=new URL(c.req.url).hostname;
+    const footer=data?.profile.domains?.includes(host)?`<footer id="ownership-shell" style="padding:24px">${ownershipHtml(host,data.profile,languageRoute(c.req.path).language)}</footer>`:'';
+    c.res=new Response(body.replace('</body>',footer+'</body>'),c.res);
+  });
   app.use("*", async (c, next) => {
     if (/^\/(api|storage|invoices)\//.test(c.req.path)) return next();
     c.header("Cache-Control", getFrontendCacheControl(c.req.path));
@@ -31,6 +42,7 @@ export function serveStaticFiles(app: App) {
     if (pathname === "/recover") c.header("Referrer-Policy", "no-referrer");
     if (pathname === "/recover" || pathname === "/login") c.header("X-Robots-Tag", "noindex, nofollow");
     const requestUrl = new URL(c.req.url);
+    const requestOrigin = `https://${requestUrl.host}`;
     if (!route.prefixed && (isPublicPage(pathname) || /^\/(apply\/|pay\/|applications\/|deposit\/|recover$)/.test(pathname))) {
       c.header("Vary", "Accept-Language");
       return c.redirect(languagePath(pathname, preferredLanguage(c.req.header("Accept-Language") ?? "")) + requestUrl.search, 302);
@@ -49,21 +61,21 @@ export function serveStaticFiles(app: App) {
       // Reference-bearing pages stay client-only; no private query state enters SSR HTML.
       if (pathname === "/track" && requestUrl.searchParams.has("ref")) {
         c.header("X-Robots-Tag", "noindex");
-        return c.html(renderPageTemplate(template, meta));
+        return c.html(renderPageTemplate(template, meta, undefined, route.language, undefined, requestOrigin));
       }
       const started = performance.now();
       let timing: RenderTiming | undefined;
       const response = await renderSsrResponse({ language: route.language, routeTemplate: meta ? pathname : "/:section/:slug", noindex: privatePage,
-        shellHtml: renderPageTemplate(template, meta),
+        shellHtml: renderPageTemplate(template, meta, undefined, route.language, undefined, requestOrigin),
         render: async signal => {
-          const result = await renderInWorker({ url: c.req.path + requestUrl.search, apiOrigin: `http://127.0.0.1:${process.env.PORT || "3000"}`, fault }, signal);
+          const result = await renderInWorker({ url: c.req.path + requestUrl.search, requestOrigin, apiOrigin: `http://127.0.0.1:${process.env.PORT || "3000"}`, fault }, signal);
           if (result.notFound) {
             if (meta) throw new Error("Fixed public page data unavailable");
             throw new SsrPageNotFound();
           }
           if (!result.html.trim()) throw new Error("Empty rendered body");
           timing = result.timing;
-          return renderPageTemplate(template, result.meta, { html: result.html, state: result.state });
+          return renderPageTemplate(template, result.meta, { html: result.html, state: result.state }, route.language, undefined, requestOrigin);
         },
       });
       const elapsedMs = performance.now() - started;
@@ -79,14 +91,16 @@ export function serveStaticFiles(app: App) {
     }
     if (/^\/(apply\/|pay\/|applications\/|deposit\/|recover$|login$|dashboard$|admin(?:\/|$)|staff(?:\/|$))/.test(pathname)) {
       c.header("X-Robots-Tag", "noindex, nofollow");
-      return c.html(renderPageTemplate(fs.readFileSync(path.join(distPath, "index.html"), "utf8"), null, undefined, route.language, /^\/apply\/[^/]+\/interview\/?$/.test(pathname) ? interviewTitle(route.language) : "TASHIRA"));
+      return c.html(renderPageTemplate(fs.readFileSync(path.join(distPath, "index.html"), "utf8"), null, undefined, route.language, /^\/apply\/[^/]+\/interview\/?$/.test(pathname) ? interviewTitle(route.language) : "TASHIRA", requestOrigin));
     }
     return serveStatic({ root: distPath })(c, next);
   });
-  app.notFound(c => {
+  app.notFound(async c => {
     if (c.req.path.startsWith("/api/")) return c.json({ error: "Not Found" }, 404);
     c.header("Cache-Control", "private, no-store");
     c.header("X-Robots-Tag", "noindex, nofollow");
-    return c.html(notFoundHtml(languageRoute(c.req.path).language, fs.readFileSync(path.join(distPath, "index.html"), "utf8")), 404);
+    const language=languageRoute(c.req.path).language;const licence=await companyLicence();const host=new URL(c.req.url).hostname;
+    const footer=licence?.profile.domains?.includes(host)?ownershipHtml(host,licence.profile,language):'';
+    return c.html(notFoundHtml(language, fs.readFileSync(path.join(distPath, "index.html"), "utf8")).replace('</body>',footer+'</body>'), 404);
   });
 }

@@ -1,3 +1,4 @@
+import {recordOrderHost} from './order-ownership';
 import { createHash, randomUUID } from "node:crypto";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import {stripeRuntimeMode} from './stripe-runtime';
@@ -50,6 +51,7 @@ export async function withApplicationCreation(ctx: TrpcContext, requestKey: stri
     }
     const mode=stripeRuntimeMode();
     const result = await create(connection, referenceNumber);
+    await recordOrderHost(connection,result.applicationId,ctx.req);
     await connection.execute('UPDATE applications SET data_classification=?,is_test=? WHERE id=?',[mode,mode==='TEST',result.applicationId]);
     await connection.execute("UPDATE application_creation_requests SET application_id=?,payload_hash=? WHERE id=?", [result.applicationId, payloadHash, requestKey]);
     await connection.commit();

@@ -1,3 +1,4 @@
+import OwnershipStatement from '@/components/shared/OwnershipStatement';
 import AdminLicence from '@/pages/admin/AdminLicence';
 import Logo from '@/components/shared/Logo';
 import PublicApp from "./PublicApp";
@@ -164,7 +165,7 @@ function AppContent() {
           </Suspense>
         </ChunkLoadErrorBoundary>
       </main>
-      {!isBackOfficeRoute && <Footer />}
+      {isBackOfficeRoute ? <div className="px-6"><OwnershipStatement /></div> : <Footer />}
       {!isBackOfficeRoute && <ScrollToTop />}
       {!isBackOfficeRoute && <ChatBot key={new URLSearchParams(location.search).get('resume') === '1' ? 'resume' : 'default'} />}
     </div>

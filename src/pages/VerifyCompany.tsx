@@ -1,15 +1,13 @@
-import LicenceStatement from '@/components/shared/LicenceStatement';
+import OwnershipStatement from '@/components/shared/OwnershipStatement';
 import {useTranslation} from 'react-i18next';
 import {trpc} from '@/providers/trpc-client';
-import {nonAffiliation} from '@contracts/licence-profile';
 export default function VerifyCompany({disclaimers=false}:{disclaimers?:boolean}){
  const {i18n}=useTranslation();const ar=i18n.language.startsWith('ar');const query=trpc.business.licence.useQuery(undefined,{staleTime:0,refetchInterval:60000});const data=query.data;
  return <article className="mx-auto max-w-4xl px-5 pb-16 pt-36" dir={ar?'rtl':'ltr'}>
  <h1 className="text-3xl font-bold">{disclaimers?(ar?'إخلاء المسؤولية':'Disclaimers'):(ar?'التحقق من رخصة الشركة':'Verify our company licence')}</h1>
- <p className="my-5 rounded-xl border border-amber-300 bg-amber-50 p-5 text-lg">{ar?nonAffiliation.ar:nonAffiliation.en}</p>
+ <OwnershipStatement />
  {!data?<p role="status">{query.isError?(ar?'تعذر تحميل بيانات الرخصة. حاول لاحقًا.':'Licence details could not be loaded. Try again later.'):(ar?'جارٍ تحميل بيانات الرخصة':'Loading licence details')}</p>:<>
  {data.expiry.status==='expired'&&<p role="alert" className="my-4 rounded border border-red-300 p-4 text-xl">{ar?'الرخصة قيد التجديد — البيانات التالية سجل الرخصة السابقة وليست إثباتًا لسريانها.':'Licence under renewal — the following is the previous licence record, not evidence of current validity.'}</p>}
- {disclaimers&&<LicenceStatement />}
  <h2 className="text-xl font-bold" dir="ltr">{data.profile.legalNameEn}</h2><p className="my-2 text-xl" dir="rtl">{data.profile.legalNameAr}</p>
  <dl className="my-6 grid gap-4 sm:grid-cols-2">{[
  [ar?'رقم الرخصة':'Licence number',data.profile.licence],[ar?'رقم التأسيس':'Formation number',data.profile.formation],

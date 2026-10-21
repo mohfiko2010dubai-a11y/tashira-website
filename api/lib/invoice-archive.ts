@@ -1,3 +1,4 @@
+import {orderOwnership} from './order-ownership';
 import { createHash } from "node:crypto";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { defaultOperationsPool } from "./operations/mysql-query-client";
@@ -7,9 +8,10 @@ import { issueFinancialDocument, prepareFinancialDocument, type PreparedFinancia
 export type InvoiceIssueData = { data: Omit<InvoiceData, "invoiceNumber" | "createdAt">; isTest: boolean; vatRate: string };
 
 export async function preparePaidInvoice(applicationId: number, paymentId: number, input: InvoiceIssueData) {
+  const ownership=await orderOwnership(input.data.referenceNumber);
   const document = await prepareFinancialDocument(defaultOperationsPool(), { applicationId, paymentId, issuanceKey: `payment:${paymentId}`,
-    kind: "invoice", isTest: input.isTest, issuedAt: new Date(), snapshot: { ...input.data, vatRate: input.vatRate },
-    render: (invoiceNumber, date) => Buffer.from(generateInvoicePDF({ ...input.data, invoiceNumber, createdAt: date.toISOString() }).output("arraybuffer")),
+    kind: "invoice", isTest: input.isTest, issuedAt: new Date(), snapshot: { ...input.data, ownership, vatRate: input.vatRate },
+    render: (invoiceNumber, date) => Buffer.from(generateInvoicePDF({ ...input.data, ownership, invoiceNumber, createdAt: date.toISOString() }).output("arraybuffer")),
   });
   return { document, settingsVersion: input.data.company.version, amount: input.data.totalAmount.toFixed(2), vatRate: input.vatRate };
 }

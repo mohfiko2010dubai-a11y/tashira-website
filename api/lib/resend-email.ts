@@ -1,3 +1,5 @@
+import {orderOwnership} from './order-ownership';
+import {isOwnershipCustomerTemplate,appendOwnershipEmail} from './ownership-email';
 import { createHash } from "node:crypto";
 import { renderTransactionalEmail, type EmailTemplate, type TransactionalEmailAttachment, type TransactionalEmailProvider } from "./transactional-email";
 
@@ -28,7 +30,9 @@ export class ResendEmailProvider implements TransactionalEmailProvider {
     const recipient = input.recipient.trim().toLowerCase();
     if (this.config.restrictRecipients && !this.config.allowedRecipients.has(recipient)) throw new Error("Recipient is not approved for staging email UAT");
     if (this.config.restrictRecipients && this.config.allowedApplicationReferences?.size && !this.config.allowedApplicationReferences.has(input.variables.referenceNumber)) throw new Error("Application is not approved for staging email UAT");
-    const rendered = renderTransactionalEmail(input.template, input.variables);
+    const ownership=isOwnershipCustomerTemplate(input.template)?await orderOwnership(input.variables.referenceNumber):undefined;
+    const base=renderTransactionalEmail(input.template,input.variables);
+    const rendered = ownership?appendOwnershipEmail(base,input.template,input.variables.language==='ar'?'ar':'en',ownership):base;
     const response = await this.request("https://api.resend.com/emails", {
       method: "POST",
       signal: AbortSignal.timeout(15_000),

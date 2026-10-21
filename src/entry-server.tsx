@@ -1,3 +1,4 @@
+import {RequestHostContext} from './providers/request-host';
 import "../contracts/install-safe-console";
 import { parentPort, workerData } from "node:worker_threads";
 import { PassThrough } from "node:stream";
@@ -16,10 +17,10 @@ import { articleMetadata, fixedMetadata, type PageMetadata } from "@contracts/ss
 import { withSsrDeadline } from "../api/lib/ssr-deadline";
 import { languagePath, languageRoute } from "@contracts/language-routes";
 
-type Job = { url: string; apiOrigin: string; fault?: string; startedAt: number };
+type Job = { url: string; apiOrigin: string; requestOrigin: string; fault?: string; startedAt: number };
 async function render(job: Job) {
   const workerStartupMs = Math.max(0, Date.now() - job.startedAt);
-  const url = new URL(job.url, "https://www.tashiraev.com");
+  const url = new URL(job.url, job.requestOrigin);
   const route = languageRoute(url.pathname);
   const path = route.pathname;
   const language = route.language;
@@ -74,7 +75,7 @@ async function render(job: Job) {
       output.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
       output.on("error", reject);
       const stream = renderToPipeableStream(
-        <I18nextProvider i18n={i18n}><TRPCProvider client={client} queries={queries}><StaticRouter basename={route.prefixed ? `/${language}` : "/"} location={job.url}><PublicApp /></StaticRouter></TRPCProvider></I18nextProvider>,
+        <I18nextProvider i18n={i18n}><TRPCProvider client={client} queries={queries}><StaticRouter basename={route.prefixed ? `/${language}` : "/"} location={job.url}><RequestHostContext.Provider value={url.hostname}><PublicApp /></RequestHostContext.Provider></StaticRouter></TRPCProvider></I18nextProvider>,
         { onAllReady() { stream.pipe(output); }, onError(error) { stream.abort(); reject(error); } },
       );
     });

@@ -1,3 +1,5 @@
+import {orderOwnership} from './order-ownership';
+import {ownershipText} from '../../contracts/ownership';
 import { jsPDF } from "jspdf";
 import type { RowDataPacket } from "mysql2/promise";
 import { defaultOperationsPool } from "./operations/mysql-query-client";
@@ -25,10 +27,11 @@ export async function prepareVisaRefundCreditNote(itemId: string, refund: Stripe
   if (rows.length !== 1) throw new Error("Issued invoice is required for the refund credit note");
   const row = rows[0];
   validateConfirmedRefund(refund, { intent: String(row.stripe_payment_intent_id), amount: String(row.refund_amount), currency: String(row.currency) });
+  const ownership=await orderOwnership(String(row.reference_number));
   const prepared = await prepareFinancialDocument(pool, {
     applicationId: Number(row.application_id), paymentId: Number(row.payment_id), issuanceKey: `refund:${refund.id}`,
     kind: "credit-note", isTest: Boolean(row.is_test) || stripeRuntimeMode() === "TEST", issuedAt: new Date(),
-    snapshot: { originalInvoiceNumber: row.invoice_number, referenceNumber: row.reference_number, refundItemId: itemId,
+    snapshot: { ownership, originalInvoiceNumber: row.invoice_number, referenceNumber: row.reference_number, refundItemId: itemId,
       stripeRefundId: refund.id, amount: row.refund_amount, currency: row.currency, reason: "Confirmed service refund" },
     render: (number, date) => {
       const pdf = new jsPDF();
@@ -38,6 +41,7 @@ export async function prepareVisaRefundCreditNote(itemId: string, refund: Stripe
         `Application: ${row.reference_number}`, `Refunded: ${row.currency} ${Number(row.refund_amount).toFixed(2)}`,
         `Stripe refund: ${refund.id}`, "This credit note records a confirmed refund against the original invoice."];
       lines.forEach((line, index) => pdf.text(line, 20, 45 + index * 10));
+      if(ownership){pdf.setFontSize(9);pdf.text(pdf.splitTextToSize(ownershipText(ownership.host,ownership.profile,'en'),170),20,135);pdf.text(`© 2026 ${ownership.host}`,20,195);}
       return Buffer.from(pdf.output("arraybuffer"));
     },
   });

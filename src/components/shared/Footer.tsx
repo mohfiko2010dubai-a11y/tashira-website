@@ -1,4 +1,4 @@
-import LicenceStatement from './LicenceStatement';
+import OwnershipStatement from './OwnershipStatement';
 import {trpc} from '@/providers/trpc-client';
 import Logo from '@/components/shared/Logo';
 import { Link } from 'react-router-dom';
@@ -47,7 +47,7 @@ export default function Footer() {
               <Logo theme="dark" size={26} /><p className="mt-2 text-xs text-gray-400" dir="ltr">{licenceData?.profile.licence ?? ""}</p>
             </div>
             <div className="text-sm text-gray-400 leading-relaxed mb-5">
-              <LicenceStatement footer />
+              
             </div>
             {/* Social media links hidden - will be enabled when accounts are created */}
             {/*
@@ -144,9 +144,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-gray-500">
-            {t('footer.copyright')}
-          </p>
+          <div className="text-gray-300"><OwnershipStatement /></div>
           <p className="text-xs text-gray-500 tracking-widest uppercase">
             {t('footer.paymentMethods')}
           </p>

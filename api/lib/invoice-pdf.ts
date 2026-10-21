@@ -1,3 +1,5 @@
+import {ownershipText} from '../../contracts/ownership';
+import type {LicenceProfile} from '../../contracts/licence-profile';
 import type { CompanyIdentity } from "../../contracts/company-settings";
 import fs from "fs";
 import path from "path";
@@ -18,6 +20,7 @@ export function getStorageDir(): string {
 }
 
 export interface InvoiceData {
+  ownership?: {host:string;profile:LicenceProfile};
   company: CompanyIdentity & { version: number };
   invoiceNumber: string;
   referenceNumber: string;
@@ -133,11 +136,11 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setTextColor("#FFFFFF");
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.text(data.company.legalName ?? "", 15, 33, { maxWidth: 120 });
-  doc.text(data.company.address ?? "", 15, 38, { maxWidth: 120 });
-  doc.text(data.company.licence ?? "", 15, 46, { maxWidth: 120 });
-  doc.textWithLink("Verify company licence", 145, 46, {url:"https://tashiraev.com/en/verify"});
-  doc.text([data.company.website, data.company.email, data.company.phone].filter(Boolean).join(" · "), 15, 50, { maxWidth: 180 });
+  doc.text(data.ownership?.profile.legalNameEn ?? data.company.legalName ?? "", 15, 33, { maxWidth: 120 });
+  doc.text(data.ownership?.profile.addressEn ?? data.company.address ?? "", 15, 38, { maxWidth: 120 });
+  doc.text(data.ownership?.profile.licence ?? data.company.licence ?? "", 15, 46, { maxWidth: 120 });
+  if(data.ownership)doc.textWithLink("Verify company licence", 145, 46, {url:`https://${data.ownership.host}/en/verify`});
+  doc.text([data.ownership?.host, data.company.email].filter(Boolean).join(" · "), 15, 50, { maxWidth: 180 });
   doc.setTextColor("#C9A04C");
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
@@ -242,6 +245,12 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.text("Thank you for choosing Tashira.", pageWidth / 2, footerY + 8, { align: "center" });
   doc.setTextColor("#666666");
   doc.text("We wish you a pleasant stay in the UAE.", pageWidth / 2, footerY + 14, { align: "center" });
+  if(data.ownership){
+    doc.addPage();doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor('#1A2332');
+    doc.text('Company ownership and service disclosure',15,20);
+    doc.text(doc.splitTextToSize(ownershipText(data.ownership.host,data.ownership.profile,'en'),180),15,32);
+    doc.text(`© 2026 ${data.ownership.host}`,15,90);
+  }
   return doc;
 }
 
